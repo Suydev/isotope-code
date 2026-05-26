@@ -1,0 +1,9 @@
+{
+  "name": "isotope-offline",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "IsotopeAI — fully offline, zero npm dependencies needed",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}
