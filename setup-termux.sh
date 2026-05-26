@@ -7,17 +7,17 @@ echo "  ★ IsotopeAI Setup for Termux"
 echo ""
 
 # Step 1: Upgrade ALL packages (critical — fixes OpenSSL version mismatch)
-echo "  [1/4] Upgrading Termux packages (fixes OpenSSL errors)..."
+echo "  [1/5] Upgrading Termux packages (fixes OpenSSL errors)..."
 echo "        This may take 1-2 minutes..."
 pkg update -y 2>/dev/null || true
 pkg upgrade -y 2>/dev/null || true
 
 # Step 2: Install OpenSSL explicitly
-echo "  [2/4] Installing OpenSSL..."
+echo "  [2/5] Installing OpenSSL..."
 pkg install openssl -y -q 2>/dev/null || true
 
 # Step 3: Install Node.js
-echo "  [3/4] Installing Node.js..."
+echo "  [3/5] Installing Node.js..."
 pkg install nodejs -y -q
 
 # Verify node actually runs (not just exists)
@@ -34,13 +34,32 @@ else
 fi
 
 # Step 4: Permissions
-echo "  [4/4] Setting permissions..."
+echo "  [4/5] Setting permissions..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 chmod +x "$SCRIPT_DIR/start.sh"
+
+# Step 5: Add 'isotope' shortcut alias
+echo "  [5/5] Adding 'isotope' shortcut..."
+BASHRC="$HOME/.bashrc"
+ALIAS_LINE="alias isotope='bash \"$SCRIPT_DIR/start.sh\"'"
+
+if grep -q "alias isotope=" "$BASHRC" 2>/dev/null; then
+  # Update existing alias in case the path changed
+  sed -i "s|alias isotope=.*|$ALIAS_LINE|" "$BASHRC"
+  echo "  ✓ Shortcut updated"
+else
+  echo "" >> "$BASHRC"
+  echo "# IsotopeAI launcher" >> "$BASHRC"
+  echo "$ALIAS_LINE" >> "$BASHRC"
+  echo "  ✓ Shortcut added"
+fi
 
 echo ""
 echo "  ✓ Setup complete!"
 echo ""
-echo "  To start IsotopeAI, run:"
-echo "    bash start.sh"
+echo "  Start IsotopeAI anytime by typing:"
+echo ""
+echo "    isotope"
+echo ""
+echo "  (Open a new Termux session first, or run: source ~/.bashrc)"
 echo ""
