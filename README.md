@@ -1,249 +1,192 @@
 # isotopeAIcode
 
-A fully offline-capable self-hosted build of **IsotopeAI** — an AI-powered study planner for JEE / NEET / competitive exam students. All data lives locally in your browser (IndexedDB). No login, no cloud account, no subscription required.
+**Your personal AI-powered study planner — runs on your computer, no internet required.**
 
-> **This release fixes 60 missing JavaScript files** that caused violent page reloads and infinite loading on the Analytics tab in the original repo.
-
----
-
-## Features
-
-| Feature | Offline | Notes |
-|---|---|---|
-| Dashboard | ✅ | Tasks, deadlines, streak, analytics overview |
-| Focus Timer | ✅ | Pomodoro + Stopwatch with session logging |
-| Tasks | ✅ | Priority board, Eisenhower matrix, Zen view |
-| Chapters / Syllabus | ✅ | Subject → Chapter → Topic progress |
-| Exams | ✅ | Scheduling, countdown, result logging |
-| Analytics | ✅ | Heat-maps, productivity scores, session breakdowns |
-| Community | 🌐 | Needs internet for live group features |
-| AI Assistant | 🌐 | Gemini / Groq (online only, free tiers available) |
+All your data stays private on your device. No account needed. No subscription. No tracking.
 
 ---
 
-## Quick Start
+## How to start the app
 
-### Requirements
-- **Node.js 18 or newer** — download from https://nodejs.org
+### On Windows
 
-### 1 — Download
+1. **Extract** the ZIP file (right-click → Extract All)
+2. Open the extracted folder
+3. **Double-click `Start IsotopeAI.bat`**
+4. Your browser opens automatically at `http://localhost:3000`
 
-Download **isotopeAIcode.zip** from the [Releases page](../../releases/latest) and extract it.
-
-### 2 — Start the server
-
-```bash
-node server.mjs
-```
-
-Open **http://localhost:3000** in Chrome or Edge.
-
-### 3 — Change port (optional)
-
-```bash
-PORT=8080 node server.mjs
-```
-
-### 4 — Install as an app (optional)
-
-- **Android:** Chrome → ⋮ → Add to Home Screen
-- **Desktop:** Chrome → address bar → Install icon
+> First time? If Node.js isn't installed, the launcher will offer to install it automatically.
 
 ---
 
-## Running on Android (Termux)
+### On Mac
 
-```bash
-# First time only
-pkg install nodejs
+1. **Extract** the ZIP file (double-click it)
+2. Open the extracted folder in Finder
+3. **Right-click `Start IsotopeAI.command` → Open**
+   *(You may need to click "Open" in the security dialog the first time)*
+4. Your browser opens automatically
 
-# Every time
-cd isotopeAIcode
-node server.mjs
-```
-
-Open Chrome → `http://localhost:3000`
-
-Keep Termux alive: swipe left → **Acquire Wakelock**
+> **Mac note:** The first time you run it, macOS will show a security warning because the file was downloaded from the internet. Right-click → Open (instead of double-click) to bypass it.
 
 ---
 
-## Configuring AI (Gemini & Groq)
+### On Linux
 
-AI features are **online-only by design** — they are automatically disabled when your device has no internet connection.
+1. **Extract** the ZIP
+2. Open a terminal in the folder
+3. Run: `bash start-linux.sh`
+4. Your browser opens automatically
 
-### Get free API keys
+---
 
-| Provider | Link | Free tier |
-|---|---|---|
-| Google Gemini | https://aistudio.google.com/apikey | ✅ Yes |
-| Groq | https://console.groq.com/keys | ✅ Yes |
+### On Android (Termux)
 
-### Option A — Environment variable (recommended)
+1. Install **Termux** from [F-Droid](https://f-droid.org/packages/com.termux/)
+2. Run setup once:
+   ```
+   bash setup-termux.sh
+   ```
+3. Every time after that:
+   ```
+   bash start.sh
+   ```
+4. Open **Chrome** → `http://localhost:3000`
+5. Tap ⋮ → **Add to Home Screen** to install as an app icon
 
-**Linux / macOS / Termux**
-```bash
-GEMINI_API_KEY=your_key GROQ_API_KEY=your_key node server.mjs
-```
+---
 
-**Windows (Command Prompt)**
-```cmd
-set GEMINI_API_KEY=your_key
-set GROQ_API_KEY=your_key
-node server.mjs
-```
+## What can this app do?
 
-**Windows (PowerShell)**
-```powershell
-$env:GEMINI_API_KEY="your_key"
-$env:GROQ_API_KEY="your_key"
-node server.mjs
-```
+| Feature | Works without internet? |
+|---|---|
+| Dashboard (tasks, deadlines, streak) | ✅ Yes |
+| Focus Timer (Pomodoro + Stopwatch) | ✅ Yes |
+| Tasks, board, Eisenhower matrix | ✅ Yes |
+| Chapters and syllabus tracker | ✅ Yes |
+| Exam scheduling and countdown | ✅ Yes |
+| Analytics and study heatmaps | ✅ Yes |
+| **Picture-in-Picture timer** | ✅ Yes (Chrome/Edge only) |
+| Community / group study | 🌐 Needs internet |
+| AI study assistant | 🌐 Needs internet + API key |
 
-The server startup log confirms success:
-```
-✓ Gemini API key configured
-✓ Groq API key configured
-```
+---
 
-### Option B — `.env` file (Node.js 20.6+ only, no extra install)
+## Picture-in-Picture timer
 
-Create a file called `.env` next to `server.mjs`:
+The Focus timer has a **floating window mode** — you can keep the timer visible on top of other apps while you study.
 
-```env
-PORT=3000
-GEMINI_API_KEY=your_gemini_key_here
-GROQ_API_KEY=your_groq_key_here
-```
+**How to use it:**
+1. Start a focus session (click the timer icon in the left sidebar)
+2. Look for the **PiP button** (picture frame icon) in the timer controls
+3. Click it — a small floating timer window appears, always on top
 
-Start with:
-```bash
-node --env-file=.env server.mjs
-```
+> Requires **Chrome 116+** or **Edge 116+**. Does not work in Firefox or Safari.
 
-### Option C — In-app settings
+---
 
-Go to **Settings → AI Features → AI Assistant** and paste your key directly. Keys are encrypted and stored in your browser only.
+## AI study assistant (optional)
+
+The AI assistant is **disabled by default** and only works when you have internet. It never runs without your permission.
+
+**To enable it:**
+
+1. Get a free API key:
+   - **Google Gemini** → go to https://aistudio.google.com/apikey → sign in → click "Get API Key" → copy it
+   - **Groq** → go to https://console.groq.com/keys → sign in → create a key → copy it
+
+2. Open the app → go to **Settings** (gear icon) → **AI Features** → **AI Assistant**
+
+3. Paste your key and click **Validate**
+
+That's it — AI features activate immediately.
+
+---
+
+## Your data is safe
+
+- Everything is stored **in your browser** (not on any server)
+- Closing the server does **not** delete your data
+- Data persists between restarts as long as you use the same browser on the same computer
+
+**Important:** Don't clear your browser's site data for `localhost`. That would erase your study history.
+
+**Back up your data regularly:**  
+Go to **Settings → Account → Export Data** to download a backup file.
 
 ---
 
 ## Troubleshooting
 
-### ❌ Page reloads violently when clicking Analytics or Add Exam
+### The app doesn't open / browser doesn't launch
 
-A JavaScript chunk file was missing. This release includes all 148 required `.js` files — re-download from the [Releases page](../../releases/latest).
+- Make sure the terminal/launcher window is still open (don't close it)
+- Try opening your browser manually and going to `http://localhost:3000`
+- If you see "This site can't be reached", the server isn't running — re-run the launcher
 
-If the issue persists: open DevTools (F12) → Console → look for:
-```
-Failed to fetch dynamically imported module: .../assets/XYZ.js
-```
-Note the filename and open an issue.
+### "Node.js not found" error on Windows
 
----
+The launcher will offer to install Node.js automatically. Click **Yes** when prompted.  
+If that fails, visit https://nodejs.org → download the **LTS** version → install it → run the launcher again.
 
-### ❌ Analytics shows "Loading analytics..." forever
+### App loads but shows a white screen
 
-The analytics web worker is missing from `public/assets/`.
+- Do a hard refresh: **Ctrl + Shift + R** (Windows/Linux) or **Cmd + Shift + R** (Mac)
+- Make sure you're visiting `http://localhost:3000` (with `http://`, not `https://`)
 
-Verify it exists:
-```bash
-ls public/assets/analyticsWorker-BnmTlfYB.js
-```
+### Analytics shows "Loading..." forever
 
-If missing, re-download the release zip — it includes this file.
+Your download may be incomplete. Re-download the ZIP from the [releases page](../../releases/latest) and extract it fresh.
 
----
+### The timer PiP button doesn't work
 
-### ❌ AI features not working
+Picture-in-Picture requires **Chrome 116 or newer** (or Edge 116+). Update your browser or switch to Chrome.
 
-1. Check the server log for `✓ Gemini/Groq API key configured`
-2. Make sure your device is **online** (AI is disabled offline by design)
-3. Open DevTools → Network → look for requests to `generativelanguage.googleapis.com` or `api.groq.com`
-   - `401` → wrong key
-   - `429` → free-tier rate limit hit, wait a minute
-4. Try **Settings → AI Features → Validate key**
+### Data disappeared
 
----
+If you cleared your browser's cache or switched browsers, the data won't be there.  
+Restore from a backup: **Settings → Account → Import Data**.
 
-### ❌ Blank white screen on load
+### Port 3000 already in use
 
-- Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac)
-- Make sure you are on `http://` not `https://`
-- Check DevTools Console for red errors
+**Windows:** Open `Start IsotopeAI.bat` in Notepad and change `3000` to `4000` in the last line.  
+**Mac/Linux:** Run `PORT=4000 node server.mjs` and open `http://localhost:4000`.
 
----
+### App works but AI features don't respond
 
-### ❌ "Port already in use" error
-
-```
-Error: listen EADDRINUSE :::3000
-```
-
-Use a different port:
-```bash
-PORT=4000 node server.mjs
-```
-Then open `http://localhost:4000`
+1. Check you're connected to the internet
+2. Go to **Settings → AI Features** and confirm your key is saved
+3. Try clicking **Validate key** — a ✓ means it's working
+4. If you see a rate-limit error, wait 1 minute (free tier has limits)
 
 ---
 
-### ❌ Node.js version error
+## Keeping the app running on Android
 
-Check your version:
-```bash
-node --version
-```
-
-Must be **v18 or newer**. Download from https://nodejs.org (choose LTS).
+In Termux, swipe from the left edge → tap **Acquire Wakelock**. This prevents Android from killing the server when your screen sleeps.
 
 ---
 
-### ❌ Data disappeared
-
-Browser storage (IndexedDB) is tied to the exact origin (`http://localhost:3000`). Clearing browser data or changing the port will make the app appear empty.
-
-**Prevention:** Export your data regularly — **Settings → Account → Export Data**
-
-**Recovery:** If you have a backup file — **Settings → Account → Import Data**
-
----
-
-## File Structure
+## File structure (for curious users)
 
 ```
 isotopeAIcode/
-├── server.mjs          ← Node.js server (no npm install needed)
-├── index.html          ← App shell
-├── README.md
-├── start.sh            ← Quick-start script (Linux/Mac/Termux)
-├── setup-termux.sh     ← First-time Termux setup
+├── Start IsotopeAI.bat      ← Windows: double-click to start
+├── Start IsotopeAI.command  ← Mac: double-click to start
+├── start-linux.sh           ← Linux: run with bash
+├── start.sh                 ← Android/Termux launcher
+├── setup-termux.sh          ← Android/Termux first-time setup
+├── server.mjs               ← The local web server (Node.js)
+├── index.html               ← App entry point
 └── public/
-    ├── assets/         ← 148 JS/CSS/font chunks (all required)
-    ├── sw.js           ← Service worker (offline caching)
-    ├── boot-recovery.js
-    └── manifest.json
+    └── assets/              ← All 148 app files (do not delete)
 ```
 
 ---
 
-## What Was Fixed
+## Technical notes
 
-The original repo was missing **60 JavaScript files** that the app lazy-loads when navigating:
-
-| Problem | Root cause | Fix |
-|---|---|---|
-| Violent page reload on Analytics / Exams / Community | 59 missing JS chunk files triggered `boot-recovery.js` → `window.location.replace()` | Downloaded all 59 chunks from live site |
-| Analytics tab stuck on "Loading analytics..." | Missing `analyticsWorker-BnmTlfYB.js` web worker | Downloaded and added the file |
-
-**Server improvements added:**
-- Gemini & Groq API key injection via environment variables (no code change needed)
-- Online-only AI enforcement via JavaScript `Proxy`
-- `/api/ai-config` health endpoint
-- Proper SPA HTML injection for all routes
-
----
-
-## Credits
-
-IsotopeAI is built by the IsotopeAI team. This is a self-hosted build for personal / offline use.  
-All original rights belong to IsotopeAI (https://isotopeai.in).
+- **Node.js 18+** required
+- No `npm install` needed — server uses only Node.js built-in modules
+- App data is stored in browser IndexedDB at `http://localhost:3000`
+- Source: https://github.com/Suydev/isotope-code
