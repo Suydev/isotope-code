@@ -1,105 +1,249 @@
-# IsotopeAI — Offline / Termux Edition
+# isotopeAIcode
 
-Your full IsotopeAI app running locally on your Android device via Termux.  
-**Zero internet required after setup. Zero npm install needed.**
+A fully offline-capable self-hosted build of **IsotopeAI** — an AI-powered study planner for JEE / NEET / competitive exam students. All data lives locally in your browser (IndexedDB). No login, no cloud account, no subscription required.
 
----
-
-## Quick Start (Termux)
-
-### Step 1 — Install Termux
-Download **Termux** from [F-Droid](https://f-droid.org/packages/com.termux/) (recommended, not Play Store).
-
-### Step 2 — Run setup (first time only)
-```bash
-bash setup-termux.sh
-```
-This installs Node.js. Takes ~1 minute.
-
-### Step 3 — Start the app
-```bash
-bash start.sh
-```
-
-### Step 4 — Open in Chrome
-Open **Chrome** on your Android and go to:
-```
-http://localhost:3000
-```
-
-### Step 5 — Install as APK-like app (optional)
-1. In Chrome, tap **⋮** (three dots, top right)
-2. Tap **"Add to Home Screen"**
-3. Tap **"Add"**
-4. IsotopeAI now appears on your home screen and launches full-screen like a real APK
+> **This release fixes 60 missing JavaScript files** that caused violent page reloads and infinite loading on the Analytics tab in the original repo.
 
 ---
 
-## What works offline
+## Features
 
 | Feature | Offline | Notes |
-|---------|---------|-------|
-| Dashboard | ✓ | Full stats, activity |
-| Focus Timer | ✓ | Pomodoro & deep work |
-| Tasks | ✓ | Full CRUD |
-| Study / Syllabus | ✓ | Subjects & topics |
-| Exams | ✓ | Countdown timers |
-| AI Assistant | ✓* | Needs Gemini key for full AI |
-| Community | ✓* | Needs internet for live community |
-
-*AI still works offline with built-in smart responses. Add a free Gemini API key in Settings for full AI.
-
----
-
-## Get a free Gemini API key (for full AI)
-
-1. Go to [aistudio.google.com](https://aistudio.google.com) on any browser
-2. Sign in with Google → click **"Get API Key"**
-3. Copy the key
-4. In the app → **Settings** → paste the key
-
-It's free, no credit card needed.
+|---|---|---|
+| Dashboard | ✅ | Tasks, deadlines, streak, analytics overview |
+| Focus Timer | ✅ | Pomodoro + Stopwatch with session logging |
+| Tasks | ✅ | Priority board, Eisenhower matrix, Zen view |
+| Chapters / Syllabus | ✅ | Subject → Chapter → Topic progress |
+| Exams | ✅ | Scheduling, countdown, result logging |
+| Analytics | ✅ | Heat-maps, productivity scores, session breakdowns |
+| Community | 🌐 | Needs internet for live group features |
+| AI Assistant | 🌐 | Gemini / Groq (online only, free tiers available) |
 
 ---
 
-## Run on PC / Mac / Linux
+## Quick Start
 
-Same steps, just use your normal terminal:
+### Requirements
+- **Node.js 18 or newer** — download from https://nodejs.org
+
+### 1 — Download
+
+Download **isotopeAIcode.zip** from the [Releases page](../../releases/latest) and extract it.
+
+### 2 — Start the server
+
 ```bash
 node server.mjs
 ```
-Then open `http://localhost:3000` in any browser.
+
+Open **http://localhost:3000** in Chrome or Edge.
+
+### 3 — Change port (optional)
+
+```bash
+PORT=8080 node server.mjs
+```
+
+### 4 — Install as an app (optional)
+
+- **Android:** Chrome → ⋮ → Add to Home Screen
+- **Desktop:** Chrome → address bar → Install icon
 
 ---
 
-## Shortcuts (run from anywhere)
+## Running on Android (Termux)
 
-Add this to your `~/.bashrc` in Termux:
 ```bash
-alias isotope='cd ~/isotope-offline && bash start.sh'
+# First time only
+pkg install nodejs
+
+# Every time
+cd isotopeAIcode
+node server.mjs
 ```
-Then just type `isotope` to launch.
+
+Open Chrome → `http://localhost:3000`
+
+Keep Termux alive: swipe left → **Acquire Wakelock**
+
+---
+
+## Configuring AI (Gemini & Groq)
+
+AI features are **online-only by design** — they are automatically disabled when your device has no internet connection.
+
+### Get free API keys
+
+| Provider | Link | Free tier |
+|---|---|---|
+| Google Gemini | https://aistudio.google.com/apikey | ✅ Yes |
+| Groq | https://console.groq.com/keys | ✅ Yes |
+
+### Option A — Environment variable (recommended)
+
+**Linux / macOS / Termux**
+```bash
+GEMINI_API_KEY=your_key GROQ_API_KEY=your_key node server.mjs
+```
+
+**Windows (Command Prompt)**
+```cmd
+set GEMINI_API_KEY=your_key
+set GROQ_API_KEY=your_key
+node server.mjs
+```
+
+**Windows (PowerShell)**
+```powershell
+$env:GEMINI_API_KEY="your_key"
+$env:GROQ_API_KEY="your_key"
+node server.mjs
+```
+
+The server startup log confirms success:
+```
+✓ Gemini API key configured
+✓ Groq API key configured
+```
+
+### Option B — `.env` file (Node.js 20.6+ only, no extra install)
+
+Create a file called `.env` next to `server.mjs`:
+
+```env
+PORT=3000
+GEMINI_API_KEY=your_gemini_key_here
+GROQ_API_KEY=your_groq_key_here
+```
+
+Start with:
+```bash
+node --env-file=.env server.mjs
+```
+
+### Option C — In-app settings
+
+Go to **Settings → AI Features → AI Assistant** and paste your key directly. Keys are encrypted and stored in your browser only.
 
 ---
 
 ## Troubleshooting
 
-**Port already in use?**
-```bash
-PORT=3001 bash start.sh
-```
-Then open `http://localhost:3001`
+### ❌ Page reloads violently when clicking Analytics or Add Exam
 
-**Node.js not found?**
-```bash
-pkg install nodejs
-```
+A JavaScript chunk file was missing. This release includes all 148 required `.js` files — re-download from the [Releases page](../../releases/latest).
 
-**App not loading?**
-Make sure the terminal is still running (don't close Termux while using the app). You can use Termux's wake lock to keep it running.
+If the issue persists: open DevTools (F12) → Console → look for:
+```
+Failed to fetch dynamically imported module: .../assets/XYZ.js
+```
+Note the filename and open an issue.
 
 ---
 
-## Keeping Termux alive while using the app
+### ❌ Analytics shows "Loading analytics..." forever
 
-In Termux, swipe from the left edge to open the sidebar, tap **"Acquire Wakelock"** — this prevents Android from killing the server when the screen sleeps.
+The analytics web worker is missing from `public/assets/`.
+
+Verify it exists:
+```bash
+ls public/assets/analyticsWorker-BnmTlfYB.js
+```
+
+If missing, re-download the release zip — it includes this file.
+
+---
+
+### ❌ AI features not working
+
+1. Check the server log for `✓ Gemini/Groq API key configured`
+2. Make sure your device is **online** (AI is disabled offline by design)
+3. Open DevTools → Network → look for requests to `generativelanguage.googleapis.com` or `api.groq.com`
+   - `401` → wrong key
+   - `429` → free-tier rate limit hit, wait a minute
+4. Try **Settings → AI Features → Validate key**
+
+---
+
+### ❌ Blank white screen on load
+
+- Hard-refresh: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac)
+- Make sure you are on `http://` not `https://`
+- Check DevTools Console for red errors
+
+---
+
+### ❌ "Port already in use" error
+
+```
+Error: listen EADDRINUSE :::3000
+```
+
+Use a different port:
+```bash
+PORT=4000 node server.mjs
+```
+Then open `http://localhost:4000`
+
+---
+
+### ❌ Node.js version error
+
+Check your version:
+```bash
+node --version
+```
+
+Must be **v18 or newer**. Download from https://nodejs.org (choose LTS).
+
+---
+
+### ❌ Data disappeared
+
+Browser storage (IndexedDB) is tied to the exact origin (`http://localhost:3000`). Clearing browser data or changing the port will make the app appear empty.
+
+**Prevention:** Export your data regularly — **Settings → Account → Export Data**
+
+**Recovery:** If you have a backup file — **Settings → Account → Import Data**
+
+---
+
+## File Structure
+
+```
+isotopeAIcode/
+├── server.mjs          ← Node.js server (no npm install needed)
+├── index.html          ← App shell
+├── README.md
+├── start.sh            ← Quick-start script (Linux/Mac/Termux)
+├── setup-termux.sh     ← First-time Termux setup
+└── public/
+    ├── assets/         ← 148 JS/CSS/font chunks (all required)
+    ├── sw.js           ← Service worker (offline caching)
+    ├── boot-recovery.js
+    └── manifest.json
+```
+
+---
+
+## What Was Fixed
+
+The original repo was missing **60 JavaScript files** that the app lazy-loads when navigating:
+
+| Problem | Root cause | Fix |
+|---|---|---|
+| Violent page reload on Analytics / Exams / Community | 59 missing JS chunk files triggered `boot-recovery.js` → `window.location.replace()` | Downloaded all 59 chunks from live site |
+| Analytics tab stuck on "Loading analytics..." | Missing `analyticsWorker-BnmTlfYB.js` web worker | Downloaded and added the file |
+
+**Server improvements added:**
+- Gemini & Groq API key injection via environment variables (no code change needed)
+- Online-only AI enforcement via JavaScript `Proxy`
+- `/api/ai-config` health endpoint
+- Proper SPA HTML injection for all routes
+
+---
+
+## Credits
+
+IsotopeAI is built by the IsotopeAI team. This is a self-hosted build for personal / offline use.  
+All original rights belong to IsotopeAI (https://isotopeai.in).
