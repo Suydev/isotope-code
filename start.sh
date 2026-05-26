@@ -9,9 +9,20 @@ echo ""
 echo "  ★ IsotopeAI — Starting..."
 echo ""
 
-# Check Node.js
+# Check Node.js is installed
 if ! command -v node &> /dev/null; then
-  echo "  ✗ Node.js not found. Run setup-termux.sh first."
+  echo "  ✗ Node.js not found. Run setup first:"
+  echo "    bash setup-termux.sh"
+  exit 1
+fi
+
+# Check Node.js actually runs (catches OpenSSL linker errors)
+if ! node --version > /dev/null 2>&1; then
+  echo "  ✗ Node.js won't start — OpenSSL version mismatch."
+  echo ""
+  echo "  Fix (run this, then try again):"
+  echo "    pkg upgrade -y"
+  echo ""
   exit 1
 fi
 
