@@ -97,6 +97,73 @@ function getPatchedAiStore() {
 }
 
 if (GEMINI_API_KEY || GROQ_API_KEY) getPatchedAiStore();
+
+// ── Picture-in-Picture polyfill ───────────────────────────────────────────────
+// The app uses the Document Picture-in-Picture API (Chrome 116+ desktop).
+// This polyfill is prepended to the Focus bundle at serve time.
+// On browsers that already support documentPictureInPicture it does nothing.
+// On unsupported browsers it creates a draggable floating overlay that behaves
+// identically: same API surface, dark-mode sync, draggable, close button,
+// pagehide event, S.prompt() support.
+const FOCUS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Focus-BmgY-9vP.js');
+
+const PIP_POLYFILL = `(function(){
+if('documentPictureInPicture' in window)return;
+window.documentPictureInPicture={
+requestWindow:async function(opts){
+var w=(opts&&opts.width)||340,h=(opts&&opts.height)||390;
+var old=document.getElementById('__pip_poly__');if(old)old.remove();
+var ov=document.createElement('div');
+ov.id='__pip_poly__';
+ov.setAttribute('style','position:fixed;top:20px;right:20px;width:'+w+'px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.12);z-index:2147483647;overflow:hidden;font-family:system-ui,sans-serif;border:1px solid rgba(0,0,0,.08);background:#f4f4f5;');
+var bar=document.createElement('div');
+bar.setAttribute('style','position:absolute;top:0;left:0;right:0;height:26px;cursor:grab;z-index:1;display:flex;align-items:center;justify-content:flex-end;padding:0 7px;background:rgba(0,0,0,.07);border-radius:16px 16px 0 0;box-sizing:border-box;');
+var xBtn=document.createElement('button');
+xBtn.textContent='\\u2715';
+xBtn.setAttribute('style','background:rgba(0,0,0,.18);border:none;border-radius:50%;width:17px;height:17px;cursor:pointer;font-size:9px;color:inherit;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;');
+bar.appendChild(xBtn);ov.appendChild(bar);
+var ca=document.createElement('div');
+ca.setAttribute('style','margin-top:26px;min-height:'+(h-26)+'px;');
+ov.appendChild(ca);document.body.appendChild(ov);
+var drag=false,ox=0,oy=0;
+bar.addEventListener('mousedown',function(e){if(e.target===xBtn)return;drag=true;var r=ov.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;bar.style.cursor='grabbing';e.preventDefault();});
+document.addEventListener('mousemove',function(e){if(!drag)return;ov.style.right='auto';ov.style.left=Math.max(0,Math.min(e.clientX-ox,window.innerWidth-w-4))+'px';ov.style.top=Math.max(0,e.clientY-oy)+'px';});
+document.addEventListener('mouseup',function(){drag=false;bar.style.cursor='grab';});
+var phl=[];
+function doClose(){ov.remove();phl.forEach(function(fn){try{fn({type:'pagehide'});}catch(e){}});}
+xBtn.addEventListener('click',doClose);
+var sty=new Proxy(ca.style,{
+set:function(t,p,v){t[p]=v;if(p==='backgroundColor')ov.style.backgroundColor=v;return true;},
+get:function(t,p){var v=t[p];return typeof v==='function'?v.bind(t):v;}
+});
+var body=new Proxy(ca,{
+get:function(t,p){if(p==='style')return sty;var v=t[p];return typeof v==='function'?v.bind(t):v;},
+set:function(t,p,v){t[p]=v;return true;}
+});
+var fd={
+body:body,
+createElement:function(tag){return document.createElement(tag);},
+createElementNS:function(ns,tag){return document.createElementNS(ns,tag);},
+getElementById:function(id){return ca.querySelector('#'+id);},
+querySelector:function(s){return ca.querySelector(s);},
+querySelectorAll:function(s){return ca.querySelectorAll(s);},
+head:{appendChild:function(){},querySelectorAll:function(){return[];}}
+};
+return{document:fd,close:doClose,prompt:function(m,d){return window.prompt(m,d);},addEventListener:function(e,fn){if(e==='pagehide')phl.push(fn);},removeEventListener:function(){}};
+}};
+})();`;
+
+let patchedFocusBundle = null;
+function getPatchedFocusBundle() {
+  if (patchedFocusBundle) return patchedFocusBundle;
+  try {
+    const raw = fs.readFileSync(FOCUS_BUNDLE_ABS, 'utf8');
+    patchedFocusBundle = Buffer.from(PIP_POLYFILL + '\n' + raw, 'utf8');
+  } catch { patchedFocusBundle = null; }
+  return patchedFocusBundle;
+}
+
+getPatchedFocusBundle();
 // ─────────────────────────────────────────────────────────────────────────────
 
 const debugErrors = [];
@@ -172,6 +239,12 @@ const server = http.createServer((req, res) => {
     // Serve patched AI store when keys are configured
     if ((GEMINI_API_KEY || GROQ_API_KEY) && fp === AI_STORE_ABS) {
       const buf = getPatchedAiStore();
+      if (buf) { res.writeHead(200, { 'Content-Type': contentType }); res.end(buf); return; }
+    }
+
+    // Serve Focus bundle with PiP polyfill prepended (works on all browsers)
+    if (fp === FOCUS_BUNDLE_ABS) {
+      const buf = getPatchedFocusBundle();
       if (buf) { res.writeHead(200, { 'Content-Type': contentType }); res.end(buf); return; }
     }
 
