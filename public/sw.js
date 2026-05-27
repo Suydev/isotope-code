@@ -53,10 +53,19 @@ self.addEventListener('fetch', function(event) {
     return;
   }
 
+  // Return stub JS for Headway changelog widget (prevents CDN script load)
+  if (url.includes('headwayapp.co')) {
+    event.respondWith(new Response(
+      '/* Headway offline stub */\nwindow.Headway={init:function(){},show:function(){},hide:function(){},getUnseenCount:function(){return 0;}};',
+      { status: 200, headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'public, max-age=86400' } }
+    ));
+    return;
+  }
+
   // Block external network calls (Supabase, Firebase, analytics, etc.)
   var blockedHosts = ['supabase.co', 'firebase.com', 'firebaseio.com',
     'googleapis.com', 'googletagmanager.com', 'analytics.google.com',
-    'sentry.io', 'mixpanel.com', 'amplitude.com', 'headwayapp.co'];
+    'sentry.io', 'mixpanel.com', 'amplitude.com'];
   var isBlocked = blockedHosts.some(function(h) { return url.includes(h); });
   if (isBlocked) {
     event.respondWith(new Response(JSON.stringify({ data: [], error: null }), {

@@ -281,3 +281,16 @@ body,
   background: rgba(249, 115, 22, 0.3);
   color: inherit;
 }
+
+/* ── Headway changelog widget — hidden in offline mode ───────────────────── */
+/* The Headway "Product updates" bell icon loads cdn.headwayapp.co/widget.js.
+   We stub it in offline-patches.js and sw.js, but also hide the button so
+   it never appears as a confusing "Update" affordance to the user.           */
+[class*="headway-widget-trigger"],
+[class*="headway-widget-anchor"],
+#headway-widget-script,
+iframe[src*="headwayapp"] {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}

@@ -4,9 +4,68 @@
  * 2. Community & payment route removal
  * 3. Liquid glass SVG filter injection
  * 4. Android PWA fixes
+ * 5. Headway changelog widget neutralisation
+ *    (prevents CDN script load; the SW returns a stub but this runs even
+ *     before the SW intercepts the injected <script> tag)
+ *
+ * NOTE — "Update Project" safety:
+ *   The Headway button ("Product updates" bell icon in the header) is a
+ *   changelog viewer that loads cdn.headwayapp.co/widget.js. It does NOT
+ *   update any app code. It is stubbed below so no external request is made.
+ *
+ *   The Service Worker itself is served from THIS local server (server.mjs),
+ *   not from isotopeai.in. Any SW "update" check (registration.update() in
+ *   boot-recovery.js) hits localhost, so it can never pull in an upstream
+ *   SW that would overwrite liquid-glass.css, offline-patches.js, or sw.js.
  */
 (function () {
   'use strict';
+
+  // ── 0. Neutralise Headway changelog widget ────────────────────────────────
+  // Freeze a no-op Headway object so the app never tries to fetch the CDN script.
+  var headwayStub = {
+    init: function () {},
+    show: function () {},
+    hide: function () {},
+    getUnseenCount: function () { return 0; },
+  };
+  try {
+    Object.defineProperty(window, 'Headway', {
+      value: headwayStub,
+      writable: false,
+      configurable: false,
+    });
+  } catch (e) {
+    window.Headway = headwayStub;
+  }
+
+  // Intercept dynamic <script> injection for cdn.headwayapp.co
+  // by wrapping document.createElement so the injected script is no-op'd.
+  (function () {
+    var _createElement = document.createElement.bind(document);
+    document.createElement = function (tag) {
+      var el = _createElement(tag);
+      if (tag && tag.toLowerCase() === 'script') {
+        var _setSrc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
+        Object.defineProperty(el, 'src', {
+          get: _setSrc ? _setSrc.get.bind(el) : function () { return el._src || ''; },
+          set: function (val) {
+            if (typeof val === 'string' && val.includes('headwayapp.co')) {
+              // Swap to an empty data-URI so no CDN request is made
+              val = 'data:application/javascript,/* headway offline stub */';
+            }
+            if (_setSrc && _setSrc.set) {
+              _setSrc.set.call(el, val);
+            } else {
+              el._src = val;
+            }
+          },
+          configurable: true,
+        });
+      }
+      return el;
+    };
+  })();
 
   var DB_NAME = 'isotope_main';
   var STATE_ENDPOINT = '/api/state';
