@@ -1,9 +1,47 @@
 // ── Offline patches ─────────────────────────────────────────────────────────
+
+// Routes that don't exist in offline mode — redirect to /dashboard
+var OFFLINE_ONLY_ROUTES = [
+  '/community', '/invite', '/subscription', '/pricing',
+  '/leaderboard', '/challenges', '/group', '/friends',
+  '/reset-password', '/about', '/privacy',
+];
+
+function isOfflineOnlyRoute(url) {
+  try {
+    var parsed = new URL(url);
+    var p = parsed.pathname;
+    return OFFLINE_ONLY_ROUTES.some(function(r) {
+      return p === r || p.startsWith(r + '/') || p.startsWith(r + '?');
+    });
+  } catch(e) { return false; }
+}
+
+// HTML redirect response for offline-only pages
+function offlineRedirect() {
+  var html = '<!doctype html><html><head>'
+    + '<meta http-equiv="refresh" content="0;url=/dashboard">'
+    + '<script>window.location.replace("/dashboard");</script>'
+    + '</head><body></body></html>';
+  return new Response(html, {
+    status: 302,
+    headers: { 'Content-Type': 'text/html', 'Location': '/dashboard' }
+  });
+}
+
 // Intercept DiceBear avatar requests and serve locally-generated SVGs
 self.addEventListener('fetch', function(event) {
-  if (event.request.url.includes('api.dicebear.com')) {
-    var url = new URL(event.request.url);
-    var seed = url.searchParams.get('seed') || 'user';
+  var url = event.request.url;
+
+  // Block offline-only HTML navigation routes
+  if (event.request.mode === 'navigate' && isOfflineOnlyRoute(url)) {
+    event.respondWith(offlineRedirect());
+    return;
+  }
+
+  if (url.includes('api.dicebear.com')) {
+    var parsed = new URL(url);
+    var seed = parsed.searchParams.get('seed') || 'user';
     event.respondWith(new Response(generateAvatar(seed), {
       status: 200,
       headers: {
@@ -14,9 +52,14 @@ self.addEventListener('fetch', function(event) {
     }));
     return;
   }
-  // Block any remaining Supabase calls — app is fully local
-  if (event.request.url.includes('supabase.co')) {
-    event.respondWith(new Response(JSON.stringify([]), {
+
+  // Block external network calls (Supabase, Firebase, analytics, etc.)
+  var blockedHosts = ['supabase.co', 'firebase.com', 'firebaseio.com',
+    'googleapis.com', 'googletagmanager.com', 'analytics.google.com',
+    'sentry.io', 'mixpanel.com', 'amplitude.com', 'headwayapp.co'];
+  var isBlocked = blockedHosts.some(function(h) { return url.includes(h); });
+  if (isBlocked) {
+    event.respondWith(new Response(JSON.stringify({ data: [], error: null }), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     }));

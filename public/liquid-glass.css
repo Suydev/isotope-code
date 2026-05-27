@@ -1,0 +1,283 @@
+/*
+ * IsotopeAI — Apple Liquid Glass UI (2025)
+ * Replaces all glassmorphism with refined liquid glass effect.
+ * Injected before main CSS so specificity overrides work cleanly.
+ */
+
+/* ── SVG Liquid Glass filter (hidden, referenced by url()) ──────────────── */
+body::before {
+  content: '';
+  display: none;
+}
+
+/* ── CSS Custom properties ──────────────────────────────────────────────── */
+:root {
+  --lg-blur: blur(48px) saturate(200%) brightness(1.06);
+  --lg-blur-md: blur(32px) saturate(180%) brightness(1.04);
+  --lg-blur-sm: blur(20px) saturate(160%) brightness(1.03);
+  --lg-bg: rgba(255, 255, 255, 0.07);
+  --lg-bg-strong: rgba(255, 255, 255, 0.11);
+  --lg-border: rgba(255, 255, 255, 0.13);
+  --lg-border-strong: rgba(255, 255, 255, 0.20);
+  --lg-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.08);
+  --lg-shadow-md: 0 4px 16px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.12);
+  --lg-shadow-sm: 0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10);
+  --lg-radius: 18px;
+  --lg-radius-sm: 12px;
+}
+
+/* ── Hidden SVG filter for liquid distortion ────────────────────────────── */
+.liquid-glass-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ── Sidebar / Nav — solid liquid glass (Apple sidebar style) ───────────── */
+nav[class*="sidebar"],
+aside[class*="sidebar"],
+[class*="sidebar"],
+nav:has(a[href="/dashboard"]),
+aside:has(a[href="/dashboard"]) {
+  background: linear-gradient(
+    180deg,
+    rgba(18, 18, 22, 0.82) 0%,
+    rgba(12, 12, 16, 0.88) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  border-right: 1px solid var(--lg-border) !important;
+  box-shadow:
+    1px 0 0 rgba(255,255,255,0.04),
+    4px 0 24px rgba(0,0,0,0.4) !important;
+}
+
+/* ── Cards / panels ─────────────────────────────────────────────────────── */
+[class*="rounded-"][class*="border"],
+[class*="card"],
+[class*="panel"] {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+/* Dark card liquid glass override */
+.dark [class*="bg-zinc-900"][class*="border"],
+.dark [class*="bg-zinc-800"][class*="border"],
+[class*="bg-white/5"][class*="border"],
+[class*="bg-white/10"][class*="border"] {
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.08) 0%,
+    rgba(255,255,255,0.03) 60%,
+    rgba(255,255,255,0.07) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur-md) !important;
+  -webkit-backdrop-filter: var(--lg-blur-md) !important;
+  border-color: var(--lg-border) !important;
+  box-shadow: var(--lg-shadow-md) !important;
+}
+
+/* ── Modals / Dialogs ───────────────────────────────────────────────────── */
+[role="dialog"],
+[data-radix-popper-content-wrapper] > div,
+[class*="modal"],
+[class*="dialog"],
+[class*="sheet"] {
+  background: linear-gradient(
+    145deg,
+    rgba(24, 24, 30, 0.85) 0%,
+    rgba(16, 16, 22, 0.92) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  border: 1px solid var(--lg-border-strong) !important;
+  box-shadow: var(--lg-shadow) !important;
+}
+
+/* ── Dropdown menus ─────────────────────────────────────────────────────── */
+[role="menu"],
+[role="listbox"],
+[data-radix-dropdown-menu-content],
+[class*="dropdown"][class*="content"],
+[class*="popover"][class*="content"] {
+  background: linear-gradient(
+    145deg,
+    rgba(22, 22, 28, 0.90) 0%,
+    rgba(14, 14, 20, 0.95) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur-md) !important;
+  -webkit-backdrop-filter: var(--lg-blur-md) !important;
+  border: 1px solid var(--lg-border) !important;
+  box-shadow: var(--lg-shadow) !important;
+}
+
+/* ── Tooltips ───────────────────────────────────────────────────────────── */
+[role="tooltip"],
+[data-radix-tooltip-content] {
+  background: rgba(20, 20, 26, 0.92) !important;
+  backdrop-filter: var(--lg-blur-sm) !important;
+  -webkit-backdrop-filter: var(--lg-blur-sm) !important;
+  border: 1px solid var(--lg-border) !important;
+  box-shadow: var(--lg-shadow-sm) !important;
+}
+
+/* ── Input fields liquid glass ──────────────────────────────────────────── */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+textarea,
+select,
+[class*="input"],
+[class*="textarea"] {
+  background: rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+input:focus:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+textarea:focus {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(249, 115, 22, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+/* ── Navigation top bar / header ────────────────────────────────────────── */
+header,
+[class*="header"],
+[class*="topbar"],
+[class*="navbar"]:not(nav) {
+  background: linear-gradient(
+    180deg,
+    rgba(14, 14, 18, 0.80) 0%,
+    rgba(10, 10, 14, 0.85) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  border-bottom: 1px solid var(--lg-border) !important;
+}
+
+/* ── Focus timer / Pomodoro card — featured liquid glass ───────────────── */
+[class*="focus"][class*="card"],
+[class*="timer"],
+[class*="pomodoro"],
+[class*="session-card"] {
+  background: linear-gradient(
+    135deg,
+    rgba(249, 115, 22, 0.08) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(249, 115, 22, 0.05) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  border: 1px solid rgba(249, 115, 22, 0.20) !important;
+  box-shadow:
+    0 0 0 1px rgba(249, 115, 22, 0.08) inset,
+    0 1px 0 rgba(255,255,255,0.12) inset,
+    0 8px 32px rgba(0,0,0,0.45),
+    0 0 64px rgba(249, 115, 22, 0.04) !important;
+}
+
+/* ── Bottom nav (mobile) liquid glass ───────────────────────────────────── */
+[class*="bottom-nav"],
+[class*="tab-bar"],
+nav[class*="fixed"][class*="bottom"],
+nav[class*="sticky"][class*="bottom"] {
+  background: linear-gradient(
+    0deg,
+    rgba(12, 12, 16, 0.92) 0%,
+    rgba(18, 18, 24, 0.85) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  border-top: 1px solid var(--lg-border) !important;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.5) !important;
+}
+
+/* ── Stats / metric cards ───────────────────────────────────────────────── */
+[class*="stat"],
+[class*="metric"],
+[class*="analytics-card"] {
+  position: relative;
+  overflow: hidden;
+}
+[class*="stat"]::before,
+[class*="metric"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.06) 0%,
+    transparent 50%,
+    rgba(255,255,255,0.03) 100%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ── Pill badges / tags ─────────────────────────────────────────────────── */
+[class*="badge"],
+[class*="chip"],
+[class*="tag"],
+[class*="pill"] {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* ── Buttons — subtle liquid sheen ─────────────────────────────────────── */
+button[class*="ghost"],
+button[class*="outline"],
+[class*="btn-ghost"],
+[class*="btn-outline"] {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  transition: background 0.2s ease, box-shadow 0.2s ease !important;
+}
+button[class*="ghost"]:hover,
+button[class*="outline"]:hover {
+  background: rgba(255,255,255,0.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12) !important;
+}
+
+/* ── Scrollbar — liquid glass tint ─────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.02);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.22);
+}
+
+/* ── Global page background — deep dark base ────────────────────────────── */
+body,
+#root,
+[class*="min-h-screen"] {
+  background: radial-gradient(
+    ellipse 120% 60% at 50% -10%,
+    rgba(249, 115, 22, 0.04) 0%,
+    transparent 65%
+  ),
+  #09090b !important;
+}
+
+/* ── Liquid glass shimmer animation (for interactive elements) ───────────  */
+@keyframes lg-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* ── Selection color ────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(249, 115, 22, 0.3);
+  color: inherit;
+}
