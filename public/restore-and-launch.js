@@ -87,8 +87,6 @@ async function initFirstInstall() {
   db.close();
 
   localStorage.setItem('indexeddb_migration_complete_v3', 'true');
-  localStorage.setItem('pwa-banner-dismissed', 'true');
-  localStorage.setItem('pwa-install-dismissed', 'true');
   localStorage.setItem(RESTORE_FLAG, '1');
 
   // Do NOT set isotope-auth, isotope-onboarding, or isotope_intro_seen.

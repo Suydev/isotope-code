@@ -148,8 +148,10 @@
   }
 
   /* ─── 1b. STEP WIZARD FRICTION ───────────────────────────────────────────
-     a) Make "Skip for now" buttons highly visible (they're styled grey by default)
-     b) Inject a "⚡ Quick Setup" floating button that auto-advances all steps  */
+     a) Make "Skip for now" buttons highly visible
+     b) "⚡ Skip remaining steps" floating button (steps 3+)
+     c) AUTO-ADVANCE: once the user completes step 2 (subjects), steps 3-6
+        are automatically skipped so they land on the dashboard immediately  */
 
   function styleSkipButtons() {
     var btns = document.querySelectorAll('button');
@@ -168,15 +170,24 @@
     });
   }
 
+  /* Read the "X/Y" step counter rendered by the progress bar component */
+  function getCurrentStep() {
+    var spans = document.querySelectorAll('span');
+    for (var i = 0; i < spans.length; i++) {
+      var m = spans[i].textContent.trim().match(/^(\d+)\/(\d+)$/);
+      if (m) return { current: parseInt(m[1], 10), total: parseInt(m[2], 10) };
+    }
+    return null;
+  }
+
   var quickSetupActive = false;
   function startQuickSetup() {
     if (quickSetupActive) return;
     quickSetupActive = true;
 
     var steps = 0;
-    var maxSteps = 10;
+    var maxSteps = 12;
 
-    // Visual feedback: disable button while running
     var btn = document.getElementById('__ux_quick_setup__');
     if (btn) {
       btn.textContent = '⏳ Setting up…';
@@ -191,21 +202,63 @@
       if (nextBtn) {
         steps++;
         nextBtn.click();
-        setTimeout(advance, 380);
+        setTimeout(advance, 300);
       } else {
-        // No next button — either done (on dashboard) or step not loaded yet
-        setTimeout(advance, 500);
+        setTimeout(advance, 400);
       }
     }
     setTimeout(advance, 200);
   }
 
+  /* AUTO-SKIP STEPS 3+ — runs on every mutation while in onboarding wizard.
+     Once the user has advanced past step 2, keep clicking Next automatically. */
+  var autoSkipEnabled   = false;
+  var autoSkipScheduled = false;
+
+  function tryAutoSkip() {
+    autoSkipScheduled = false;
+    if (!autoSkipEnabled) return;
+    if (!location.pathname.startsWith('/onboarding')) return;
+    if (isAuthPage()) return;
+
+    var s = getCurrentStep();
+    if (!s) return;
+
+    // Only auto-advance steps 3 and beyond
+    if (s.current < 3) return;
+
+    fillDefaults();
+    var nextBtn = findNextButton();
+    if (nextBtn) {
+      nextBtn.click();
+    }
+  }
+
+  function scheduleAutoSkip() {
+    if (autoSkipScheduled) return;
+    autoSkipScheduled = true;
+    setTimeout(tryAutoSkip, 320);
+  }
+
+  /* Activate auto-skip when user moves from step 2 → step 3 */
+  function checkAndEnableAutoSkip() {
+    if (autoSkipEnabled) { scheduleAutoSkip(); return; }
+    var s = getCurrentStep();
+    if (s && s.current >= 3) {
+      autoSkipEnabled = true;
+      scheduleAutoSkip();
+    }
+  }
+
   function injectQuickSetupButton() {
     if (document.getElementById('__ux_quick_setup__')) return;
+    // Only show the manual button if not in auto-skip mode
+    var s = getCurrentStep();
+    if (s && s.current >= 3 && autoSkipEnabled) return; // auto mode handles it
 
     var btn = document.createElement('button');
     btn.id = '__ux_quick_setup__';
-    btn.textContent = '⚡ Quick Setup — skip all steps';
+    btn.textContent = '⚡ Skip remaining steps';
     btn.setAttribute('style', [
       'position:fixed',
       'top:16px',
@@ -469,7 +522,10 @@
         } else {
           removeAuthEscape();
           styleSkipButtons();
-          if (!document.getElementById('__ux_quick_setup__')) injectQuickSetupButton();
+          checkAndEnableAutoSkip();  // auto-skip steps 3+
+          if (!autoSkipEnabled && !document.getElementById('__ux_quick_setup__')) {
+            injectQuickSetupButton();
+          }
         }
       } else if (path === '/' || path === '') {
         boostTryDemoButton();
