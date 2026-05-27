@@ -1,93 +1,187 @@
 /*
- * IsotopeAI — Apple Liquid Glass UI (2025)
- * Replaces all glassmorphism with refined liquid glass effect.
+ * IsotopeAI — Apple Liquid Glass UI (2025) — Full App Coverage
+ * Every UI surface in the app gets the liquid glass treatment.
  * Injected before main CSS so specificity overrides work cleanly.
+ *
+ * Strategy:
+ *  - Target ARIA roles (dialog, menu, tooltip, tab, etc.)
+ *  - Target Radix UI data attributes
+ *  - Target Tailwind class substrings used throughout the app
+ *  - Target structural HTML elements (header, aside, nav, etc.)
+ *  - All !important to beat Tailwind inline specificity
  */
 
-/* ── SVG Liquid Glass filter (hidden, referenced by url()) ──────────────── */
-body::before {
-  content: '';
-  display: none;
-}
-
-/* ── CSS Custom properties ──────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   0. CSS CUSTOM PROPERTIES — Liquid Glass tokens
+   ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-  --lg-blur: blur(48px) saturate(200%) brightness(1.06);
-  --lg-blur-md: blur(32px) saturate(180%) brightness(1.04);
-  --lg-blur-sm: blur(20px) saturate(160%) brightness(1.03);
-  --lg-bg: rgba(255, 255, 255, 0.07);
-  --lg-bg-strong: rgba(255, 255, 255, 0.11);
-  --lg-border: rgba(255, 255, 255, 0.13);
-  --lg-border-strong: rgba(255, 255, 255, 0.20);
-  --lg-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.08);
-  --lg-shadow-md: 0 4px 16px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.12);
-  --lg-shadow-sm: 0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10);
-  --lg-radius: 18px;
-  --lg-radius-sm: 12px;
+  --lg-blur:      blur(56px) saturate(210%) brightness(1.08);
+  --lg-blur-md:   blur(36px) saturate(190%) brightness(1.05);
+  --lg-blur-sm:   blur(20px) saturate(160%) brightness(1.03);
+  --lg-blur-xs:   blur(10px) saturate(140%) brightness(1.02);
+
+  /* Glass backgrounds */
+  --lg-bg:          rgba(255,255,255,0.06);
+  --lg-bg-md:       rgba(255,255,255,0.09);
+  --lg-bg-strong:   rgba(255,255,255,0.12);
+  --lg-bg-overlay:  rgba(10,10,14,0.82);
+
+  /* Glass borders */
+  --lg-border:        rgba(255,255,255,0.11);
+  --lg-border-strong: rgba(255,255,255,0.18);
+  --lg-border-top:    rgba(255,255,255,0.22);
+
+  /* Shadows */
+  --lg-shadow:    0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3),
+                  inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(0,0,0,0.08);
+  --lg-shadow-md: 0 4px 20px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.22),
+                  inset 0 1px 0 rgba(255,255,255,0.11);
+  --lg-shadow-sm: 0 2px 10px rgba(0,0,0,0.28),
+                  inset 0 1px 0 rgba(255,255,255,0.09);
+
+  /* Brand */
+  --brand: #f97316;
+  --brand-glow: rgba(249,115,22,0.15);
+
+  /* Radii */
+  --lg-r:    20px;
+  --lg-r-sm: 14px;
+  --lg-r-xs: 10px;
 }
 
-/* ── Hidden SVG filter for liquid distortion ────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. HIDDEN SVG FILTER — referenced by url(#liquid-glass-*) in JS
+   ═══════════════════════════════════════════════════════════════════════════ */
 .liquid-glass-filters {
   position: absolute;
-  width: 0;
-  height: 0;
+  width: 0; height: 0;
   overflow: hidden;
   pointer-events: none;
 }
 
-/* ── Sidebar / Nav — solid liquid glass (Apple sidebar style) ───────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. PAGE BACKGROUND — deep dark canvas
+   ═══════════════════════════════════════════════════════════════════════════ */
+html {
+  background: #09090b;
+}
+
+body,
+#root,
+[class*="min-h-screen"],
+[class*="h-screen"],
+main {
+  background:
+    radial-gradient(ellipse 130% 55% at 50% -5%,  rgba(249,115,22,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 60%  40% at 80% 100%, rgba(249,115,22,0.03) 0%, transparent 60%),
+    #09090b !important;
+  color-scheme: dark !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. SIDEBAR — Apple-style left glass rail
+   ═══════════════════════════════════════════════════════════════════════════ */
 nav[class*="sidebar"],
 aside[class*="sidebar"],
-[class*="sidebar"],
+[class*="sidebar"]:not([class*="sidebar-item"]):not(button):not(a):not(span),
 nav:has(a[href="/dashboard"]),
-aside:has(a[href="/dashboard"]) {
+aside:has(a[href="/dashboard"]),
+[class*="fixed"][class*="left-0"][class*="top-0"][class*="h-full"]:not([role="dialog"]),
+[class*="sticky"][class*="left-0"][class*="h-full"] {
   background: linear-gradient(
     180deg,
-    rgba(18, 18, 22, 0.82) 0%,
-    rgba(12, 12, 16, 0.88) 100%
+    rgba(16,16,22,0.86) 0%,
+    rgba(10,10,14,0.92) 100%
   ) !important;
   backdrop-filter: var(--lg-blur) !important;
   -webkit-backdrop-filter: var(--lg-blur) !important;
   border-right: 1px solid var(--lg-border) !important;
   box-shadow:
     1px 0 0 rgba(255,255,255,0.04),
-    4px 0 24px rgba(0,0,0,0.4) !important;
+    6px 0 30px rgba(0,0,0,0.5) !important;
 }
 
-/* ── Cards / panels ─────────────────────────────────────────────────────── */
-[class*="rounded-"][class*="border"],
+/* ═══════════════════════════════════════════════════════════════════════════
+   4. HEADER / TOPBAR / NAVBAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+header,
+[class*="header"]:not([class*="heading"]):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+[class*="topbar"],
+[class*="top-bar"],
+[class*="navbar"]:not(nav),
+nav[class*="bg-white"][class*="backdrop"],
+nav[class*="bg-zinc-900"][class*="backdrop"],
+/* App's own header pattern */
+[class*="bg-white/80"][class*="backdrop-blur"],
+[class*="bg-zinc-900/80"][class*="backdrop-blur"],
+[class*="backdrop-blur-xl"][class*="shadow-2xl"][class*="border"] {
+  background: linear-gradient(
+    180deg,
+    rgba(12,12,18,0.82) 0%,
+    rgba(8,8,14,0.88) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  border-bottom: 1px solid var(--lg-border) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.05),
+    0 4px 24px rgba(0,0,0,0.4) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5. CARDS — every card variant the app uses
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Generic card: rounded + border + bg */
+.dark [class*="rounded-"][class*="border"][class*="bg-zinc-9"],
+.dark [class*="rounded-"][class*="border"][class*="bg-zinc-8"],
+[class*="rounded-"][class*="border"][class*="dark:bg-zinc-9"],
+[class*="rounded-"][class*="border"][class*="dark:bg-white/5"],
+[class*="rounded-"][class*="border"][class*="dark:bg-white/10"],
+/* App-specific card patterns seen in bundles */
+[class*="rounded-2xl"][class*="border"][class*="bg-white"],
+[class*="rounded-2xl"][class*="border"][class*="dark:border-white/10"],
+[class*="rounded-xl"][class*="border"][class*="dark:border-white/10"],
+[class*="rounded-\[2rem\]"][class*="border"],
 [class*="card"],
-[class*="panel"] {
-  transition: box-shadow 0.25s ease, border-color 0.25s ease;
-}
-
-/* Dark card liquid glass override */
-.dark [class*="bg-zinc-900"][class*="border"],
-.dark [class*="bg-zinc-800"][class*="border"],
-[class*="bg-white/5"][class*="border"],
-[class*="bg-white/10"][class*="border"] {
+[class*="panel"]:not([class*="panel-"]):not(button) {
   background: linear-gradient(
     135deg,
-    rgba(255,255,255,0.08) 0%,
-    rgba(255,255,255,0.03) 60%,
-    rgba(255,255,255,0.07) 100%
+    rgba(255,255,255,0.075) 0%,
+    rgba(255,255,255,0.028) 55%,
+    rgba(255,255,255,0.065) 100%
   ) !important;
   backdrop-filter: var(--lg-blur-md) !important;
   -webkit-backdrop-filter: var(--lg-blur-md) !important;
   border-color: var(--lg-border) !important;
   box-shadow: var(--lg-shadow-md) !important;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.18s ease;
 }
 
-/* ── Modals / Dialogs ───────────────────────────────────────────────────── */
+/* Hoverable cards */
+[class*="rounded-"][class*="border"][class*="hover:"]:hover,
+[class*="card"]:hover {
+  border-color: var(--lg-border-strong) !important;
+  box-shadow: var(--lg-shadow) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6. MODALS / DIALOGS / SHEETS / DRAWERS
+   ═══════════════════════════════════════════════════════════════════════════ */
 [role="dialog"],
+[data-radix-dialog-content],
+[data-radix-alert-dialog-content],
 [data-radix-popper-content-wrapper] > div,
 [class*="modal"],
-[class*="dialog"],
-[class*="sheet"] {
+[class*="dialog"]:not([class*="dialog-"]):not(button),
+[class*="sheet"]:not([class*="sheet-"]):not(button),
+[class*="drawer"]:not([class*="drawer-"]):not(button),
+/* Specific pattern from bundle: max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 */
+[class*="max-w-"][class*="rounded-"][class*="border-zinc-7"][class*="bg-zinc-9"] {
   background: linear-gradient(
     145deg,
-    rgba(24, 24, 30, 0.85) 0%,
-    rgba(16, 16, 22, 0.92) 100%
+    rgba(22,22,30,0.88) 0%,
+    rgba(14,14,22,0.94) 100%
   ) !important;
   backdrop-filter: var(--lg-blur) !important;
   -webkit-backdrop-filter: var(--lg-blur) !important;
@@ -95,16 +189,36 @@ aside:has(a[href="/dashboard"]) {
   box-shadow: var(--lg-shadow) !important;
 }
 
-/* ── Dropdown menus ─────────────────────────────────────────────────────── */
+/* Modal overlay backdrop */
+[data-radix-dialog-overlay],
+[class*="fixed"][class*="inset-0"][class*="bg-black/70"],
+[class*="fixed"][class*="inset-0"][class*="backdrop-blur"] {
+  background: rgba(0,0,0,0.65) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7. DROPDOWN MENUS / POPOVERS / COMMAND PALETTE
+   ═══════════════════════════════════════════════════════════════════════════ */
 [role="menu"],
 [role="listbox"],
+[role="combobox"] + *,
 [data-radix-dropdown-menu-content],
+[data-radix-context-menu-content],
+[data-radix-select-content],
+[data-radix-popover-content],
 [class*="dropdown"][class*="content"],
-[class*="popover"][class*="content"] {
+[class*="popover"][class*="content"],
+[class*="select"][class*="content"],
+[class*="command"][class*="dialog"],
+[class*="cmdk-"],
+[class*="CommandDialog"],
+[class*="command-palette"] {
   background: linear-gradient(
     145deg,
-    rgba(22, 22, 28, 0.90) 0%,
-    rgba(14, 14, 20, 0.95) 100%
+    rgba(20,20,28,0.93) 0%,
+    rgba(12,12,20,0.97) 100%
   ) !important;
   backdrop-filter: var(--lg-blur-md) !important;
   -webkit-backdrop-filter: var(--lg-blur-md) !important;
@@ -112,180 +226,560 @@ aside:has(a[href="/dashboard"]) {
   box-shadow: var(--lg-shadow) !important;
 }
 
-/* ── Tooltips ───────────────────────────────────────────────────────────── */
+/* Menu items on hover */
+[role="menuitem"]:hover,
+[role="option"]:hover,
+[data-highlighted] {
+  background: rgba(255,255,255,0.07) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   8. TOOLTIPS
+   ═══════════════════════════════════════════════════════════════════════════ */
 [role="tooltip"],
-[data-radix-tooltip-content] {
-  background: rgba(20, 20, 26, 0.92) !important;
+[data-radix-tooltip-content],
+[class*="tooltip"]:not([class*="tooltip-"]):not(button) {
+  background: rgba(18,18,26,0.94) !important;
+  backdrop-filter: var(--lg-blur-sm) !important;
+  -webkit-backdrop-filter: var(--lg-blur-sm) !important;
+  border: 1px solid var(--lg-border) !important;
+  box-shadow: var(--lg-shadow-sm) !important;
+  border-radius: 10px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   9. TOAST / ALERT NOTIFICATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-radix-toast-viewport],
+[role="alert"],
+[class*="toast"],
+[class*="notification"],
+[class*="alert"]:not([class*="alert-"]):not(button):not(input),
+/* App's own alert patterns from bundle */
+[class*="rounded-2xl"][class*="border-amber-5"][class*="backdrop-blur"],
+[class*="rounded-2xl"][class*="border-sky-5"][class*="backdrop-blur"],
+[class*="pointer-events-auto"][class*="rounded-2xl"][class*="shadow-xl"] {
+  backdrop-filter: var(--lg-blur-sm) !important;
+  -webkit-backdrop-filter: var(--lg-blur-sm) !important;
+  box-shadow: var(--lg-shadow) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   10. INPUT FIELDS / TEXTAREAS / SELECTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+textarea,
+select,
+[class*="input"]:not([class*="input-"]):not(button):not(div[class*="no-input"]),
+[class*="textarea"],
+[data-radix-select-trigger] {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: var(--lg-blur-xs) !important;
+  -webkit-backdrop-filter: var(--lg-blur-xs) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  color: rgba(255,255,255,0.9) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+input:focus:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+textarea:focus,
+[data-radix-select-trigger][data-state="open"] {
+  background: rgba(255,255,255,0.07) !important;
+  border-color: rgba(249,115,22,0.5) !important;
+  box-shadow:
+    0 0 0 3px rgba(249,115,22,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  outline: none !important;
+}
+
+/* Range inputs */
+input[type="range"] {
+  accent-color: var(--brand);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   11. BUTTONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Ghost / outline buttons */
+button[class*="ghost"],
+button[class*="outline"],
+[class*="btn-ghost"],
+[class*="btn-outline"],
+[class*="bg-white/5"],
+[class*="bg-white/10"],
+[class*="dark:bg-white/5"],
+[class*="dark:bg-white/10"],
+/* App's own secondary button pattern */
+[class*="bg-white"][class*="dark:bg-white/5"][class*="border"][class*="dark:border-white/10"] {
+  background: rgba(255,255,255,0.05) !important;
+  backdrop-filter: var(--lg-blur-xs) !important;
+  -webkit-backdrop-filter: var(--lg-blur-xs) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease !important;
+}
+
+button[class*="ghost"]:hover,
+button[class*="outline"]:hover,
+[class*="bg-white/5"]:hover,
+[class*="dark:bg-white/5"]:hover {
+  background: rgba(255,255,255,0.09) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12) !important;
+}
+
+/* Primary / CTA buttons — orange glow */
+button[class*="bg-brand"],
+button[class*="bg-orange"],
+[class*="bg-brand-500"],
+[class*="bg-brand-600"],
+button[class*="bg-zinc-900"][class*="dark:bg-white"] {
+  box-shadow:
+    0 4px 20px rgba(249,115,22,0.30),
+    inset 0 1px 0 rgba(255,255,255,0.18) !important;
+  transition: box-shadow 0.2s ease, transform 0.15s ease !important;
+}
+
+button[class*="bg-brand"]:hover,
+button[class*="bg-orange"]:hover,
+[class*="bg-brand-500"]:hover,
+[class*="bg-brand-600"]:hover {
+  box-shadow:
+    0 6px 28px rgba(249,115,22,0.42),
+    inset 0 1px 0 rgba(255,255,255,0.22) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Icon buttons — circular pill style */
+[class*="rounded-full"][class*="dark:bg-white/5"]:not(input):not(span),
+[class*="rounded-full"][class*="touch-target"],
+[class*="rounded-full"][class*="inline-flex"][class*="items-center"][class*="justify-center"] {
+  background: rgba(255,255,255,0.05) !important;
+  backdrop-filter: var(--lg-blur-xs) !important;
+  -webkit-backdrop-filter: var(--lg-blur-xs) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+[class*="rounded-full"][class*="dark:bg-white/5"]:hover,
+[class*="rounded-full"][class*="touch-target"]:hover {
+  background: rgba(255,255,255,0.09) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   12. TABS (Radix + custom)
+   ═══════════════════════════════════════════════════════════════════════════ */
+[role="tablist"],
+[data-radix-tabs-list],
+[class*="tab-list"],
+[class*="tabs-list"],
+[class*="rounded-full"][class*="bg-black/5"],
+[class*="rounded-full"][class*="dark:bg-white/5"][class*="border"],
+[class*="p-1"][class*="rounded-full"][class*="border"] {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: var(--lg-blur-xs) !important;
+  -webkit-backdrop-filter: var(--lg-blur-xs) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+}
+
+[role="tab"],
+[data-radix-tabs-trigger] {
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+[role="tab"][data-state="active"],
+[data-radix-tabs-trigger][data-state="active"],
+[class*="tab-trigger"][class*="active"] {
+  background: rgba(255,255,255,0.10) !important;
+  backdrop-filter: var(--lg-blur-xs) !important;
+  -webkit-backdrop-filter: var(--lg-blur-xs) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 2px 8px rgba(0,0,0,0.3) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   13. BOTTOM NAVIGATION (mobile)
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="bottom-nav"],
+[class*="tab-bar"],
+nav[class*="fixed"][class*="bottom"],
+nav[class*="sticky"][class*="bottom"],
+[class*="fixed"][class*="bottom-0"][class*="left-0"][class*="right-0"]:not([role="dialog"]) {
+  background: linear-gradient(
+    0deg,
+    rgba(10,10,14,0.94) 0%,
+    rgba(16,16,22,0.88) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  border-top: 1px solid var(--lg-border) !important;
+  box-shadow: 0 -4px 28px rgba(0,0,0,0.55) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   14. FOCUS / TIMER — featured orange liquid glass
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="focus"][class*="card"],
+[class*="timer"]:not(button):not(span):not([class*="timer-btn"]),
+[class*="pomodoro"],
+[class*="session-card"],
+[class*="focus-session"],
+/* Focus page ring/circle display */
+[class*="focus"][class*="ring"],
+[class*="timer"][class*="ring"],
+[class*="timer"][class*="display"] {
+  background: linear-gradient(
+    135deg,
+    rgba(249,115,22,0.09) 0%,
+    rgba(255,255,255,0.05) 50%,
+    rgba(249,115,22,0.06) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  border: 1px solid rgba(249,115,22,0.22) !important;
+  box-shadow:
+    0 0 0 1px rgba(249,115,22,0.08) inset,
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    0 8px 40px rgba(0,0,0,0.50),
+    0 0 72px rgba(249,115,22,0.06) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   15. ANALYTICS / CHARTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="analytics-card"],
+[class*="analytics"][class*="container"],
+[class*="chart"][class*="container"],
+[class*="chart-card"],
+[class*="stat"],
+[class*="metric"],
+[class*="kpi"] {
+  position: relative;
+  overflow: hidden;
+}
+
+[class*="stat"]::before,
+[class*="metric"]::before,
+[class*="kpi"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.055) 0%,
+    transparent 50%,
+    rgba(255,255,255,0.028) 100%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   16. TASK CARDS / KANBAN / LIST
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="task-card"],
+[class*="task"][class*="item"],
+[class*="kanban"][class*="card"],
+[class*="kanban"][class*="column"],
+[class*="board"][class*="column"] {
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.065) 0%,
+    rgba(255,255,255,0.022) 60%,
+    rgba(255,255,255,0.055) 100%
+  ) !important;
   backdrop-filter: var(--lg-blur-sm) !important;
   -webkit-backdrop-filter: var(--lg-blur-sm) !important;
   border: 1px solid var(--lg-border) !important;
   box-shadow: var(--lg-shadow-sm) !important;
 }
 
-/* ── Input fields liquid glass ──────────────────────────────────────────── */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-textarea,
-select,
-[class*="input"],
-[class*="textarea"] {
-  background: rgba(255, 255, 255, 0.04) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border-color: rgba(255, 255, 255, 0.10) !important;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+/* ═══════════════════════════════════════════════════════════════════════════
+   17. PROGRESS BARS
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="progress"],
+[role="progressbar"],
+progress {
+  background: rgba(255,255,255,0.06) !important;
+  border-radius: 9999px !important;
+  overflow: hidden;
 }
 
-input:focus:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-textarea:focus {
-  background: rgba(255, 255, 255, 0.07) !important;
-  border-color: rgba(249, 115, 22, 0.5) !important;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12), inset 0 1px 0 rgba(255,255,255,0.08) !important;
-}
-
-/* ── Navigation top bar / header ────────────────────────────────────────── */
-header,
-[class*="header"],
-[class*="topbar"],
-[class*="navbar"]:not(nav) {
+[class*="progress"][class*="bar"],
+[class*="progress-fill"],
+[role="progressbar"] > * {
   background: linear-gradient(
-    180deg,
-    rgba(14, 14, 18, 0.80) 0%,
-    rgba(10, 10, 14, 0.85) 100%
+    90deg,
+    rgba(249,115,22,0.85),
+    rgba(249,115,22,1.0)
   ) !important;
-  backdrop-filter: var(--lg-blur) !important;
-  -webkit-backdrop-filter: var(--lg-blur) !important;
+  box-shadow: 0 0 12px rgba(249,115,22,0.4) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   18. BADGES / CHIPS / TAGS / PILLS
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="badge"],
+[class*="chip"],
+[class*="tag"]:not([class*="tag-"]):not(button),
+[class*="pill"]:not(button),
+[class*="label"][class*="rounded"] {
+  backdrop-filter: var(--lg-blur-xs) !important;
+  -webkit-backdrop-filter: var(--lg-blur-xs) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+}
+
+/* Coloured status badges keep colour but get glass */
+[class*="text-emerald"][class*="bg-emerald"],
+[class*="text-amber"][class*="bg-amber"],
+[class*="text-rose"][class*="bg-rose"],
+[class*="text-sky"][class*="bg-sky"],
+[class*="text-blue"][class*="bg-blue"],
+[class*="text-brand"][class*="bg-brand"] {
+  backdrop-filter: var(--lg-blur-xs) !important;
+  -webkit-backdrop-filter: var(--lg-blur-xs) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   19. SETTINGS / PREFERENCES SECTIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="settings"][class*="section"],
+[class*="settings"][class*="card"],
+[class*="preferences"][class*="section"],
+[class*="config"][class*="section"],
+/* Generic section with border-t inside a bg-zinc container */
+.dark section,
+[class*="space-y-"][class*="border-t"] > * {
+  transition: background 0.2s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   20. SYLLABUS / CHAPTER HUB CARDS
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="chapter"][class*="card"],
+[class*="subject"][class*="card"],
+[class*="topic"][class*="card"],
+[class*="chapter"][class*="hub"],
+[class*="syllabus"][class*="card"] {
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.07) 0%,
+    rgba(255,255,255,0.025) 55%,
+    rgba(255,255,255,0.06) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur-sm) !important;
+  -webkit-backdrop-filter: var(--lg-blur-sm) !important;
+  border: 1px solid var(--lg-border) !important;
+  box-shadow: var(--lg-shadow-sm) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   21. EXAM / MOCK TEST CARDS
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="exam"][class*="card"],
+[class*="mock"][class*="card"],
+[class*="test"][class*="card"],
+[class*="exam"][class*="item"],
+[class*="result"][class*="card"] {
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.065) 0%,
+    rgba(255,255,255,0.022) 55%,
+    rgba(255,255,255,0.055) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur-sm) !important;
+  -webkit-backdrop-filter: var(--lg-blur-sm) !important;
+  border: 1px solid var(--lg-border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   22. PROFILE / USER AVATAR CARDS
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="profile"][class*="card"],
+[class*="user"][class*="card"],
+[class*="avatar-card"],
+[class*="profile-header"] {
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.07) 0%,
+    rgba(255,255,255,0.025) 60%,
+    rgba(255,255,255,0.06) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur-md) !important;
+  -webkit-backdrop-filter: var(--lg-blur-md) !important;
+  border: 1px solid var(--lg-border-strong) !important;
+  box-shadow: var(--lg-shadow-md) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   23. OVERVIEW / DASHBOARD WIDGETS
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="overview"][class*="card"],
+[class*="dashboard"][class*="card"],
+[class*="widget"],
+[class*="summary-card"] {
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.068) 0%,
+    rgba(255,255,255,0.025) 55%,
+    rgba(255,255,255,0.058) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur-md) !important;
+  -webkit-backdrop-filter: var(--lg-blur-md) !important;
+  border: 1px solid var(--lg-border) !important;
+  box-shadow: var(--lg-shadow-md) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   24. TABLE ELEMENTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+thead,
+thead tr,
+th {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: var(--lg-blur-xs) !important;
+  -webkit-backdrop-filter: var(--lg-blur-xs) !important;
   border-bottom: 1px solid var(--lg-border) !important;
 }
 
-/* ── Focus timer / Pomodoro card — featured liquid glass ───────────────── */
-[class*="focus"][class*="card"],
-[class*="timer"],
-[class*="pomodoro"],
-[class*="session-card"] {
-  background: linear-gradient(
-    135deg,
-    rgba(249, 115, 22, 0.08) 0%,
-    rgba(255, 255, 255, 0.05) 50%,
-    rgba(249, 115, 22, 0.05) 100%
-  ) !important;
-  backdrop-filter: var(--lg-blur) !important;
-  -webkit-backdrop-filter: var(--lg-blur) !important;
-  border: 1px solid rgba(249, 115, 22, 0.20) !important;
-  box-shadow:
-    0 0 0 1px rgba(249, 115, 22, 0.08) inset,
-    0 1px 0 rgba(255,255,255,0.12) inset,
-    0 8px 32px rgba(0,0,0,0.45),
-    0 0 64px rgba(249, 115, 22, 0.04) !important;
-}
-
-/* ── Bottom nav (mobile) liquid glass ───────────────────────────────────── */
-[class*="bottom-nav"],
-[class*="tab-bar"],
-nav[class*="fixed"][class*="bottom"],
-nav[class*="sticky"][class*="bottom"] {
-  background: linear-gradient(
-    0deg,
-    rgba(12, 12, 16, 0.92) 0%,
-    rgba(18, 18, 24, 0.85) 100%
-  ) !important;
-  backdrop-filter: var(--lg-blur) !important;
-  -webkit-backdrop-filter: var(--lg-blur) !important;
-  border-top: 1px solid var(--lg-border) !important;
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.5) !important;
-}
-
-/* ── Stats / metric cards ───────────────────────────────────────────────── */
-[class*="stat"],
-[class*="metric"],
-[class*="analytics-card"] {
-  position: relative;
-  overflow: hidden;
-}
-[class*="stat"]::before,
-[class*="metric"]::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255,255,255,0.06) 0%,
-    transparent 50%,
-    rgba(255,255,255,0.03) 100%
-  );
-  pointer-events: none;
-  border-radius: inherit;
-}
-
-/* ── Pill badges / tags ─────────────────────────────────────────────────── */
-[class*="badge"],
-[class*="chip"],
-[class*="tag"],
-[class*="pill"] {
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-}
-
-/* ── Buttons — subtle liquid sheen ─────────────────────────────────────── */
-button[class*="ghost"],
-button[class*="outline"],
-[class*="btn-ghost"],
-[class*="btn-outline"] {
+tbody tr:hover {
   background: rgba(255,255,255,0.04) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  border-color: rgba(255,255,255,0.10) !important;
-  transition: background 0.2s ease, box-shadow 0.2s ease !important;
-}
-button[class*="ghost"]:hover,
-button[class*="outline"]:hover {
-  background: rgba(255,255,255,0.08) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12) !important;
 }
 
-/* ── Scrollbar — liquid glass tint ─────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.02);
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.12);
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.22);
+tr {
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+  transition: background 0.15s ease;
 }
 
-/* ── Global page background — deep dark base ────────────────────────────── */
-body,
-#root,
-[class*="min-h-screen"] {
-  background: radial-gradient(
-    ellipse 120% 60% at 50% -10%,
-    rgba(249, 115, 22, 0.04) 0%,
-    transparent 65%
-  ),
-  #09090b !important;
+/* ═══════════════════════════════════════════════════════════════════════════
+   25. CALENDAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="calendar"][class*="day"],
+[class*="cal-day"],
+[class*="day-cell"] {
+  transition: background 0.15s ease;
+  border-radius: var(--lg-r-xs) !important;
 }
 
-/* ── Liquid glass shimmer animation (for interactive elements) ───────────  */
-@keyframes lg-shimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
+[class*="calendar"][class*="day"]:hover,
+[class*="cal-day"]:hover {
+  background: rgba(255,255,255,0.07) !important;
 }
 
-/* ── Selection color ────────────────────────────────────────────────────── */
-::selection {
-  background: rgba(249, 115, 22, 0.3);
-  color: inherit;
+[class*="calendar"][class*="today"],
+[class*="cal-today"] {
+  background: rgba(249,115,22,0.12) !important;
+  border: 1px solid rgba(249,115,22,0.30) !important;
 }
 
-/* ── Headway changelog widget — hidden in offline mode ───────────────────── */
-/* The Headway "Product updates" bell icon loads cdn.headwayapp.co/widget.js.
-   We stub it in offline-patches.js and sw.js, but also hide the button so
-   it never appears as a confusing "Update" affordance to the user.           */
+/* ═══════════════════════════════════════════════════════════════════════════
+   26. ACCORDION / COLLAPSIBLE
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-radix-accordion-content],
+[data-radix-collapsible-content],
+[class*="accordion"][class*="content"],
+[class*="collapsible"][class*="content"] {
+  background: rgba(255,255,255,0.025) !important;
+}
+
+[data-radix-accordion-trigger],
+[class*="accordion"][class*="trigger"] {
+  transition: background 0.15s ease;
+}
+
+[data-radix-accordion-trigger]:hover {
+  background: rgba(255,255,255,0.05) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   27. SWITCH / TOGGLE
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-radix-switch-root][data-state="unchecked"],
+[class*="switch"]:not([class*="switch-"])  {
+  background: rgba(255,255,255,0.12) !important;
+}
+
+[data-radix-switch-root][data-state="checked"] {
+  background: var(--brand) !important;
+  box-shadow: 0 0 10px rgba(249,115,22,0.35) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   28. SEPARATOR / DIVIDER
+   ═══════════════════════════════════════════════════════════════════════════ */
+[role="separator"],
+[data-radix-separator-root],
+hr {
+  border-color: rgba(255,255,255,0.07) !important;
+  background: rgba(255,255,255,0.07) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   29. SKELETON LOADERS
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="skeleton"],
+[class*="shimmer"],
+[class*="loading"][class*="placeholder"] {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.09) 50%,
+    rgba(255,255,255,0.04) 75%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: lg-shimmer 1.8s ease-in-out infinite !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   30. SCROLLBAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   31. LANDING / MARKETING PAGE (navbar + hero + features)
+   ═══════════════════════════════════════════════════════════════════════════ */
+/* Landing page full-width background */
+[class*="dark:bg-black"],
+[class*="bg-white"][class*="dark:bg-black"] {
+  background: #09090b !important;
+}
+
+/* Feature grid cards on landing page */
+[class*="grid"][class*="rounded-"][class*="border"],
+[class*="feature"][class*="card"],
+[class*="feature-grid"] > * {
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.065) 0%,
+    rgba(255,255,255,0.022) 60%,
+    rgba(255,255,255,0.055) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur-sm) !important;
+  -webkit-backdrop-filter: var(--lg-blur-sm) !important;
+  border: 1px solid var(--lg-border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   32. OFFLINE / STATUS BANNERS
+   ═══════════════════════════════════════════════════════════════════════════ */
+[class*="offline"][class*="banner"],
+[class*="offline-bar"],
+[class*="status-bar"],
+[class*="connection"][class*="banner"] {
+  background: linear-gradient(
+    90deg,
+    rgba(249,115,22,0.10) 0%,
+    rgba(249,115,22,0.06) 100%
+  ) !important;
+  backdrop-filter: var(--lg-blur-xs) !important;
+  -webkit-backdrop-filter: var(--lg-blur-xs) !important;
+  border-bottom: 1px solid rgba(249,115,22,0.20) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   33. HEADWAY CHANGELOG WIDGET — hidden permanently
+   ═══════════════════════════════════════════════════════════════════════════ */
 [class*="headway-widget-trigger"],
 [class*="headway-widget-anchor"],
 #headway-widget-script,
@@ -293,4 +787,44 @@ iframe[src*="headwayapp"] {
   display: none !important;
   pointer-events: none !important;
   visibility: hidden !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   34. GLOBAL TYPOGRAPHIC / INTERACTION POLISH
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Text selection */
+::selection {
+  background: rgba(249,115,22,0.30);
+  color: inherit;
+}
+
+/* Focus ring for keyboard nav */
+:focus-visible {
+  outline: 2px solid rgba(249,115,22,0.70) !important;
+  outline-offset: 2px !important;
+}
+
+/* Smooth all transitions globally */
+*, *::before, *::after {
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   35. ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+@keyframes lg-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes lg-pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(249,115,22,0.2); }
+  50%       { box-shadow: 0 0 20px rgba(249,115,22,0.45); }
+}
+
+/* Brand-coloured active elements get a subtle breathing glow */
+[class*="bg-brand"][class*="active"],
+[class*="bg-orange"][class*="active"] {
+  animation: lg-pulse-glow 2.4s ease-in-out infinite;
 }

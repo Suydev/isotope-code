@@ -1,9 +1,10 @@
 {
-  "name": "isotope-offline",
+  "name": "@workspace/website",
   "version": "1.0.0",
   "type": "module",
-  "description": "IsotopeAI — fully offline, zero npm dependencies needed",
+  "description": "IsotopeAI — fully offline PWA, zero npm dependencies needed",
   "scripts": {
+    "dev": "node server.mjs",
     "start": "node server.mjs"
   }
 }
