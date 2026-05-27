@@ -908,3 +908,232 @@ iframe[src*="headwayapp"] {
 [class*="bg-orange"][class*="active"] {
   animation: lg-pulse-glow 2.4s ease-in-out infinite;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUG FIXES — liquid glass errors corrected
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Fix 1: scroll-behavior on * breaks scroll restoration — isolate to html only */
+*, *::before, *::after {
+  scroll-behavior: auto;
+}
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fix 2: background-attachment shadow trick needs proper gradients — reset it */
+[class*="overflow-y-auto"],
+[class*="overflow-y-scroll"],
+[class*="overflow-auto"] {
+  background-attachment: initial;
+}
+
+/* Fix 3: GPU compositing for backdrop-filter elements — prevents blur dropout */
+header,
+nav,
+aside,
+[role="dialog"],
+[role="menu"],
+[role="tooltip"],
+[data-radix-dropdown-menu-content],
+[data-radix-popover-content],
+[data-radix-select-content],
+[class*="sidebar"]:not([class*="sidebar-item"]):not(button):not(a):not(span),
+[class*="bottom-nav"],
+nav[class*="fixed"][class*="bottom"] {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  isolation: isolate;
+}
+
+/* Fix 4: reduced motion — respect system preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:       0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration:      0.01ms !important;
+    scroll-behavior:          auto !important;
+  }
+}
+
+/* Fix 5: prevent backdrop-filter clipping on overflow:hidden parents */
+[class*="rounded-"][class*="border"][class*="bg-zinc-9"],
+[class*="rounded-"][class*="border"][class*="bg-zinc-8"],
+[class*="rounded-2xl"][class*="border"],
+[class*="rounded-xl"][class*="border"],
+[class*="card"],
+[class*="panel"]:not([class*="panel-"]):not(button) {
+  contain: layout style;
+}
+
+/* Fix 6: text in glass cards must remain readable — enforce color */
+[class*="card"] *,
+[class*="panel"]:not(button) * {
+  color: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODE: GLASSMORPHISM  html[data-perf="glass"]
+   Reduced blur, no turbulence, balanced GPU cost
+   ═══════════════════════════════════════════════════════════════════════════ */
+html[data-perf="glass"] {
+  --lg-blur:    blur(14px) saturate(145%);
+  --lg-blur-md: blur(10px) saturate(135%);
+  --lg-blur-sm: blur(7px)  saturate(125%);
+  --lg-blur-xs: blur(4px)  saturate(115%);
+
+  --lg-bg:         rgba(255,255,255,0.07);
+  --lg-bg-md:      rgba(255,255,255,0.10);
+  --lg-bg-strong:  rgba(255,255,255,0.13);
+
+  --lg-shadow:    0 4px 20px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.10);
+  --lg-shadow-md: 0 3px 12px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.08);
+  --lg-shadow-sm: 0 2px 8px rgba(0,0,0,0.24);
+}
+
+/* Glass mode: no pulsing glow, simpler shimmer */
+html[data-perf="glass"] [class*="bg-brand"][class*="active"],
+html[data-perf="glass"] [class*="bg-orange"][class*="active"] {
+  animation: none !important;
+}
+html[data-perf="glass"] [class*="skeleton"],
+html[data-perf="glass"] [class*="shimmer"],
+html[data-perf="glass"] [class*="loading"][class*="placeholder"] {
+  background: rgba(255,255,255,0.07) !important;
+  animation: none !important;
+}
+
+/* Glass mode: scrollbar simpler */
+html[data-perf="glass"] ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18) !important;
+  box-shadow: none !important;
+}
+html[data-perf="glass"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(249,115,22,0.45) !important;
+  box-shadow: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODE: POTATO PC  html[data-perf="potato"]
+   Zero GPU cost — no backdrop-filter, no blur, no animations, flat UI
+   ═══════════════════════════════════════════════════════════════════════════ */
+html[data-perf="potato"] {
+  --lg-blur:    none;
+  --lg-blur-md: none;
+  --lg-blur-sm: none;
+  --lg-blur-xs: none;
+
+  --lg-shadow:    0 2px 6px rgba(0,0,0,0.35);
+  --lg-shadow-md: 0 1px 4px rgba(0,0,0,0.28);
+  --lg-shadow-sm: 0 1px 2px rgba(0,0,0,0.22);
+}
+
+/* Strip ALL blur / filter effects */
+html[data-perf="potato"] *,
+html[data-perf="potato"] *::before,
+html[data-perf="potato"] *::after {
+  backdrop-filter:          none !important;
+  -webkit-backdrop-filter:  none !important;
+  filter:                   none !important;
+  will-change:              auto !important;
+  transform:                none !important;
+  -webkit-transform:        none !important;
+  animation-duration:       0s   !important;
+  animation-delay:          0s   !important;
+  transition-duration:      0s   !important;
+  transition-delay:         0s   !important;
+}
+
+/* Restore transforms only for the mode picker button itself */
+html[data-perf="potato"] #__perf_mode__ button {
+  transform: none !important;
+}
+
+/* Flat page background */
+html[data-perf="potato"] body,
+html[data-perf="potato"] #root,
+html[data-perf="potato"] [class*="min-h-screen"],
+html[data-perf="potato"] [class*="h-screen"],
+html[data-perf="potato"] main {
+  background: #09090b !important;
+}
+
+/* Flat surface colours — solid, no gradients */
+html[data-perf="potato"] nav,
+html[data-perf="potato"] aside,
+html[data-perf="potato"] header,
+html[data-perf="potato"] [class*="sidebar"]:not([class*="sidebar-item"]):not(button):not(a),
+html[data-perf="potato"] [role="dialog"],
+html[data-perf="potato"] [role="menu"],
+html[data-perf="potato"] [class*="modal"],
+html[data-perf="potato"] [class*="sheet"]:not(button),
+html[data-perf="potato"] [class*="card"],
+html[data-perf="potato"] [class*="panel"]:not(button),
+html[data-perf="potato"] [class*="rounded-"][class*="border"][class*="bg-zinc-9"],
+html[data-perf="potato"] [class*="rounded-"][class*="border"][class*="bg-zinc-8"] {
+  background: #111116 !important;
+  border-color: rgba(255,255,255,0.09) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3) !important;
+}
+
+html[data-perf="potato"] [class*="bottom-nav"],
+html[data-perf="potato"] nav[class*="fixed"][class*="bottom"],
+html[data-perf="potato"] [class*="fixed"][class*="bottom-0"][class*="left-0"][class*="right-0"] {
+  background: #0c0c10 !important;
+  border-top-color: rgba(255,255,255,0.07) !important;
+  box-shadow: none !important;
+}
+
+html[data-perf="potato"] [role="tooltip"],
+html[data-perf="potato"] [data-radix-tooltip-content] {
+  background: #1a1a22 !important;
+}
+
+/* Flat focus/timer card */
+html[data-perf="potato"] [class*="focus"][class*="card"],
+html[data-perf="potato"] [class*="timer"]:not(button):not(span):not([class*="timer-btn"]) {
+  background: rgba(249,115,22,0.07) !important;
+  border-color: rgba(249,115,22,0.16) !important;
+  box-shadow: none !important;
+}
+
+/* Progress bar — flat (no glow) */
+html[data-perf="potato"] [class*="progress"][class*="bar"],
+html[data-perf="potato"] [class*="progress-fill"],
+html[data-perf="potato"] [role="progressbar"] > * {
+  background: var(--brand) !important;
+  box-shadow: none !important;
+}
+
+/* Static skeleton */
+html[data-perf="potato"] [class*="skeleton"],
+html[data-perf="potato"] [class*="shimmer"],
+html[data-perf="potato"] [class*="loading"][class*="placeholder"] {
+  background: rgba(255,255,255,0.07) !important;
+  animation: none !important;
+}
+
+/* Potato scrollbar — minimal */
+html[data-perf="potato"] ::-webkit-scrollbar { width: 4px; }
+html[data-perf="potato"] ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.14) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+html[data-perf="potato"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(249,115,22,0.40) !important;
+  box-shadow: none !important;
+}
+html[data-perf="potato"] * {
+  scrollbar-color: rgba(255,255,255,0.14) transparent;
+}
+
+/* Primary button — flat orange, no lift */
+html[data-perf="potato"] button[class*="bg-brand"]:hover,
+html[data-perf="potato"] button[class*="bg-orange"]:hover,
+html[data-perf="potato"] [class*="bg-brand-500"]:hover,
+html[data-perf="potato"] [class*="bg-brand-600"]:hover {
+  box-shadow: none !important;
+  transform:  none !important;
+}
