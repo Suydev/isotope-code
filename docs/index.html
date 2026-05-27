@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IsotopeAI — AI Study Planner, Focus Timer & Analytics</title>
+<meta name="description" content="AI-powered study ecosystem for students. Focus timer, syllabus tracker, spaced repetition, and AI assistant in one PWA.">
+<meta property="og:title" content="IsotopeAI — AI Study Planner">
+<meta property="og:description" content="Focus. Track. Achieve. Your all-in-one AI-powered study ecosystem.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#f97316">
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand: #f97316;
+    --brand-dim: rgba(249,115,22,0.18);
+    --brand-glow: rgba(249,115,22,0.35);
+    --glass-bg: rgba(255,255,255,0.055);
+    --glass-border: rgba(255,255,255,0.10);
+    --glass-blur: blur(36px) saturate(180%);
+    --text: rgba(255,255,255,0.88);
+    --text-dim: rgba(255,255,255,0.45);
+    --radius: 18px;
+    --radius-sm: 10px;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    background: #09090e;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── Background decoration ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 0%,   rgba(249,115,22,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(249,115,22,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 60% at 50% 50%,  rgba(249,115,22,0.03) 0%, transparent 70%);
+  }
+
+  /* ── Glass panel mixin ── */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+  }
+  .glass-sm { border-radius: var(--radius-sm); }
+
+  /* ── Layout ── */
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(9,9,14,0.75);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 58px; padding: 0 24px; max-width: 1080px; margin: 0 auto;
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 17px; font-weight: 700; color: var(--text); text-decoration: none;
+  }
+  .nav-logo svg { width: 28px; height: 28px; }
+  .nav-links { display: flex; gap: 6px; }
+  .nav-links a {
+    padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    color: var(--text-dim); text-decoration: none; transition: all 0.15s;
+  }
+  .nav-links a:hover { color: var(--text); background: var(--glass-bg); }
+  .btn-nav {
+    padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    background: var(--brand); color: #fff; text-decoration: none;
+    box-shadow: 0 2px 12px var(--brand-glow); transition: all 0.15s;
+  }
+  .btn-nav:hover { transform: scale(1.03); box-shadow: 0 4px 20px var(--brand-glow); }
+  @media(max-width:640px){ .nav-links { display: none; } }
+
+  /* ── HERO ── */
+  .hero { padding: 96px 0 72px; text-align: center; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 16px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: var(--brand-dim); border: 1px solid rgba(249,115,22,0.3);
+    color: var(--brand); margin-bottom: 28px; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .hero h1 {
+    font-size: clamp(42px, 8vw, 84px); font-weight: 800; letter-spacing: -0.03em;
+    line-height: 1.0; margin-bottom: 24px;
+    background: linear-gradient(165deg, #fff 30%, rgba(249,115,22,0.9) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-sub {
+    font-size: clamp(17px, 3vw, 22px); color: var(--text-dim); max-width: 560px;
+    margin: 0 auto 40px; font-weight: 400;
+  }
+  .hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 32px; border-radius: 999px; font-size: 15px; font-weight: 700;
+    background: var(--brand); color: #fff; text-decoration: none;
+    box-shadow: 0 4px 28px var(--brand-glow); transition: all 0.15s;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 36px var(--brand-glow); }
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 28px; border-radius: 999px; font-size: 15px; font-weight: 600;
+    background: var(--glass-bg); color: var(--text); text-decoration: none;
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    transition: all 0.15s;
+  }
+  .btn-secondary:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.09); }
+
+  /* ── STATS ROW ── */
+  .stats { padding: 0 0 80px; }
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px;
+    background: var(--glass-border); border-radius: var(--radius); overflow: hidden;
+    border: 1px solid var(--glass-border);
+  }
+  .stat-item {
+    padding: 28px 24px; text-align: center;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  }
+  .stat-num { font-size: 32px; font-weight: 800; color: var(--brand); line-height: 1; }
+  .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* ── SECTION HEADERS ── */
+  .section { padding: 80px 0; }
+  .section-label { font-size: 11px; font-weight: 700; color: var(--brand); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
+  .section-title { font-size: clamp(28px, 5vw, 44px); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 14px; }
+  .section-sub { font-size: 17px; color: var(--text-dim); max-width: 540px; }
+  .section-head { margin-bottom: 52px; }
+
+  /* ── FEATURES GRID ── */
+  .features-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px;
+  }
+  .feat-card {
+    padding: 28px; position: relative; overflow: hidden; transition: transform 0.2s;
+  }
+  .feat-card:hover { transform: translateY(-3px); }
+  .feat-card::before {
+    content: ''; position: absolute; inset: 0; border-radius: var(--radius);
+    background: radial-gradient(circle at 30% 30%, rgba(249,115,22,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .feat-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: var(--brand-dim); border: 1px solid rgba(249,115,22,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin-bottom: 18px;
+  }
+  .feat-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .feat-desc { font-size: 14px; color: var(--text-dim); line-height: 1.65; }
+  .feat-tag {
+    display: inline-block; margin-top: 14px; padding: 3px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 600; background: var(--brand-dim);
+    color: var(--brand); border: 1px solid rgba(249,115,22,0.2);
+  }
+
+  /* ── COMMANDS ── */
+  .commands-grid { display: grid; gap: 16px; }
+  .cmd-block { padding: 24px 28px; }
+  .cmd-label { font-size: 13px; font-weight: 700; color: var(--brand); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .cmd-desc { font-size: 14px; color: var(--text-dim); margin-bottom: 14px; line-height: 1.6; }
+  .code-block {
+    background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 14px 18px; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    font-size: 13px; color: rgba(255,255,255,0.82); overflow-x: auto; white-space: pre; position: relative;
+  }
+  .code-block .comment { color: rgba(255,255,255,0.3); }
+  .code-block .key { color: #7dd3fc; }
+  .code-block .val { color: #86efac; }
+  .code-block .cmd-line { color: var(--brand); }
+  .copy-btn {
+    position: absolute; top: 10px; right: 12px;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-dim); font-size: 11px; font-weight: 600; padding: 3px 10px;
+    border-radius: 6px; cursor: pointer; transition: all 0.15s; font-family: inherit;
+  }
+  .copy-btn:hover { background: var(--brand-dim); color: var(--brand); border-color: rgba(249,115,22,0.3); }
+  .env-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .env-table th { text-align: left; padding: 8px 12px; color: var(--brand); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--glass-border); }
+  .env-table td { padding: 10px 12px; vertical-align: top; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .env-table td:first-child { font-family: 'SF Mono', Consolas, monospace; color: #7dd3fc; white-space: nowrap; }
+  .env-table td:last-child { color: var(--text-dim); }
+  .env-table tr:last-child td { border-bottom: none; }
+
+  /* ── TROUBLESHOOTING ── */
+  .trouble-grid { display: grid; gap: 14px; }
+  details.trouble { border-radius: var(--radius); overflow: hidden; }
+  details.trouble[open] { background: rgba(249,115,22,0.04); border-color: rgba(249,115,22,0.2); }
+  summary {
+    padding: 20px 24px; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 14px;
+    font-size: 15px; font-weight: 600; list-style: none;
+    transition: background 0.15s;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary:hover { background: rgba(255,255,255,0.04); }
+  details[open] summary { background: rgba(249,115,22,0.06); }
+  .summary-icon {
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    background: var(--brand-dim); border: 1px solid rgba(249,115,22,0.2);
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .summary-chevron {
+    margin-left: auto; font-size: 12px; color: var(--text-dim);
+    transition: transform 0.2s;
+  }
+  details[open] .summary-chevron { transform: rotate(180deg); }
+  .trouble-body { padding: 0 24px 24px; }
+  .trouble-body p { font-size: 14px; color: var(--text-dim); line-height: 1.7; margin-bottom: 12px; }
+  .trouble-body ul { padding-left: 18px; margin-bottom: 12px; }
+  .trouble-body li { font-size: 14px; color: var(--text-dim); line-height: 1.75; }
+  .trouble-body li + li { margin-top: 4px; }
+  .trouble-body strong { color: var(--text); }
+  .trouble-body .code-block { margin-top: 10px; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--glass-border);
+    padding: 40px 0 32px;
+    background: rgba(9,9,14,0.6);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    position: relative; z-index: 1;
+  }
+  .footer-inner {
+    max-width: 1080px; margin: 0 auto; padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap;
+  }
+  .footer-left { font-size: 13px; color: var(--text-dim); }
+  .footer-left strong { color: var(--text); }
+  .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+  .footer-links a { font-size: 13px; color: var(--text-dim); text-decoration: none; transition: color 0.15s; }
+  .footer-links a:hover { color: var(--brand); }
+
+  /* ── Misc ── */
+  .divider { height: 1px; background: var(--glass-border); margin: 8px 0; }
+  .tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; }
+  .tag {
+    padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="14" cy="14" r="13" stroke="#f97316" stroke-width="1.5"/>
+        <circle cx="14" cy="14" r="6" fill="#f97316" opacity="0.9"/>
+        <circle cx="14" cy="4"  r="2" fill="#f97316" opacity="0.6"/>
+        <circle cx="14" cy="24" r="2" fill="#f97316" opacity="0.6"/>
+        <circle cx="4"  cy="14" r="2" fill="#f97316" opacity="0.6"/>
+        <circle cx="24" cy="14" r="2" fill="#f97316" opacity="0.6"/>
+      </svg>
+      IsotopeAI
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#quickstart">Quick Start</a>
+      <a href="#troubleshooting">Troubleshoot</a>
+    </div>
+    <a href="https://github.com/Suydev/isotope-code" class="btn-nav" target="_blank" rel="noopener">
+      ⭐ Star on GitHub
+    </a>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">🔬 IsotopeAI v2.0 · Free &amp; Open Source</div>
+    <h1>Focus.<br>Track.<br>Achieve.</h1>
+    <p class="hero-sub">Your all-in-one AI-powered study ecosystem — focus timer, syllabus tracker, spaced repetition, and Gemini AI, wrapped in an Apple-style glass PWA.</p>
+    <div class="hero-ctas">
+      <a href="https://github.com/Suydev/isotope-code" class="btn-primary" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        View Source
+      </a>
+      <a href="#quickstart" class="btn-secondary">
+        ⚡ Quick Start
+      </a>
+    </div>
+    <div class="tag-row" style="justify-content:center; margin-top:36px;">
+      <span class="tag">PWA · Offline-ready</span>
+      <span class="tag">Gemini AI</span>
+      <span class="tag">Apple Liquid Glass</span>
+      <span class="tag">Free forever</span>
+      <span class="tag">No account required</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── STATS ── -->
+<section class="stats">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-num">6</div>
+        <div class="stat-label">Study Tools</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">2</div>
+        <div class="stat-label">AI Providers</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">3</div>
+        <div class="stat-label">Ambient Sounds</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">∞</div>
+        <div class="stat-label">Wallpapers</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">0</div>
+        <div class="stat-label">Accounts needed</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ── -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-label">Everything you need</div>
+      <h2 class="section-title">Built for serious students</h2>
+      <p class="section-sub">Every feature is designed to reduce study friction and keep you in the zone.</p>
+    </div>
+    <div class="features-grid">
+
+      <div class="glass feat-card">
+        <div class="feat-icon">⏱</div>
+        <div class="feat-title">Focus Timer + PiP</div>
+        <div class="feat-desc">Pomodoro-based focus timer with Picture-in-Picture mode so the clock stays visible while you work in other apps. Supports custom durations and auto-break scheduling.</div>
+        <span class="feat-tag">Pomodoro · PiP</span>
+      </div>
+
+      <div class="glass feat-card">
+        <div class="feat-icon">🤖</div>
+        <div class="feat-title">Gemini AI Assistant</div>
+        <div class="feat-desc">Ask any study question, get summaries, generate practice questions, and receive personalised study plans. Gemini primary with automatic Groq fallback for zero-downtime AI.</div>
+        <span class="feat-tag">Gemini · Groq fallback</span>
+      </div>
+
+      <div class="glass feat-card">
+        <div class="feat-icon">📚</div>
+        <div class="feat-title">Syllabus Tracker</div>
+        <div class="feat-desc">Track your progress per subject and topic. Visual progress bars update in real time as you complete sessions. Never lose track of what you've covered.</div>
+        <span class="feat-tag">Per-subject progress</span>
+      </div>
+
+      <div class="glass feat-card">
+        <div class="feat-icon">🔁</div>
+        <div class="feat-title">Spaced Repetition</div>
+        <div class="feat-desc">Built-in spaced repetition scheduler surfaces the right cards at the right time. Study smarter with scientifically-proven review intervals.</div>
+        <span class="feat-tag">SM-2 algorithm</span>
+      </div>
+
+      <div class="glass feat-card">
+        <div class="feat-icon">📊</div>
+        <div class="feat-title">Deep Analytics</div>
+        <div class="feat-desc">Daily, weekly, and per-subject charts show exactly where your time goes. Streak tracking and achievement system keep motivation high.</div>
+        <span class="feat-tag">Charts · Streaks</span>
+      </div>
+
+      <div class="glass feat-card">
+        <div class="feat-icon">🪟</div>
+        <div class="feat-title">Apple Liquid Glass UI</div>
+        <div class="feat-desc">Full glassmorphism UI with adjustable blur, opacity, and tint. Upload your own wallpaper or pick from built-in gradients. Settings panel available on every screen.</div>
+        <span class="feat-tag">Blur · Opacity · Wallpaper</span>
+      </div>
+
+      <div class="glass feat-card">
+        <div class="feat-icon">🎵</div>
+        <div class="feat-title">Ambient Soundscapes</div>
+        <div class="feat-desc">Three local ambient sounds (thunder &amp; rain, crickets, wind) bundled offline. No streaming required — they work on a plane or in a subway.</div>
+        <span class="feat-tag">Offline sounds</span>
+      </div>
+
+      <div class="glass feat-card">
+        <div class="feat-icon">📱</div>
+        <div class="feat-title">Installable PWA</div>
+        <div class="feat-desc">Install directly from the browser on any device. Full offline support via Service Worker. Works on iOS, Android, Windows, and macOS with native-like feel.</div>
+        <span class="feat-tag">PWA · Offline · Cross-platform</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── QUICK START / COMMANDS ── -->
+<section class="section" id="quickstart">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-label">Developer Reference</div>
+      <h2 class="section-title">Quick start &amp; commands</h2>
+      <p class="section-sub">Get up and running in under two minutes.</p>
+    </div>
+
+    <div class="commands-grid">
+
+      <!-- Clone & Install -->
+      <div class="glass cmd-block">
+        <div class="cmd-label">1 · Clone &amp; Install</div>
+        <div class="cmd-desc">Clone the repo and install dependencies with pnpm.</div>
+        <div class="code-block" id="code-clone">
+<button class="copy-btn" onclick="copyCode('code-clone')">Copy</button><span class="cmd-line">git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+npm install</span>
+</div>
+      </div>
+
+      <!-- Environment variables -->
+      <div class="glass cmd-block">
+        <div class="cmd-label">2 · Environment Variables</div>
+        <div class="cmd-desc">Create a <code style="font-family:monospace;color:#7dd3fc;">.env</code> file (or set these in your host's dashboard). Both keys are optional — the app degrades gracefully without them.</div>
+        <div class="code-block" id="code-env">
+<button class="copy-btn" onclick="copyCode('code-env')">Copy</button><span class="comment"># .env</span>
+<span class="key">GEMINI_API_KEY</span>=<span class="val">your_google_gemini_api_key</span>
+<span class="key">GROQ_API_KEY</span>=<span class="val">your_groq_api_key</span>
+<span class="key">PORT</span>=<span class="val">3000</span>          <span class="comment"># optional, default 3000</span>
+<span class="key">SESSION_SECRET</span>=<span class="val">any_random_string</span>  <span class="comment"># optional</span></div>
+        <div style="margin-top:16px;">
+          <table class="env-table">
+            <tr><th>Variable</th><th>Required</th><th>Description</th></tr>
+            <tr><td>GEMINI_API_KEY</td><td style="color:#86efac;">Optional</td><td>Google Gemini API key. Get it free at <strong>aistudio.google.com</strong></td></tr>
+            <tr><td>GROQ_API_KEY</td><td style="color:#86efac;">Optional</td><td>Groq fallback key. Free at <strong>console.groq.com</strong></td></tr>
+            <tr><td>PORT</td><td style="color:var(--text-dim);">Optional</td><td>HTTP port. Defaults to 3000.</td></tr>
+            <tr><td>SESSION_SECRET</td><td style="color:var(--text-dim);">Optional</td><td>Express session secret. Auto-generated if unset.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Start server -->
+      <div class="glass cmd-block">
+        <div class="cmd-label">3 · Start the Server</div>
+        <div class="cmd-desc">Run the Node.js static file server. It injects API keys and patches the React bundles at startup.</div>
+        <div class="code-block" id="code-start">
+<button class="copy-btn" onclick="copyCode('code-start')">Copy</button><span class="cmd-line">node server.mjs</span>
+<span class="comment"># or with npm:</span>
+<span class="cmd-line">npm start</span>
+<span class="comment">
+# Expected output:
+# IsotopeAI running on port 3000
+# Gemini API key: configured
+# Groq API key: configured</span></div>
+      </div>
+
+      <!-- Customisation -->
+      <div class="glass cmd-block">
+        <div class="cmd-label">Customisation Reference</div>
+        <div class="cmd-desc">Key files you can safely edit to customise the app without recompiling the React bundles.</div>
+        <div class="code-block" id="code-files">
+<button class="copy-btn" onclick="copyCode('code-files')">Copy</button><span class="comment">public/
+├── liquid-glass.css       </span><span class="val"># Glass UI styles, z-index scheme</span>
+<span class="comment">├── glass-settings.js      </span><span class="val"># ◈ settings panel (blur/opacity/tint/dim)</span>
+<span class="comment">├── bg-video.js            </span><span class="val"># Background system (video/image/gradient)</span>
+<span class="comment">├── settings-wallpaper.js  </span><span class="val"># Wallpaper picker in /settings tab</span>
+<span class="comment">├── community-patch.js     </span><span class="val"># Community "Coming Soon" overlay</span>
+<span class="comment">├── ux-patches.js          </span><span class="val"># Onboarding shortcuts, return-visitor banner</span>
+<span class="comment">├── offline-patches.js     </span><span class="val"># Service worker + offline error suppression</span>
+<span class="comment">└── sounds/                </span><span class="val"># thunder-rain.wav / crickets.wav / wind.wav</span>
+<span class="comment">
+server.mjs                 </span><span class="val"># Injects API keys + patches bundle filenames</span>
+<span class="comment">index.html                 </span><span class="val"># Script load order — add new patches here</span></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── TROUBLESHOOTING ── -->
+<section class="section" id="troubleshooting">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-label">Common Issues</div>
+      <h2 class="section-title">Troubleshooting guide</h2>
+      <p class="section-sub">Most issues are resolved in under a minute.</p>
+    </div>
+
+    <div class="trouble-grid">
+
+      <details class="glass trouble">
+        <summary>
+          <div class="summary-icon">⬜</div>
+          App shows a blank screen or doesn't load
+          <span class="summary-chevron">▼</span>
+        </summary>
+        <div class="trouble-body">
+          <p>The most common cause is the server not running, or the browser serving a stale Service Worker cache.</p>
+          <ul>
+            <li>Make sure <code style="font-family:monospace;color:#7dd3fc;">node server.mjs</code> is running and shows <em>"IsotopeAI running on port…"</em></li>
+            <li>Open DevTools → Application → Service Workers → click <strong>Unregister</strong>, then hard-refresh (<kbd>Ctrl+Shift+R</kbd> / <kbd>Cmd+Shift+R</kbd>)</li>
+            <li>If on Replit: ensure the <strong>isotope-app workflow</strong> is running in the workspace sidebar</li>
+            <li>Check the browser console for any <code>404</code> errors on bundle files — the bundle filenames are patched in <code>server.mjs</code></li>
+          </ul>
+          <div class="code-block"><span class="comment"># restart server</span>
+<span class="cmd-line">node server.mjs</span></div>
+        </div>
+      </details>
+
+      <details class="glass trouble">
+        <summary>
+          <div class="summary-icon">🤖</div>
+          AI assistant not responding / "AI unavailable"
+          <span class="summary-chevron">▼</span>
+        </summary>
+        <div class="trouble-body">
+          <p>The AI features require at least one API key. Check startup logs — the server prints which keys are detected.</p>
+          <ul>
+            <li>Confirm <strong>GEMINI_API_KEY</strong> and/or <strong>GROQ_API_KEY</strong> are set in your environment</li>
+            <li>On Replit: set them in <strong>Secrets</strong> (padlock icon) — not in a <code>.env</code> file</li>
+            <li>The server injects keys via <code>window.__IK__</code> — if the page loaded before the key was set, hard-refresh</li>
+            <li>Gemini free tier has rate limits — if you hit them, Groq kicks in automatically</li>
+          </ul>
+          <div class="code-block"><span class="comment"># verify keys are detected at startup:</span>
+# IsotopeAI running on port 3000
+# <span class="val">Gemini API key: configured</span>
+# <span class="val">Groq API key: configured</span></div>
+        </div>
+      </details>
+
+      <details class="glass trouble">
+        <summary>
+          <div class="summary-icon">🎬</div>
+          Background video or uploaded wallpaper not showing
+          <span class="summary-chevron">▼</span>
+        </summary>
+        <div class="trouble-body">
+          <p>The background system uses IndexedDB to persist uploaded media. A few things can block it:</p>
+          <ul>
+            <li>Make sure <code>bg-video.js</code> and <code>liquid-glass.css</code> are loading (check Network tab)</li>
+            <li>The default Mustang video is embedded as a Base64 data URI and plays on load — if it's not visible, check that <strong>autoplay</strong> is not blocked by your browser</li>
+            <li>Uploaded wallpapers go through <strong>IndexedDB</strong> — if you cleared site data, the upload is gone</li>
+            <li>Video autoplay requires the page to be interacted with first on some browsers (click anywhere then refresh)</li>
+            <li>Confirm the z-index scheme: <code>#root</code> must have <code>z-index: 4</code>, the dim overlay <code>z-index: 3</code></li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="glass trouble">
+        <summary>
+          <div class="summary-icon">🪟</div>
+          Glass / blur effects not visible
+          <span class="summary-chevron">▼</span>
+        </summary>
+        <div class="trouble-body">
+          <p><code>backdrop-filter: blur()</code> requires a background behind the element. If the HTML/body are opaque black, glass panels look flat.</p>
+          <ul>
+            <li>Confirm <code>liquid-glass.css</code> is loaded — it sets <code>html, body { background: transparent }</code></li>
+            <li>If you see solid dark panels: toggle the wallpaper preset in <strong>Settings → App Wallpaper</strong> to Space/Ember/Forest</li>
+            <li>The ◈ glass settings button (bottom-left) lets you adjust blur up to 80px and opacity in real time</li>
+            <li>Firefox has partial <code>backdrop-filter</code> support — enable <code>layout.css.backdrop-filter.enabled</code> in <code>about:config</code> or use Chrome/Safari</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="glass trouble">
+        <summary>
+          <div class="summary-icon">🎵</div>
+          Ambient sounds not playing in the Focus timer
+          <span class="summary-chevron">▼</span>
+        </summary>
+        <div class="trouble-body">
+          <p>Sounds are served locally from <code>/sounds/</code> — no internet connection needed. If they're silent:</p>
+          <ul>
+            <li>Check that <code>public/sounds/thunder-rain.wav</code>, <code>crickets.wav</code>, and <code>wind.wav</code> exist (each is ~12–17 MB)</li>
+            <li>Browser autoplay policy blocks audio until the user interacts — start a focus session by tapping the timer first</li>
+            <li>Check that <code>server.mjs</code> SOUND_PATCHES replaces the original GitHub raw URLs with <code>/sounds/</code> paths in the Focus bundle</li>
+            <li>Confirm the patched bundle filename matches <code>FOCUS_BUNDLE</code> in <code>server.mjs</code></li>
+          </ul>
+          <div class="code-block"><span class="comment"># verify sounds exist</span>
+<span class="cmd-line">ls -lh public/sounds/</span>
+<span class="comment"># should show:
+# thunder-rain.wav  ~15M
+# crickets.wav      ~12M
+# wind.wav          ~17M</span></div>
+        </div>
+      </details>
+
+      <details class="glass trouble">
+        <summary>
+          <div class="summary-icon">📱</div>
+          "Add to Home Screen" / PWA install not appearing
+          <span class="summary-chevron">▼</span>
+        </summary>
+        <div class="trouble-body">
+          <p>PWA install requires HTTPS, a valid manifest, and a registered Service Worker.</p>
+          <ul>
+            <li>On <strong>Replit</strong>: the preview URL is served over HTTPS — install should work. Use <em>Share → Open in new tab</em> first</li>
+            <li>On <strong>localhost</strong>: Chrome treats localhost as secure. Use <code>http://localhost:3000</code> and look for the install icon in the address bar</li>
+            <li>On <strong>iOS Safari</strong>: tap the Share icon → <em>Add to Home Screen</em></li>
+            <li>Check <code>/manifest.webmanifest</code> returns a valid JSON with <code>start_url</code> and icon paths</li>
+            <li>Open DevTools → Application → Manifest to check for errors</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="glass trouble">
+        <summary>
+          <div class="summary-icon">🔁</div>
+          Onboarding keeps showing on every reload
+          <span class="summary-chevron">▼</span>
+        </summary>
+        <div class="trouble-body">
+          <p>Onboarding triggers when <code>isotope-auth</code>, <code>isotope-onboarding</code>, and <code>isotope_intro_seen</code> are absent from localStorage.</p>
+          <ul>
+            <li>This is intentional — <code>restore-and-launch.js</code> never pre-sets these keys so every fresh install starts with onboarding</li>
+            <li>If you cleared localStorage (or opened in incognito) the onboarding will run again</li>
+            <li>To skip: tap <strong>⚡ Try without signing up</strong> at the bottom of the signup page, or use <strong>Try Demo</strong> on the landing page</li>
+          </ul>
+          <div class="code-block"><span class="comment"># manually skip onboarding in browser console:</span>
+<span class="cmd-line">localStorage.setItem('isotope_intro_seen', 'true')
+location.reload()</span></div>
+        </div>
+      </details>
+
+      <details class="glass trouble">
+        <summary>
+          <div class="summary-icon">🔌</div>
+          Port already in use / server won't start
+          <span class="summary-chevron">▼</span>
+        </summary>
+        <div class="trouble-body">
+          <p>The default port is <strong>3000</strong>. If something else is using it, set a different one.</p>
+          <div class="code-block"><span class="comment"># set a custom port:</span>
+<span class="key">PORT</span>=<span class="val">8080</span> <span class="cmd-line">node server.mjs</span>
+
+<span class="comment"># or in .env:</span>
+<span class="key">PORT</span>=<span class="val">8080</span>
+
+<span class="comment"># find what's on port 3000:</span>
+<span class="cmd-line">lsof -i :3000</span>        <span class="comment"># macOS / Linux</span>
+<span class="cmd-line">netstat -ano | findstr :3000</span>  <span class="comment"># Windows</span></div>
+        </div>
+      </details>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-left">
+      <strong>IsotopeAI</strong> · Free &amp; open source · MIT License
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/Suydev/isotope-code" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/Suydev/isotope-code/issues" target="_blank" rel="noopener">Issues</a>
+      <a href="https://github.com/Suydev/isotope-code/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="#troubleshooting">Troubleshoot</a>
+      <a href="#quickstart">Quick Start</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Copy code block to clipboard
+  function copyCode(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    // Get text content, strip copy button text
+    var raw = el.innerText.replace(/^Copy\n/, '').replace(/^Copy/, '').trim();
+    navigator.clipboard.writeText(raw).then(function() {
+      var btn = el.querySelector('.copy-btn');
+      if (btn) { btn.textContent = '✓ Copied'; setTimeout(function(){ btn.textContent = 'Copy'; }, 1800); }
+    }).catch(function() {
+      var btn = el.querySelector('.copy-btn');
+      if (btn) btn.textContent = 'Copy';
+    });
+  }
+
+  // Smooth reveal on scroll
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+
+  document.querySelectorAll('.feat-card, .cmd-block, details.trouble').forEach(function(el) {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(18px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(el);
+  });
+</script>
+</body>
+</html>
