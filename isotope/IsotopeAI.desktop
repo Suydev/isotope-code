@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=IsotopeAI
+Comment=AI-powered study planner — runs locally
+Exec=bash %k/../start-linux.sh
+Icon=%k/../public/icon-192.png
+Terminal=true
+Categories=Education;Utility;
+StartupNotify=true
