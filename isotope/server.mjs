@@ -107,53 +107,233 @@ if (GEMINI_API_KEY || GROQ_API_KEY) getPatchedAiStore();
 // The app uses the Document Picture-in-Picture API (Chrome 116+ desktop).
 // This polyfill is prepended to the Focus bundle at serve time.
 // On browsers that already support documentPictureInPicture it does nothing.
-// On unsupported browsers it creates a draggable floating overlay that behaves
-// identically: same API surface, dark-mode sync, draggable, close button,
-// pagehide event, S.prompt() support.
+//
+// Two branches:
+//   Android / mobile  →  minimal glass floating card, no chrome, orange glow.
+//                        Tap the orange dismiss pill at the bottom to close.
+//   Desktop           →  draggable overlay with title bar + X button (unchanged).
 const FOCUS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Focus-BmgY-9vP.js');
 
 const PIP_POLYFILL = `(function(){
 if('documentPictureInPicture' in window)return;
+
+var _isAndroid=/Android|Mobile|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 window.documentPictureInPicture={
 requestWindow:async function(opts){
 var w=(opts&&opts.width)||340,h=(opts&&opts.height)||390;
 var old=document.getElementById('__pip_poly__');if(old)old.remove();
+
 var ov=document.createElement('div');
 ov.id='__pip_poly__';
-ov.setAttribute('style','position:fixed;top:20px;right:20px;width:'+w+'px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.12);z-index:2147483647;overflow:hidden;font-family:system-ui,sans-serif;border:1px solid rgba(0,0,0,.08);background:#f4f4f5;');
-var bar=document.createElement('div');
-bar.setAttribute('style','position:absolute;top:0;left:0;right:0;height:26px;cursor:grab;z-index:1;display:flex;align-items:center;justify-content:flex-end;padding:0 7px;background:rgba(0,0,0,.07);border-radius:16px 16px 0 0;box-sizing:border-box;');
-var xBtn=document.createElement('button');
-xBtn.textContent='\\u2715';
-xBtn.setAttribute('style','background:rgba(0,0,0,.18);border:none;border-radius:50%;width:17px;height:17px;cursor:pointer;font-size:9px;color:inherit;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;');
-bar.appendChild(xBtn);ov.appendChild(bar);
-var ca=document.createElement('div');
-ca.setAttribute('style','margin-top:26px;min-height:'+(h-26)+'px;');
-ov.appendChild(ca);document.body.appendChild(ov);
-var drag=false,ox=0,oy=0;
-bar.addEventListener('mousedown',function(e){if(e.target===xBtn)return;drag=true;var r=ov.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;bar.style.cursor='grabbing';e.preventDefault();});
-document.addEventListener('mousemove',function(e){if(!drag)return;ov.style.right='auto';ov.style.left=Math.max(0,Math.min(e.clientX-ox,window.innerWidth-w-4))+'px';ov.style.top=Math.max(0,e.clientY-oy)+'px';});
-document.addEventListener('mouseup',function(){drag=false;bar.style.cursor='grab';});
+
 var phl=[];
-function doClose(){ov.remove();phl.forEach(function(fn){try{fn({type:'pagehide'});}catch(e){}});}
-xBtn.addEventListener('click',doClose);
+function doClose(){
+  ov.style.opacity='0';
+  ov.style.transform=_isAndroid?'translateY(20px) scale(0.95)':'scale(0.97)';
+  setTimeout(function(){ov.remove();},280);
+  phl.forEach(function(fn){try{fn({type:'pagehide'});}catch(e){}});
+}
+
+/* ── SHARED: body/document proxy ── */
+var ca=document.createElement('div');
+
 var sty=new Proxy(ca.style,{
-set:function(t,p,v){t[p]=v;if(p==='backgroundColor')ov.style.backgroundColor=v;return true;},
-get:function(t,p){var v=t[p];return typeof v==='function'?v.bind(t):v;}
+  set:function(t,p,v){
+    /* swallow background so glass shows through on Android */
+    if(_isAndroid&&p==='backgroundColor')return true;
+    t[p]=v;return true;
+  },
+  get:function(t,p){var v=t[p];return typeof v==='function'?v.bind(t):v;}
 });
 var body=new Proxy(ca,{
-get:function(t,p){if(p==='style')return sty;var v=t[p];return typeof v==='function'?v.bind(t):v;},
-set:function(t,p,v){t[p]=v;return true;}
+  get:function(t,p){if(p==='style')return sty;var v=t[p];return typeof v==='function'?v.bind(t):v;},
+  set:function(t,p,v){t[p]=v;return true;}
 });
 var fd={
-body:body,
-createElement:function(tag){return document.createElement(tag);},
-createElementNS:function(ns,tag){return document.createElementNS(ns,tag);},
-getElementById:function(id){return ca.querySelector('#'+id);},
-querySelector:function(s){return ca.querySelector(s);},
-querySelectorAll:function(s){return ca.querySelectorAll(s);},
-head:{appendChild:function(){},querySelectorAll:function(){return[];}}
+  body:body,
+  createElement:function(tag){return document.createElement(tag);},
+  createElementNS:function(ns,tag){return document.createElementNS(ns,tag);},
+  getElementById:function(id){return ca.querySelector('#'+id);},
+  querySelector:function(s){return ca.querySelector(s);},
+  querySelectorAll:function(s){return ca.querySelectorAll(s);},
+  head:{appendChild:function(){},querySelectorAll:function(){return[];}}
 };
+
+if(_isAndroid){
+  /* ════════════════════════════════════════════════════════
+     ANDROID — minimal liquid-glass floating timer card
+     No drag bar. No X button. Pure glass + orange glow.
+     Dismiss with the small pill at the bottom.
+     ════════════════════════════════════════════════════════ */
+  var cw=Math.min(w,210);
+
+  /* outer glow ring — slightly larger, blurred */
+  var glow=document.createElement('div');
+  glow.setAttribute('style',[
+    'position:fixed','bottom:70px','right:14px',
+    'width:'+(cw+12)+'px',
+    'height:'+(Math.round(h*0.58)+12)+'px',
+    'border-radius:30px',
+    'background:transparent',
+    'box-shadow:0 0 28px 6px rgba(249,115,22,0.30),0 0 56px 12px rgba(249,115,22,0.12)',
+    'z-index:2147483646',
+    'pointer-events:none',
+    'transition:opacity 0.28s ease,transform 0.28s ease',
+  ].join(';'));
+  document.body.appendChild(glow);
+
+  ov.setAttribute('style',[
+    'position:fixed','bottom:70px','right:14px',
+    'width:'+cw+'px',
+    'border-radius:26px',
+    'z-index:2147483647',
+    'overflow:hidden',
+    'font-family:system-ui,-apple-system,sans-serif',
+    /* glass layers */
+    'background:rgba(8,8,14,0.62)',
+    'backdrop-filter:blur(32px) saturate(1.8)',
+    '-webkit-backdrop-filter:blur(32px) saturate(1.8)',
+    /* edge border + glow */
+    'border:1px solid rgba(249,115,22,0.42)',
+    'box-shadow:'+[
+      'inset 0 1px 0 rgba(255,255,255,0.12)',
+      'inset 0 -1px 0 rgba(0,0,0,0.20)',
+      '0 0 0 1px rgba(249,115,22,0.08)',
+      '0 12px 40px rgba(0,0,0,0.55)',
+    ].join(','),
+    /* entrance animation */
+    'opacity:0',
+    'transform:translateY(16px) scale(0.96)',
+    'transition:opacity 0.32s cubic-bezier(0.22,1,0.36,1),transform 0.32s cubic-bezier(0.22,1,0.36,1)',
+  ].join(';'));
+
+  /* timer content area — no top margin, fills card */
+  ca.setAttribute('style','width:100%;');
+  ov.appendChild(ca);
+
+  /* dismiss pill at bottom */
+  var pill=document.createElement('div');
+  pill.setAttribute('style',[
+    'display:flex','align-items:center','justify-content:center',
+    'padding:6px 0 10px',
+    'cursor:pointer',
+    '-webkit-tap-highlight-color:transparent',
+  ].join(';'));
+  var pillDot=document.createElement('div');
+  pillDot.setAttribute('style',[
+    'width:36px','height:4px','border-radius:9999px',
+    'background:rgba(249,115,22,0.55)',
+    'transition:background 0.15s ease,transform 0.15s ease',
+  ].join(';'));
+  pill.appendChild(pillDot);
+  pill.addEventListener('touchstart',function(){pillDot.style.background='rgba(249,115,22,0.9)';pillDot.style.transform='scaleX(0.8)';},{passive:true});
+  pill.addEventListener('touchend',function(){doClose();},{passive:true});
+  pill.addEventListener('click',doClose);
+  ov.appendChild(pill);
+
+  document.body.appendChild(ov);
+
+  /* animate in */
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      ov.style.opacity='1';
+      ov.style.transform='translateY(0) scale(1)';
+    });
+  });
+
+  /* also patch glow removal on close */
+  var _origClose=doClose;
+  doClose=function(){
+    glow.style.opacity='0';
+    setTimeout(function(){glow.remove();},300);
+    _origClose();
+  };
+
+} else {
+  /* ════════════════════════════════════════════════════════
+     DESKTOP — draggable overlay with title bar + X button
+     ════════════════════════════════════════════════════════ */
+  ov.setAttribute('style',[
+    'position:fixed','top:20px','right:20px',
+    'width:'+w+'px',
+    'border-radius:16px',
+    'box-shadow:0 8px 40px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.12)',
+    'z-index:2147483647','overflow:hidden',
+    'font-family:system-ui,sans-serif',
+    'border:1px solid rgba(0,0,0,.08)',
+    'background:#09090b',
+    'opacity:0','transform:scale(0.97)',
+    'transition:opacity 0.22s ease,transform 0.22s ease',
+  ].join(';'));
+
+  var bar=document.createElement('div');
+  bar.setAttribute('style',[
+    'position:absolute','top:0','left:0','right:0','height:26px',
+    'cursor:grab','z-index:1',
+    'display:flex','align-items:center','justify-content:flex-end',
+    'padding:0 7px',
+    'background:rgba(255,255,255,0.06)',
+    'border-radius:16px 16px 0 0','box-sizing:border-box',
+    'border-bottom:1px solid rgba(255,255,255,0.07)',
+  ].join(';'));
+
+  var xBtn=document.createElement('button');
+  xBtn.textContent='\\u2715';
+  xBtn.setAttribute('style',[
+    'background:rgba(255,255,255,0.12)','border:none','border-radius:50%',
+    'width:17px','height:17px','cursor:pointer','font-size:9px',
+    'color:rgba(255,255,255,0.7)',
+    'display:flex','align-items:center','justify-content:center',
+    'padding:0','flex-shrink:0',
+    'transition:background 0.15s ease',
+  ].join(';'));
+  xBtn.addEventListener('mouseenter',function(){xBtn.style.background='rgba(249,115,22,0.5)';xBtn.style.color='white';});
+  xBtn.addEventListener('mouseleave',function(){xBtn.style.background='rgba(255,255,255,0.12)';xBtn.style.color='rgba(255,255,255,0.7)';});
+  bar.appendChild(xBtn);
+  ov.appendChild(bar);
+
+  ca.setAttribute('style','margin-top:26px;min-height:'+(h-26)+'px;');
+  ov.appendChild(ca);
+  document.body.appendChild(ov);
+
+  /* entrance animation */
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      ov.style.opacity='1';
+      ov.style.transform='scale(1)';
+    });
+  });
+
+  /* drag */
+  var drag=false,ox=0,oy=0;
+  bar.addEventListener('mousedown',function(e){
+    if(e.target===xBtn)return;
+    drag=true;var r=ov.getBoundingClientRect();
+    ox=e.clientX-r.left;oy=e.clientY-r.top;
+    bar.style.cursor='grabbing';e.preventDefault();
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!drag)return;
+    ov.style.right='auto';
+    ov.style.left=Math.max(0,Math.min(e.clientX-ox,window.innerWidth-w-4))+'px';
+    ov.style.top=Math.max(0,e.clientY-oy)+'px';
+  });
+  document.addEventListener('mouseup',function(){drag=false;bar.style.cursor='grab';});
+  xBtn.addEventListener('click',doClose);
+
+  /* desktop body proxy shows app background color */
+  sty=new Proxy(ca.style,{
+    set:function(t,p,v){t[p]=v;if(p==='backgroundColor')ov.style.backgroundColor=v;return true;},
+    get:function(t,p){var v=t[p];return typeof v==='function'?v.bind(t):v;}
+  });
+  body=new Proxy(ca,{
+    get:function(t,p){if(p==='style')return sty;var v=t[p];return typeof v==='function'?v.bind(t):v;},
+    set:function(t,p,v){t[p]=v;return true;}
+  });
+  fd.body=body;
+}
+
 return{document:fd,close:doClose,prompt:function(m,d){return window.prompt(m,d);},addEventListener:function(e,fn){if(e==='pagehide')phl.push(fn);},removeEventListener:function(){}};
 }};
 })();`;
