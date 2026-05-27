@@ -68,7 +68,7 @@
   })();
 
   var DB_NAME = 'isotope_main';
-  var STATE_ENDPOINT = '/api/state';
+  var STATE_ENDPOINT = '/__isotope/state';
   var SNAPSHOT_INTERVAL = 4000; // save every 4 seconds
 
   // ── 1. Inject SVG Liquid Glass filter ──────────────────────────────────
@@ -340,7 +340,7 @@
   function startHeartbeat() {
     var wasDown = false;
     setInterval(function () {
-      fetch('/api/ping').then(function (r) {
+      fetch('/__isotope/ping').then(function (r) {
         if (!r.ok) throw new Error('down');
         if (wasDown) {
           wasDown = false;

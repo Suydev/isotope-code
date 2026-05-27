@@ -384,19 +384,19 @@ const server = http.createServer((req, res) => {
   }
 
   // Ping — heartbeat used by offline-patches.js to detect server restarts
-  if (req.method === 'GET' && req.url === '/api/ping') {
+  if (req.method === 'GET' && req.url === '/__isotope/ping') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, ts: Date.now() }));
     return;
   }
 
   // State — timer & localStorage persistence across Node.js restarts
-  if (req.method === 'GET' && req.url === '/api/state') {
+  if (req.method === 'GET' && req.url === '/__isotope/state') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(appStateStore));
     return;
   }
-  if (req.method === 'POST' && req.url === '/api/state') {
+  if (req.method === 'POST' && req.url === '/__isotope/state') {
     let body = '';
     req.on('data', d => body += d);
     req.on('end', () => {
