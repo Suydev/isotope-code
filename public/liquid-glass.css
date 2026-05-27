@@ -1181,3 +1181,98 @@ html[data-perf="potato"] [class*="bg-brand-600"]:hover {
   box-shadow: none !important;
   transform:  none !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT-MODE OVERRIDES
+   dark-mode.js keeps .dark on <html> at all times. These rules are a CSS
+   safety net that catches any light-mode Tailwind variants that render before
+   the MutationObserver fires, or in contexts where the class is briefly absent.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Ensure dark color-scheme is always declared */
+html {
+  color-scheme: dark !important;
+}
+
+/* Neutralise Tailwind light backgrounds — white / gray-50 / zinc-50 etc. */
+@media (prefers-color-scheme: light) {
+  /* Page shell */
+  html, body {
+    background: #09090e !important;
+    color: rgba(255,255,255,0.88) !important;
+  }
+  #root {
+    background: transparent !important;
+    color: rgba(255,255,255,0.88) !important;
+  }
+
+  /* White / near-white card backgrounds */
+  [class*="bg-white"]:not([class*="text-white"]),
+  [class*="bg-gray-50"],
+  [class*="bg-gray-100"],
+  [class*="bg-zinc-50"],
+  [class*="bg-zinc-100"],
+  [class*="bg-slate-50"],
+  [class*="bg-slate-100"] {
+    background-color: rgba(255,255,255,0.06) !important;
+  }
+
+  /* Light text → white */
+  [class*="text-gray-900"],
+  [class*="text-gray-800"],
+  [class*="text-gray-700"],
+  [class*="text-zinc-900"],
+  [class*="text-zinc-800"],
+  [class*="text-zinc-700"],
+  [class*="text-slate-900"],
+  [class*="text-slate-800"],
+  [class*="text-black"] {
+    color: rgba(255,255,255,0.88) !important;
+  }
+  [class*="text-gray-500"],
+  [class*="text-gray-400"],
+  [class*="text-zinc-500"],
+  [class*="text-zinc-400"],
+  [class*="text-slate-500"],
+  [class*="text-slate-400"] {
+    color: rgba(255,255,255,0.50) !important;
+  }
+  [class*="text-gray-600"],
+  [class*="text-zinc-600"],
+  [class*="text-slate-600"] {
+    color: rgba(255,255,255,0.65) !important;
+  }
+
+  /* Light borders */
+  [class*="border-gray-200"],
+  [class*="border-gray-300"],
+  [class*="border-zinc-200"],
+  [class*="border-zinc-300"],
+  [class*="border-slate-200"] {
+    border-color: rgba(255,255,255,0.10) !important;
+  }
+
+  /* Inputs */
+  input, textarea, select {
+    background: rgba(255,255,255,0.07) !important;
+    color: rgba(255,255,255,0.88) !important;
+    border-color: rgba(255,255,255,0.12) !important;
+  }
+  input::placeholder, textarea::placeholder {
+    color: rgba(255,255,255,0.35) !important;
+  }
+
+  /* Layout wrappers that Tailwind makes light */
+  [class*="min-h-screen"],
+  [class*="h-screen"],
+  main, header, footer, aside, nav, section {
+    background: transparent !important;
+    color: rgba(255,255,255,0.88) !important;
+  }
+
+  /* Dividers */
+  [class*="divide-gray-200"] > * + *,
+  [class*="divide-zinc-200"] > * + * {
+    border-color: rgba(255,255,255,0.08) !important;
+  }
+}

@@ -19,6 +19,8 @@
     <link rel="stylesheet" crossorigin href="/assets/index-CrO6t5EW.css">
     <link rel="stylesheet" crossorigin href="/assets/vendor-katex-ASjZcBK0.css">
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-BfU3Zn2J.js">
+    <!-- DARK MODE LOCK — must run first, synchronously, before any CSS or React -->
+    <script src="/dark-mode.js"></script>
     <script>
     window.addEventListener('error', function(e) {
       if (!e.message) return;
@@ -41,6 +43,8 @@
     <script src="/glass-settings.js" defer></script>
     <!-- Community page "Coming Soon" overlay -->
     <script src="/community-patch.js" defer></script>
+    <!-- UX friction reducers: onboarding quick-skip, return visitor shortcut, glass button pulse -->
+    <script src="/ux-patches.js" defer></script>
     <!-- Boot recovery + app launch -->
     <script src="/boot-recovery.js" defer></script>
     <script type="module" src="/restore-and-launch.js"></script>
