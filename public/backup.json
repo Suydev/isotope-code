@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "source": "isotopeai",
+  "exportedAt": "2026-05-22T04:59:17.249Z",
+  "appVersion": "0.9.0",
+  "data": {
+    "profile": {
+      "name": "",
+      "swot": {},
+      "settings": {
+        "theme": "system",
+        "notifications": true,
+        "performanceMode": "standard"
+      },
+      "focusSettings": {
+        "defaultDuration": 25,
+        "shortBreakDuration": 5,
+        "longBreakDuration": 15,
+        "autoStartBreaks": false,
+        "dailyGoalMinutes": 360,
+        "notificationSound": true,
+        "sessionEndSound": true,
+        "pomodorosUntilLongBreak": 4,
+        "notificationInterval": 195,
+        "showPauseReasonPicker": true,
+        "showSessionCompletionCard": true,
+        "showQuestionTrackingInTimerPip": true,
+        "showSessionProductivityRating": true,
+        "focusTypes": [
+          {
+            "id": "theory",
+            "label": "Theory",
+            "icon": "📚",
+            "trackQuestions": false
+          },
+          {
+            "id": "questions",
+            "label": "Questions",
+            "icon": "❓",
+            "trackQuestions": true
+          },
+          {
+            "id": "lecture",
+            "label": "Lecture",
+            "icon": "🎓",
+            "trackQuestions": false
+          },
+          {
+            "id": "revision",
+            "label": "Revision",
+            "icon": "📝",
+            "trackQuestions": true
+          },
+          {
+            "id": "practice",
+            "label": "Practice",
+            "icon": "💪",
+            "trackQuestions": true
+          },
+          {
+            "id": "other",
+            "label": "Other",
+            "icon": "📌",
+            "trackQuestions": false
+          }
+        ]
+      },
+      "createdAt": "2026-05-19T10:03:50.022Z",
+      "updatedAt": "2026-05-22T04:59:17.249Z",
+      "isOnboarded": true,
+      "currentOnboardingStep": 7,
+      "personalization": {},
+      "username": "",
+      "avatar": null,
+      "bio": "",
+      "academic": {},
+      "studyPreferences": {},
+      "workflowPreferences": {},
+      "communityPreferences": {},
+      "onboardingCompletedAt": "2026-05-19T10:05:34.885Z",
+      "id": "primary"
+    },
+    "timerState": null,
+    "tasks": [],
+    "sessions": [],
+    "subjects": [],
+    "habits": [],
+    "dailyLogs": [],
+    "tests": [],
+    "exams": [],
+    "mockTests": []
+  }
+}

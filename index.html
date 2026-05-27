@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IsotopeAI | AI Study Planner, Focus Timer &amp; Analytics for Students</title>
+    <meta name="description" content="AI-powered study planner, focus timer, progress tracking, and analytics for students preparing for JEE, NEET, CUET, boards, and more." />
+    <meta name="theme-color" content="#f97316" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="IsotopeAI" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <link href="/fonts/fonts.css" rel="stylesheet" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="stylesheet" href="/liquid-glass.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-CrO6t5EW.css">
+    <link rel="stylesheet" crossorigin href="/assets/vendor-katex-ASjZcBK0.css">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-react-BfU3Zn2J.js">
+    <script>
+    window.addEventListener('error', function(e) {
+      if (!e.message) return;
+      fetch('/debug-error', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({msg: e.message, file: e.filename, line: e.lineno, col: e.colno})
+      }).catch(function(){});
+    }, true);
+    </script>
+    <!-- Performance mode selector (liquid / glass / potato) -->
+    <script src="/perf-mode.js"></script>
+    <!-- Offline patches + liquid glass SVG filter injection -->
+    <script src="/offline-patches.js"></script>
+    <!-- Background manager (video/gradient/image, exposes window.__bgManager__) -->
+    <script src="/bg-video.js" defer></script>
+    <!-- Settings page wallpaper picker (injects into /settings tab) -->
+    <script src="/settings-wallpaper.js" defer></script>
+    <!-- Glass settings panel (blur, opacity, tint, dimming) -->
+    <script src="/glass-settings.js" defer></script>
+    <!-- Community page "Coming Soon" overlay -->
+    <script src="/community-patch.js" defer></script>
+    <!-- Boot recovery + app launch -->
+    <script src="/boot-recovery.js" defer></script>
+    <script type="module" src="/restore-and-launch.js"></script>
+</head>
+
+<body>
+    <div id="root"></div>
+</body>
+
+</html>
