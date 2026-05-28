@@ -68,7 +68,7 @@ The server is a plain Node.js HTTP server — no framework required. Deploy anyw
 ```bash
 GEMINI_API_KEY=your_key GROQ_API_KEY=your_key PORT=8080 node server.mjs
 ```
-
+``` visit https://suydev.github.io/isotope-code/ for troubleshooting ```
 ## License
 
 MIT
