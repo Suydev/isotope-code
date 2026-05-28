@@ -177,6 +177,28 @@ const SOUND_PATCHES = [
   ],
 ];
 
+// Fix the Focus background URL validator so blob:/data: URLs are accepted,
+// and route the prompt() call through our custom hook so focus-bg-patch.js
+// can intercept it and show a file-picker + URL modal instead.
+const URL_PATCHES = [
+  // 1. Make sn() validator accept blob: and data: URLs (in addition to http/https)
+  [
+    'const S = sn(v);',
+    'const S = /^(blob:|data:)/i.test(v)?v:sn(v);',
+  ],
+  // 2. Route the prompt() call through our custom function (set by focus-bg-patch.js)
+  [
+    'const v = prompt("Enter the URL of the image you want to use as background:");',
+    'const v = (window.__isoBgP||prompt)("Enter the URL of the image you want to use as background:");',
+  ],
+  // 3. Suppress the "invalid URL" alert — it won't fire for blob URLs after fix #1
+  //    but keep it silent for truly invalid entries (custom hook handles feedback)
+  [
+    'alert("Please enter a valid image URL starting with http:// or https://")',
+    '(window.__isoBgInvalid||function(m){alert(m)})("Please enter a valid image URL starting with http:// or https://")',
+  ],
+];
+
 let patchedFocusBundle = null;
 function getPatchedFocusBundle() {
   if (patchedFocusBundle) return patchedFocusBundle;
@@ -185,6 +207,14 @@ function getPatchedFocusBundle() {
     // Apply sound URL patches
     for (const [from, to] of SOUND_PATCHES) {
       raw = raw.split(from).join(to);
+    }
+    // Apply focus-background URL patches
+    for (const [from, to] of URL_PATCHES) {
+      if (raw.includes(from)) {
+        raw = raw.split(from).join(to);
+      } else {
+        console.warn('[FocusPatch] String not found (bundle may have changed):', from.slice(0, 60));
+      }
     }
     patchedFocusBundle = Buffer.from(PIP_POLYFILL + '\n' + raw, 'utf8');
   } catch { patchedFocusBundle = null; }
