@@ -532,7 +532,7 @@ server.mjs                 </span><span class="val"># Injects API keys + patches
           <p>The AI features require at least one API key. Check startup logs — the server prints which keys are detected.</p>
           <ul>
             <li>Confirm <strong>GEMINI_API_KEY</strong> and/or <strong>GROQ_API_KEY</strong> are set in your environment</li>
-            <li>On Replit: set them in <strong>Secrets</strong> (padlock icon) — not in a <code>.env</code> file</li>
+            <li>On project.set them in <strong>.env</strong> file</li>
             <li>The server injects keys via <code>window.__IK__</code> — if the page loaded before the key was set, hard-refresh</li>
             <li>Gemini free tier has rate limits — if you hit them, Groq kicks in automatically</li>
           </ul>
