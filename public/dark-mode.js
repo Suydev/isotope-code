@@ -1,58 +1,58 @@
 /**
- * IsotopeAI — Dark Mode Lock
+ * IsotopeAI — Theme Initializer
  * Runs SYNCHRONOUSLY in <head> before React boots.
- * Forces the `dark` Tailwind class on <html> at all times so the glass UI
- * never renders in light mode regardless of the user's system theme.
+ * Applies dark/light based on stored preference; defaults to dark.
+ * The app can freely toggle themes — NO lock is applied.
  */
 (function () {
   'use strict';
 
-  // 1. Add dark class immediately (synchronous, before any CSS is applied)
-  document.documentElement.classList.add('dark');
+  var PROFILE_KEYS = [
+    'isotope-profile',
+    'isotope_profile',
+    'isotopeProfile',
+  ];
 
-  // 2. Persist 'dark' in the isotope profile so React's theme store
-  //    initialises to dark instead of fighting us
+  function getStoredTheme() {
+    try {
+      var flat = localStorage.getItem('theme');
+      if (flat === 'light' || flat === 'dark') return flat;
+
+      for (var i = 0; i < PROFILE_KEYS.length; i++) {
+        var raw = localStorage.getItem(PROFILE_KEYS[i]);
+        if (!raw) continue;
+        try {
+          var profile = JSON.parse(raw);
+          if (profile && profile.settings && profile.settings.theme) return profile.settings.theme;
+          if (profile && (profile.theme === 'light' || profile.theme === 'dark')) return profile.theme;
+        } catch (_) {}
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  var stored = getStoredTheme();
+  var isDark = stored !== 'light'; // default to dark
+
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+  }
+
+  // Persist resolved theme so React's store initialises correctly
   try {
-    var PROFILE_KEYS = [
-      'isotope-profile',
-      'isotope_profile',
-      'isotopeProfile',
-    ];
+    var resolved = isDark ? 'dark' : 'light';
+    localStorage.setItem('theme', resolved);
     PROFILE_KEYS.forEach(function (key) {
       var raw = localStorage.getItem(key);
       if (!raw) return;
       try {
-        var profile = JSON.parse(raw);
-        if (profile && profile.settings) {
-          profile.settings.theme = 'dark';
-          localStorage.setItem(key, JSON.stringify(profile));
-        } else if (profile && profile.theme !== undefined) {
-          profile.theme = 'dark';
-          localStorage.setItem(key, JSON.stringify(profile));
-        }
+        var p = JSON.parse(raw);
+        if (p && p.settings) { p.settings.theme = resolved; localStorage.setItem(key, JSON.stringify(p)); }
+        else if (p && p.theme !== undefined) { p.theme = resolved; localStorage.setItem(key, JSON.stringify(p)); }
       } catch (_) {}
-    });
-
-    // Also try flat 'theme' key some Tailwind setups use
-    localStorage.setItem('theme', 'dark');
-  } catch (_) {}
-
-  // 3. MutationObserver — if React ever removes 'dark', re-add it immediately
-  //    (fires synchronously before browser paints)
-  try {
-    var obs = new MutationObserver(function (mutations) {
-      for (var i = 0; i < mutations.length; i++) {
-        var m = mutations[i];
-        if (m.type === 'attributes' && m.attributeName === 'class') {
-          if (!document.documentElement.classList.contains('dark')) {
-            document.documentElement.classList.add('dark');
-          }
-        }
-      }
-    });
-    obs.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
     });
   } catch (_) {}
 

@@ -78,20 +78,25 @@
    React app root: z-index 4. */
 html, body {
   background: transparent !important;
-  color-scheme: dark;
 }
 
 #root {
   position: relative;
   z-index: 4;
+  background: transparent !important;
+}
+
+/* Dark mode: subtle brand glow on root */
+.dark #root {
   background:
     radial-gradient(ellipse 130% 55% at 50% -5%,  rgba(249,115,22,0.05) 0%, transparent 60%),
     radial-gradient(ellipse 60%  40% at 80% 100%, rgba(249,115,22,0.03) 0%, transparent 60%),
     transparent !important;
-  color-scheme: dark !important;
 }
 
-/* Strip opaque dark backgrounds from React layout wrappers so wallpaper shows through */
+/* Strip opaque backgrounds from React layout wrappers so wallpaper shows through */
+.app-shell,
+.app-main-shell,
 [class*="min-h-screen"],
 [class*="h-screen"],
 [class*="bg-zinc-950"],
@@ -103,9 +108,10 @@ html, body {
 [class*="bg-black"],
 [class*="bg-zinc-800"],
 [class*="bg-gray-800"],
+.bg-\[\#09090b\],
+.dark\:bg-\[\#09090b\],
 main {
   background: transparent !important;
-  color-scheme: dark !important;
 }
 
 /* ── Text readability over any wallpaper ────────────────────────────────────── */
@@ -1183,96 +1189,424 @@ html[data-perf="potato"] [class*="bg-brand-600"]:hover {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIGHT-MODE OVERRIDES
-   dark-mode.js keeps .dark on <html> at all times. These rules are a CSS
-   safety net that catches any light-mode Tailwind variants that render before
-   the MutationObserver fires, or in contexts where the class is briefly absent.
+   LIGHT MODE — full glass re-skin when .dark is absent from <html>
+   All dark rgba(255,255,255,x) glass values become rgba(0,0,0,x) or
+   rgba(255,255,255,x) with higher opacity for a crisp frosted-glass look.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Ensure dark color-scheme is always declared */
-html {
-  color-scheme: dark !important;
+html:not(.dark) {
+  color-scheme: light;
+
+  /* Light glass tokens override dark defaults */
+  --lg-bg:          rgba(255,255,255,0.68);
+  --lg-bg-md:       rgba(255,255,255,0.76);
+  --lg-bg-strong:   rgba(255,255,255,0.88);
+  --lg-bg-overlay:  rgba(240,240,248,0.88);
+
+  --lg-border:        rgba(0,0,0,0.09);
+  --lg-border-strong: rgba(0,0,0,0.15);
+  --lg-border-top:    rgba(255,255,255,0.85);
+
+  --lg-shadow:    0 8px 32px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.08),
+                  inset 0 1px 0 rgba(255,255,255,0.90);
+  --lg-shadow-md: 0 4px 16px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06),
+                  inset 0 1px 0 rgba(255,255,255,0.80);
+  --lg-shadow-sm: 0 2px 8px rgba(0,0,0,0.08),
+                  inset 0 1px 0 rgba(255,255,255,0.70);
 }
 
-/* Neutralise Tailwind light backgrounds — white / gray-50 / zinc-50 etc. */
-@media (prefers-color-scheme: light) {
-  /* Page shell */
-  html, body {
-    background: #09090e !important;
-    color: rgba(255,255,255,0.88) !important;
-  }
-  #root {
-    background: transparent !important;
-    color: rgba(255,255,255,0.88) !important;
-  }
-
-  /* White / near-white card backgrounds */
-  [class*="bg-white"]:not([class*="text-white"]),
-  [class*="bg-gray-50"],
-  [class*="bg-gray-100"],
-  [class*="bg-zinc-50"],
-  [class*="bg-zinc-100"],
-  [class*="bg-slate-50"],
-  [class*="bg-slate-100"] {
-    background-color: rgba(255,255,255,0.06) !important;
-  }
-
-  /* Light text → white */
-  [class*="text-gray-900"],
-  [class*="text-gray-800"],
-  [class*="text-gray-700"],
-  [class*="text-zinc-900"],
-  [class*="text-zinc-800"],
-  [class*="text-zinc-700"],
-  [class*="text-slate-900"],
-  [class*="text-slate-800"],
-  [class*="text-black"] {
-    color: rgba(255,255,255,0.88) !important;
-  }
-  [class*="text-gray-500"],
-  [class*="text-gray-400"],
-  [class*="text-zinc-500"],
-  [class*="text-zinc-400"],
-  [class*="text-slate-500"],
-  [class*="text-slate-400"] {
-    color: rgba(255,255,255,0.50) !important;
-  }
-  [class*="text-gray-600"],
-  [class*="text-zinc-600"],
-  [class*="text-slate-600"] {
-    color: rgba(255,255,255,0.65) !important;
-  }
-
-  /* Light borders */
-  [class*="border-gray-200"],
-  [class*="border-gray-300"],
-  [class*="border-zinc-200"],
-  [class*="border-zinc-300"],
-  [class*="border-slate-200"] {
-    border-color: rgba(255,255,255,0.10) !important;
-  }
-
-  /* Inputs */
-  input, textarea, select {
-    background: rgba(255,255,255,0.07) !important;
-    color: rgba(255,255,255,0.88) !important;
-    border-color: rgba(255,255,255,0.12) !important;
-  }
-  input::placeholder, textarea::placeholder {
-    color: rgba(255,255,255,0.35) !important;
-  }
-
-  /* Layout wrappers that Tailwind makes light */
-  [class*="min-h-screen"],
-  [class*="h-screen"],
-  main, header, footer, aside, nav, section {
-    background: transparent !important;
-    color: rgba(255,255,255,0.88) !important;
-  }
-
-  /* Dividers */
-  [class*="divide-gray-200"] > * + *,
-  [class*="divide-zinc-200"] > * + * {
-    border-color: rgba(255,255,255,0.08) !important;
-  }
+/* Page background — light mode needs actual bg colour since there's no dark base div */
+html:not(.dark) #__bg_dark__ {
+  background: linear-gradient(
+    160deg,
+    #f0f0f8 0%,
+    #ebebf5 50%,
+    #e8eaf6 100%
+  ) !important;
 }
+
+html:not(.dark) body,
+html:not(.dark) #root {
+  color: #111118;
+}
+
+/* ── Light mode: cards & panels ─────────────────────────────────────── */
+html:not(.dark) .dark [class*="rounded-"][class*="border"][class*="bg-zinc-9"],
+html:not(.dark) .dark [class*="rounded-"][class*="border"][class*="bg-zinc-8"],
+html:not(.dark) [class*="rounded-"][class*="border"][class*="dark:bg-zinc-9"],
+html:not(.dark) [class*="rounded-"][class*="border"][class*="dark:bg-white/5"],
+html:not(.dark) [class*="rounded-"][class*="border"][class*="dark:bg-white/10"],
+html:not(.dark) [class*="rounded-2xl"][class*="border"][class*="bg-white"],
+html:not(.dark) [class*="rounded-2xl"][class*="border"][class*="dark:border-white/10"],
+html:not(.dark) [class*="rounded-xl"][class*="border"][class*="dark:border-white/10"],
+html:not(.dark) [class*="card"],
+html:not(.dark) [class*="panel"]:not([class*="panel-"]):not(button) {
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.82) 0%,
+    rgba(255,255,255,0.70) 55%,
+    rgba(255,255,255,0.78) 100%
+  ) !important;
+  border-color: rgba(0,0,0,0.09) !important;
+  box-shadow: var(--lg-shadow-md) !important;
+}
+
+/* ── Light mode: sidebar ────────────────────────────────────────────── */
+html:not(.dark) nav[class*="sidebar"],
+html:not(.dark) aside[class*="sidebar"],
+html:not(.dark) [class*="sidebar"]:not([class*="sidebar-item"]):not(button):not(a):not(span),
+html:not(.dark) nav:has(a[href="/dashboard"]),
+html:not(.dark) aside:has(a[href="/dashboard"]),
+html:not(.dark) [class*="fixed"][class*="left-0"][class*="top-0"][class*="h-full"]:not([role="dialog"]),
+html:not(.dark) [class*="sticky"][class*="left-0"][class*="h-full"] {
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.80) 0%,
+    rgba(245,245,252,0.88) 100%
+  ) !important;
+  border-right: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 1px 0 0 rgba(255,255,255,0.60), 4px 0 20px rgba(0,0,0,0.06) !important;
+}
+
+/* ── Light mode: header ─────────────────────────────────────────────── */
+html:not(.dark) header,
+html:not(.dark) [class*="header"]:not([class*="heading"]):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+html:not(.dark) [class*="topbar"],
+html:not(.dark) [class*="navbar"]:not(nav) {
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.84) 0%,
+    rgba(250,250,255,0.90) 100%
+  ) !important;
+  border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.90), 0 4px 20px rgba(0,0,0,0.06) !important;
+}
+
+/* ── Light mode: modals & dialogs ───────────────────────────────────── */
+html:not(.dark) [role="dialog"],
+html:not(.dark) [data-radix-dialog-content],
+html:not(.dark) [data-radix-alert-dialog-content],
+html:not(.dark) [class*="modal"],
+html:not(.dark) [class*="sheet"]:not([class*="sheet-"]):not(button) {
+  background: linear-gradient(
+    145deg,
+    rgba(255,255,255,0.92) 0%,
+    rgba(248,248,254,0.96) 100%
+  ) !important;
+  border: 1px solid rgba(0,0,0,0.10) !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08) !important;
+}
+
+html:not(.dark) [data-radix-dialog-overlay],
+html:not(.dark) [class*="fixed"][class*="inset-0"][class*="bg-black/70"] {
+  background: rgba(0,0,0,0.40) !important;
+}
+
+/* ── Light mode: dropdowns & popovers ──────────────────────────────── */
+html:not(.dark) [role="menu"],
+html:not(.dark) [role="listbox"],
+html:not(.dark) [data-radix-dropdown-menu-content],
+html:not(.dark) [data-radix-context-menu-content],
+html:not(.dark) [data-radix-select-content],
+html:not(.dark) [data-radix-popover-content],
+html:not(.dark) [class*="dropdown"][class*="content"],
+html:not(.dark) [class*="popover"][class*="content"],
+html:not(.dark) [class*="select"][class*="content"],
+html:not(.dark) [class*="command"][class*="dialog"],
+html:not(.dark) [class*="cmdk-"] {
+  background: rgba(255,255,255,0.94) !important;
+  border: 1px solid rgba(0,0,0,0.09) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.07) !important;
+  color: #111118 !important;
+}
+
+html:not(.dark) [role="menuitem"]:hover,
+html:not(.dark) [role="option"]:hover,
+html:not(.dark) [data-highlighted] {
+  background: rgba(0,0,0,0.05) !important;
+}
+
+/* ── Light mode: tooltips ───────────────────────────────────────────── */
+html:not(.dark) [role="tooltip"],
+html:not(.dark) [data-radix-tooltip-content] {
+  background: rgba(30,30,40,0.92) !important;
+  color: rgba(255,255,255,0.92) !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+}
+
+/* ── Light mode: inputs ─────────────────────────────────────────────── */
+html:not(.dark) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html:not(.dark) textarea,
+html:not(.dark) select,
+html:not(.dark) [data-radix-select-trigger] {
+  background: rgba(255,255,255,0.80) !important;
+  border-color: rgba(0,0,0,0.14) !important;
+  color: #111118 !important;
+}
+
+html:not(.dark) input:focus:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html:not(.dark) textarea:focus,
+html:not(.dark) [data-radix-select-trigger][data-state="open"] {
+  background: rgba(255,255,255,0.95) !important;
+  border-color: rgba(249,115,22,0.55) !important;
+  box-shadow: 0 0 0 3px rgba(249,115,22,0.15),
+              inset 0 1px 0 rgba(255,255,255,0.80) !important;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: rgba(0,0,0,0.38) !important;
+}
+
+/* ── Light mode: tabs ───────────────────────────────────────────────── */
+html:not(.dark) [role="tablist"],
+html:not(.dark) [data-radix-tabs-list] {
+  background: rgba(0,0,0,0.05) !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+}
+
+html:not(.dark) [role="tab"][data-state="active"],
+html:not(.dark) [data-radix-tabs-trigger][data-state="active"] {
+  background: rgba(255,255,255,0.90) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.90) !important;
+  color: #111118 !important;
+}
+
+/* ── Light mode: bottom nav ─────────────────────────────────────────── */
+html:not(.dark) [class*="bottom-nav"],
+html:not(.dark) nav[class*="fixed"][class*="bottom"],
+html:not(.dark) [class*="fixed"][class*="bottom-0"][class*="left-0"][class*="right-0"]:not([role="dialog"]) {
+  background: linear-gradient(
+    0deg,
+    rgba(248,248,254,0.96) 0%,
+    rgba(252,252,255,0.92) 100%
+  ) !important;
+  border-top: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.08) !important;
+}
+
+/* ── Light mode: buttons ────────────────────────────────────────────── */
+html:not(.dark) button[class*="ghost"],
+html:not(.dark) button[class*="outline"],
+html:not(.dark) [class*="bg-white/5"],
+html:not(.dark) [class*="bg-white/10"],
+html:not(.dark) [class*="dark:bg-white/5"],
+html:not(.dark) [class*="dark:bg-white/10"] {
+  background: rgba(0,0,0,0.05) !important;
+  border-color: rgba(0,0,0,0.10) !important;
+}
+
+html:not(.dark) button[class*="ghost"]:hover,
+html:not(.dark) button[class*="outline"]:hover {
+  background: rgba(0,0,0,0.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.60) !important;
+}
+
+/* ── Light mode: separators & dividers ─────────────────────────────── */
+html:not(.dark) [role="separator"],
+html:not(.dark) [data-radix-separator-root],
+html:not(.dark) hr {
+  border-color: rgba(0,0,0,0.08) !important;
+  background: rgba(0,0,0,0.08) !important;
+}
+
+/* ── Light mode: scrollbar ──────────────────────────────────────────── */
+html:not(.dark) * {
+  scrollbar-color: rgba(0,0,0,0.18) transparent;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,0.22) 0%,
+    rgba(0,0,0,0.12) 50%,
+    rgba(0,0,0,0.20) 100%
+  );
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.50);
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(249,115,22,0.60) 0%,
+    rgba(249,115,22,0.38) 50%,
+    rgba(249,115,22,0.55) 100%
+  );
+  border-color: rgba(249,115,22,0.20);
+}
+
+/* ── Light mode: text readability ───────────────────────────────────── */
+html:not(.dark) h1, html:not(.dark) h2,
+html:not(.dark) [class*="text-4xl"], html:not(.dark) [class*="text-5xl"],
+html:not(.dark) [class*="text-6xl"], html:not(.dark) [class*="text-7xl"] {
+  text-shadow: 0 1px 3px rgba(0,0,0,0.10) !important;
+}
+
+html:not(.dark) h3, html:not(.dark) h4,
+html:not(.dark) [class*="text-2xl"], html:not(.dark) [class*="text-3xl"] {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.06) !important;
+}
+
+/* ── Light mode: skeleton loaders ───────────────────────────────────── */
+html:not(.dark) [class*="skeleton"],
+html:not(.dark) [class*="shimmer"],
+html:not(.dark) [class*="loading"][class*="placeholder"] {
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.06) 25%,
+    rgba(0,0,0,0.11) 50%,
+    rgba(0,0,0,0.06) 75%
+  ) !important;
+  background-size: 200% 100% !important;
+}
+
+/* ── Light mode: focus timer card stays orange ──────────────────────── */
+html:not(.dark) [class*="focus"][class*="card"],
+html:not(.dark) [class*="timer"]:not(button):not(span):not([class*="timer-btn"]) {
+  background: linear-gradient(
+    135deg,
+    rgba(249,115,22,0.10) 0%,
+    rgba(255,255,255,0.72) 50%,
+    rgba(249,115,22,0.07) 100%
+  ) !important;
+  border: 1px solid rgba(249,115,22,0.28) !important;
+  box-shadow: 0 8px 32px rgba(249,115,22,0.12), inset 0 1px 0 rgba(255,255,255,0.80) !important;
+}
+
+/* ── Light mode: progress bar ───────────────────────────────────────── */
+html:not(.dark) [class*="progress"],
+html:not(.dark) [role="progressbar"] {
+  background: rgba(0,0,0,0.08) !important;
+}
+
+/* ── Light mode: switch ─────────────────────────────────────────────── */
+html:not(.dark) [data-radix-switch-root][data-state="unchecked"] {
+  background: rgba(0,0,0,0.14) !important;
+}
+
+/* ── Light mode: landing page ───────────────────────────────────────── */
+html:not(.dark) [class*="dark:bg-black"],
+html:not(.dark) [class*="bg-white"][class*="dark:bg-black"] {
+  background: #f4f4f8 !important;
+}
+
+/* ── Light mode: selection ──────────────────────────────────────────── */
+html:not(.dark) ::selection {
+  background: rgba(249,115,22,0.22);
+  color: inherit;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   VISIBILITY HARDENING v2.0 — buttons and brand text are always readable
+   Root cause: broad [class*="bg-zinc-900"] rule above strips button backgrounds,
+   making dark-background buttons transparent and their text invisible.
+   Fix: restore semi-opaque glass backgrounds for button elements.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Dark-bg buttons → keep semi-opaque glass + white text ──────────────────── */
+button[class*="bg-zinc-9"]:not([class*="ghost"]):not([class*="outline"]):not([class*="link"]):not([class*="text-"]),
+button[class*="bg-zinc-8"]:not([class*="ghost"]):not([class*="outline"]):not([class*="link"]):not([class*="text-"]),
+button[class*="bg-black"]:not([class*="ghost"]):not([class*="outline"]),
+button[class*="bg-gray-9"]:not([class*="ghost"]):not([class*="outline"]),
+[role="button"][class*="bg-zinc-9"],
+[role="button"][class*="bg-black"] {
+  background: rgba(24,24,27,0.88) !important;
+  backdrop-filter: blur(10px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(140%) !important;
+  color: #ffffff !important;
+  border-color: rgba(255,255,255,0.14) !important;
+}
+
+button[class*="bg-zinc-9"]:not([class*="ghost"]):hover,
+button[class*="bg-black"]:not([class*="ghost"]):hover {
+  background: rgba(39,39,42,0.94) !important;
+}
+
+/* ── Light/white buttons → dark text ────────────────────────────────────────── */
+button[class*="bg-white"]:not([class*="ghost"]):not([class*="outline"]) {
+  color: #18181b !important;
+}
+
+/* ── Primary CTA buttons: always dark bg + white text + orange glow ─────────── */
+button[class*="bg-brand"]:not([class*="ghost"]),
+button[class*="bg-orange"]:not([class*="ghost"]),
+button[class*="bg-primary"]:not([class*="ghost"]),
+a[class*="bg-brand"]:not([class*="ghost"]),
+a[class*="bg-orange"]:not([class*="ghost"]) {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.30) !important;
+}
+
+/* ── ALL buttons: subtle text shadow so text pops on any wallpaper ───────────── */
+button:not([class*="ghost"]):not([class*="outline"]):not([class*="text-"]),
+[role="button"]:not([class*="ghost"]) {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25) !important;
+}
+
+/* ── "Continue", "Next", "Get Started" onboarding CTA ───────────────────────── */
+/* These buttons typically have white/brand bg with zinc text — fix contrast   */
+button[class*="bg-zinc-9"][class*="text-white"],
+button[class*="bg-zinc-9"][class*="dark:text-zinc"],
+button[class*="dark:bg-zinc-9"],
+button[class*="rounded"][class*="font-semibold"][class*="bg-zinc"] {
+  background: rgba(24,24,27,0.92) !important;
+  color: #fff !important;
+}
+
+/* ── IsotopeAI logo / brand name text ───────────────────────────────────────── */
+/* The sidebar + header show "IsotopeAI" as a span/h element with logo */
+[class*="logo"] *,
+[class*="app-name"],
+[class*="brand-name"],
+[class*="isotope-text"],
+[class*="sidebar"] [class*="font-bold"]:not(button),
+[class*="sidebar"] [class*="font-semibold"]:not(button),
+[class*="sidebar"] h1, [class*="sidebar"] h2,
+nav h1, nav h2, nav [class*="text-xl"], nav [class*="text-2xl"],
+[class*="header"] h1, [class*="header"] [class*="font-bold"] {
+  color: rgba(255,255,255,0.97) !important;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.55), 0 2px 16px rgba(0,0,0,0.30) !important;
+}
+
+/* ── General: no element should have transparent text ───────────────────────── */
+/* Any element whose text-color is 'transparent' due to gradient tricks        */
+/* gets a fallback so it's still readable over video wallpaper                  */
+[class*="bg-clip-text"][class*="text-transparent"] {
+  -webkit-text-fill-color: unset !important;
+  color: rgba(255,255,255,0.95) !important;
+  background: linear-gradient(135deg, #f97316, #fb923c) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) !important;
+}
+
+/* ── Sidebar nav items — always white readable text ─────────────────────────── */
+nav a, nav button, aside a, aside button,
+[class*="sidebar"] a, [class*="sidebar"] button,
+[class*="sidebar"] span:not([class*="badge"]):not([class*="dot"]) {
+  color: rgba(255,255,255,0.88) !important;
+}
+nav a[class*="active"], aside a[class*="active"],
+nav a:hover, aside a:hover {
+  color: rgba(255,255,255,1) !important;
+}
+
+/* ── Inputs inside glass panels ─────────────────────────────────────────────── */
+input, textarea, select {
+  color: rgba(255,255,255,0.95) !important;
+}
+input::placeholder, textarea::placeholder {
+  color: rgba(255,255,255,0.40) !important;
+}
+html:not(.dark) input,
+html:not(.dark) textarea,
+html:not(.dark) select {
+  color: rgba(24,24,27,0.92) !important;
+}
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: rgba(24,24,27,0.40) !important;
+}
+

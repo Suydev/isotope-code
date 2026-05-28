@@ -1,3 +1,108 @@
+// ── IsotopeAI v2 — Full offline asset cache ──────────────────────────────────
+// Caches ALL custom-injected files so the app works with zero network.
+var CUSTOM_CACHE_NAME = 'isotope-static-v2';
+var CUSTOM_ASSETS = [
+  '/',
+  '/index.html',
+  '/theme.css',
+  '/liquid-glass.css',
+  '/engagement.css',
+  '/engagement.js',
+  '/dark-mode.js',
+  '/bg-video.js',
+  '/offline-patches.js',
+  '/glass-settings.js',
+  '/perf-mode.js',
+  '/restore-and-launch.js',
+  '/boot-recovery.js',
+  '/ux-patches.js',
+  '/community-patch.js',
+  '/pwa-install.js',
+  '/premium-crack.js',
+  '/settings-wallpaper.js',
+  '/fonts/fonts.css',
+  '/manifest.webmanifest',
+  '/manifest.json',
+  '/assets/index-CrO6t5EW.css',
+  '/assets/vendor-katex-ASjZcBK0.css',
+  '/assets/index-BPYJFSVW.js',
+  '/assets/index-B45N-99N.js',
+  '/assets/vendor-react-BfU3Zn2J.js',
+  '/assets/App-pJGjDiPw.js',
+  '/assets/useAIStore-B2cv1FZz.js',
+  '/workbox-1d81fbea.js',
+  '/version.json',
+  '/focus-bg-patch.js',
+  '/login-page.js',
+];
+
+self.addEventListener('install', function(ev) {
+  ev.waitUntil(
+    caches.open(CUSTOM_CACHE_NAME).then(function(cache) {
+      return Promise.allSettled(
+        CUSTOM_ASSETS.map(function(url) {
+          return cache.add(new Request(url, { cache: 'reload' })).catch(function() {});
+        })
+      );
+    }).then(function() { return self.skipWaiting(); })
+  );
+});
+
+self.addEventListener('activate', function(ev) {
+  ev.waitUntil(
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys.filter(function(k) {
+          return k.startsWith('isotope-static-') && k !== CUSTOM_CACHE_NAME;
+        }).map(function(k) { return caches.delete(k); })
+      );
+    }).then(function() { return self.clients.claim(); })
+  );
+});
+
+// Cache-first for our known static files; network-first fallback for everything else
+self.addEventListener('fetch', function(ev) {
+  var req = ev.request;
+  if (req.method !== 'GET') return;
+  var url = new URL(req.url);
+  // Only handle same-origin requests with our custom cache strategy
+  if (url.origin !== self.location.origin) return;
+  // For navigation requests (HTML), try network first then fall back to cached /
+  if (req.mode === 'navigate') {
+    ev.respondWith(
+      fetch(req).then(function(res) {
+        if (res.ok) {
+          var clone = res.clone();
+          caches.open(CUSTOM_CACHE_NAME).then(function(c) { c.put(req, clone); });
+        }
+        return res;
+      }).catch(function() {
+        return caches.match(req).then(function(cached) {
+          return cached || caches.match('/') || caches.match('/index.html');
+        });
+      })
+    );
+    return;
+  }
+  // For static assets, try cache first then network
+  var ext = url.pathname.split('.').pop().toLowerCase();
+  var isCacheable = ['js','css','woff2','woff','ttf','png','svg','jpg','ico','json','webmanifest'].indexOf(ext) !== -1;
+  if (isCacheable) {
+    ev.respondWith(
+      caches.match(req).then(function(cached) {
+        if (cached) return cached;
+        return fetch(req).then(function(res) {
+          if (res.ok) {
+            var clone = res.clone();
+            caches.open(CUSTOM_CACHE_NAME).then(function(c) { c.put(req, clone); });
+          }
+          return res;
+        }).catch(function() { return new Response('', { status: 503 }); });
+      })
+    );
+    return;
+  }
+});
 // ── Offline patches ─────────────────────────────────────────────────────────
 
 // Routes that don't exist in offline mode — redirect to /dashboard

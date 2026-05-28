@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0",
+  "repo": "Suydev/isotope-code",
+  "releaseUrl": "https://github.com/Suydev/isotope-code/releases/latest",
+  "apiUrl": "https://api.github.com/repos/Suydev/isotope-code/releases/latest",
+  "credits": {
+    "owner": "Arnav Singh",
+    "developer": "Suyash Prabh"
+  }
+}
