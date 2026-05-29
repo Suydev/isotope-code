@@ -1,18 +1,12 @@
 {
-  "name": "@workspace/isotope-app",
-  "version": "2.0.0",
+  "name": "isotope-mod",
+  "version": "1.1.3",
   "private": true,
   "type": "module",
-  "description": "IsotopeAI — AI-powered PWA study companion. Works fully offline.",
-  "author": {
-    "name": "Arnav Singh & Suyash Prabh",
-    "url": "https://github.com/Suydev/isotope-code"
-  },
-  "license": "MIT",
+  "description": "IsotopeAI mod — connects to isotopeai.in backend with free Scholar access, offline sounds, and Focus background import.",
   "scripts": {
-    "dev": "node server.mjs",
     "start": "node server.mjs",
-    "typecheck": "echo 'No typecheck needed for static server'"
+    "dev": "node server.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
