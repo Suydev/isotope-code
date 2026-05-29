@@ -182,21 +182,7 @@ return{document:fd,close:doClose,prompt:function(m,d){return window.prompt(m,d);
 }};
 })();`;
 
-// Replace remote GitHub audio URLs with local copies in the Focus bundle
-const SOUND_PATCHES = [
-  [
-    'https://raw.githubusercontent.com/cookiecaker/Rain-World-Sounds/main/Ambient%20Sounds/AM_RAIN-QuietThunder.wav',
-    '/sounds/thunder-rain.wav',
-  ],
-  [
-    'https://raw.githubusercontent.com/cookiecaker/Rain-World-Sounds/main/Ambient%20Sounds/AM_ENV-CricketsWnd.wav',
-    '/sounds/crickets.wav',
-  ],
-  [
-    'https://raw.githubusercontent.com/cookiecaker/Rain-World-Sounds/main/Ambient%20Sounds/AM_WIN-NiceWnd.wav',
-    '/sounds/wind.wav',
-  ],
-];
+// Ambient sounds are pre-patched in the Focus bundle — no runtime replacement needed.
 
 // Fix the Focus background URL validator so blob:/data: URLs are accepted,
 // and route the prompt() call through our custom hook so focus-bg-patch.js
@@ -225,10 +211,6 @@ function getPatchedFocusBundle() {
   if (patchedFocusBundle) return patchedFocusBundle;
   try {
     let raw = fs.readFileSync(FOCUS_BUNDLE_ABS, 'utf8');
-    // Apply sound URL patches
-    for (const [from, to] of SOUND_PATCHES) {
-      raw = raw.split(from).join(to);
-    }
     // Apply focus-background URL patches
     for (const [from, to] of URL_PATCHES) {
       if (raw.includes(from)) {
@@ -244,25 +226,8 @@ function getPatchedFocusBundle() {
 getPatchedFocusBundle();
 
 const appStateStore = { timerState: null, localStorage: {} };
-const debugErrors = [];
 
 const server = http.createServer((req, res) => {
-  if (req.method === 'POST' && req.url === '/debug-error') {
-    let body = '';
-    req.on('data', d => body += d);
-    req.on('end', () => {
-      try { debugErrors.push(JSON.parse(body)); } catch {}
-      res.writeHead(200); res.end('ok');
-    });
-    return;
-  }
-
-  if (req.method === 'GET' && req.url === '/debug-errors') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(debugErrors));
-    return;
-  }
-
   if (req.method === 'GET' && req.url === '/api/ai-config') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ gemini: !!GEMINI_API_KEY, groq: !!GROQ_API_KEY }));
