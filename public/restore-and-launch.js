@@ -1,27 +1,54 @@
 /**
- * IsotopeAI — Restore & Launch
- * On first install, starts a clean session so the app's own onboarding runs.
- * No personal defaults are pre-loaded. Personal data has been removed.
+ * IsotopeAI — Restore & Launch v1.4.0
+ *
+ * Responsibilities
+ * ────────────────
+ * 1. Wipe any stale FAKE data injected by earlier versions of this script
+ *    (session-type "local", fake isOnboarded flags, etc.)
+ * 2. Ensure the IndexedDB schema is initialised (so the app never hits a
+ *    missing-object-store error on first load).
+ * 3. Route the browser:
+ *      • Real Supabase session present  →  /dashboard
+ *      • No session (new / signed-out)  →  /onboarding  (Google Sign-In)
+ *
+ * What this script does NOT do
+ * ─────────────────────────────
+ * • It does NOT write any auth state.
+ * • It does NOT write any onboarding state.
+ * • It does NOT touch the Supabase client.
+ * Everything auth-related is owned exclusively by Supabase + the app's own
+ * Zustand stores.
  */
 
-const DB_NAME = 'isotope_main';
-const RESTORE_FLAG = 'isotope_restore_done_v2';
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const DB_NAME    = 'isotope_main';
+const SCHEMA_KEY = 'isotope_schema_init_v2';   // bump version so re-init runs once
+
+// Supabase's raw JWT storage key (found in compiled App bundle)
+const SUPABASE_TOKEN_KEY = 'isotope-auth-token';
+
+// Zustand store keys our old scripts polluted
+const ZUSTAND_AUTH_KEY       = 'isotope-auth';       // useAuthStore
+const ZUSTAND_ONBOARDING_KEY = 'isotope-onboarding'; // useOnboardingStore
 
 const DB_SCHEMA = {
-  tasks:        { keyPath: 'id' },
-  subjects:     { keyPath: 'id' },
-  sessions:     { keyPath: 'id' },
-  habits:       { keyPath: 'id' },
-  tests:        { keyPath: 'id' },
-  exams:        { keyPath: 'id' },
-  mockTests:    { keyPath: 'id' },
-  dailyLogs:    { keyPath: 'id' },
-  userProfile:  { keyPath: 'id' },
-  timerState:   { keyPath: 'id' },
-  syncMetadata: { keyPath: 'collection' },
-  migrationMeta:{ keyPath: 'key' },
-  kv:           { keyPath: 'key' },
+  tasks:         { keyPath: 'id' },
+  subjects:      { keyPath: 'id' },
+  sessions:      { keyPath: 'id' },
+  habits:        { keyPath: 'id' },
+  tests:         { keyPath: 'id' },
+  exams:         { keyPath: 'id' },
+  mockTests:     { keyPath: 'id' },
+  dailyLogs:     { keyPath: 'id' },
+  userProfile:   { keyPath: 'id' },
+  timerState:    { keyPath: 'id' },
+  syncMetadata:  { keyPath: 'collection' },
+  migrationMeta: { keyPath: 'key' },
+  kv:            { keyPath: 'key' },
 };
+
+// ── IndexedDB helpers ──────────────────────────────────────────────────────
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -35,81 +62,151 @@ function openDB() {
       }
     };
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onerror   = () => reject(req.error);
   });
 }
 
 function writeStore(db, storeName, records) {
   return new Promise((resolve, reject) => {
     if (!db.objectStoreNames.contains(storeName)) { resolve(); return; }
-    const tx = db.transaction(storeName, 'readwrite');
+    const tx    = db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
-    for (const rec of records) {
-      store.put(rec);
-    }
+    for (const rec of records) store.put(rec);
     tx.oncomplete = resolve;
-    tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(new Error('Transaction aborted'));
+    tx.onerror    = () => reject(tx.error);
+    tx.onabort    = () => reject(new Error('aborted'));
   });
 }
 
-function countStore(db, storeName) {
+function clearStore(db, storeName) {
   return new Promise((resolve) => {
-    if (!db.objectStoreNames.contains(storeName)) { resolve(0); return; }
-    const tx = db.transaction(storeName, 'readonly');
-    const req = tx.objectStore(storeName).count();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => resolve(0);
+    if (!db.objectStoreNames.contains(storeName)) { resolve(); return; }
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).clear();
+    tx.oncomplete = resolve;
+    tx.onerror    = resolve; // non-fatal
   });
 }
+
+// ── Detect & wipe stale fake data ─────────────────────────────────────────
 
 /**
- * initFirstInstall — sets up the IndexedDB schema and marks migration complete.
- * Does NOT load any personal data, does NOT skip onboarding.
- * The app's built-in onboarding flow runs on first launch.
+ * Returns true if the localStorage value was written by our old fake-auth
+ * scripts (i.e. has sessionType:'local' or step 7 with no real session).
  */
-async function initFirstInstall() {
-  if (localStorage.getItem(RESTORE_FLAG) === '1') return;
+function isStaleLocal(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    const state  = parsed?.state || {};
+    // Auth store: fake if sessionType is 'local'
+    if (key === ZUSTAND_AUTH_KEY && state.sessionType === 'local') return true;
+    // Onboarding store: fake if we wrote isOnboarded:true + step 7 with no real session
+    if (key === ZUSTAND_ONBOARDING_KEY) {
+      const hasRealSession = !!localStorage.getItem(SUPABASE_TOKEN_KEY);
+      if (!hasRealSession && state.isOnboarded === true) return true;
+      // Even with a session: if currentStep is exactly 7 AND completedAt was set
+      // by our old script, we must trust the server — so we clean it up to let
+      // the app re-fetch the real onboarding state from Supabase.
+      if (!hasRealSession && state.currentStep >= 7) return true;
+    }
+    return false;
+  } catch (_) { return false; }
+}
 
-  const db = await openDB();
-  const existingTasks = await countStore(db, 'tasks');
-
-  if (existingTasks > 0) {
-    db.close();
-    localStorage.setItem(RESTORE_FLAG, '1');
-    return;
+async function purgeStaleFakeData() {
+  // 1. Remove fake Zustand stores
+  if (isStaleLocal(ZUSTAND_AUTH_KEY)) {
+    localStorage.removeItem(ZUSTAND_AUTH_KEY);
+    console.log('[isotope] Cleared stale fake auth store');
+  }
+  if (isStaleLocal(ZUSTAND_ONBOARDING_KEY)) {
+    localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
+    console.log('[isotope] Cleared stale fake onboarding store');
   }
 
-  // Mark migration metadata so the app's schema checks pass
-  await writeStore(db, 'migrationMeta', [
-    { key: 'indexeddb_migration_complete_v3', value: true, migratedAt: Date.now() }
-  ]);
-  db.close();
+  // 2. Remove other fake keys from old script versions
+  const fakeKeys = [
+    'isotope_restore_done_v1',
+    'isotope_launched_v2',
+  ];
+  for (const k of fakeKeys) {
+    if (localStorage.getItem(k)) localStorage.removeItem(k);
+  }
 
-  localStorage.setItem('indexeddb_migration_complete_v3', 'true');
-  localStorage.setItem(RESTORE_FLAG, '1');
-
-  // Do NOT set isotope-auth, isotope-onboarding, or isotope_intro_seen.
-  // Leaving these unset triggers the app's built-in first-time onboarding flow.
-  console.log('[isotope] Fresh install — onboarding will run');
+  // 3. Clear fake userProfile from IndexedDB (old scripts wrote isOnboarded:true)
+  const hasRealSession = !!localStorage.getItem(SUPABASE_TOKEN_KEY);
+  if (!hasRealSession) {
+    try {
+      const db = await openDB();
+      await clearStore(db, 'userProfile');
+      await clearStore(db, 'migrationMeta');
+      db.close();
+      console.log('[isotope] Cleared stale IndexedDB profile data');
+    } catch (_) {}
+  }
 }
+
+// ── Schema bootstrap (first-run only) ─────────────────────────────────────
+
+async function ensureSchema() {
+  if (localStorage.getItem(SCHEMA_KEY) === '1') return;
+  try {
+    const db = await openDB();
+    await writeStore(db, 'migrationMeta', [
+      { key: 'indexeddb_migration_complete_v3', value: true, migratedAt: Date.now() }
+    ]);
+    db.close();
+    localStorage.setItem('indexeddb_migration_complete_v3', 'true');
+    localStorage.setItem(SCHEMA_KEY, '1');
+    console.log('[isotope] DB schema initialised');
+  } catch (e) {
+    console.warn('[isotope] Schema init warning:', e);
+  }
+}
+
+// ── Routing helper ─────────────────────────────────────────────────────────
+
+function hasRealSupabaseSession() {
+  try {
+    const raw = localStorage.getItem(SUPABASE_TOKEN_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    // Supabase stores { access_token, refresh_token, ... }
+    return !!(parsed?.access_token || parsed?.access_token === '');
+  } catch (_) {
+    return !!localStorage.getItem(SUPABASE_TOKEN_KEY);
+  }
+}
+
+// ── Main ───────────────────────────────────────────────────────────────────
 
 (async () => {
   try {
-    await initFirstInstall();
+    await purgeStaleFakeData();
+    await ensureSchema();
   } catch (e) {
-    console.warn('[isotope] Init failed, loading app anyway', e);
+    console.warn('[isotope] Startup cleanup warning:', e);
   }
 
-  const link1 = document.createElement('link');
-  link1.rel = 'modulepreload';
-  link1.crossOrigin = '';
-  link1.href = '/assets/vendor-react-BfU3Zn2J.js';
-  document.head.appendChild(link1);
+  // Route on root only — deep links (e.g. /reset-password) must pass through
+  const path = window.location.pathname;
+  if (path === '/' || path === '') {
+    const dest = hasRealSupabaseSession() ? '/dashboard' : '/onboarding';
+    window.history.replaceState(null, '', dest);
+  }
 
-  const script = document.createElement('script');
-  script.type = 'module';
+  // Preload the vendor chunk, then bootstrap the app bundle
+  const link       = document.createElement('link');
+  link.rel         = 'modulepreload';
+  link.crossOrigin = '';
+  link.href        = '/assets/vendor-react-BfU3Zn2J.js';
+  document.head.appendChild(link);
+
+  const script       = document.createElement('script');
+  script.type        = 'module';
   script.crossOrigin = '';
-  script.src = '/assets/index-BPYJFSVW.js';
+  script.src         = '/assets/index-BPYJFSVW.js';
   document.head.appendChild(script);
 })();
