@@ -58,10 +58,32 @@ function buildKeyScript() {
 
 const KEY_SCRIPT = buildKeyScript();
 
+
+// ── OAuth origin injection ────────────────────────────────────────────────────
+// Injects window.__ISO_ORIGIN__ so the compiled App bundle uses the correct
+// local server URL as the Supabase OAuth redirectTo (instead of window.location.origin
+// which would be the Replit/CDN URL, not the local server).
+// Requires http://localhost:<PORT> to be in Supabase's allowed redirect URLs.
+const ORIGIN_SCRIPT = `<script>
+(function(){
+  // Set the OAuth redirect base to this server's actual origin.
+  // The compiled App bundle uses: window.__ISO_ORIGIN__ || window.location.origin
+  window.__ISO_ORIGIN__ = "http://localhost:${port}";
+})();
+</script>`;
+
+function injectOrigin(html) {
+  return html.replace('</head>', ORIGIN_SCRIPT + '</head>');
+}
+
+
 function injectKeys(htmlBuffer) {
-  if (!KEY_SCRIPT) return htmlBuffer;
-  const html = htmlBuffer.toString('utf8');
-  return Buffer.from(html.replace('</head>', KEY_SCRIPT + '</head>'), 'utf8');
+  let html = htmlBuffer.toString('utf8');
+  // Always inject origin (needed for OAuth redirect on local installs)
+  html = injectOrigin(html);
+  // Inject AI keys if configured
+  if (KEY_SCRIPT) html = html.replace('</head>', KEY_SCRIPT + '</head>');
+  return Buffer.from(html, 'utf8');
 }
 
 const AI_STORE_ABS  = path.join(PUBLIC_DIR, 'assets', 'useAIStore-B2cv1FZz.js');
