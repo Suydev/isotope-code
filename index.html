@@ -15,16 +15,9 @@
     <link href="/fonts/fonts.css" rel="stylesheet" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="stylesheet" href="/theme.css">
-    <link rel="stylesheet" href="/liquid-glass.css">
-    <link rel="stylesheet" href="/engagement.css">
     <link rel="stylesheet" crossorigin href="/assets/index-CrO6t5EW.css">
     <link rel="stylesheet" crossorigin href="/assets/vendor-katex-ASjZcBK0.css">
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-BfU3Zn2J.js">
-    <!-- THEME INITIALIZER — must run first, synchronously, before any CSS or React -->
-    <script src="/dark-mode.js"></script>
-    <!-- PREMIUM CRACK + GUEST MODE — intercepts localStorage & fetch before Zustand hydrates -->
-    <script src="/premium-crack.js"></script>
     <script>
     window.addEventListener('error', function(e) {
       if (!e.message) return;
@@ -35,30 +28,13 @@
       }).catch(function(){});
     }, true);
     </script>
-    <!-- Performance mode selector (liquid / glass / potato) -->
-    <script src="/perf-mode.js"></script>
-    <!-- Offline patches + liquid glass SVG filter injection -->
-    <script src="/offline-patches.js"></script>
-    <!-- Background manager (video/gradient/image, exposes window.__bgManager__) -->
-    <script src="/bg-video.js" defer></script>
-    <!-- Settings page wallpaper picker (injects into /settings tab) -->
-    <script src="/settings-wallpaper.js" defer></script>
-    <!-- Glass settings panel (blur, opacity, tint, dimming) -->
-    <script src="/glass-settings.js" defer></script>
-    <!-- Community page "Coming Soon" overlay -->
-    <script src="/community-patch.js" defer></script>
-    <!-- UX friction reducers: onboarding quick-skip, auto-skip steps 3-6, return visitor shortcut -->
-    <script src="/ux-patches.js" defer></script>
-    <!-- PWA install banner — Android prompt + iOS Add to Home Screen guide -->
-    <script src="/pwa-install.js" defer></script>
-    <!-- Engagement engine: confetti, XP floats, ripples, motivational toasts -->
-    <script src="/engagement.js" defer></script>
-    <!-- Focus tab background patch: blob URL support + Import from storage -->
-    <script src="/focus-bg-patch.js" defer></script>
-    <!-- Login / splash screen — shows on first visit, credits Arnav Singh & Suyash Prabh -->
-    <script src="/login-page.js" defer></script>
-    <!-- Boot recovery + app launch -->
+    <!-- Boot recovery: handles stale asset cache errors -->
     <script src="/boot-recovery.js" defer></script>
+    <!-- UX Setup: auto-bypasses auth screen, auto-skips steps 3-6 in onboarding -->
+    <script src="/ux-setup.js" defer></script>
+    <!-- Focus Background Import: gallery image + video picker (top-right button) -->
+    <script src="/focus-bg-import.js" defer></script>
+    <!-- Restore & Launch: sets up blank local identity, routes to /onboarding or /dashboard -->
     <script type="module" src="/restore-and-launch.js"></script>
 </head>
 
