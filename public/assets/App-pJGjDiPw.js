@@ -6527,10 +6527,10 @@ class Wr {
                     id: h.id,
                     email: h.email,
                     name: h.name,
-                    planType: k ?.effective_plan || h.plan_type || "free",
+                    planType: "scholar",
                     planExpiresAt: k ?.access_ends_at ?? h.plan_expires_at ?? null,
-                    accessSource: k ?.access_source || "free",
-                    billingStatus: k ?.billing_status || "free",
+                    accessSource: "grandfathered",
+                    billingStatus: "active",
                     cancelAtPeriodEnd: k ?.cancel_at_period_end || !1,
                     portalEligible: k ?.portal_eligible || !1,
                     isOnboarded: I,
@@ -7016,10 +7016,10 @@ const Ae = {
         userId: null,
         email: null,
         emailVerified: !1,
-        planType: "free",
+        planType: "scholar",
         planExpiresAt: null,
-        accessSource: "free",
-        billingStatus: "free",
+        accessSource: "grandfathered",
+        billingStatus: "active",
         cancelAtPeriodEnd: !1,
         portalEligible: !1,
         authMethod: null,
@@ -7062,12 +7062,7 @@ const Ae = {
                 temporaryLocalWarningDismissedFingerprint: t
             })
         },
-        isPremium: () => {
-            const {
-                planType: t
-            } = e();
-            return t === "scholar" || t === "ranker"
-        },
+        isPremium: () => true,
         recoverCloudSession: async () => {
             const {
                 isTemporaryLocalSession: t
