@@ -61,8 +61,7 @@ const KEY_SCRIPT = buildKeyScript();
 
 // ── OAuth origin injection ────────────────────────────────────────────────────
 // Injects window.__ISO_ORIGIN__ so the compiled App bundle uses the correct
-// local server URL as the Supabase OAuth redirectTo (instead of window.location.origin
-// which would be the Replit/CDN URL, not the local server).
+// local server URL as the Supabase OAuth redirectTo.
 // Requires http://localhost:<PORT> to be in Supabase's allowed redirect URLs.
 const ORIGIN_SCRIPT = `<script>
 (function(){
