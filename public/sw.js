@@ -1,152 +1,9 @@
-// ── IsotopeAI v2 — Full offline asset cache ──────────────────────────────────
-// Caches ALL custom-injected files so the app works with zero network.
-var CUSTOM_CACHE_NAME = 'isotope-static-v2';
-var CUSTOM_ASSETS = [
-  '/',
-  '/index.html',
-  '/theme.css',
-  '/liquid-glass.css',
-  '/engagement.css',
-  '/engagement.js',
-  '/dark-mode.js',
-  '/bg-video.js',
-  '/offline-patches.js',
-  '/glass-settings.js',
-  '/perf-mode.js',
-  '/restore-and-launch.js',
-  '/boot-recovery.js',
-  '/ux-patches.js',
-  '/community-patch.js',
-  '/pwa-install.js',
-  '/premium-crack.js',
-  '/settings-wallpaper.js',
-  '/fonts/fonts.css',
-  '/manifest.webmanifest',
-  '/manifest.json',
-  '/assets/index-CrO6t5EW.css',
-  '/assets/vendor-katex-ASjZcBK0.css',
-  '/assets/index-BPYJFSVW.js',
-  '/assets/index-B45N-99N.js',
-  '/assets/vendor-react-BfU3Zn2J.js',
-  '/assets/App-pJGjDiPw.js',
-  '/assets/useAIStore-B2cv1FZz.js',
-  '/workbox-1d81fbea.js',
-  '/version.json',
-  '/focus-bg-patch.js',
-  '/login-page.js',
-];
-
-self.addEventListener('install', function(ev) {
-  ev.waitUntil(
-    caches.open(CUSTOM_CACHE_NAME).then(function(cache) {
-      return Promise.allSettled(
-        CUSTOM_ASSETS.map(function(url) {
-          return cache.add(new Request(url, { cache: 'reload' })).catch(function() {});
-        })
-      );
-    }).then(function() { return self.skipWaiting(); })
-  );
-});
-
-self.addEventListener('activate', function(ev) {
-  ev.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.filter(function(k) {
-          return k.startsWith('isotope-static-') && k !== CUSTOM_CACHE_NAME;
-        }).map(function(k) { return caches.delete(k); })
-      );
-    }).then(function() { return self.clients.claim(); })
-  );
-});
-
-// Cache-first for our known static files; network-first fallback for everything else
-self.addEventListener('fetch', function(ev) {
-  var req = ev.request;
-  if (req.method !== 'GET') return;
-  var url = new URL(req.url);
-  // Only handle same-origin requests with our custom cache strategy
-  if (url.origin !== self.location.origin) return;
-  // For navigation requests (HTML), try network first then fall back to cached /
-  if (req.mode === 'navigate') {
-    ev.respondWith(
-      fetch(req).then(function(res) {
-        if (res.ok) {
-          var clone = res.clone();
-          caches.open(CUSTOM_CACHE_NAME).then(function(c) { c.put(req, clone); });
-        }
-        return res;
-      }).catch(function() {
-        return caches.match(req).then(function(cached) {
-          return cached || caches.match('/') || caches.match('/index.html');
-        });
-      })
-    );
-    return;
-  }
-  // For static assets, try cache first then network
-  var ext = url.pathname.split('.').pop().toLowerCase();
-  var isCacheable = ['js','css','woff2','woff','ttf','png','svg','jpg','ico','json','webmanifest'].indexOf(ext) !== -1;
-  if (isCacheable) {
-    ev.respondWith(
-      caches.match(req).then(function(cached) {
-        if (cached) return cached;
-        return fetch(req).then(function(res) {
-          if (res.ok) {
-            var clone = res.clone();
-            caches.open(CUSTOM_CACHE_NAME).then(function(c) { c.put(req, clone); });
-          }
-          return res;
-        }).catch(function() { return new Response('', { status: 503 }); });
-      })
-    );
-    return;
-  }
-});
 // ── Offline patches ─────────────────────────────────────────────────────────
-
-// Routes that don't exist in offline mode — redirect to /dashboard
-var OFFLINE_ONLY_ROUTES = [
-  '/community', '/invite', '/subscription', '/pricing',
-  '/leaderboard', '/challenges', '/group', '/friends',
-  '/reset-password', '/about', '/privacy',
-];
-
-function isOfflineOnlyRoute(url) {
-  try {
-    var parsed = new URL(url);
-    var p = parsed.pathname;
-    return OFFLINE_ONLY_ROUTES.some(function(r) {
-      return p === r || p.startsWith(r + '/') || p.startsWith(r + '?');
-    });
-  } catch(e) { return false; }
-}
-
-// HTML redirect response for offline-only pages
-function offlineRedirect() {
-  var html = '<!doctype html><html><head>'
-    + '<meta http-equiv="refresh" content="0;url=/dashboard">'
-    + '<script>window.location.replace("/dashboard");</script>'
-    + '</head><body></body></html>';
-  return new Response(html, {
-    status: 302,
-    headers: { 'Content-Type': 'text/html', 'Location': '/dashboard' }
-  });
-}
-
 // Intercept DiceBear avatar requests and serve locally-generated SVGs
 self.addEventListener('fetch', function(event) {
-  var url = event.request.url;
-
-  // Block offline-only HTML navigation routes
-  if (event.request.mode === 'navigate' && isOfflineOnlyRoute(url)) {
-    event.respondWith(offlineRedirect());
-    return;
-  }
-
-  if (url.includes('api.dicebear.com')) {
-    var parsed = new URL(url);
-    var seed = parsed.searchParams.get('seed') || 'user';
+  if (event.request.url.includes('api.dicebear.com')) {
+    var url = new URL(event.request.url);
+    var seed = url.searchParams.get('seed') || 'user';
     event.respondWith(new Response(generateAvatar(seed), {
       status: 200,
       headers: {
@@ -157,23 +14,9 @@ self.addEventListener('fetch', function(event) {
     }));
     return;
   }
-
-  // Return stub JS for Headway changelog widget (prevents CDN script load)
-  if (url.includes('headwayapp.co')) {
-    event.respondWith(new Response(
-      '/* Headway offline stub */\nwindow.Headway={init:function(){},show:function(){},hide:function(){},getUnseenCount:function(){return 0;}};',
-      { status: 200, headers: { 'Content-Type': 'application/javascript', 'Cache-Control': 'public, max-age=86400' } }
-    ));
-    return;
-  }
-
-  // Block external network calls (Supabase, Firebase, analytics, etc.)
-  var blockedHosts = ['supabase.co', 'firebase.com', 'firebaseio.com',
-    'googleapis.com', 'googletagmanager.com', 'analytics.google.com',
-    'sentry.io', 'mixpanel.com', 'amplitude.com'];
-  var isBlocked = blockedHosts.some(function(h) { return url.includes(h); });
-  if (isBlocked) {
-    event.respondWith(new Response(JSON.stringify({ data: [], error: null }), {
+  // Block any remaining Supabase calls — app is fully local
+  if (event.request.url.includes('supabase.co')) {
+    event.respondWith(new Response(JSON.stringify([]), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     }));
@@ -286,7 +129,17 @@ define(["./workbox-1d81fbea"], function(e) {
     }, {
         url: "manifest.webmanifest",
         revision: "eff06a9f41f4ccf1537c02d95a0c71b3"
-    }], {}), e.cleanupOutdatedCaches(), e.registerRoute(({
+    }], {})
+// Offline ambient sounds — served from cache when network is unavailable
+e.registerRoute(
+  ({url}) => url.pathname.startsWith('/sounds/'),
+  new e.CacheFirst({
+    cacheName: 'isotope-sounds-v1',
+    plugins: [
+      new e.ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 30 * 24 * 60 * 60 })
+    ]
+  })
+);, e.cleanupOutdatedCaches(), e.registerRoute(({
         request: e,
         url: s
     }) => "navigate" === e.mode && s.origin === self.location.origin && offlineRouteAllowlist.some(e => e.test(s.pathname)) && !offlineRouteDenylist.some(e => e.test(s.pathname)), new e.NetworkFirst({
