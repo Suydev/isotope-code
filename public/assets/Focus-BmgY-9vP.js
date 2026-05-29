@@ -1160,17 +1160,17 @@ const an = ({
             id: "rain",
             icon: As,
             label: "Rain",
-            url: "https://raw.githubusercontent.com/cookiecaker/Rain-World-Sounds/main/Ambient%20Sounds/AM_RAIN-QuietThunder.wav"
+            url: "/sounds/rain.wav"
         }, {
             id: "Cricket",
             icon: Bs,
             label: "Cricket",
-            url: "https://raw.githubusercontent.com/cookiecaker/Rain-World-Sounds/main/Ambient%20Sounds/AM_ENV-CricketsWnd.wav"
+            url: "/sounds/crickets.wav"
         }, {
             id: "wind",
             icon: vt,
             label: "Wind",
-            url: "https://raw.githubusercontent.com/cookiecaker/Rain-World-Sounds/main/Ambient%20Sounds/AM_WIN-NiceWnd.wav"
+            url: "/sounds/wind.wav"
         }];
         return t.useEffect(() => {
             if (d.current && (d.current.pause(), d.current = null), a) {
