@@ -1,76 +1,92 @@
-# IsotopeAI
+# IsotopeAI Mod
 
-> Your all-in-one AI-powered study ecosystem.
+  > A mod build of [IsotopeAI](https://isotopeai.in) that connects to the real isotopeai.in Supabase backend — with free Scholar access for all users, offline ambient sounds, and a Focus background importer.
 
-IsotopeAI is a Progressive Web App (PWA) for students — AI study planner, focus timer, syllabus tracker, spaced repetition, and analytics — with an Apple-inspired glassmorphism UI.
+  ---
 
-## Features
+  ## Quick Start
 
-- **AI Assistant** — Gemini-powered (Groq fallback) study planning, Q&A, and smart suggestions
-- **Focus Timer** — Pomodoro-style timer with ambient sounds (rain, crickets, wind) and Picture-in-Picture
-- **Syllabus Tracker** — Subject-wise progress tracking with chapter completion
-- **Spaced Repetition** — Flashcard review scheduling
-- **Analytics** — Study streaks, daily/weekly breakdowns, productivity charts
-- **Exam Countdown** — Multi-exam deadline tracking
-- **Tasks & Habits** — Linked to study sessions
-- **Glassmorphism UI** — Full Apple liquid glass UI with adjustable blur, opacity, tint, and background
+  ```bash
+  git clone https://github.com/Suydev/isotope-code.git
+  cd isotope-code
+  node server.mjs
+  ```
 
-## Quick Start
+  Open **http://localhost:3000** in your browser and sign in with Google or email.
 
-```bash
-npm install
-npm start
-```
+  ---
 
-The server runs on `PORT` (default `3000`) and serves the PWA from `public/`.
+  ## Features
 
-## Environment Variables
+  | Feature | Details |
+  |---|---|
+  | 🔐 **Real authentication** | Google OAuth + email/password via isotopeai.in Supabase |
+  | 🎓 **Free Scholar for all** | Every account gets Scholar plan — no paywall |
+  | 🔊 **Offline ambient sounds** | Rain, Cricket, Wind bundled locally — works without internet |
+  | 🖼️ **Focus background import** | Floating button (top-right on Focus tab) — import image/video from gallery or URL, persists across sessions |
+  | 📱 **Picture-in-Picture** | Focus timer in a floating window; polyfill for browsers without native PiP |
+  | ⚡ **AI features** | Pass optional API keys to enable Gemini / Groq AI |
 
-| Variable | Description |
-|----------|-------------|
-| `PORT` | Server port (default: 3000) |
-| `GEMINI_API_KEY` | Google Gemini API key (AI features) |
-| `GROQ_API_KEY` | Groq API key (AI fallback when Gemini is unavailable) |
+  ---
 
-Set these before starting the server. Both AI keys are optional; without them, AI features will prompt users to add their own keys in settings.
+  ## Environment Variables
 
-## Project Structure
+  | Variable | Default | Description |
+  |---|---|---|
+  | `PORT` | `3000` | Port the server listens on |
+  | `GEMINI_API_KEY` | — | Enables Gemini AI features |
+  | `GROQ_API_KEY` | — | Enables Groq AI features |
 
-```
-├── server.mjs          Node.js static file server with runtime patches
-├── package.json
-├── public/
-│   ├── assets/         Compiled React bundles (do not edit directly)
-│   ├── sounds/         Local ambient sounds (thunder-rain, crickets, wind)
-│   ├── bg.mp4          Default background video
-│   ├── bg-video.js     Background manager (video/image/dark modes)
-│   ├── glass-settings.js   Glassmorphism settings panel
-│   ├── community-patch.js  Community page "Coming Soon" overlay
-│   ├── liquid-glass.css    Full-app Apple liquid glass overrides
-│   ├── restore-and-launch.js  First-install init & onboarding
-│   ├── offline-patches.js  Service worker + offline error handling
-│   ├── perf-mode.js    Performance mode selector
-│   └── boot-recovery.js    App boot safety net
-```
+  ```bash
+  GEMINI_API_KEY=your-key node server.mjs
+  ```
 
-## Architecture
+  ---
 
-- **Pre-built PWA**: The React app is compiled and lives in `public/assets/`. Server-side runtime patches are applied without recompiling.
-- **AI key injection**: `GEMINI_API_KEY` and `GROQ_API_KEY` are read server-side and injected via `window.__IK__`, then patched directly into the AI store bundle so the app picks them up automatically.
-- **Ambient sounds**: All three ambient sounds (rain, crickets, wind) are bundled locally — no external fetches required.
-- **Background system**: `bg-video.js` manages three background modes (video, image, dark). Default is the built-in `bg.mp4`. Users can upload a custom image or video via the glass settings panel (◈ button, bottom-left).
-- **Onboarding**: Fresh installs run the app's built-in onboarding flow. No personal data is pre-loaded.
+  ## OS Launchers
 
-## Deployment
+  | Platform | File |
+  |---|---|
+  | Windows | `setup.bat` |
+  | macOS / iOS | `setup-ios.sh` |
+  | Linux | `setup-linux.sh` |
+  | Android (Termux) | `setup-termux.sh` |
 
-The server is a plain Node.js HTTP server — no framework required. Deploy anywhere Node.js runs (Railway, Render, Fly.io, a VPS, etc.).
+  ---
 
-```bash
-GEMINI_API_KEY=your_key GROQ_API_KEY=your_key PORT=8080 node server.mjs
-```
-```bash
-visit https://suydev.github.io/isotope-code/ for troubleshooting 
-```
-## License
+  ## Project Structure
 
-MIT
+  ```
+  isotope-code/
+  ├── server.mjs                  Node.js static file server with runtime patches
+  ├── index.html                  App entry point
+  ├── public/
+  │   ├── assets/                 Compiled React bundles (pre-built, do not edit)
+  │   ├── sounds/                 Bundled ambient audio (rain.wav, crickets.wav, wind.wav)
+  │   ├── fonts/                  Bundled web fonts
+  │   ├── icons/                  App icons (PWA)
+  │   ├── restore-and-launch.js   Startup: clears stale data, routes to login or dashboard
+  │   ├── ux-setup.js             Skips redundant onboarding steps after login
+  │   ├── focus-bg-import.js      Focus tab background image/video importer
+  │   ├── boot-recovery.js        Handles stale asset cache errors on reload
+  │   ├── sw.js                   Service worker: offline caching + ambient sound cache
+  │   └── backup.json             Blank user profile template
+  └── setup.bat / setup-*.sh      OS-specific launchers
+  ```
+
+  ---
+
+  ## Notes on Google OAuth
+
+  Google login requires the running domain to be registered in isotopeai.in's Supabase project.
+
+  - **localhost:3000** is the standard dev URL and is likely already registered.
+  - If Google login redirects you back to isotopeai.in instead of localhost, it means `http://localhost:3000` needs to be added to the Supabase OAuth redirect allowlist.
+  - **Email + password signup always works** regardless of domain.
+
+  ---
+
+  ## License
+
+  MIT
+  
