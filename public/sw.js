@@ -14,14 +14,6 @@ self.addEventListener('fetch', function(event) {
     }));
     return;
   }
-  // Block any remaining Supabase calls — app is fully local
-  if (event.request.url.includes('supabase.co')) {
-    event.respondWith(new Response(JSON.stringify([]), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    }));
-    return;
-  }
 });
 
 function generateAvatar(seed) {
@@ -139,7 +131,8 @@ e.registerRoute(
       new e.ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 30 * 24 * 60 * 60 })
     ]
   })
-);, e.cleanupOutdatedCaches(), e.registerRoute(({
+);
+e.cleanupOutdatedCaches(), e.registerRoute(({
         request: e,
         url: s
     }) => "navigate" === e.mode && s.origin === self.location.origin && offlineRouteAllowlist.some(e => e.test(s.pathname)) && !offlineRouteDenylist.some(e => e.test(s.pathname)), new e.NetworkFirst({
