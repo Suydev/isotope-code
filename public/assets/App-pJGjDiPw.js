@@ -6372,7 +6372,7 @@ class Wr {
             } = await w.auth.signInWithOAuth({
                 provider: e,
                 options: {
-                    redirectTo: `${window.location.origin}/dashboard`
+                    redirectTo: `${window.__ISO_ORIGIN__||window.location.origin}/dashboard`
                 }
             });
             return s ? (console.error(`[AuthService] signInWithOAuth (${e}) error:`, s.message), {
@@ -6452,7 +6452,7 @@ class Wr {
             const {
                 error: t
             } = await w.auth.resetPasswordForEmail(e, {
-                redirectTo: `${window.location.origin}/reset-password`
+                redirectTo: `${window.__ISO_ORIGIN__||window.location.origin}/reset-password`
             });
             return t ? {
                 success: !1,
@@ -6589,7 +6589,7 @@ class Wr {
             } = await w.auth.linkIdentity({
                 provider: e,
                 options: {
-                    redirectTo: `${window.location.origin}/dashboard`
+                    redirectTo: `${window.__ISO_ORIGIN__||window.location.origin}/dashboard`
                 }
             });
             return s ? (console.error("[AuthService] linkIdentity error:", s.message), {
