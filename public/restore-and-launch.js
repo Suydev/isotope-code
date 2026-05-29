@@ -119,11 +119,9 @@ async function purgeStaleFakeData() {
   // 1. Remove fake Zustand stores
   if (isStaleLocal(ZUSTAND_AUTH_KEY)) {
     localStorage.removeItem(ZUSTAND_AUTH_KEY);
-    console.log('[isotope] Cleared stale fake auth store');
   }
   if (isStaleLocal(ZUSTAND_ONBOARDING_KEY)) {
     localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
-    console.log('[isotope] Cleared stale fake onboarding store');
   }
 
   // 2. Remove other fake keys from old script versions
@@ -143,7 +141,6 @@ async function purgeStaleFakeData() {
       await clearStore(db, 'userProfile');
       await clearStore(db, 'migrationMeta');
       db.close();
-      console.log('[isotope] Cleared stale IndexedDB profile data');
     } catch (_) {}
   }
 }
@@ -160,9 +157,8 @@ async function ensureSchema() {
     db.close();
     localStorage.setItem('indexeddb_migration_complete_v3', 'true');
     localStorage.setItem(SCHEMA_KEY, '1');
-    console.log('[isotope] DB schema initialised');
   } catch (e) {
-    console.warn('[isotope] Schema init warning:', e);
+    console.warn('[isotope] Schema error:', e);
   }
 }
 
