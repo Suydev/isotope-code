@@ -1,56 +1,69 @@
 -- ============================================================
--- IsotopeAI — Complete Database Schema
+-- IsotopeAI — Complete Database Schema (IDEMPOTENT — safe to re-run)
 -- Run this in: Supabase Dashboard → SQL Editor → New query
+-- Everyone gets RANKER tier automatically on signup.
 -- ============================================================
 
--- 1. Users table (plan & billing)
+-- ── Drop all existing RLS policies first (safe to re-run) ───────────────────
+do $$ declare r record; begin
+  for r in select schemaname, tablename, policyname
+    from pg_policies where schemaname = 'public'
+  loop
+    execute format('drop policy if exists %I on %I.%I',
+      r.policyname, r.schemaname, r.tablename);
+  end loop;
+end $$;
+
+-- ── Tables ───────────────────────────────────────────────────────────────────
+
+-- 1. Users (plan & billing)
 create table if not exists public.users (
-  id            uuid primary key references auth.users(id) on delete cascade,
-  email         text,
-  name          text,
-  avatar_url    text,
-  plan_type     text default 'free',
-  billing_status text default 'free',
-  plan_expires_at timestamptz,
-  access_ends_at  timestamptz,
-  created_at    timestamptz default now(),
-  updated_at    timestamptz default now()
+  id             uuid primary key references auth.users(id) on delete cascade,
+  email          text,
+  name           text,
+  avatar_url     text,
+  plan_type      text default 'ranker',
+  billing_status text default 'active',
+  plan_expires_at timestamptz default '2099-12-31 23:59:59+00',
+  access_ends_at  timestamptz default '2099-12-31 23:59:59+00',
+  created_at     timestamptz default now(),
+  updated_at     timestamptz default now()
 );
 
--- 2. User profiles (onboarding data, settings as JSON)
+-- 2. User profiles (onboarding / settings JSON)
 create table if not exists public.user_profiles (
-  id            uuid primary key default gen_random_uuid(),
-  user_id       uuid unique references auth.users(id) on delete cascade,
-  profile_data  jsonb default '{}'::jsonb,
-  updated_at    timestamptz default now()
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid unique references auth.users(id) on delete cascade,
+  profile_data jsonb default '{}'::jsonb,
+  updated_at   timestamptz default now()
 );
 
--- 3. User points (leaderboard & rewards)
+-- 3. User points (leaderboard / rewards)
 create table if not exists public.user_points (
-  user_id       uuid primary key references auth.users(id) on delete cascade,
-  points        integer default 0,
+  user_id         uuid primary key references auth.users(id) on delete cascade,
+  points          integer default 0,
   lifetime_points integer default 0,
-  updated_at    timestamptz default now()
+  updated_at      timestamptz default now()
 );
 
 -- 4. User stats summary
 create table if not exists public.user_stats_summary (
-  user_id       uuid primary key references auth.users(id) on delete cascade,
-  total_hours   numeric default 0,
-  weekly_hours  numeric default 0,
-  monthly_hours numeric default 0,
+  user_id        uuid primary key references auth.users(id) on delete cascade,
+  total_hours    numeric default 0,
+  weekly_hours   numeric default 0,
+  monthly_hours  numeric default 0,
   current_streak  integer default 0,
   longest_streak  integer default 0,
   total_sessions  integer default 0,
   last_session_at timestamptz,
-  updated_at    timestamptz default now()
+  updated_at      timestamptz default now()
 );
 
 -- 5. Daily user stats
 create table if not exists public.daily_user_stats (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid references auth.users(id) on delete cascade,
-  date       date not null,
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid references auth.users(id) on delete cascade,
+  date            date not null,
   seconds_studied integer default 0,
   unique(user_id, date)
 );
@@ -65,7 +78,7 @@ create table if not exists public.study_sessions_log (
   created_at       timestamptz default now()
 );
 
--- 7. Store items (rewards shop)
+-- 7. Store items
 create table if not exists public.store_items (
   id          uuid primary key default gen_random_uuid(),
   name        text,
@@ -77,7 +90,7 @@ create table if not exists public.store_items (
   created_at  timestamptz default now()
 );
 
--- 8. User inventory (purchased items)
+-- 8. User inventory
 create table if not exists public.user_inventory (
   id           uuid primary key default gen_random_uuid(),
   user_id      uuid references auth.users(id) on delete cascade,
@@ -86,7 +99,7 @@ create table if not exists public.user_inventory (
   purchased_at timestamptz default now()
 );
 
--- 9. Groups (study groups / community)
+-- 9. Groups
 create table if not exists public.groups (
   id           uuid primary key default gen_random_uuid(),
   name         text not null,
@@ -105,11 +118,11 @@ create table if not exists public.groups (
 
 -- 10. Group members
 create table if not exists public.group_members (
-  id         uuid primary key default gen_random_uuid(),
-  group_id   uuid references public.groups(id) on delete cascade,
-  user_id    uuid references auth.users(id) on delete cascade,
-  role       text default 'member',
-  joined_at  timestamptz default now(),
+  id        uuid primary key default gen_random_uuid(),
+  group_id  uuid references public.groups(id) on delete cascade,
+  user_id   uuid references auth.users(id) on delete cascade,
+  role      text default 'member',
+  joined_at timestamptz default now(),
   unique(group_id, user_id)
 );
 
@@ -179,9 +192,18 @@ create table if not exists public.group_milestones (
   earned_at      timestamptz default now()
 );
 
--- ============================================================
--- RPC: get_membership_snapshot
--- ============================================================
+-- ── Update existing users to ranker (if re-running on existing DB) ───────────
+update public.users
+set
+  plan_type       = 'ranker',
+  billing_status  = 'active',
+  plan_expires_at = '2099-12-31 23:59:59+00',
+  access_ends_at  = '2099-12-31 23:59:59+00'
+where plan_type != 'ranker' or plan_type is null;
+
+-- ── RPC Functions ─────────────────────────────────────────────────────────────
+
+-- get_membership_snapshot: always returns ranker regardless of DB value
 create or replace function public.get_membership_snapshot(p_user_id uuid)
 returns table (
   effective_plan       text,
@@ -193,32 +215,22 @@ returns table (
 )
 language sql security definer as $$
   select
-    coalesce(u.plan_type, 'free')     as effective_plan,
-    coalesce(u.plan_type, 'free')     as access_source,
-    coalesce(u.billing_status, 'free') as billing_status,
-    u.access_ends_at,
-    false as cancel_at_period_end,
-    false as portal_eligible
-  from public.users u
-  where u.id = p_user_id
+    'ranker'::text                          as effective_plan,
+    'ranker'::text                          as access_source,
+    'active'::text                          as billing_status,
+    '2099-12-31 23:59:59+00'::timestamptz   as access_ends_at,
+    false                                   as cancel_at_period_end,
+    false                                   as portal_eligible
   limit 1;
 $$;
 
--- ============================================================
--- RPC: is_premium_user (used in RLS policies)
--- ============================================================
+-- is_premium_user: always true (used in RLS policies)
 create or replace function public.is_premium_user()
 returns boolean language sql security definer as $$
-  select exists (
-    select 1 from public.users
-    where id = auth.uid()
-    and plan_type in ('scholar', 'ranker')
-  );
+  select true;
 $$;
 
--- ============================================================
--- RPC: accept_invite
--- ============================================================
+-- accept_invite
 create or replace function public.accept_invite(p_token text)
 returns json language plpgsql security definer as $$
 declare
@@ -246,9 +258,7 @@ begin
 end;
 $$;
 
--- ============================================================
--- RPC: get_invite_details
--- ============================================================
+-- get_invite_details
 create or replace function public.get_invite_details(p_token text)
 returns json language sql security definer as $$
   select json_build_object(
@@ -265,9 +275,7 @@ returns json language sql security definer as $$
   where gi.token = p_token;
 $$;
 
--- ============================================================
--- RPC: get_group_analytics_from_snapshots
--- ============================================================
+-- get_group_analytics_from_snapshots
 create or replace function public.get_group_analytics_from_snapshots(p_group_id uuid)
 returns json language sql security definer as $$
   select json_build_object(
@@ -283,64 +291,70 @@ returns json language sql security definer as $$
   group by g.member_count;
 $$;
 
--- ============================================================
--- RLS — enable on all tables
--- ============================================================
-alter table public.users enable row level security;
-alter table public.user_profiles enable row level security;
-alter table public.user_points enable row level security;
-alter table public.user_stats_summary enable row level security;
-alter table public.daily_user_stats enable row level security;
-alter table public.study_sessions_log enable row level security;
-alter table public.store_items enable row level security;
-alter table public.user_inventory enable row level security;
-alter table public.groups enable row level security;
-alter table public.group_members enable row level security;
-alter table public.group_chat_messages enable row level security;
-alter table public.group_challenges enable row level security;
+-- ── Enable RLS on all tables ──────────────────────────────────────────────────
+alter table public.users                       enable row level security;
+alter table public.user_profiles               enable row level security;
+alter table public.user_points                 enable row level security;
+alter table public.user_stats_summary          enable row level security;
+alter table public.daily_user_stats            enable row level security;
+alter table public.study_sessions_log          enable row level security;
+alter table public.store_items                 enable row level security;
+alter table public.user_inventory              enable row level security;
+alter table public.groups                      enable row level security;
+alter table public.group_members               enable row level security;
+alter table public.group_chat_messages         enable row level security;
+alter table public.group_challenges            enable row level security;
 alter table public.group_challenge_participants enable row level security;
-alter table public.group_announcements enable row level security;
-alter table public.group_invites enable row level security;
-alter table public.group_milestones enable row level security;
+alter table public.group_announcements         enable row level security;
+alter table public.group_invites               enable row level security;
+alter table public.group_milestones            enable row level security;
 
--- Policies: users manage their own data
-create policy "users_self"       on public.users       for all using (auth.uid() = id);
-create policy "profiles_self"    on public.user_profiles for all using (auth.uid() = user_id);
-create policy "points_self"      on public.user_points  for all using (auth.uid() = user_id);
+-- ── RLS Policies ─────────────────────────────────────────────────────────────
+-- Personal data — users own their rows
+create policy "users_self"       on public.users              for all using (auth.uid() = id);
+create policy "profiles_self"    on public.user_profiles      for all using (auth.uid() = user_id);
+create policy "points_self"      on public.user_points        for all using (auth.uid() = user_id);
 create policy "stats_self"       on public.user_stats_summary for all using (auth.uid() = user_id);
 create policy "daily_stats_self" on public.daily_user_stats   for all using (auth.uid() = user_id);
 create policy "sessions_self"    on public.study_sessions_log for all using (auth.uid() = user_id);
 create policy "inventory_self"   on public.user_inventory     for all using (auth.uid() = user_id);
+
+-- Store — anyone can browse
 create policy "store_read"       on public.store_items for select using (true);
 
--- Community: any logged-in user can read, members can write
+-- Community — open to all authenticated users (is_premium_user() always true)
 create policy "groups_read"      on public.groups for select using (true);
 create policy "groups_insert"    on public.groups for insert with check (auth.uid() = owner_id);
 create policy "groups_update"    on public.groups for update using (auth.uid() = owner_id);
 create policy "members_read"     on public.group_members for select using (true);
 create policy "members_insert"   on public.group_members for insert with check (auth.uid() = user_id);
 create policy "members_delete"   on public.group_members for delete using (auth.uid() = user_id);
-create policy "members_update"   on public.group_members for update using (exists (select 1 from public.group_members where group_id = group_members.group_id and user_id = auth.uid() and role = 'owner'));
+create policy "members_update"   on public.group_members for update
+  using (exists (select 1 from public.group_members gm2
+    where gm2.group_id = group_members.group_id
+    and gm2.user_id = auth.uid()
+    and gm2.role in ('owner','admin')));
 create policy "chat_read"        on public.group_chat_messages for select using (true);
 create policy "chat_insert"      on public.group_chat_messages for insert with check (auth.uid() = author_id);
+create policy "chat_delete"      on public.group_chat_messages for delete using (auth.uid() = author_id);
 create policy "challenges_read"  on public.group_challenges for select using (true);
 create policy "challenges_insert" on public.group_challenges for insert with check (auth.uid() = created_by);
 create policy "participants_all" on public.group_challenge_participants for all using (auth.uid() = user_id);
-create policy "announcements_read" on public.group_announcements for select using (true);
+create policy "announcements_read"   on public.group_announcements for select using (true);
 create policy "announcements_insert" on public.group_announcements for insert with check (auth.uid() = author_id);
 create policy "invites_read"     on public.group_invites for select using (true);
 create policy "invites_insert"   on public.group_invites for insert with check (auth.uid() = created_by);
 create policy "milestones_read"  on public.group_milestones for select using (true);
 
--- ============================================================
--- Trigger: auto-create user row + profile on signup
--- Every new user gets Scholar tier automatically on YOUR instance
--- ============================================================
+-- ── Auto-trigger: every new signup gets RANKER tier ──────────────────────────
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer as $$
 begin
-  insert into public.users (id, email, name, plan_type, billing_status, plan_expires_at, access_ends_at)
-  values (
+  insert into public.users (
+    id, email, name,
+    plan_type, billing_status,
+    plan_expires_at, access_ends_at
+  ) values (
     new.id,
     new.email,
     coalesce(
@@ -348,20 +362,24 @@ begin
       new.raw_user_meta_data->>'name',
       split_part(new.email, '@', 1)
     ),
-    'scholar',
+    'ranker',
     'active',
-    '2099-12-31T23:59:59Z',
-    '2099-12-31T23:59:59Z'
+    '2099-12-31 23:59:59+00',
+    '2099-12-31 23:59:59+00'
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update set
+    plan_type       = 'ranker',
+    billing_status  = 'active',
+    plan_expires_at = '2099-12-31 23:59:59+00',
+    access_ends_at  = '2099-12-31 23:59:59+00';
 
   insert into public.user_profiles (user_id, profile_data)
-  values (new.id, '{}')
-  on conflict (user_id) do nothing;
+    values (new.id, '{}')
+    on conflict (user_id) do nothing;
 
   insert into public.user_points (user_id, points, lifetime_points)
-  values (new.id, 0, 0)
-  on conflict (user_id) do nothing;
+    values (new.id, 0, 0)
+    on conflict (user_id) do nothing;
 
   return new;
 end;
@@ -372,4 +390,4 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- Done! Your database is ready.
+-- Done! Everyone is RANKER. Run this file as many times as needed.
