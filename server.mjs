@@ -216,7 +216,13 @@ const PREMIUM_SCRIPT = `<script>
             var jwt    = data.access_token;
             var userId = data.user && data.user.id;
             if (jwt && userId) {
-              sessionStorage.removeItem('__iso_rls_upgraded__'); // fresh login = fresh upgrade
+              // BUG FIX: only clear the upgrade flag when it's a DIFFERENT user logging in,
+              // NOT on every token refresh. Token auto-refresh fires every ~hour and was
+              // clearing the flag, causing a reload loop on next page load.
+              var prevId = sessionStorage.getItem('__iso_rls_upgraded__');
+              if (prevId && prevId !== userId) {
+                sessionStorage.removeItem('__iso_rls_upgraded__');
+              }
               upgradeProfile(jwt, userId);
             }
           }).catch(function(){});
@@ -242,14 +248,29 @@ const PREMIUM_SCRIPT = `<script>
       try { data = JSON.parse(body); } catch(e) {
         return new Response(body, { status: res.status, statusText: res.statusText, headers: res.headers });
       }
+      function isPlanObject(o) {
+        // Only patch objects that look like user/membership records.
+        // Guards against corrupting task, exam, or other domain objects
+        // that happen to have a plan_type or billing_status field.
+        return ('plan_type' in o || 'billing_status' in o || 'access_ends_at' in o)
+          && !('title' in o || 'subject' in o || 'duration_minutes' in o
+               || 'question' in o || 'content' in o || 'message' in o);
+      }
       function deepPatch(o) {
         if (!o || typeof o !== 'object') return o;
         if (Array.isArray(o)) return o.map(deepPatch);
         var r = Object.assign({}, o);
-        if ('plan_type'       in r) r.plan_type       = 'ranker';
-        if ('billing_status'  in r) r.billing_status  = 'active';
-        if ('plan_expires_at' in r && !r.plan_expires_at) r.plan_expires_at = '2099-12-31T23:59:59.000Z';
-        if ('access_ends_at'  in r && !r.access_ends_at)  r.access_ends_at  = '2099-12-31T23:59:59.000Z';
+        if (isPlanObject(r)) {
+          // BUG FIX: always override regardless of current value (was: !r.plan_expires_at)
+          // This ensures expired accounts and past dates are fully overridden.
+          if ('plan_type'       in r) r.plan_type       = 'ranker';
+          if ('billing_status'  in r) r.billing_status  = 'active';
+          if ('plan_expires_at' in r) r.plan_expires_at = '2099-12-31T23:59:59.000Z';
+          if ('access_ends_at'  in r) r.access_ends_at  = '2099-12-31T23:59:59.000Z';
+          if ('effective_plan'  in r) r.effective_plan  = 'ranker';
+          if ('access_source'   in r) r.access_source   = 'ranker';
+          if ('cancel_at_period_end' in r) r.cancel_at_period_end = false;
+        }
         for (var k in r) {
           if (r[k] && typeof r[k] === 'object') r[k] = deepPatch(r[k]);
         }
@@ -263,12 +284,25 @@ const PREMIUM_SCRIPT = `<script>
     });
   }
 
-  // Clear stale demo-mode sessionStorage flags
+  // BUG FIX: collect ALL demo keys first, then remove them.
+  // Old code used break after first removal AND modified sessionStorage
+  // while iterating by index (causes skipped entries).
   try {
-    for (var i = 0; i < sessionStorage.length; i++) {
-      var sk = sessionStorage.key(i);
-      if (sk && (sk.toLowerCase().includes('demo'))) { sessionStorage.removeItem(sk); break; }
+    var _demoKeys = [];
+    for (var _di = 0; _di < sessionStorage.length; _di++) {
+      var _dk = sessionStorage.key(_di);
+      if (_dk && _dk.toLowerCase().indexOf('demo') !== -1) _demoKeys.push(_dk);
     }
+    _demoKeys.forEach(function(k) { try { sessionStorage.removeItem(k); } catch(e){} });
+  } catch(e) {}
+  // Also clear demo localStorage entries (isotope-demo-mode key)
+  try {
+    var _lsDemoKeys = [];
+    for (var _ldi = 0; _ldi < localStorage.length; _ldi++) {
+      var _ldk = localStorage.key(_ldi);
+      if (_ldk && _ldk.toLowerCase().indexOf('demo') !== -1) _lsDemoKeys.push(_ldk);
+    }
+    _lsDemoKeys.forEach(function(k) { try { localStorage.removeItem(k); } catch(e){} });
   } catch(e) {}
 })();
 </script>`;
@@ -580,6 +614,11 @@ const server = http.createServer((req, res) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
+  // BUG FIX: allow IndexedDB and storage APIs inside cross-origin iframes.
+  // Without this, Replit's sandboxed preview iframe blocks IndexedDB writes,
+  // causing [kvStore] Shadow backup write failed errors in the browser console.
+  res.setHeader('Permissions-Policy', 'storage-access=*, camera=(), microphone=()');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
 
   const serveHtml = (buf) => {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });

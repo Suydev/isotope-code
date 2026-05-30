@@ -16,11 +16,19 @@ self.addEventListener('fetch', function(event) {
     }));
     return;
   }
-  // Always fetch App bundle and key mod files from network (never serve stale cache)
-  // This ensures server-side patches (ge()→false, premium bypass) are never bypassed
+  // BUG FIX: Always fetch ALL patched bundles from network — never serve from SW cache.
+  // Previously only App + useAIStore + vendor-supabase were excluded, but:
+  //   - Focus-*.js:      has PiP polyfill + URL patches injected at serve-time
+  //   - Onboarding-*.js: has the step-skip redirect fix patched on disk
+  // If the SW caches these with original content, the patches are silently lost
+  // for all users after the first load.
   if (/\/App-[^/]*\.js$/.test(reqUrl.pathname) ||
       /\/useAIStore-[^/]*\.js$/.test(reqUrl.pathname) ||
-      /\/vendor-supabase-[^/]*\.js$/.test(reqUrl.pathname)) {
+      /\/vendor-supabase-[^/]*\.js$/.test(reqUrl.pathname) ||
+      /\/Focus-[^/]*\.js$/.test(reqUrl.pathname) ||
+      /\/Onboarding-[^/]*\.js$/.test(reqUrl.pathname) ||
+      /\/sessionSync-[^/]*\.js$/.test(reqUrl.pathname) ||
+      /\/useSyncStore-[^/]*\.js$/.test(reqUrl.pathname)) {
     event.respondWith(fetch(event.request));
     return;
   }
