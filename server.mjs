@@ -38,18 +38,19 @@ const MIME_TYPES = {
 
 const GEMINI_API_KEY      = process.env.GEMINI_API_KEY      || '';
 const GROQ_API_KEY        = process.env.GROQ_API_KEY        || '';
-// ── Service-role key → server proxy bypasses ALL Supabase RLS ─────────────────
-// Get from: Supabase dashboard → Project Settings → API → service_role key
-// Set as env var: SUPABASE_SERVICE_ROLE_KEY=eyJ...
-const SUPA_SERVICE_KEY    = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-// Original IsotopeAI project — override with your own free Supabase project:
-//   SUPABASE_URL=https://xxxx.supabase.co
-//   SUPABASE_ANON_KEY=eyJ...
-const SUPA_URL_DEFAULT    = 'https://rcnekgzbdlwhcpmpoogz.supabase.co';
-const SUPA_ANON_DEFAULT   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjbmVrZ3piZGx3aGNwbXBvb2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MjU4MjQsImV4cCI6MjA4MDQwMTgyNH0.4s85XfWCetX1DDE3H7XdyRLogvrtAzpk0CAADaapEUo';
-const SUPA_URL            = process.env.SUPABASE_URL      || SUPA_URL_DEFAULT;
-const SUPA_ANON_KEY       = process.env.SUPABASE_ANON_KEY || SUPA_ANON_DEFAULT;
-const CUSTOM_SUPA         = SUPA_URL !== SUPA_URL_DEFAULT;
+// ── Original IsotopeAI bundle constants (DO NOT CHANGE — used for bundle patching) ──
+// These exact strings are baked into the compiled JS bundles at build time.
+// The server replaces them at serve-time with our own project's values below.
+const ORIG_SUPA_URL  = 'https://rcnekgzbdlwhcpmpoogz.supabase.co';
+const ORIG_SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjbmVrZ3piZGx3aGNwbXBvb2d6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MjU4MjQsImV4cCI6MjA4MDQwMTgyNH0.4s85XfWCetX1DDE3H7XdyRLogvrtAzpk0CAADaapEUo';
+
+// ── Self-hosted Supabase project — vteqquoqvksshmfhuepu ──────────────────────
+// All keys hardcoded. No env vars required. Browser connects directly to Supabase.
+const SUPA_URL      = process.env.SUPABASE_URL        || 'https://vteqquoqvksshmfhuepu.supabase.co';
+const SUPA_ANON_KEY = process.env.SUPABASE_ANON_KEY   || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0ZXFxdW9xdmtzc2htZmh1ZXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODU2NzUsImV4cCI6MjA5NTY2MTY3NX0.ZkRislOhJRQUjVa1y5ixu-xBhlgkXWWyZKI_CClWj64';
+const SUPA_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0ZXFxdW9xdmtzc2htZmh1ZXB1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDA4NTY3NSwiZXhwIjoyMDk1NjYxNjc1fQ.X2WJNqEZry0e4oI7ZHYmfjU193BfusLyt9fMASoxYzA';
+// Always true: our project URL ≠ original bundle URL → Patch 4 (URL+key swap) runs
+const CUSTOM_SUPA   = SUPA_URL !== ORIG_SUPA_URL;
 const PROXY_PATH          = '/__supa';
 
 if (SUPA_SERVICE_KEY) {
@@ -92,11 +93,11 @@ const ORIGIN_SCRIPT = `<script>
 //
 // TWO mechanisms work together:
 //
-// 1. RESPONSE PATCH  – every Supabase JSON response has plan_type→scholar so
+// 1. RESPONSE PATCH  – every Supabase JSON response has plan_type→ranker so
 //    client-side premium checks always pass.
 //
 // 2. PROFILE UPGRADE – after login (or on page load with existing session) we
-//    PATCH the real Supabase profiles row to plan_type='scholar'.
+//    PATCH the real Supabase profiles row to plan_type='ranker'.
 //    Once saved, is_premium_user() in PostgreSQL returns true, so all RLS
 //    policies (groups, group_members, challenges, leaderboard) pass.
 //    On success: reload once to flush React Query stale cache.
@@ -112,7 +113,7 @@ const PREMIUM_SCRIPT = `<script>
   var ANON  = '${SUPA_ANON_KEY}';
   var _upgradedUsers = {};
 
-  // ── Upgrade user's real Supabase profile to scholar ─────────────────────────
+  // ── Upgrade user's real Supabase profile to ranker ──────────────────────────
   // This makes is_premium_user() return true in PostgreSQL, so all RLS
   // SELECT/INSERT/UPDATE policies on community tables pass for this user.
   function upgradeProfile(jwt, userId) {
@@ -120,7 +121,7 @@ const PREMIUM_SCRIPT = `<script>
     _upgradedUsers[userId] = true;
 
     var payload = JSON.stringify({
-      plan_type:       'scholar',
+      plan_type:       'ranker',
       billing_status:  'active',
       plan_expires_at: '2099-12-31T23:59:59.000Z',
       access_ends_at:  '2099-12-31T23:59:59.000Z'
@@ -156,7 +157,7 @@ const PREMIUM_SCRIPT = `<script>
       .then(function(r) {
         var ok = r && (r.status === 200 || r.status === 204 || r.ok);
         if (ok) {
-          console.log('[ISO-MOD] \u2705 Profile upgraded to scholar in Supabase DB');
+          console.log('[ISO-MOD] \u2705 Profile upgraded to ranker in Supabase DB');
           // Reload once so React Query fetches fresh community data with RLS now passing
           if (!sessionStorage.getItem('__iso_rls_upgraded__')) {
             sessionStorage.setItem('__iso_rls_upgraded__', userId);
@@ -231,7 +232,7 @@ const PREMIUM_SCRIPT = `<script>
       });
     }
 
-    // Patch all Supabase REST/RPC responses (plan_type → scholar etc)
+    // Patch all Supabase REST/RPC responses (plan_type → ranker etc)
     var isSupabase = url.indexOf('supabase.co') !== -1 &&
                      (url.indexOf('/rest/v1/') !== -1 || url.indexOf('/rpc/') !== -1);
     var p = _orig.call(this, input, init);
@@ -366,20 +367,18 @@ function getPatchedAppBundle() {
       console.log('[AppPatch] Initial store planType → ranker');
     } else { console.warn('[AppPatch] Plan patch B not found'); }
 
-    // [Patch 4] Custom Supabase project — replace hardcoded URL + anon key
+    // [Patch 4] Replace original IsotopeAI hardcoded URL + anon key with ours
+    // ORIG_SUPA_URL/ORIG_SUPA_ANON = values baked into the compiled bundle
+    // SUPA_URL/SUPA_ANON_KEY = our self-hosted project (or env var override)
     if (CUSTOM_SUPA) {
-      const OLD_URL  = `"${SUPA_URL_DEFAULT}"`;
-      const NEW_URL  = `"${SUPA_URL}"`;
-      const OLD_ANON = `"${SUPA_ANON_DEFAULT}"`;
-      const NEW_ANON = `"${SUPA_ANON_KEY}"`;
-      if (patched.includes(SUPA_URL_DEFAULT)) {
-        patched = patched.split(SUPA_URL_DEFAULT).join(SUPA_URL);
-        console.log('[AppPatch] Supabase URL → custom project');
-      }
-      if (SUPA_ANON_KEY !== SUPA_ANON_DEFAULT && patched.includes(SUPA_ANON_DEFAULT)) {
-        patched = patched.split(SUPA_ANON_DEFAULT).join(SUPA_ANON_KEY);
-        console.log('[AppPatch] Supabase anon key → custom project');
-      }
+      if (patched.includes(ORIG_SUPA_URL)) {
+        patched = patched.split(ORIG_SUPA_URL).join(SUPA_URL);
+        console.log('[AppPatch] Supabase URL → ' + SUPA_URL);
+      } else { console.warn('[AppPatch] Original Supabase URL not found in bundle'); }
+      if (patched.includes(ORIG_SUPA_ANON)) {
+        patched = patched.split(ORIG_SUPA_ANON).join(SUPA_ANON_KEY);
+        console.log('[AppPatch] Supabase anon key → custom');
+      } else { console.warn('[AppPatch] Original anon key not found in bundle'); }
     }
 
     patchedAppBundle = Buffer.from(patched, 'utf8');
@@ -541,6 +540,52 @@ function handleSupabaseProxy(req, res) {
   req.pipe(proxyReq, { end: true });
 }
 
+// ── GitHub auto-update checker ────────────────────────────────────────────────
+const GH_OWNER = 'Suydev';
+const GH_REPO  = 'isotope-code';
+
+// Read deployed commit SHA from VERSION file written at push time
+let DEPLOYED_SHA = 'unknown';
+try {
+  const vf = path.join(__dirname, 'VERSION');
+  const vdata = JSON.parse(fs.readFileSync(vf, 'utf8'));
+  DEPLOYED_SHA = vdata.sha || 'unknown';
+  console.log('[Update] Deployed: ' + DEPLOYED_SHA.slice(0, 7));
+} catch {}
+
+// Cache GitHub response for 10 min to avoid rate-limit
+let _ghCache = null;
+let _ghCacheTs = 0;
+const GH_TTL = 10 * 60 * 1000;
+
+function fetchLatestCommit() {
+  return new Promise(function (resolve, reject) {
+    const opts = {
+      hostname: 'api.github.com',
+      path: '/repos/' + GH_OWNER + '/' + GH_REPO + '/commits/main',
+      method: 'GET',
+      headers: { 'User-Agent': 'isotope-self-host', 'Accept': 'application/vnd.github+json' },
+    };
+    const req = https.request(opts, function (r) {
+      let body = '';
+      r.on('data', function (d) { body += d; });
+      r.on('end', function () {
+        try {
+          const j = JSON.parse(body);
+          resolve({
+            sha:       j.sha || '',
+            message:   (j.commit && j.commit.message ? j.commit.message.split('\n')[0] : ''),
+            pushed_at: (j.commit && j.commit.author ? j.commit.author.date : ''),
+          });
+        } catch (e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(8000, function () { req.destroy(); reject(new Error('timeout')); });
+    req.end();
+  });
+}
+
 const appStateStore = { timerState: null, localStorage: {} };
 
 const server = http.createServer((req, res) => {
@@ -598,6 +643,43 @@ const server = http.createServer((req, res) => {
       aiKeys: { gemini: !!GEMINI_API_KEY, groq: !!GROQ_API_KEY },
       supabaseProxy: !!SUPA_SERVICE_KEY,
     }));
+    return;
+  }
+
+  // ── /api/version — returns deployed commit SHA ───────────────────────────────
+  if (req.method === 'GET' && req.url === '/api/version') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ sha: DEPLOYED_SHA, repo: GH_OWNER + '/' + GH_REPO }));
+    return;
+  }
+
+  // ── /api/check-update — compares deployed SHA with latest GitHub commit ──────
+  if (req.method === 'GET' && req.url === '/api/check-update') {
+    const now = Date.now();
+    if (_ghCache && (now - _ghCacheTs) < GH_TTL) {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify(_ghCache));
+      return;
+    }
+    fetchLatestCommit()
+      .then(function (latest) {
+        const hasUpdate = DEPLOYED_SHA !== 'unknown' && latest.sha !== DEPLOYED_SHA;
+        _ghCache = {
+          hasUpdate:  hasUpdate,
+          deployed:   DEPLOYED_SHA,
+          latest:     latest.sha,
+          message:    latest.message,
+          pushed_at:  latest.pushed_at,
+          repo:       GH_OWNER + '/' + GH_REPO,
+        };
+        _ghCacheTs = now;
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify(_ghCache));
+      })
+      .catch(function (err) {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ hasUpdate: false, error: err.message }));
+      });
     return;
   }
 
