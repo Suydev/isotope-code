@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>IsotopeAI</title>
+  <script>
+    // SPA redirect for GitHub Pages subdirectory hosting
+    // Redirects /isotope-code/dashboard → /isotope-code/?p=/dashboard
+    // index.html then reads '?p=' and restores the path via history.replaceState
+    (function(){
+      var l = window.location;
+      var pathParts = l.pathname.split('/');
+      // Keep the first segment (repo name = /isotope-code)
+      var base = pathParts.slice(0, 2).join('/');
+      var rest = '/' + pathParts.slice(2).join('/');
+      if (rest === '/' || rest === '') {
+        // Already at root, just load index
+        l.replace(base + '/');
+      } else {
+        l.replace(
+          base + '/?p=' + encodeURIComponent(rest) +
+          (l.search ? '&' + l.search.slice(1) : '') +
+          l.hash
+        );
+      }
+    })();
+  </script>
+</head>
+<body></body>
+</html>

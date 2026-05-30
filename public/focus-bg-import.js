@@ -106,6 +106,10 @@
   }
 
   function applyVideoToDom(url) {
+    // Validate URL protocol to prevent javascript: injection
+    if (!url || (!/^blob:/i.test(url) && !/^https?:/i.test(url) && !/^data:video\//i.test(url))) {
+      return;
+    }
     var vid = document.getElementById('__iso_focus_vid__');
     if (!vid) {
       vid = document.createElement('video');

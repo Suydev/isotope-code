@@ -1,10 +1,28 @@
+# Dependencies
 node_modules/
-  .env
-  .env.local
-  .env.production
-  *.log
-  .DS_Store
-  Thumbs.db
-  .idea/
-  .vscode/
-  
+
+# Environment secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Source maps
+public/assets/*.map
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build artifacts
+dist/
+build/

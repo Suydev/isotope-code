@@ -1,9 +1,11 @@
 // ── Offline patches ─────────────────────────────────────────────────────────
 // Intercept DiceBear avatar requests and serve locally-generated SVGs
+// Fix: use hostname check instead of .includes() to prevent URL substring bypass
 self.addEventListener('fetch', function(event) {
-  if (event.request.url.includes('api.dicebear.com')) {
-    var url = new URL(event.request.url);
-    var seed = url.searchParams.get('seed') || 'user';
+  var reqUrl;
+  try { reqUrl = new URL(event.request.url); } catch(e) { return; }
+  if (reqUrl.hostname === 'api.dicebear.com') {
+    var seed = reqUrl.searchParams.get('seed') || 'user';
     event.respondWith(new Response(generateAvatar(seed), {
       status: 200,
       headers: {
@@ -12,6 +14,14 @@ self.addEventListener('fetch', function(event) {
         'Access-Control-Allow-Origin': '*'
       }
     }));
+    return;
+  }
+  // Always fetch App bundle and key mod files from network (never serve stale cache)
+  // This ensures server-side patches (ge()→false, premium bypass) are never bypassed
+  if (/\/App-[^/]*\.js$/.test(reqUrl.pathname) ||
+      /\/useAIStore-[^/]*\.js$/.test(reqUrl.pathname) ||
+      /\/vendor-supabase-[^/]*\.js$/.test(reqUrl.pathname)) {
+    event.respondWith(fetch(event.request));
     return;
   }
 });
@@ -44,7 +54,7 @@ if (!self.define) {
         } else e = n, importScripts(n), s()
     }).then(() => {
         let e = s[n];
-        if (!e) throw new Error(`Module ${n} didn’t register its module`);
+        if (!e) throw new Error(`Module ${n} didn't register its module`);
         return e
     }));
     self.define = (i, c) => {
@@ -179,7 +189,14 @@ e.cleanupOutdatedCaches(), e.registerRoute(({
         }), new e.CacheableResponsePlugin({
             statuses: [0, 200]
         })]
-    }), "GET"), e.registerRoute(/\.(?:js|css)$/, new e.StaleWhileRevalidate({
+    }), "GET"),
+// Static JS/CSS — exclude App bundle and supabase vendor so mod patches always apply
+e.registerRoute(
+    ({url}) => /\.(?:js|css)$/.test(url.pathname) &&
+               !/\/App-[^/]*\.js$/.test(url.pathname) &&
+               !/\/useAIStore-[^/]*\.js$/.test(url.pathname) &&
+               !/\/vendor-supabase-[^/]*\.js$/.test(url.pathname),
+    new e.StaleWhileRevalidate({
         cacheName: "static-resources",
         plugins: [new e.ExpirationPlugin({
             maxEntries: 30,

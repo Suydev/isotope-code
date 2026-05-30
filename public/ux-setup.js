@@ -1,33 +1,14 @@
 /**
- * IsotopeAI — UX Setup Helper v1.4
+ * IsotopeAI — UX Setup Helper v2.0
  *
- * After a user signs in and the onboarding wizard opens, auto-advance
- * Steps 3-6 (preference pickers) so setup feels instant.
+ * Provides helper utilities for the onboarding wizard.
+ * Steps 1-6 are ALL left for the user to fill in manually.
  *
- * Steps 1-2 (name + academic info) are left alone for the user to fill in.
- *
- * Nothing here touches auth, Supabase, or any Zustand store.
+ * fillRequiredDefaults() is exposed on window so other scripts
+ * can call it if needed, but nothing auto-advances any step.
  */
 (function () {
   'use strict';
-
-  function getCurrentStep() {
-    var spans = document.querySelectorAll('span');
-    for (var i = 0; i < spans.length; i++) {
-      var m = spans[i].textContent.trim().match(/^(\d+)\/(\d+)$/);
-      if (m) return { current: +m[1], total: +m[2] };
-    }
-    return null;
-  }
-
-  function findNextBtn() {
-    var keywords = ['next', 'continue', 'complete setup', "let's go", 'finish', 'get started'];
-    var btns = Array.from(document.querySelectorAll('button:not([disabled])'));
-    for (var i = 0; i < btns.length; i++) {
-      if (keywords.indexOf(btns[i].textContent.trim().toLowerCase()) !== -1) return btns[i];
-    }
-    return null;
-  }
 
   function setReactValue(el, value) {
     try {
@@ -47,31 +28,6 @@
     });
   }
 
-  var _skipTimer = null;
-  var _lastStep  = -1;
-
-  function scheduleSkip(step) {
-    if (step === _lastStep) return; // don't re-trigger same step
-    _lastStep = step;
-    clearTimeout(_skipTimer);
-    _skipTimer = setTimeout(function () {
-      if (!location.pathname.startsWith('/onboarding')) return;
-      var s = getCurrentStep();
-      if (!s || s.current < 3) return;
-      fillRequiredDefaults();
-      var nb = findNextBtn();
-      if (nb) nb.click();
-    }, 500);
-  }
-
-  var _debounce = null;
-  new MutationObserver(function () {
-    clearTimeout(_debounce);
-    _debounce = setTimeout(function () {
-      if (!location.pathname.startsWith('/onboarding')) return;
-      var s = getCurrentStep();
-      if (s && s.current >= 3) scheduleSkip(s.current);
-    }, 220);
-  }).observe(document.body, { childList: true, subtree: true });
+  window.__isoFillDefaults = fillRequiredDefaults;
 
 })();

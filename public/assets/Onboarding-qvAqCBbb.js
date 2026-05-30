@@ -395,7 +395,7 @@ const A = ({
                 username: i.username
             }), (i.username || i.academic ?.institution) && s(i), y(!0))
         }, [l, i, b, e.username, r, s]), c.useEffect(() => {
-            l && i ?.isOnboarded && o !== 7 && p("/dashboard", {
+            l && i ?.isOnboarded && o < 2 && p("/dashboard", {
                 replace: !0
             })
         }, [i ?.isOnboarded, o, l, p]), c.useEffect(() => {

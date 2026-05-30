@@ -1,0 +1,66 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare static files
+        run: |
+          mkdir -p gh-pages-out
+          # Copy all public/ assets
+          cp -r public/. gh-pages-out/
+          # Copy root index.html
+          cp index.html gh-pages-out/
+          # Create 404.html for SPA client-side routing
+          cp gh-pages-out/index.html gh-pages-out/404.html
+          # Inject base-path redirect helper into 404.html for /isotope-code/ subdirectory
+          python3 -c "
+          import re, sys
+          with open('gh-pages-out/404.html','r') as f: h = f.read()
+          script = '''<script>
+          (function(){
+            var l = window.location;
+            var seg = l.pathname.split('/').slice(0,2).join('/');
+            var rest = l.pathname.slice(seg.length) || '/';
+            if (rest !== '/' && rest !== '') {
+              l.replace(seg + '/?p=' + encodeURIComponent(rest) + (l.search ? '&' + l.search.slice(1) : '') + l.hash);
+            }
+          })();
+          </script>'''
+          h = h.replace('</head>', script + '</head>', 1)
+          with open('gh-pages-out/404.html','w') as f: f.write(h)
+          "
+          echo 'Static files prepared:'
+          ls gh-pages-out/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './gh-pages-out'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
