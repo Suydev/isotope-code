@@ -1,0 +1,5 @@
+{
+  "sha": "213d7133d979c3282a6ca6fcf8a6d20c2be64a70",
+  "message": "fix: harden self-hosted supabase runtime",
+  "updated_at": "2026-06-04T11:35:58.500Z"
+}

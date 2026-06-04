@@ -1,0 +1,63 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# IsotopeAI Self-Hosted — Git ignore rules
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Environment files (NEVER commit — contain secrets)
+.env
+.env.local
+.env.production
+.env.*.local
+*.env
+
+# Local workspace / Replit-only files
+.agents/
+.replit
+.replitignore
+.replit-artifact/
+attached_assets/
+artifacts/
+replit.md
+lib/
+scripts/
+tsconfig.base.json
+tsconfig.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.npmrc
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build artifacts
+dist/
+build/
+.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Test coverage
+coverage/
+
+# TypeScript build info
+*.tsbuildinfo
