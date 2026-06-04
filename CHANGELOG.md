@@ -5,6 +5,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.9.0] — 2026-06-04 — Local software distribution release
+
+### Added
+- Default public Isotope Supabase URL and anon key for normal installs, so downloaded copies can connect to shared cloud sync without owner/admin secrets.
+- Smarter first-run installers for Bash, Windows batch, and PowerShell that detect the environment, attempt Node/Git setup where possible, create `.env`, validate the server, and start the local app.
+- Safer update scripts that preserve `.env`, stash local changes automatically, refresh dependencies, and explain restart steps.
+- Runtime missing JS asset recovery from upstream `/assets/<file>.js` sources with safe filename validation and local caching.
+- Refreshed GitHub Pages documentation for the local software model.
+
+### Changed
+- README and Pages now describe IsotopeAI as portable local software with Supabase cloud sync, not a hosted website or VPS deployment.
+- Owner/admin mode remains optional; service-role keys, admin secrets, Supabase management tokens, and GitHub PATs stay blank by default and private.
+- Package version updated to `2.9.0`.
+
+### Security
+- Repository history was reset to a sanitized root commit before this release.
+- Removed old local-runtime provider references from tracked documentation.
+
+### Verified
+- Supabase Auth, REST, profile, onboarding, and community event endpoints are reachable.
+- Storage buckets `avatars`, `event-images`, `user-content`, and `notes` exist.
+- Upload, download, signed URL, and cleanup operations pass for all four storage buckets.
+
 ## [2.8.2] — 2026-06-04 — Community loading, event data, and local cache fixes
 
 ### Fixed

@@ -1,6 +1,6 @@
 # IsotopeAI Self-Hosted — Agent Reference
 
-> **For AI agents (Replit Agent, Cursor, Copilot, Claude, etc.)**
+> **For AI agents (Cursor, Copilot, Claude, etc.)**
 > Read this entire file before touching anything. No assumptions. No guessing.
 > Every fact here was verified directly from the compiled JS bundles or the live DB.
 
@@ -198,7 +198,7 @@ window.fetch intercepts:
 
 ## Key architectural decisions (with rationale)
 
-### 1. IPv6 blocks direct PostgreSQL from Replit
+### 1. IPv6 blocks direct PostgreSQL from the local environment
 **Impact:** No `pg`, `postgres`, or `drizzle` packages.  
 **Solution:** Only use Supabase REST API + Management API for all DDL/DML.
 
@@ -349,7 +349,7 @@ See the full procedure in the section below for multi-file commits.
 
 ## How to push to GitHub (agent procedure)
 
-Git commit/push is blocked in Replit main agent. Use GitHub REST API tree-based commits:
+Git commit/push is blocked in restricted automation environment. Use GitHub REST API tree-based commits:
 
 ```javascript
 // 1. Get HEAD commit SHA
@@ -436,9 +436,9 @@ functions\.invoke\("([^"]+)"           → edge function names
 
 1. **Do NOT rebuild bundles.** No build step. The 154 files in `public/assets/` are the app. Just `PORT=5000 node server.mjs`.
 
-2. **PORT=5000 required.** The Replit workflow passes `PORT=5000`. Without it, server defaults to 3000 and Replit won't route traffic to it.
+2. **PORT=5000 required.** The local startup flow passes `PORT=5000`. Without it, server defaults to 3000 and local runtime won't route traffic to it.
 
-3. **Git commit/push blocked** in Replit main agent. Use GitHub REST API tree commits (see procedure above).
+3. **Git commit/push blocked** in restricted automation environment. Use GitHub REST API tree commits (see procedure above).
 
 4. **`SUPABASE_ACCESS_TOKEN` (sbp_...)** ≠ **GitHub PAT (ghp_...)**. Different services, different tokens.
 

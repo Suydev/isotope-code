@@ -101,10 +101,17 @@ const MIME_TYPES = {
 const GEMINI_API_KEY      = process.env.GEMINI_API_KEY      || '';
 const GROQ_API_KEY        = process.env.GROQ_API_KEY        || '';
 
+// Default public cloud sync target for normal downloaded installs. These are
+// anon/public Supabase values only; service-role/admin credentials remain env-only.
+const DEFAULT_SUPABASE_URL      = "https://vteqquoqvksshmfhuepu.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0ZXFxdW9xdmtzc2htZmh1ZXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODU2NzUsImV4cCI6MjA5NTY2MTY3NX0.ZkRislOhJRQUjVa1y5ixu-xBhlgkXWWyZKI_CClWj64";
+
 // ── Required environment variables — hard-fail at startup if missing ──────────
 // All credentials MUST come from environment variables (.env or host environment).
 // No fallback values are allowed — this prevents accidental credential exposure
 // if someone forks or clones the repo without setting up their own secrets.
+if (!process.env.SUPABASE_URL) process.env.SUPABASE_URL = DEFAULT_SUPABASE_URL;
+if (!process.env.SUPABASE_ANON_KEY) process.env.SUPABASE_ANON_KEY = DEFAULT_SUPABASE_ANON_KEY;
 const _missingEnv = ['SUPABASE_URL', 'SUPABASE_ANON_KEY']
   .filter(k => !process.env[k]);
 if (_missingEnv.length) {
@@ -288,13 +295,13 @@ function sendAdminDisabled(req, res) {
   if (!SUPA_SERVICE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY');
   const payload = {
     ok: false,
-    admin_mode: 'disabled',
-    message: 'Admin mode is disabled. Normal local user mode only needs SUPABASE_URL and SUPABASE_ANON_KEY.',
+    owner_tools: 'not_enabled',
+    message: 'The local app is ready. Owner tools are private and are not enabled for this install.',
     enable_with: missing,
   };
   if (req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Admin Mode Disabled</title><style>body{font-family:system-ui;background:#0a0a0a;color:#eee;margin:0;padding:32px}.box{max-width:720px;margin:auto;background:#111;border:1px solid #333;border-radius:10px;padding:24px}code{background:#222;padding:2px 6px;border-radius:4px;color:#a78bfa}</style></head><body><div class="box"><h1>Admin Mode Disabled</h1><p>This local server is running in normal self-hosted user mode.</p><p>To manage Supabase data through admin tools, set <code>ENABLE_ADMIN_MODE=true</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> in your private <code>.env</code>, then restart. Add <code>ADMIN_SECRET</code> for local secret unlock, or <code>ADMIN_EMAIL</code>/<code>ADMIN_EMAILS</code> for Supabase login unlock.</p></div></body></html>`);
+    res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Owner Tools</title><style>body{font-family:system-ui;background:#0a0a0a;color:#eee;margin:0;padding:32px}.box{max-width:720px;margin:auto;background:#111;border:1px solid #333;border-radius:10px;padding:24px}code{background:#222;padding:2px 6px;border-radius:4px;color:#a78bfa}a{color:#8b5cf6}</style></head><body><div class="box"><h1>Owner Tools Are Private</h1><p>The Isotope local app is running normally. This page is only for the project owner to manage Supabase diagnostics, schema patches, and event/admin data.</p><p>Normal users can return to <a href="/">the app</a>.</p><p>Owners can enable this area with <code>ENABLE_ADMIN_MODE=true</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> in a private <code>.env</code>, then restart. Add <code>ADMIN_SECRET</code> for local secret unlock, or <code>ADMIN_EMAIL</code>/<code>ADMIN_EMAILS</code> for Supabase login unlock.</p></div></body></html>`);
     return;
   }
   res.writeHead(403, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -311,7 +318,7 @@ const PROXY_PATH          = '/__supa';
 if (ADMIN_MODE_READY) console.log('[Admin] Admin mode enabled for server-only Supabase management');
 else if (ENABLE_ADMIN_MODE) console.warn('[Admin] Admin mode requested but disabled: set SUPABASE_SERVICE_ROLE_KEY');
 if (CUSTOM_SUPA) {
-  console.log('[Supabase] Custom project configured');
+  console.log('[Cloud] Supabase cloud sync target ready');
 }
 
 // ── AI key injection ──────────────────────────────────────────────────────────
@@ -1689,6 +1696,64 @@ function supaRestReq(method, restPath, bodyObj, extraHeaders = {}) {
     rq.setTimeout(15000, () => { rq.destroy(); reject(new Error('Supabase REST timeout')); });
     if (bodyBuf) rq.write(bodyBuf);
     rq.end();
+  });
+}
+
+function fetchRemoteAsset(assetName) {
+  const safeName = path.basename(String(assetName || ''));
+  if (!/^[A-Za-z0-9._-]+\.js$/.test(safeName)) {
+    return Promise.reject(new Error('unsupported asset name'));
+  }
+  const origins = [
+    'https://isotopeai.in/assets/',
+    'https://isotopeai.ai/assets/',
+    'https://isotopai.ai/assets/',
+  ];
+  let index = 0;
+  return new Promise((resolve, reject) => {
+    const tryNext = () => {
+      if (index >= origins.length) {
+        reject(new Error('asset not found upstream'));
+        return;
+      }
+      const source = origins[index++] + safeName;
+      let u;
+      try { u = new URL(source); } catch { tryNext(); return; }
+      const rq = https.request({
+        hostname: u.hostname,
+        path: u.pathname,
+        method: 'GET',
+        headers: { 'User-Agent': 'isotope-local-asset-recovery', 'Accept': 'application/javascript,text/javascript,*/*' },
+      }, (r) => {
+        if (r.statusCode !== 200) {
+          r.resume();
+          r.on('end', tryNext);
+          return;
+        }
+        const chunks = [];
+        let size = 0;
+        r.on('data', (chunk) => {
+          size += chunk.length;
+          if (size > 10 * 1024 * 1024) {
+            rq.destroy(new Error('asset too large'));
+            return;
+          }
+          chunks.push(chunk);
+        });
+        r.on('end', () => {
+          const body = Buffer.concat(chunks);
+          if (!body.length) { tryNext(); return; }
+          const target = path.join(PUBLIC_DIR, 'assets', safeName);
+          fs.mkdir(path.dirname(target), { recursive: true }, () => {
+            fs.writeFile(target, body, () => resolve(body));
+          });
+        });
+      });
+      rq.on('error', tryNext);
+      rq.setTimeout(10000, () => rq.destroy(new Error('asset recovery timeout')));
+      rq.end();
+    };
+    tryNext();
   });
 }
 
@@ -4629,6 +4694,12 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
 
     fs.readFile(fp, (err, data) => {
       if (err) {
+        if (ext === '.js' && reqPath.startsWith('/assets/')) {
+          fetchRemoteAsset(path.basename(fp))
+            .then((buf) => send(buf))
+            .catch(() => { res.writeHead(404); res.end('Not found'); });
+          return;
+        }
         if (['.js','.mjs','.css','.png','.svg','.woff','.woff2','.ttf','.json'].includes(ext)) {
           res.writeHead(404); res.end('Not found'); return;
         }
@@ -4654,22 +4725,22 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
 // Warn operators about insecure or missing configuration before accepting traffic.
 (function validateEnv() {
   if (!ENABLE_ADMIN_MODE) {
-    console.info('[Config] Normal local user mode. Admin tools disabled.');
+    console.info('[Startup] Local app mode ready. Shared Supabase cloud sync is enabled.');
   } else if (!ADMIN_MODE_READY) {
-    console.warn('[Config] Admin mode requested but not ready. Set SUPABASE_SERVICE_ROLE_KEY.');
+    console.warn('[Startup] Owner tools requested but not ready. Add SUPABASE_SERVICE_ROLE_KEY in your private .env.');
   } else {
-    console.info('[Config] Admin mode enabled. Protect admin credentials and service-role key.');
-    console.info('[Config] Admin panel: /__admin/verify | /__admin/events | /__admin/roles | /__admin/patch');
+    console.info('[Startup] Owner tools enabled. Protect admin credentials and service-role key.');
+    console.info('[Startup] Admin panel: /__admin/verify | /__admin/events | /__admin/roles | /__admin/patch');
     if (!ADMIN_PASSWORD || !ADMIN_EMAIL) {
-      console.info('[Config] ADMIN_EMAIL/ADMIN_PASSWORD not both set; admin account auto-create will be skipped.');
+      console.info('[Startup] ADMIN_EMAIL/ADMIN_PASSWORD not both set; admin account auto-create will be skipped.');
     }
   }
 })();
 
 server.listen(port, '0.0.0.0', () => {
   console.log(`IsotopeAI running on port ${port}`);
-  if (ADMIN_MODE_READY) console.log('[Supabase] Admin service key active (server-side only)');
-  else                  console.log('[Supabase] Normal mode: anon/user JWT only');
+  if (ADMIN_MODE_READY) console.log('[Cloud] Owner tools can use private server-side Supabase access');
+  else                  console.log('[Cloud] User sessions sync through Supabase with RLS protection');
   if (GEMINI_API_KEY) console.log('Gemini API key: configured');
   if (GROQ_API_KEY)   console.log('Groq API key: configured');
 

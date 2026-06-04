@@ -1,179 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IsotopeAI — Self-Hosted Documentation</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IsotopeAI Local</title>
+<meta name="description" content="A local study app with Supabase cloud sync.">
 <style>
-  :root { --accent: #6366f1; --bg: #0a0a0f; --card: #111118; --border: #1e1e2e; --text: #e2e8f0; --muted: #64748b; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; }
-  .hero { background: linear-gradient(135deg, #0a0a0f 0%, #0f0f1a 50%, #0a0a0f 100%); border-bottom: 1px solid var(--border); padding: 80px 24px 60px; text-align: center; }
-  .logo { width: 72px; height: 72px; background: var(--accent); border-radius: 18px; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center; font-size: 36px; }
-  h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; letter-spacing: -0.03em; margin-bottom: 12px; }
-  h1 span { background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .subtitle { color: var(--muted); font-size: 1.15rem; max-width: 600px; margin: 0 auto 32px; }
-  .badges { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 40px; }
-  .badge { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 16px; font-size: 0.8rem; color: var(--muted); }
-  .badge b { color: var(--accent); }
-  .btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: #fff; border-radius: 10px; padding: 14px 28px; font-weight: 600; text-decoration: none; transition: opacity .2s; }
-  .btn:hover { opacity: .85; }
-  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-  .btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  main { max-width: 1080px; margin: 0 auto; padding: 60px 24px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 40px 0; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
-  .card-icon { font-size: 2rem; margin-bottom: 12px; }
-  .card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
-  .card p { color: var(--muted); font-size: 0.9rem; }
-  h2 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; margin: 60px 0 20px; }
-  h2:first-child { margin-top: 0; }
-  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); margin: 20px 0; }
-  th { background: #1a1a2e; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: .05em; padding: 12px 16px; text-align: left; }
-  td { padding: 12px 16px; border-top: 1px solid var(--border); font-size: 0.9rem; }
-  td code { background: #1e1e2e; border-radius: 4px; padding: 2px 8px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.82rem; color: #a5b4fc; }
-  .tag { display: inline-block; background: #1e1e38; color: var(--accent); border-radius: 6px; padding: 2px 8px; font-size: 0.78rem; font-weight: 600; }
-  .section { margin-bottom: 60px; }
-  pre { background: #0d0d1a; border: 1px solid var(--border); border-radius: 10px; padding: 20px; overflow-x: auto; margin: 16px 0; }
-  code.block { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #7dd3fc; line-height: 1.6; }
-  .status { display: inline-flex; align-items: center; gap: 6px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
-  footer { border-top: 1px solid var(--border); padding: 40px 24px; text-align: center; color: var(--muted); font-size: 0.9rem; }
-  footer a { color: var(--accent); text-decoration: none; }
-  .api-method { display: inline-block; background: #1e3a1e; color: #4ade80; border-radius: 4px; padding: 1px 7px; font-size: 0.78rem; font-weight: 700; font-family: monospace; margin-right: 6px; }
-  .api-method.post { background: #1e2e3a; color: #60a5fa; }
-  .api-method.delete { background: #3a1e1e; color: #f87171; }
-</style>
+:root{--bg:#08090b;--panel:#101216;--line:#252a33;--text:#f5f7fb;--muted:#a5adba;--brand:#53e0c2;--accent:#8fb7ff;--warn:#ffd166}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.55}a{color:inherit}.hero{min-height:76vh;background:linear-gradient(90deg,rgba(8,9,11,.86),rgba(8,9,11,.46)),url('https://raw.githubusercontent.com/Suydev/isotope-code/main/public/opengraph.jpg') center/cover;padding:28px;display:flex;align-items:flex-end}.hero-inner{max-width:1100px;margin:0 auto;width:100%;padding:80px 0 48px}.nav{position:absolute;top:0;left:0;right:0;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(rgba(0,0,0,.55),transparent)}.brand{display:flex;align-items:center;gap:12px;font-weight:800}.brand img{width:36px;height:36px}.links{display:flex;gap:10px;flex-wrap:wrap}.links a,.btn{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);text-decoration:none;border-radius:8px;padding:9px 13px;color:var(--text)}h1{font-size:clamp(42px,8vw,88px);line-height:.94;margin:0 0 18px;max-width:860px;letter-spacing:0}.lead{font-size:clamp(18px,2.5vw,26px);max-width:760px;color:#d7dde8;margin:0 0 28px}.cta{display:flex;gap:12px;flex-wrap:wrap}.primary{background:var(--brand);color:#06211b;border-color:var(--brand);font-weight:800}.main{max-width:1100px;margin:0 auto;padding:52px 28px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:22px}.card h3{margin:0 0 8px;font-size:18px}.card p{margin:0;color:var(--muted)}.band{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#0c0e12;margin:38px -28px;padding:38px 28px}.code{background:#050608;border:1px solid var(--line);border-radius:8px;padding:18px;overflow:auto;color:#b7f7df}.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;counter-reset:s}.step{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px}.step:before{counter-increment:s;content:counter(s);display:inline-grid;place-items:center;width:30px;height:30px;background:var(--accent);color:#061328;border-radius:50%;font-weight:800;margin-bottom:14px}.split{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:760px){.split{grid-template-columns:1fr}.hero{padding:20px}.links{display:none}}footer{padding:36px 28px;border-top:1px solid var(--line);color:var(--muted);text-align:center}</style>
 </head>
 <body>
 <header class="hero">
-  <div class="logo">⚛️</div>
-  <h1>Isotope<span>AI</span> Self-Hosted</h1>
-  <p class="subtitle">A fully self-hosted, production-ready, premium-unlocked fork. AI study planner · Focus timer · Realtime community · Events ecosystem · Analytics · Gamification.</p>
-  <div class="badges">
-    <div class="badge"><b>v2.0.0</b> — Events Expansion</div>
-    <div class="badge">Node.js <b>18+</b></div>
-    <div class="badge">Supabase <b>PostgreSQL</b></div>
-    <div class="badge">Zero npm dependencies</div>
-    <div class="badge"><span class="status"><span class="dot"></span>Production Ready</span></div>
-  </div>
-  <div class="btns">
-    <a class="btn" href="https://github.com/Suydev/isotope-code">📦 GitHub Repository</a>
-    <a class="btn btn-outline" href="https://github.com/Suydev/isotope-code/releases">📋 Releases</a>
+  <nav class="nav"><div class="brand"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/logo.svg" alt="">IsotopeAI Local</div><div class="links"><a href="https://github.com/Suydev/isotope-code">GitHub</a><a href="https://github.com/Suydev/isotope-code/releases">Releases</a></div></nav>
+  <div class="hero-inner">
+    <h1>Run the study app on your own device.</h1>
+    <p class="lead">IsotopeAI Local is downloadable software: a local server, a browser app, offline-friendly study tools, and Supabase cloud sync for community, events, auth, storage, and realtime.</p>
+    <div class="cta"><a class="btn primary" href="https://github.com/Suydev/isotope-code/releases">Download release</a><a class="btn" href="https://github.com/Suydev/isotope-code">View source</a></div>
   </div>
 </header>
-<main>
-  <div class="section">
-    <h2>✨ What's Included</h2>
-    <div class="grid">
-      <div class="card"><div class="card-icon">🏆</div><h3>Ranker Plan for Everyone</h3><p>DB trigger + client patches ensure every user gets Ranker tier automatically.</p></div>
-      <div class="card"><div class="card-icon">🌐</div><h3>Full Community System</h3><p>Groups, chat, challenges, announcements, leaderboard — 20+ tables, realtime subscriptions.</p></div>
-      <div class="card"><div class="card-icon">🎉</div><h3>Events Social Ecosystem</h3><p>RSVP states, event chat, reactions, discussion threads, resources, analytics, recordings, presence — 18 tables.</p></div>
-      <div class="card"><div class="card-icon">⏱️</div><h3>Focus Session Sync</h3><p>Sessions persist to Supabase automatically via finish_session_sync RPC. Calendar heatmap works out of the box.</p></div>
-      <div class="card"><div class="card-icon">🤖</div><h3>AI Assistant</h3><p>Gemini + Groq support. Inject your own API key via .env — fully operational.</p></div>
-      <div class="card"><div class="card-icon">🔒</div><h3>Username Auth</h3><p>No email required. Rate-limited signup and login. Admin panel protected by ADMIN_SECRET when admin mode is enabled.</p></div>
-    </div>
-  </div>
+<main class="main">
+  <section class="grid">
+    <div class="card"><h3>Local first</h3><p>Starts on your computer or phone. No VPS needed. Open localhost and study.</p></div>
+    <div class="card"><h3>Cloud synced</h3><p>Supabase powers auth, onboarding, community, events, storage, and realtime when online.</p></div>
+    <div class="card"><h3>Offline tolerant</h3><p>Local study flows keep working; cloud widgets degrade cleanly instead of crashing.</p></div>
+    <div class="card"><h3>Owner tools</h3><p>Private admin mode for diagnostics, SQL patching, event management, and verification.</p></div>
+  </section>
+  <section class="band">
+    <h2>Install in one command</h2>
+    <div class="split"><pre class="code"># macOS, Linux, Termux
+chmod +x setup.sh
+./setup.sh</pre><pre class="code">:: Windows
+setup.bat
 
-  <div class="section">
-    <h2>🚀 Quick Start</h2>
-    <pre><code class="block">git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-cp .env.example .env
-# Fill in your Supabase credentials in .env
-PORT=5000 node server.mjs</code></pre>
-    <p style="color:var(--muted);margin-top:12px;">Then visit <code>/__admin/patch</code> once to apply the database schema.</p>
-  </div>
-
-  <div class="section">
-    <h2>⚙️ Environment Variables</h2>
-    <table>
-      <tr><th>Variable</th><th>Required</th><th>Description</th></tr>
-      <tr><td><code>SUPABASE_URL</code></td><td><span class="tag">required</span></td><td>Your Supabase project URL</td></tr>
-      <tr><td><code>SUPABASE_ANON_KEY</code></td><td><span class="tag">required</span></td><td>Anon/public key</td></tr>
-      <tr><td><code>ENABLE_ADMIN_MODE</code></td><td><span class="tag">optional</span></td><td>Set true only for private owner/admin tools</td></tr>
-      <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td><span class="tag">admin</span></td><td>Server-only service role key for owner/admin tools</td></tr>
-      <tr><td><code>ADMIN_SECRET</code></td><td><span class="tag">admin</span></td><td>Protects all /__admin/* routes when admin mode is enabled</td></tr>
-      <tr><td><code>ADMIN_EMAIL</code></td><td><span class="tag">prod</span></td><td>Admin account email</td></tr>
-      <tr><td><code>ADMIN_PASSWORD</code></td><td><span class="tag">prod</span></td><td>Admin account password</td></tr>
-      <tr><td><code>PORT</code></td><td>optional</td><td>Server port (default: 3000)</td></tr>
-      <tr><td><code>GEMINI_API_KEY</code></td><td>optional</td><td>Google Gemini key for AI assistant</td></tr>
-      <tr><td><code>GROQ_API_KEY</code></td><td>optional</td><td>Groq key for AI assistant</td></tr>
-    </table>
-  </div>
-
-  <div class="section">
-    <h2>🎉 Events API — Full Reference</h2>
-    <p style="color:var(--muted);margin-bottom:20px;">All endpoints return JSON. Write endpoints require <code>Authorization: Bearer &lt;jwt&gt;</code> header.</p>
-    <table>
-      <tr><th>Endpoint</th><th>Description</th></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events</code></td><td>List active events (with category, RSVP counts)</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/discover?type=trending|upcoming|featured|near_full|starting_soon|my_groups</code></td><td>Discovery feeds</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/categories</code></td><td>All event categories</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/leaderboard?type=hosts|attendees</code></td><td>Event leaderboards</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id</code></td><td>Full event + reactions + analytics (auto-tracks view)</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/rsvp</code></td><td>Get RSVP state + breakdown counts</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/rsvp</code></td><td><code>{state: "going"|"interested"|"maybe"|"not_going"}</code></td></tr>
-      <tr><td><span class="api-method delete">DELETE</span><code>/api/events/:id/rsvp</code></td><td>Remove RSVP (sets not_going)</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/messages</code></td><td>Paginated event chat (real-time via Supabase channels)</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/messages</code></td><td><code>{content, reply_to_id?}</code> — send chat message</td></tr>
-      <tr><td><span class="api-method delete">DELETE</span><code>/api/events/:id/messages/:msgId</code></td><td>Soft-delete message</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/messages/pinned</code></td><td>List pinned messages</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/threads</code></td><td>Discussion threads</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/threads</code></td><td><code>{title, content}</code> — create thread</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/threads/:tid</code></td><td>Thread + replies</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/threads/:tid/replies</code></td><td><code>{content}</code> — add reply</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/reactions</code></td><td>Aggregated reaction counts</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/reactions</code></td><td><code>{reaction: "🔥"}</code> — toggle reaction</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/resources</code></td><td>List resources (links, PDFs, notes, slides)</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/resources</code></td><td><code>{title, url, resource_type?, description?}</code></td></tr>
-      <tr><td><span class="api-method delete">DELETE</span><code>/api/events/:id/resources/:rid</code></td><td>Delete resource</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/analytics</code></td><td>View count, RSVP rates, engagement score</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/feedback</code></td><td>Average rating + reviews</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/feedback</code></td><td><code>{rating: 1-5, comment?}</code> — submit feedback</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/recordings</code></td><td>List recordings</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/recordings</code></td><td><code>{url, title?, duration_seconds?, thumbnail_url?}</code></td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/announcements</code></td><td>Host announcements (pinned first)</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/announcements</code></td><td><code>{content, is_pinned?}</code></td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/presence</code></td><td>Live presence (active/watching/speaking/idle)</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/presence</code></td><td><code>{status: "active"|"watching"|"speaking"|"idle"}</code></td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/attendees</code></td><td>Paginated attendees + RSVP list</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/roles</code></td><td>Host/co-host/moderator/speaker roles</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/roles</code></td><td><code>{user_id, role}</code> — assign role</td></tr>
-      <tr><td><span class="api-method">GET</span><code>/api/events/:id/reminders</code></td><td>User's scheduled reminders</td></tr>
-      <tr><td><span class="api-method post">POST</span><code>/api/events/:id/reminders</code></td><td><code>{types: ["24h","1h","15m","start"]}</code></td></tr>
-    </table>
-  </div>
-
-  <div class="section">
-    <h2>🗄 Database Schema</h2>
-    <p style="color:var(--muted);margin-bottom:16px;"><strong>38 tables · 20+ RPCs · RLS on every table · 40+ indexes · cascade delete constraints</strong></p>
-    <div class="grid">
-      <div class="card">
-        <h3>Core Community (20 tables)</h3>
-        <p style="margin-top:8px;font-size:0.85rem;color:var(--muted);">users · user_profiles · user_points · user_stats_summary · daily_user_stats · study_sessions_log · store_items · user_inventory · groups · group_members · group_chat_messages · group_challenges · group_challenge_participants · group_announcements · group_invites · group_milestones · notifications · user_presence · community_events · community_event_attendees</p>
-      </div>
-      <div class="card">
-        <h3>Events Ecosystem (18 tables)</h3>
-        <p style="margin-top:8px;font-size:0.85rem;color:var(--muted);">event_categories · event_rsvp · event_messages · event_threads · event_thread_replies · event_reactions · event_resources · event_roles · event_presence · event_analytics · event_feedback · event_recordings · event_reminders · event_announcements · event_pinned_messages · event_achievements</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>🔒 Security Notes</h2>
-    <table>
-      <tr><th>Topic</th><th>Notes</th></tr>
-      <tr><td>Secrets</td><td>Never commit .env. All keys via env vars. Server hard-fails if keys are missing.</td></tr>
-      <tr><td>Admin routes</td><td>Disabled unless ENABLE_ADMIN_MODE=true, ADMIN_SECRET, and SUPABASE_SERVICE_ROLE_KEY are set.</td></tr>
-      <tr><td>service_role key</td><td>Server-only. Browser bundles receive only the configured anon key.</td></tr>
-      <tr><td>RLS Policies</td><td>Every table has RLS. group_* tables use _is_group_member() SECURITY DEFINER to prevent recursion.</td></tr>
-    </table>
-  </div>
+:: PowerShell
+./install.ps1</pre></div>
+  </section>
+  <section>
+    <h2>How it works</h2>
+    <div class="steps"><div class="step"><h3>Download</h3><p>Clone or unzip the GitHub release.</p></div><div class="step"><h3>Run setup</h3><p>The script detects your platform, checks Node/Git, creates .env, and starts the server.</p></div><div class="step"><h3>Open localhost</h3><p>The app runs locally while Supabase syncs shared data online.</p></div></div>
+  </section>
+  <section class="band">
+    <h2>Not a hosting site</h2>
+    <p>Do not deploy this as one central web backend for everyone. The intended model is many local installs worldwide connected to the Isotope Supabase cloud with RLS, auth, storage, and realtime.</p>
+  </section>
 </main>
-<footer>
-  <p>IsotopeAI Self-Hosted · <a href="https://github.com/Suydev/isotope-code">github.com/Suydev/isotope-code</a> · MIT License</p>
-  <p style="margin-top:8px;">Built with Node.js · Supabase · React (pre-built) · Zero npm dependencies</p>
-</footer>
+<footer>IsotopeAI Local · local software with Supabase cloud sync</footer>
 </body>
 </html>

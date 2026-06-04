@@ -42,7 +42,7 @@ The original IsotopeAI is a Vite-built React SPA served from `isotopeai.in`. Thi
 
 ## Architecture Decisions
 
-### 1. IPv6 blocks direct PostgreSQL connections from Replit
+### 1. IPv6 blocks direct PostgreSQL connections from the local environment
 **Impact:** Cannot use `pg` / `postgres` / `drizzle` packages.  
 **Solution:** All DDL/DML via Supabase REST API (`/rest/v1/`) and Management API (`api.supabase.com/v1/`).
 

@@ -1,5 +1,6 @@
 param(
-  [int]$Port = 5000
+  [int]$Port = 5000,
+  [switch]$NoStart
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,87 +10,72 @@ function Fail($Message) {
   exit 1
 }
 
-function Get-EnvValue($Key) {
-  if (-not (Test-Path ".env")) { return "" }
-  foreach ($raw in Get-Content ".env") {
-    $line = $raw.Trim()
-    if (-not $line -or $line.StartsWith("#") -or -not $line.Contains("=")) { continue }
-    $idx = $line.IndexOf("=")
-    if ($line.Substring(0, $idx).Trim() -eq $Key) {
-      return $line.Substring($idx + 1).Trim().Trim('"').Trim("'")
-    }
-  }
-  return ""
-}
-
-function Set-EnvValue($Key, $Value) {
-  $lines = @()
-  if (Test-Path ".env") { $lines = @(Get-Content ".env") }
-  $seen = $false
-  $next = foreach ($line in $lines) {
-    $trim = $line.Trim()
-    if (-not $trim -or $trim.StartsWith("#") -or -not $line.Contains("=")) {
-      $line
-      continue
-    }
-    $idx = $line.IndexOf("=")
-    if ($line.Substring(0, $idx).Trim() -eq $Key) {
-      $seen = $true
-      "$Key=$Value"
-    } else {
-      $line
-    }
-  }
-  if (-not $seen) { $next += "$Key=$Value" }
-  Set-Content -Path ".env" -Value $next
+function HasCommand($Name) {
+  return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
 Write-Host ""
-Write-Host "Isotope PowerShell setup"
+Write-Host "Isotope local app setup"
+Write-Host "This installs a local server. Supabase provides shared cloud sync."
 Write-Host "Working directory: $(Get-Location)"
 Write-Host ""
 
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-  Fail "Node.js 18+ is required. Install it from https://nodejs.org"
+if (-not (HasCommand node)) {
+  Write-Host "Node.js was not found. Trying winget install..."
+  if (HasCommand winget) {
+    winget install -e --id OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
+  }
+}
+
+if (-not (HasCommand git)) {
+  Write-Host "Git was not found. Trying winget install..."
+  if (HasCommand winget) {
+    winget install -e --id Git.Git --accept-package-agreements --accept-source-agreements
+  }
+}
+
+if (-not (HasCommand node)) {
+  Fail "Node.js 18+ is required. Install it from https://nodejs.org then run install.ps1 again."
 }
 
 $nodeMajor = node -e "process.stdout.write(process.versions.node.split('.')[0])"
 if ([int]$nodeMajor -lt 18) {
   Fail "Node.js 18+ is required."
 }
+node --version
 
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-  Write-Host "Git was not found. Updates from GitHub require Git."
-}
-
-if ((Test-Path "package.json") -and (Get-Command npm -ErrorAction SilentlyContinue)) {
-  npm install
+if (-not (HasCommand git)) {
+  Write-Host "WARN: Git is not installed. Updates from GitHub will require Git."
+} else {
+  Write-Host "Git ready."
 }
 
 if (-not (Test-Path ".env")) {
-  if (-not (Test-Path ".env.example")) {
-    Fail ".env.example is missing."
-  }
+  if (-not (Test-Path ".env.example")) { Fail ".env.example is missing." }
   Copy-Item ".env.example" ".env"
-  Write-Host "Created .env from .env.example."
+  Write-Host "Created .env with the default Isotope cloud sync settings."
 }
 
-Write-Host "Normal user mode needs only Supabase URL and anon key."
-if (-not (Get-EnvValue "SUPABASE_URL")) {
-  Set-EnvValue "SUPABASE_URL" (Read-Host "Supabase URL")
-}
-if (-not (Get-EnvValue "SUPABASE_ANON_KEY")) {
-  Set-EnvValue "SUPABASE_ANON_KEY" (Read-Host "Supabase anon key")
-}
-
-node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l.slice(0,i).trim()===k)return l.slice(i+1).trim().replace(/^['\"]|['\"]$/g,'')}return''};const missing=['SUPABASE_URL','SUPABASE_ANON_KEY'].filter(k=>!get(k)||get(k).includes('...')||get(k).includes('your-project-ref'));if(missing.length){console.error('Missing or placeholder values: '+missing.join(', '));process.exit(1)}"
+node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l.slice(0,i).trim()===k)return l.slice(i+1).trim().replace(/^['\"]|['\"]$/g,'')}return''};const url=get('SUPABASE_URL'),anon=get('SUPABASE_ANON_KEY');if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)||anon.split('.').length<3){console.error('Invalid .env Supabase public config. Restore .env.example or edit .env.');process.exit(1)}"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Write-Host "Cloud sync config ready."
+
+if ((Test-Path "package.json") -and (HasCommand npm)) {
+  npm install
+}
 
 node --check server.mjs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""
-Write-Host "Setup checks complete."
-Write-Host "Start the server with: `$env:PORT=$Port; node server.mjs"
-Write-Host "Open: http://localhost:$Port"
-Write-Host "Admin mode is optional. Leave admin fields blank for normal use."
+Write-Host "Setup complete."
+Write-Host "Local URL: http://localhost:$Port"
+Write-Host "Stop the server with Ctrl+C."
+Write-Host ""
+
+if (-not $NoStart) {
+  $env:PORT = "$Port"
+  node server.mjs
+} else {
+  Write-Host "Start later with: `$env:PORT=$Port; node server.mjs"
+}

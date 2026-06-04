@@ -183,7 +183,7 @@
 
 ### Security findings still NOT changed (by design)
 - **Service-role key in App bundle**: still intentional for self-hosted/trusted-user deployments
-- **CORS wildcard on `/__supa/*`**: still needed for Replit proxy iframe compatibility
+- **CORS wildcard on `/__supa/*`**: still needed for local preview compatibility
 - **`@isotope.local` legacy fallback**: kept in login path — removing would lock out existing users who signed up with bare username format. Document as "upgrade users to email auth over time"
 
 ---
@@ -198,7 +198,7 @@
 - Added `isAdminAuthed(req)` helper function
 - Current model: admin tools are disabled unless `ENABLE_ADMIN_MODE=true`, `ADMIN_SECRET`, and `SUPABASE_SERVICE_ROLE_KEY` are set
 - Secret accepted via `X-Admin-Secret` header OR `?secret=` query param
-- Normal local user mode cannot access owner/admin tools
+- Normal local app mode keeps owner/admin tools private
 
 **2. Security: Admin password removed from source code**
 - Removed hardcoded `'Elixir@2025!'` from `server.mjs` line ~2453
@@ -241,7 +241,7 @@
 
 ### Security findings NOT changed (by design)
 - **Service-role key in App bundle**: `getPatchedAppBundle()` injects the service_role key into the JS sent to all browsers. This is intentional for self-hosted/trusted-user deployments but documented clearly in AUDIT.md and AGENTS.md as a high-severity consideration for public deployments.
-- **CORS wildcard on proxy**: `/__supa/*` proxy returns `Access-Control-Allow-Origin: *` — intentional for Replit preview iframe compatibility.
+- **CORS wildcard on proxy**: `/__supa/*` proxy returns `Access-Control-Allow-Origin: *` — intentional for local preview iframe compatibility.
 
 ---
 
@@ -354,7 +354,7 @@ The schema is **idempotent** (safe to run multiple times). It:
 1. **Run SQL schema** in Supabase SQL Editor (see above)
 2. **Authentication providers** in Supabase:
    - Go to Supabase → Authentication → Providers → Enable Google
-   - Add your Replit app domain to "Redirect URLs"
+   - Add your local app callback URL to "Redirect URLs"
 
 ---
 
@@ -448,7 +448,7 @@ Replaces the hardcoded empty Gemini/Groq key references with `window.__IK__.gemi
 | 4 | Token-refresh reload loop: cleared `__iso_rls_upgraded__` on every JWT refresh | Reload every ~1 hour |
 | 5 | Demo key cleanup: `break` after first key + modifying array while iterating | Demo keys not fully cleared |
 | 6 | Demo `localStorage` not cleared — only `sessionStorage` | Demo mode persisted |
-| 7 | `Permissions-Policy` header missing — IndexedDB blocked in Replit iframe | kvStore shadow backup errors |
+| 7 | `Permissions-Policy` header missing — IndexedDB blocked in local runtime iframe | kvStore shadow backup errors |
 | 8 | SW cache: Focus + Onboarding + sessionSync + useSyncStore not in bypass list | Patches silently lost after first SW cache |
 
 ---
@@ -546,9 +546,9 @@ tracked files.
 ## Next Steps (priority order)
 
 1. **Run SQL schema** — Supabase → SQL Editor → paste `isotope-schema.sql` → Run
-2. **Set service_role key** — Replit Secrets → `SUPABASE_SERVICE_ROLE_KEY` = legacy service key
+2. **Set service_role key** — private .env → `SUPABASE_SERVICE_ROLE_KEY` = legacy service key
 3. **Update anon key** — Replace `sb_publishable_` with legacy JWT anon key in `server.mjs` line ~58
-4. **Set Redirect URLs** in Supabase Auth — add your Replit domain
+4. **Set Redirect URLs** in Supabase Auth — add your local runtime domain
 5. **Deploy `finish-session` edge function** — for Focus session cloud sync
 6. **Test community** — join a group, verify RLS is not blocking
 
@@ -563,4 +563,4 @@ tracked files.
 | `ee86d8d` | SQL schema fix (idempotent, ranker everywhere) |
 | `70995c1` | Direct Supabase + auto-update checker + scholar→ranker cleanup |
 | prev | Hardcoded self-hosted Supabase URL/key + ORIG_* constants + this work log |
-| latest | Fixed Replit workflow port: changed artifact port from 24099 → 5000 (supported by Replit port watcher); removed conflicting API server `/api` path intercept; app now starts and stays running |
+| latest | Fixed local startup flow port: changed artifact port from 24099 → 5000 (supported by the local runtime port watcher); removed conflicting API server `/api` path intercept; app now starts and stays running |

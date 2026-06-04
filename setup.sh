@@ -3,11 +3,64 @@ set -euo pipefail
 
 NODE_MIN=18
 PORT_VALUE="${PORT:-5000}"
+NO_START=0
+[ "${1:-}" = "--no-start" ] && NO_START=1
 
 info() { printf '%s\n' "$*"; }
+warn() { printf 'WARN: %s\n' "$*" >&2; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+has() { command -v "$1" >/dev/null 2>&1; }
 
-parse_env() {
+platform() {
+  if [ -n "${TERMUX_VERSION:-}" ] || printf '%s' "${PREFIX:-}" | grep -q 'com.termux'; then echo termux; return; fi
+  case "$(uname -s 2>/dev/null || echo unknown)" in
+    Darwin) echo macos ;;
+    Linux) echo linux ;;
+    MINGW*|MSYS*|CYGWIN*) echo windows-sh ;;
+    *) echo unknown ;;
+  esac
+}
+
+try_install_node_git() {
+  os="$(platform)"
+  info "Detected platform: $os"
+  if has node && has git; then return; fi
+
+  case "$os" in
+    termux)
+      has pkg && pkg update -y && pkg install -y nodejs git || true
+      ;;
+    macos)
+      if has brew; then
+        has node || brew install node
+        has git || brew install git
+      else
+        warn "Homebrew is not installed. Install Node.js from https://nodejs.org and Git from https://git-scm.com."
+      fi
+      ;;
+    linux)
+      if has apt-get; then
+        SUDO=""; [ "$(id -u)" -ne 0 ] && has sudo && SUDO=sudo
+        $SUDO apt-get update || true
+        $SUDO apt-get install -y nodejs npm git || true
+      elif has dnf; then
+        SUDO=""; [ "$(id -u)" -ne 0 ] && has sudo && SUDO=sudo
+        $SUDO dnf install -y nodejs npm git || true
+      elif has pacman; then
+        SUDO=""; [ "$(id -u)" -ne 0 ] && has sudo && SUDO=sudo
+        $SUDO pacman -Sy --noconfirm nodejs npm git || true
+      fi
+      ;;
+    windows-sh)
+      if has winget; then
+        has node || winget install -e --id OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements || true
+        has git || winget install -e --id Git.Git --accept-package-agreements --accept-source-agreements || true
+      fi
+      ;;
+  esac
+}
+
+read_env() {
   node - "$1" "$2" <<'NODE'
 const fs = require('fs');
 const [file, key] = process.argv.slice(2);
@@ -19,122 +72,63 @@ try {
     const eq = line.indexOf('=');
     if (eq < 1) continue;
     if (line.slice(0, eq).trim() !== key) continue;
-    let v = line.slice(eq + 1).trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-    out = v;
+    out = line.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
   }
 } catch {}
 process.stdout.write(out);
 NODE
 }
 
-set_env_value() {
-  node - "$1" "$2" "$3" <<'NODE'
-const fs = require('fs');
-const [file, key, value] = process.argv.slice(2);
-const lines = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').split(/\r?\n/) : [];
-let seen = false;
-const next = lines.map((line) => {
-  const trimmed = line.trim();
-  if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) return line;
-  const eq = line.indexOf('=');
-  if (line.slice(0, eq).trim() !== key) return line;
-  seen = true;
-  return `${key}=${value}`;
-});
-if (!seen) next.push(`${key}=${value}`);
-fs.writeFileSync(file, next.join('\n').replace(/\n*$/, '\n'));
-NODE
-}
-
-prompt_if_blank() {
-  key="$1"
-  label="$2"
-  current="$(parse_env .env "$key")"
-  if [ -n "$current" ]; then
-    return
-  fi
-  if [ ! -t 0 ]; then
-    fail "$key is required in .env"
-  fi
-  printf '%s: ' "$label"
-  IFS= read -r value
-  [ -n "$value" ] || fail "$key cannot be blank"
-  set_env_value .env "$key" "$value"
+validate_node() {
+  has node || fail "Node.js ${NODE_MIN}+ is required. Re-run after installing from https://nodejs.org."
+  major="$(node -e "process.stdout.write(process.versions.node.split('.')[0])")"
+  [ "$major" -ge "$NODE_MIN" ] || fail "Node.js ${NODE_MIN}+ is required; found $(node --version)."
+  info "Node $(node --version) ready"
 }
 
 info ""
-info "Isotope setup"
+info "Isotope local app setup"
+info "This installs a local server. Supabase provides shared cloud sync."
 info "Working directory: $(pwd)"
 info ""
 
-command -v node >/dev/null 2>&1 || fail "Node.js ${NODE_MIN}+ is required. Install Node from https://nodejs.org or your platform package manager."
-NODE_MAJOR="$(node -e "process.stdout.write(process.versions.node.split('.')[0])")"
-[ "$NODE_MAJOR" -ge "$NODE_MIN" ] || fail "Node.js ${NODE_MIN}+ is required; found $(node --version)."
-info "Node $(node --version) found"
+try_install_node_git
+validate_node
 
-if command -v git >/dev/null 2>&1; then
-  info "Git found"
-else
-  info "Git not found. Updates from GitHub will not work until Git is installed."
-fi
-
-if [ -f package.json ]; then
-  if command -v npm >/dev/null 2>&1; then
-    info "Installing dependencies with npm..."
-    npm install
-  else
-    info "npm not found; this package currently has no required external runtime dependencies."
-  fi
-fi
+if has git; then info "Git ready"; else warn "Git not found. Setup can run, but update scripts need Git."; fi
 
 if [ ! -f .env ]; then
-  [ -f .env.example ] || fail ".env.example is missing; create .env manually."
+  [ -f .env.example ] || fail ".env.example is missing."
   cp .env.example .env
-  info "Created .env from .env.example."
+  info "Created .env with the default Isotope cloud sync settings."
 fi
 
-info ""
-info "Normal user mode needs only Supabase URL and anon key."
-prompt_if_blank SUPABASE_URL "Supabase URL"
-prompt_if_blank SUPABASE_ANON_KEY "Supabase anon key"
+url="$(read_env .env SUPABASE_URL)"
+anon="$(read_env .env SUPABASE_ANON_KEY)"
+[ -n "$url" ] || fail "SUPABASE_URL is blank in .env"
+[ -n "$anon" ] || fail "SUPABASE_ANON_KEY is blank in .env"
+case "$url" in https://*.supabase.co) : ;; *) fail "SUPABASE_URL must be a Supabase project URL." ;; esac
+[ "$(printf '%s' "$anon" | awk -F. '{print NF}')" -ge 3 ] || fail "SUPABASE_ANON_KEY must be JWT-like."
+info "Cloud sync config ready"
 
-missing=""
-for key in SUPABASE_URL SUPABASE_ANON_KEY; do
-  value="$(parse_env .env "$key")"
-  case "$value" in
-    ""|*"..."*|*"your-project-ref"*|*"ChangeMe"*|*"generate-a-"*) missing="$missing $key" ;;
-  esac
-done
-[ -z "$missing" ] || fail "Missing or placeholder values in .env:$missing"
-info "Normal-mode environment values are present"
+if [ -f package.json ] && has npm; then
+  info "Installing runtime metadata with npm..."
+  npm install
+else
+  warn "npm not found. The server has no external runtime dependency, but package metadata was not refreshed."
+fi
 
 node --check server.mjs >/dev/null
-info "server.mjs syntax check passed"
-
-admin_enabled="$(parse_env .env ENABLE_ADMIN_MODE)"
-admin_secret="$(parse_env .env ADMIN_SECRET)"
-service_key="$(parse_env .env SUPABASE_SERVICE_ROLE_KEY)"
-supabase_pat="$(parse_env .env SUPABASE_ACCESS_TOKEN)"
-if printf '%s' "$admin_enabled" | grep -Eiq '^(1|true|yes)$' && [ -n "$admin_secret" ] && [ -n "$service_key" ] && [ -n "$supabase_pat" ] && command -v curl >/dev/null 2>&1; then
-  info "Admin mode is configured; applying SQL through the protected local admin endpoint..."
-  PORT="$PORT_VALUE" node server.mjs >/tmp/isotope-setup-server.log 2>&1 &
-  srv_pid=$!
-  cleanup() { kill "$srv_pid" >/dev/null 2>&1 || true; }
-  trap cleanup EXIT
-  sleep 3
-  sql="$(node -e "const fs=require('fs');let s=fs.readFileSync('community-patch-v4.sql','utf8');if(fs.existsSync('events-expansion.sql'))s+='\\n\\n'+fs.readFileSync('events-expansion.sql','utf8');process.stdout.write(JSON.stringify(s));")"
-  result="$(curl -fsS -X POST "http://127.0.0.1:${PORT_VALUE}/__admin/apply-sql" -H "Content-Type: application/json" -H "X-Admin-Secret: ${admin_secret}" -d "{\"pat\":\"${supabase_pat}\",\"sql\":${sql}}" || true)"
-  if printf '%s' "$result" | grep -q '"ok":true'; then
-    info "SQL applied successfully"
-  else
-    info "SQL was not applied automatically. Start the server and open /__admin/patch."
-  fi
-else
-  info "Admin SQL apply skipped. This is expected for normal users."
-fi
+info "Server syntax check passed"
 
 info ""
-info "Setup checks complete."
-info "Start the server with: PORT=${PORT_VALUE} node server.mjs"
-info "Open: http://localhost:${PORT_VALUE}"
+info "Setup complete."
+info "Local URL: http://localhost:${PORT_VALUE}"
+info "Stop the server with Ctrl+C."
+info ""
+
+if [ "$NO_START" -eq 0 ]; then
+  PORT="$PORT_VALUE" node server.mjs
+else
+  info "Start later with: PORT=${PORT_VALUE} node server.mjs"
+fi

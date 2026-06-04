@@ -16,7 +16,7 @@ Complete reference for every admin feature, endpoint, env var, and operational p
 
 ## 1. Authentication & Protection
 
-### Admin mode is disabled by default
+### Owner tools are private by default
 
 Normal local users only need `SUPABASE_URL` and `SUPABASE_ANON_KEY`. All `/__admin/*` routes show an "admin mode disabled" page unless owner/admin mode is explicitly enabled.
 
@@ -323,7 +323,7 @@ Rate limits:
 | `POST` | `/api/events/:id/attend` | None | Calls `join_community_event` RPC |
 | `DELETE` | `/api/events/:id/leave` | None | Calls `leave_community_event` RPC |
 | `GET` | `/api/version` | None | Returns git SHA + version from VERSION file |
-| `POST` | `/api/restart` | None | Graceful restart (Replit workflow runner re-launches) |
+| `POST` | `/api/restart` | None | Graceful restart (local process manager re-launches) |
 | `GET` | `/api/check-update` | None | Checks GitHub for newer commit SHA |
 
 ---
@@ -338,7 +338,7 @@ All Supabase API calls from the frontend are proxied through `/__supa/*`. The se
 4. Adds `apikey: SUPABASE_ANON_KEY` if missing
 5. Streams the response back
 
-This allows the app to work behind the Replit proxy without CORS issues, and makes swapping Supabase projects (via env vars) transparent to the frontend.
+This allows the app to work behind the local preview proxy without CORS issues, and makes swapping Supabase projects (via env vars) transparent to the frontend.
 
 ### Edge Function proxy — `/__supa/functions/v1/*`
 
@@ -398,7 +398,7 @@ This allows AI features to use server-configured API keys without them appearing
 | `ADMIN_SECRET` | Optional | _(empty)_ | Local admin unlock secret |
 | `GROQ_API_KEY` | Optional | _(none)_ | AI text features (Groq/LLaMA) |
 | `GEMINI_API_KEY` | Optional | _(none)_ | AI text features (Gemini) |
-| `PORT` | Auto | `5000` | HTTP server port (set by Replit) |
+| `PORT` | Auto | `5000` | HTTP server port (set by the local runtime) |
 
 ### Startup warnings
 
