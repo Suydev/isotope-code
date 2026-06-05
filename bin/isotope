@@ -262,6 +262,7 @@ cmd_doctor() {
   has node && info "[ok] node $(node --version)" || warn "[missing] node"
   has npm && info "[ok] npm $(npm --version)" || warn "[missing] npm"
   has git && info "[ok] git $(git --version | awk '{print $3}')" || warn "[missing] git"
+  command -v isotope >/dev/null 2>&1 && info "[ok] isotope in PATH ($(command -v isotope))" || warn "[warn] isotope not in PATH; run bash setup.sh to install the global command"
   if [ -n "$project" ]; then
     info "[ok] project path $project"
     [ -f "$project/package.json" ] && info "[ok] package.json" || warn "[missing] package.json"
@@ -291,11 +292,14 @@ write_version_file() {
   (cd "$project" && node - <<'NODE'
 const cp = require('child_process');
 const fs = require('fs');
+const path = require('path');
 let sha = 'unknown';
 let message = '';
+let version = '0.0.0';
 try { sha = cp.execSync('git rev-parse HEAD').toString().trim(); } catch {}
 try { message = cp.execSync('git log -1 --pretty=%s').toString().trim(); } catch {}
-fs.writeFileSync('VERSION', JSON.stringify({ sha, message, updated_at: new Date().toISOString() }, null, 2) + '\n');
+try { version = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')).version || version; } catch {}
+fs.writeFileSync('VERSION', JSON.stringify({ version, sha, message, updated_at: new Date().toISOString() }, null, 2) + '\n');
 NODE
   )
 }
@@ -377,6 +381,10 @@ cmd_update() {
 cmd_open() {
   project="$(resolve_project 2>/dev/null || true)"
   if [ -n "$project" ]; then port="$(project_port "$project")"; else port="$DEFAULT_PORT"; fi
+  if ! health_check "http://127.0.0.1:$port/api/health"; then
+    warn "Server is not responding on port $port. You may see a cached offline page."
+    warn "Start the server first with: isotope start"
+  fi
   open_url "$port"
 }
 
