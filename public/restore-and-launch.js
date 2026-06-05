@@ -9,6 +9,7 @@
  * 4. Route the browser:
  *      • Real session + DB says onboarded   →  /dashboard
  *      • Real session + DB says not onboarded → /onboarding (wizard)
+ *      • Real session + DB unreachable        → /dashboard (cached/offline mode)
  *      • No session                           →  /onboarding (sign-in/sign-up)
  *
  * What this script does NOT do
@@ -337,13 +338,9 @@ function preloadAssets() {
           window.history.replaceState(null, '', '/dashboard');
         }
       } else {
-        // DB unreachable (offline / slow). Keep returning users out of the
-        // wizard if this device already has a completed onboarding marker.
-        window.history.replaceState(
-          null,
-          '',
-          readLocalOnboardingState() === true ? '/dashboard' : '/onboarding'
-        );
+        // DB unreachable (offline / slow). Do not force onboarding based on a
+        // missing localStorage marker; the cached shell must stay honest offline.
+        window.history.replaceState(null, '', '/dashboard');
       }
     }
   }

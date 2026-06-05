@@ -122,7 +122,7 @@ NODE
 
 wait_for_health() {
   port="$1"
-  url="http://127.0.0.1:$port/api/health"
+  url="http://127.0.0.1:$port/api/version"
   i=0
   while [ "$i" -lt 30 ]; do
     if health_check "$url"; then return 0; fi
@@ -143,6 +143,27 @@ open_url() {
   info "Open this in browser: $url"
 }
 
+report_stale_aliases() {
+  found=0
+  for file in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile" "$HOME/.bash_profile"; do
+    [ -f "$file" ] || continue
+    while IFS= read -r line; do
+      case "$line" in
+        *"alias isotope="*|*"alias isotopeai="*|*"function isotope"*|*"function isotopeai"*|*"isotope()"*|*"isotopeai()"*)
+          case "$line" in
+            *"/bin/isotope"*|*"/usr/bin/isotope"*) ;;
+            *)
+              warn "stale isotope alias/function in $file: $line"
+              found=1
+              ;;
+          esac
+          ;;
+      esac
+    done < "$file"
+  done
+  return "$found"
+}
+
 cmd_start() {
   ensure_home
   project="$(resolve_project)"
@@ -152,6 +173,13 @@ cmd_start() {
     info "Isotope is already running."
     info "PID: $(server_pid)"
     info "Local URL: http://127.0.0.1:$port"
+    if health_check "http://127.0.0.1:$port/api/version"; then
+      open_url "$port" || true
+    else
+      warn "Managed process exists but /api/version is not responding."
+      warn "Check logs with: isotope logs"
+      return 1
+    fi
     return 0
   fi
   has node || fail "Node.js 18+ is required."
@@ -180,6 +208,7 @@ cmd_start() {
     warn "Server did not answer health checks yet."
     warn "Check logs with: isotope logs"
     info "Local URL: http://127.0.0.1:$port"
+    return 1
   fi
 }
 
@@ -262,6 +291,8 @@ cmd_doctor() {
   has node && info "[ok] node $(node --version)" || warn "[missing] node"
   has npm && info "[ok] npm $(npm --version)" || warn "[missing] npm"
   has git && info "[ok] git $(git --version | awk '{print $3}')" || warn "[missing] git"
+  command -v isotope >/dev/null 2>&1 && info "[ok] isotope in PATH ($(command -v isotope))" || warn "isotope not in PATH; run bash setup.sh to install the global command"
+  if report_stale_aliases; then info "[ok] no stale isotope aliases/functions detected"; fi
   if [ -n "$project" ]; then
     info "[ok] project path $project"
     [ -f "$project/package.json" ] && info "[ok] package.json" || warn "[missing] package.json"
@@ -280,7 +311,7 @@ cmd_doctor() {
   fi
   if is_running && [ -n "$project" ]; then
     port="$(project_port "$project")"
-    health_check "http://127.0.0.1:$port/api/health" && info "[ok] local health endpoint" || warn "[fail] local health endpoint"
+    health_check "http://127.0.0.1:$port/api/version" && info "[ok] local /api/version endpoint" || warn "[fail] local /api/version endpoint"
   else
     info "[info] local server not running"
   fi
@@ -291,11 +322,14 @@ write_version_file() {
   (cd "$project" && node - <<'NODE'
 const cp = require('child_process');
 const fs = require('fs');
+const path = require('path');
 let sha = 'unknown';
 let message = '';
+let version = '0.0.0';
 try { sha = cp.execSync('git rev-parse HEAD').toString().trim(); } catch {}
 try { message = cp.execSync('git log -1 --pretty=%s').toString().trim(); } catch {}
-fs.writeFileSync('VERSION', JSON.stringify({ sha, message, updated_at: new Date().toISOString() }, null, 2) + '\n');
+try { version = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')).version || version; } catch {}
+fs.writeFileSync('VERSION', JSON.stringify({ version, sha, message, updated_at: new Date().toISOString() }, null, 2) + '\n');
 NODE
   )
 }
@@ -377,6 +411,11 @@ cmd_update() {
 cmd_open() {
   project="$(resolve_project 2>/dev/null || true)"
   if [ -n "$project" ]; then port="$(project_port "$project")"; else port="$DEFAULT_PORT"; fi
+  if ! health_check "http://127.0.0.1:$port/api/version"; then
+    warn "Server is not responding on port $port."
+    warn "Start the server first with: isotope start"
+    return 1
+  fi
   open_url "$port"
 }
 

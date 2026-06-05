@@ -19,6 +19,22 @@ warn() { printf 'WARN: %s\n' "$*" >&2; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 has() { command -v "$1" >/dev/null 2>&1; }
 
+warn_stale_aliases() {
+  for file in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile" "$HOME/.bash_profile"; do
+    [ -f "$file" ] || continue
+    while IFS= read -r line; do
+      case "$line" in
+        *"alias isotope="*|*"alias isotopeai="*|*"function isotope"*|*"function isotopeai"*|*"isotope()"*|*"isotopeai()"*)
+          case "$line" in
+            *"/bin/isotope"*|*"/usr/bin/isotope"*) ;;
+            *) warn "Stale isotope alias/function may hijack the real command in $file: $line" ;;
+          esac
+          ;;
+      esac
+    done < "$file"
+  done
+}
+
 platform() {
   if [ -n "${TERMUX_VERSION:-}" ] || printf '%s' "${PREFIX:-}" | grep -q 'com.termux'; then echo termux; return; fi
   case "$(uname -s 2>/dev/null || echo unknown)" in
@@ -209,6 +225,7 @@ node --check server.mjs >/dev/null
 info "Server syntax check passed"
 
 install_global_command
+warn_stale_aliases
 maybe_setup_termux_widget
 
 info ""

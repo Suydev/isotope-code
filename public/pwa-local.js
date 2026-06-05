@@ -41,9 +41,9 @@
 
     var message = '';
     if (!state.browserOnline) {
-      message = '<strong>Offline mode.</strong> <span>Cached screens may load, but Supabase auth, cloud sync, storage, realtime, and community features are unavailable.</span>';
+      message = '<strong>Offline cached mode.</strong> <span>Local server is not running. Cloud sync unavailable. Run isotope start.</span>';
     } else if (!state.serverOnline) {
-      message = '<strong>Local server unavailable.</strong> <span>The cached app shell is running, but local API routes will not work. Run isotope start.</span>';
+      message = '<strong>Offline cached mode.</strong> <span>Local server is not running. Cloud sync unavailable. Run isotope start.</span>';
     }
 
     if (!message) {
@@ -55,17 +55,35 @@
     el.classList.add('show');
   }
 
+  function publishStatus() {
+    window.__isoLocalStatus = state;
+    window.__isoLocalServerOffline = !state.serverOnline || !state.browserOnline;
+    try {
+      window.dispatchEvent(new CustomEvent('isotope:local-status', { detail: {
+        browserOnline: state.browserOnline,
+        serverOnline: state.serverOnline,
+        swVersion: state.swVersion,
+        swSha: state.swSha
+      }}));
+    } catch (e) {}
+  }
+
   function checkServer() {
     if (!navigator.onLine) {
       state.browserOnline = false;
+      state.serverOnline = false;
+      publishStatus();
       renderStatus();
       return;
     }
     state.browserOnline = true;
-    fetch('/__isotope/ping', { cache: 'no-store' })
+    fetch('/api/version', { cache: 'no-store' })
       .then(function (r) { state.serverOnline = !!(r && r.ok); })
       .catch(function () { state.serverOnline = false; })
-      .finally(renderStatus);
+      .finally(function () {
+        publishStatus();
+        renderStatus();
+      });
   }
 
   function registerServiceWorker() {
@@ -93,6 +111,8 @@
   });
   window.addEventListener('offline', function () {
     state.browserOnline = false;
+    state.serverOnline = false;
+    publishStatus();
     renderStatus();
   });
 

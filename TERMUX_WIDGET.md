@@ -21,6 +21,8 @@ You can also install or refresh shortcuts later:
 bash setup-termux-widget.sh
 ```
 
+The installer stores the project path in `~/.isotope/project-path` and embeds the resolved absolute `isotope` command path in each shortcut when available. This avoids failures when Termux:Widget starts a script without the same `PATH` used by an interactive Termux shell.
+
 ## Add Home-Screen Buttons
 
 1. Long press the Android home screen.
@@ -40,7 +42,7 @@ bash setup-termux-widget.sh
 - `isotope-stop` stops the managed local server.
 - `isotope-restart` stops, starts, and opens the app.
 - `isotope-update` safely updates from GitHub and restarts if the server was running.
-- `isotope-open` opens `http://127.0.0.1:<PORT>`.
+- `isotope-open` opens `http://127.0.0.1:<PORT>` and warns if the local server is not responding, because the cached PWA shell may still open while APIs are offline.
 - `isotope-doctor` checks Node, npm, Git, `.env`, PWA files, and local health.
 - `isotope-status` shows project path, PID, port, version, and config status.
 - `isotope-logs` shows the last 80 server log lines.

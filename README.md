@@ -63,8 +63,12 @@ The command system stores state in `~/.isotope`:
 
 - `~/.isotope/project-path`
 - `~/.isotope/isotope.pid`
+- `~/.isotope/port`
 - `~/.isotope/logs/server.log`
 - `~/.isotope/logs/update.log`
+
+`isotope doctor` reports whether the global command is available in `PATH`.
+`isotope open` warns if the local server is not responding before opening the browser, because a cached PWA shell may still appear while local APIs are offline.
 
 ## Run Manually
 
@@ -94,6 +98,8 @@ The in-app update banner does not stop the server. It opens a dialog showing the
 isotope update
 ```
 
+Update checks prefer release/version comparison from GitHub commit metadata and only fall back to Git SHA comparison when no version is available. If the server confirms there is no update, stale dismissed-banner state is cleared.
+
 ## Offline / PWA Behavior
 
 After the app is opened once while the local server is running, the browser installs a service worker and caches the app shell plus core assets.
@@ -109,6 +115,8 @@ The app does not fake online/cloud features while offline.
 
 Cache names include the local app version and Git SHA. After a real update, the service worker activates a new cache and removes old Isotope caches.
 
+Service-worker activation reloads are guarded so one browser session can perform at most one automatic PWA refresh.
+
 ## Termux Widget
 
 Android/Termux users can control Isotope from the home screen with Termux:Widget.
@@ -120,6 +128,8 @@ bash setup-termux-widget.sh
 ```
 
 Widget shortcuts include start, stop, restart, update, open, doctor, status, and logs.
+
+The shortcut installer embeds the absolute `isotope` command path when available, which makes home-screen widgets work even when Android does not provide the same `PATH` as an interactive Termux shell.
 
 See [TERMUX_WIDGET.md](TERMUX_WIDGET.md).
 

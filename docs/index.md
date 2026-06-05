@@ -47,6 +47,8 @@ After the first successful visit with the local server running, the browser cach
 
 If the local server later stops, the cached shell may still load. Local API routes and Supabase-backed features do not work until the server and network are available again. The UI shows an offline/server-unavailable indicator instead of pretending cloud features are online.
 
+PWA service-worker activation reloads are guarded so a session performs at most one automatic refresh. The update banner only shows a command dialog for `isotope update`; it does not stop or restart the server from the browser.
+
 ## Android / Termux Widget
 
 Install shortcuts with:
@@ -56,6 +58,8 @@ bash setup-termux-widget.sh
 ```
 
 Then add Termux Widget buttons such as `isotope-start`, `isotope-update`, `isotope-open`, and `isotope-doctor` to the Android home screen.
+
+The shortcut installer embeds the resolved absolute `isotope` command path where possible, so widgets keep working even if Android launches them without the interactive Termux `PATH`.
 
 ## Admin
 

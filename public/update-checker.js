@@ -8,6 +8,13 @@
   var POLL_INTERVAL = 10 * 60 * 1000;
   var BANNER_ID = '__iso_update_banner__';
   var DISMISS_KEY = '__iso_update_dismissed__';
+  var STALE_UPDATE_KEYS = [
+    DISMISS_KEY,
+    'update_available',
+    'isotope_update_available',
+    '__iso_update_available__',
+    '__isotope_update_available__'
+  ];
   var timer = null;
 
   function escHtml(str) {
@@ -137,12 +144,60 @@
     });
   }
 
+  function clearStaleFlags() {
+    try {
+      STALE_UPDATE_KEYS.forEach(function (key) { localStorage.removeItem(key); });
+    } catch (e) {}
+  }
+
+  function hideBanner() {
+    var old = document.getElementById(BANNER_ID);
+    if (!old) return;
+    old.classList.remove('iso-banner-visible');
+    setTimeout(function () { if (old.parentNode) old.remove(); }, 300);
+  }
+
+  function localServerPreflight() {
+    if (!navigator.onLine || window.__isoLocalServerOffline === true) {
+      window.__isoLocalServerOffline = true;
+      hideBanner();
+      clearStaleFlags();
+      return Promise.resolve(null);
+    }
+    return fetch('/api/version', { cache: 'no-store' })
+      .then(function (r) {
+        if (!r || !r.ok) throw new Error('local server unavailable');
+        return r.json();
+      })
+      .catch(function () {
+        window.__isoLocalServerOffline = true;
+        hideBanner();
+        clearStaleFlags();
+        return null;
+      });
+  }
+
   function runCheck() {
-    if (!navigator.onLine) return;
-    fetch('/api/check-update', { cache: 'no-store' })
-      .then(function (r) { return r.json(); })
+    localServerPreflight()
+      .then(function (version) {
+        if (!version) return null;
+        window.__isoLocalServerOffline = false;
+        return fetch('/api/check-update', { cache: 'no-store' });
+      })
+      .then(function (r) {
+        if (!r) return null;
+        if (!r.ok) throw new Error('update check unavailable');
+        return r.json();
+      })
       .then(function (data) {
-        if (!data || !data.hasUpdate || !data.latest) return;
+        if (!data) return;
+        if (!data || !data.hasUpdate || !data.latest) {
+          if (data && data.hasUpdate === false) {
+            clearStaleFlags();
+            hideBanner();
+          }
+          return;
+        }
         var dismissed = '';
         try { dismissed = localStorage.getItem(DISMISS_KEY) || ''; } catch (e) {}
         if (dismissed && data.latest.indexOf(dismissed) === 0) return;
@@ -150,7 +205,7 @@
         if (existing && existing.dataset.sha === data.latest) return;
         buildBanner(data.latest, data.message || '');
       })
-      .catch(function () {});
+      .catch(function () { hideBanner(); });
   }
 
   function startPolling() {
@@ -167,6 +222,20 @@
   });
   window.addEventListener('offline', function () {
     clearInterval(timer);
+    window.__isoLocalServerOffline = true;
+    hideBanner();
+    clearStaleFlags();
+  });
+  window.addEventListener('isotope:local-status', function (event) {
+    var detail = event && event.detail || {};
+    if (detail.serverOnline === false || detail.browserOnline === false) {
+      clearInterval(timer);
+      hideBanner();
+      clearStaleFlags();
+      return;
+    }
+    startPolling();
+    runCheck();
   });
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden && navigator.onLine) runCheck();

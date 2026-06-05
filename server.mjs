@@ -374,46 +374,75 @@ function buildUsernameAuthScript() {
       var data = await r.json();
       if (!r.ok) return {ok: false, err: data.error || 'Signup failed'};
       saveSession(data.session);
-      return {ok: true};
+      if (data.profile) applyProfileSnapshot({ ok: true, user_id: data.user_id, profile: data.profile });
+      return {ok: true, onboarding_completed: data.onboarding_completed === true};
     } catch(e) {
       return {ok: false, err: e.message || 'Network error'};
     }
   };
+
+  function mergeLocalObject(key, patch) {
+    try {
+      var cur = JSON.parse(localStorage.getItem(key) || '{}');
+      if (patch && patch.state) {
+        cur.state = Object.assign({}, cur.state || {}, patch.state || {});
+        if (patch.state.hasSeenTour) cur.state.hasSeenTour = Object.assign({}, (cur.state || {}).hasSeenTour || {}, patch.state.hasSeenTour);
+        localStorage.setItem(key, JSON.stringify(cur));
+        return;
+      }
+      localStorage.setItem(key, JSON.stringify(Object.assign({}, cur || {}, patch || {})));
+    } catch(e) {}
+  }
+
+  function applyProfileSnapshot(d) {
+    if (!d || !d.ok || !d.profile) return null;
+    var prof = d.profile || {};
+    var completed = prof.isOnboarded === true || prof.onboarding_completed === true;
+    try {
+      if (completed) {
+        localStorage.setItem('isotope-onboarding', JSON.stringify({
+          isOnboarded: true,
+          state: { isOnboarded: true, currentOnboardingStep: 7 },
+          version: 0
+        }));
+      }
+    } catch(e) {}
+    try {
+      var tours = prof.tours || (prof.profile_data && prof.profile_data.tours) || {};
+      if (tours && typeof tours === 'object') {
+        localStorage.setItem('isotope-user-tours', JSON.stringify(tours));
+        if (tours.community_group_v1 === true) {
+          mergeLocalObject('group-ui-preferences', { state: { hasSeenTour: { community_group_v1: true } } });
+        }
+      }
+    } catch(e) {}
+    try {
+      localStorage.setItem('isotope-user-sync', JSON.stringify({
+        id:            d.user_id,
+        username:      prof.username      || '',
+        display_name:  prof.display_name  || prof.name || prof.username || '',
+        avatar_url:    prof.avatar_url    || null,
+        plan_type:     'ranker',
+        billing_status:'active',
+        coins:         Number(prof.coins) || 0,
+        gems:          Number(prof.gems)  || 0,
+        synced_at:     Date.now()
+      }));
+    } catch(e) {}
+    return { onboarding_completed: completed, profile: prof };
+  }
 
   // Cloud sync: fetch profile from Supabase and populate localStorage.
   // This fixes the "shows onboarding after login" bug by setting isOnboarded=true
   // for existing accounts, and syncs user data (username, avatar, coins) into
   // the isotope-user-sync key that the app reads on startup.
   async function syncProfileAfterLogin(jwt) {
-    try {
-      var r = await fetch('/__auth/profile', {
-        headers: { 'Authorization': 'Bearer ' + jwt }
-      });
-      if (!r.ok) return;
-      var d = await r.json();
-      if (!d || !d.ok || !d.profile) return;
-      var prof = d.profile;
-      // Store onboarding state only when Supabase explicitly says it is complete.
-      try {
-        if (prof.isOnboarded === true || prof.onboarding_completed === true) {
-          localStorage.setItem('isotope-onboarding', JSON.stringify({ isOnboarded: true }));
-        }
-      } catch(e) {}
-      // Persist user data so the app's UserStore hydrates correctly
-      try {
-        localStorage.setItem('isotope-user-sync', JSON.stringify({
-          id:            d.user_id,
-          username:      prof.username      || '',
-          display_name:  prof.display_name  || prof.name || prof.username || '',
-          avatar_url:    prof.avatar_url    || null,
-          plan_type:     'ranker',
-          billing_status:'active',
-          coins:         Number(prof.coins) || 0,
-          gems:          Number(prof.gems)  || 0,
-          synced_at:     Date.now()
-        }));
-      } catch(e) {}
-    } catch(e) {}
+    var r = await fetch('/__auth/profile', {
+      headers: { 'Authorization': 'Bearer ' + jwt }
+    });
+    var d = await r.json().catch(function(){ return {}; });
+    if (!r.ok || !d || !d.ok || !d.profile) throw new Error(d.error || 'Profile download failed');
+    return applyProfileSnapshot(d);
   }
 
   // Sign in an existing user (username + password)
@@ -429,11 +458,86 @@ function buildUsernameAuthScript() {
       saveSession(data.session);
       // Sync profile from DB: sets isOnboarded=true so existing accounts skip onboarding
       var jwt = data.session && data.session.access_token;
-      if (jwt) syncProfileAfterLogin(jwt).catch(function(){});
-      return {ok: true};
+      var snap = jwt ? await syncProfileAfterLogin(jwt) : null;
+      return {ok: true, onboarding_completed: snap ? snap.onboarding_completed === true : data.onboarding_completed === true};
     } catch(e) {
       return {ok: false, err: e.message || 'Network error'};
     }
+  };
+
+  window.__isoCompleteOnboarding = async function(profilePatch) {
+    try {
+      var raw = localStorage.getItem('isotope-auth-token');
+      if (!raw) {
+        for (var i = 0; i < localStorage.length; i++) {
+          var lk = localStorage.key(i);
+          if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) { raw = localStorage.getItem(lk); break; }
+        }
+      }
+      var sess = raw ? JSON.parse(raw) : null;
+      var jwt = sess && (sess.access_token || (sess.session && sess.session.access_token));
+      if (!jwt) throw new Error('Authentication required');
+      var body = Object.assign({}, profilePatch || {}, { isOnboarded: true, onboarding_completed: true });
+      var r = await fetch('/__auth/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
+        body: JSON.stringify(body)
+      });
+      var d = await r.json().catch(function(){ return {}; });
+      if (!r.ok || !d.ok) throw new Error(d.error || 'Onboarding save failed');
+      var snap = applyProfileSnapshot(d);
+      if (!snap || snap.onboarding_completed !== true) throw new Error('Onboarding save was not verified');
+      return { ok: true };
+    } catch(e) {
+      return { ok: false, err: e.message || 'Onboarding save failed' };
+    }
+  };
+
+  window.__isoPersistTour = async function(key, seen) {
+    var k = key || 'community_group_v1';
+    try {
+      var tours = JSON.parse(localStorage.getItem('isotope-user-tours') || '{}') || {};
+      tours[k] = seen === true;
+      if (k !== 'community_group_v1') tours.community_group_v1 = seen === true;
+      localStorage.setItem('isotope-user-tours', JSON.stringify(tours));
+    } catch(e) {}
+    try {
+      var raw = localStorage.getItem('isotope-auth-token');
+      if (!raw) {
+        for (var i = 0; i < localStorage.length; i++) {
+          var lk = localStorage.key(i);
+          if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) { raw = localStorage.getItem(lk); break; }
+        }
+      }
+      var sess = raw ? JSON.parse(raw) : null;
+      var jwt = sess && (sess.access_token || (sess.session && sess.session.access_token));
+      if (!jwt) return { ok: false, err: 'Authentication required' };
+      var patch = {}; patch[k] = seen === true; patch.community_group_v1 = seen === true;
+      var r = await fetch('/__auth/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
+        body: JSON.stringify({ tours: patch })
+      });
+      var d = await r.json().catch(function(){ return {}; });
+      if (!r.ok || !d.ok) return { ok: false, err: d.error || 'Tour save failed' };
+      applyProfileSnapshot(d);
+      return { ok: true };
+    } catch(e) {
+      return { ok: false, err: e.message || 'Tour save failed' };
+    }
+  };
+
+  window.__isoTourSeen = function(key) {
+    try {
+      var tours = JSON.parse(localStorage.getItem('isotope-user-tours') || '{}') || {};
+      if (tours[key] === true || tours.community_group_v1 === true) return true;
+    } catch(e) {}
+    try {
+      var ui = JSON.parse(localStorage.getItem('group-ui-preferences') || '{}') || {};
+      var seen = (ui.state && ui.state.hasSeenTour) || ui.hasSeenTour || {};
+      return seen[key] === true || seen.community_group_v1 === true;
+    } catch(e) {}
+    return false;
   };
 
   // On every page load, if a session exists but onboarding state is missing,
@@ -774,6 +878,28 @@ const PREMIUM_SCRIPT = `<script>
         } catch {} return null;
       }
 
+      function getJwt() {
+        try {
+          for (var _i = 0; _i < localStorage.length; _i++) {
+            var _lk = localStorage.key(_i);
+            if (_lk && _lk.startsWith('sb-') && _lk.endsWith('-auth-token')) {
+              var _sd = JSON.parse(localStorage.getItem(_lk) || '{}');
+              return (_sd.access_token)
+                  || (_sd.session && _sd.session.access_token)
+                  || null;
+            }
+          }
+        } catch {} return null;
+      }
+
+      function fetchJsonOrThrow(url, headers) {
+        return _orig.call(window, url, { headers: headers })
+          .then(function(r) {
+            if (!r.ok) return r.text().then(function(txt) { throw new Error('HTTP ' + r.status + ': ' + txt.slice(0, 160)); });
+            return r.json();
+          });
+      }
+
       // ── Helper: batch-fetch real user display info ────────────────────────
       function fetchUsers(ids) {
         if (!ids || !ids.length) return Promise.resolve({});
@@ -799,32 +925,96 @@ const PREMIUM_SCRIPT = `<script>
         }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
       }
 
-      function errResp(p) {
+      function errResp(p, detail) {
         resolve(new Response(JSON.stringify({
-          rankings: [], period: p, source: 'error', display_names_resolved: true
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          rankings: [], period: p, source: 'error', display_names_resolved: true,
+          error: detail || 'Supabase query failed'
+        }), { status: 502, headers: { 'Content-Type': 'application/json' } }));
       }
 
       // ── Group analytics: member list + aggregate ──────────────────────────
       if (isGroupAn) {
         var gid = groupId || '';
+        var jwt = getJwt();
+        var auth = jwt || ANON;
         var gAPath = gid
           ? '/rest/v1/group_members?group_id=eq.' + encodeURIComponent(gid) + '&select=user_id,role,joined_at&limit=200'
           : '/rest/v1/group_members?select=user_id,role,joined_at&limit=1';
-        _orig.call(window, SUPA + gAPath, {
-          headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + ANON }
-        })
-        .then(function(r) { return r.ok ? r.json() : []; })
+        fetchJsonOrThrow(SUPA + gAPath, { 'apikey': ANON, 'Authorization': 'Bearer ' + auth, 'Accept': 'application/json' })
         .then(function(members) {
           if (!Array.isArray(members)) members = [];
+          var memberIds = members.map(function(m) { return m.user_id; }).filter(Boolean);
+          if (!memberIds.length) {
+            resolve(new Response(JSON.stringify({
+              group_id: groupId, member_count: 0, members: [],
+              total_sessions: 0, total_hours: 0, weekly_hours: 0, monthly_hours: 0,
+              group_streak: 0, members_active_today: 0, avg_session_minutes: 0,
+              peak_hour: 12, top_contributor: null, source: 'db', display_names_resolved: true
+            }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+            return null;
+          }
+          var statQs = 'select=user_id,total_hours,weekly_hours,monthly_hours,total_sessions,current_streak,last_session_at'
+                     + '&user_id=in.(' + memberIds.join(',') + ')&limit=200';
+          return Promise.all([
+            Promise.resolve(members),
+            fetchJsonOrThrow(SUPA + '/rest/v1/user_stats_summary?' + statQs, { 'apikey': ANON, 'Authorization': 'Bearer ' + auth, 'Accept': 'application/json' }),
+            fetchUsers(memberIds)
+          ]);
+        })
+        .then(function(bundle) {
+          if (!bundle) return;
+          var members = bundle[0], rows = Array.isArray(bundle[1]) ? bundle[1] : [], users = bundle[2] || {};
+          var statsByUser = {};
+          rows.forEach(function(r) { statsByUser[r.user_id] = r; });
+          var today = new Date().toISOString().slice(0, 10);
+          var totalHours = 0, weeklyHours = 0, monthlyHours = 0, totalSessions = 0, activeToday = 0, streak = 0;
+          var top = null;
+          var enriched = members.map(function(m) {
+            var st = statsByUser[m.user_id] || {};
+            var u = users[m.user_id] || {};
+            var th = Number(st.total_hours) || 0;
+            var wh = Number(st.weekly_hours) || 0;
+            totalHours += th;
+            weeklyHours += wh;
+            monthlyHours += Number(st.monthly_hours) || 0;
+            totalSessions += Number(st.total_sessions) || 0;
+            streak = Math.max(streak, Number(st.current_streak) || 0);
+            if (st.last_session_at && String(st.last_session_at).slice(0, 10) === today) activeToday += 1;
+            if (!top || wh > top.hours) top = { user_id: m.user_id, name: u.name || u.username || 'Student', hours: wh };
+            return {
+              user_id: m.user_id,
+              role: m.role,
+              joined_at: m.joined_at,
+              name: u.name || u.username || 'Student',
+              avatar_url: u.avatar_url || null,
+              total_hours: th,
+              weekly_hours: wh,
+              monthly_hours: Number(st.monthly_hours) || 0,
+              total_sessions: Number(st.total_sessions) || 0,
+              current_streak: Number(st.current_streak) || 0,
+              last_session_at: st.last_session_at || null
+            };
+          });
           resolve(new Response(JSON.stringify({
-            group_id: groupId, member_count: members.length, members: members,
-            total_sessions: 0, total_hours: 0, source: 'db'
+            group_id: groupId,
+            member_count: members.length,
+            members: enriched,
+            total_sessions: totalSessions,
+            total_hours: totalHours,
+            weekly_hours: weeklyHours,
+            monthly_hours: monthlyHours,
+            group_streak: streak,
+            members_active_today: activeToday,
+            avg_session_minutes: totalSessions > 0 ? Math.round((totalHours * 60) / totalSessions) : 0,
+            peak_hour: 12,
+            top_contributor: top && top.hours > 0 ? top : null,
+            source: 'db',
+            display_names_resolved: true
           }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
         })
-        .catch(function() {
-          resolve(new Response(JSON.stringify({ data: [], members: [], source: 'error' }), {
-            status: 200, headers: { 'Content-Type': 'application/json' }
+        .catch(function(e) {
+          resolve(new Response(JSON.stringify({ members: [], source: 'error', error: e && e.message || 'Group analytics query failed' }), {
+            status: 502, headers: { 'Content-Type': 'application/json' }
           }));
         });
         return;
@@ -858,7 +1048,7 @@ const PREMIUM_SCRIPT = `<script>
             finish(rankings, 'daily');
           });
         })
-        .catch(function() { errResp('daily'); });
+        .catch(function(e) { errResp('daily', e && e.message); });
         return;
       }
 
@@ -901,7 +1091,7 @@ const PREMIUM_SCRIPT = `<script>
             });
           });
         })
-        .catch(function() { errResp(period); });
+        .catch(function(e) { errResp(period, e && e.message); });
         return;
       }
 
@@ -934,7 +1124,7 @@ const PREMIUM_SCRIPT = `<script>
           finish(rankings, period);
         });
       })
-      .catch(function() { errResp(period); });
+      .catch(function(e) { errResp(period, e && e.message); });
     });
   }
 
@@ -977,6 +1167,12 @@ const PREMIUM_SCRIPT = `<script>
         return;
       }
 
+      var sessionId = body.session_id || body.id || null;
+      if (!sessionId) {
+        try { sessionId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : null; } catch {}
+      }
+      if (!sessionId) sessionId = '00000000-0000-4000-8000-' + String(Date.now()).slice(-12).padStart(12, '0');
+
       _orig.call(window, SUPA + '/rest/v1/rpc/finish_session_sync', {
         method: 'POST',
         headers: {
@@ -986,7 +1182,7 @@ const PREMIUM_SCRIPT = `<script>
           'Accept':        'application/json'
         },
         body: JSON.stringify({
-          p_session_id:       body.session_id        || null,
+          p_session_id:       sessionId,
           p_action:           body.action            || 'complete',
           p_duration_minutes: body.duration_minutes  || 0,
           p_group_id:         body.group_id          || null,
@@ -995,19 +1191,23 @@ const PREMIUM_SCRIPT = `<script>
           p_ended_at:         body.ended_at          || null
         })
       })
-      .then(function(r) { return r.ok ? r.json() : Promise.resolve({}); })
+      .then(function(r) {
+        if (r.ok) return r.json();
+        return r.text().then(function(txt) {
+          throw new Error('finish_session_sync HTTP ' + r.status + ': ' + txt.slice(0, 180));
+        });
+      })
       .then(function(d) {
         resolve(new Response(JSON.stringify(d || {}), {
           status: 200, headers: { 'Content-Type': 'application/json' }
         }));
       })
-      .catch(function() {
-        // Never let a sync failure break the app — return a safe no-op shape
+      .catch(function(e) {
+        // Keep failure visible so pending local sync does not get marked cloud-saved.
         resolve(new Response(JSON.stringify({
-          already_processed: false,
-          affected_group_ids: [],
-          challenge_updates:  []
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          error: 'Session sync failed',
+          detail: e && e.message || 'finish_session_sync failed'
+        }), { status: 502, headers: { 'Content-Type': 'application/json' } }));
       });
     });
   }
@@ -1411,16 +1611,50 @@ function buildAuthGuardScript() {
 }
 const AUTH_GUARD_SCRIPT = buildAuthGuardScript();
 
+// ── Reload guard — prevents repeated service-worker activation reloads ───────
+// Injected before the compiled PWA manager bundle can run. It allows one
+// automatic SW-triggered reload per browser session.
+const RELOAD_GUARD_VERSION = (() => {
+  try {
+    const v = readLocalVersionInfo();
+    return String(v.version || '0.0.0') + '-' + String(v.sha || 'unknown').slice(0, 12);
+  } catch {
+    return '0.0.0-unknown';
+  }
+})();
+const RELOAD_GUARD_SCRIPT = `<script>
+(function(){
+  var _k='isotope_reload_guard_${RELOAD_GUARD_VERSION.replace(/[^A-Za-z0-9_.-]/g, '_')}';
+  window.__isoReloadGuard=function(){
+    var offline = navigator.onLine===false || window.__isoLocalServerOffline===true ||
+      (window.__isoLocalStatus && window.__isoLocalStatus.serverOnline===false);
+    if(offline){
+      console.warn('[Isotope] SW reload guard: blocked automatic reload while offline/local server unavailable');
+      return false;
+    }
+    if(sessionStorage.getItem(_k)||localStorage.getItem(_k)){
+      console.warn('[Isotope] SW reload guard: blocked repeat automatic reload');
+      return false;
+    }
+    sessionStorage.setItem(_k,'1');
+    try{localStorage.setItem(_k,String(Date.now()))}catch(e){}
+    window.location.reload();
+    return true;
+  };
+})();
+</script>`;
+
 function injectScripts(html) {
   // Injection order (all into </head> so they run before React):
   //  1. ORIGIN_SCRIPT   — sets window.__ISO_ORIGIN__, __ISO_SUPA_URL__, __ISO_ANON__
   //  2. LOCAL_DATA_GUARD_SCRIPT — per-user local workspace isolation
   //  3. AUTH_GUARD_SCRIPT — immediate redirect if no valid session (must be early)
   //  4. PREMIUM_SCRIPT  — fetch interceptor + profile upgrade (only runs if authed)
-  //  5. KEY_SCRIPT      — AI API keys
-  //  6. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
+  //  5. RELOAD_GUARD_SCRIPT — one-shot SW reload guard
+  //  6. KEY_SCRIPT      — AI API keys
+  //  7. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
   // UPDATE_COMMAND_DIALOG_SCRIPT goes before </body> (needs document.body).
-  let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + '</head>');
+  let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + RELOAD_GUARD_SCRIPT + '</head>');
   if (KEY_SCRIPT) out = out.replace('</head>', KEY_SCRIPT + '</head>');
   out = out.replace('</head>', USERNAME_AUTH_SCRIPT + '</head>');
   out = out.replace('</body>', UPDATE_COMMAND_DIALOG_SCRIPT + '</body>');
@@ -1454,6 +1688,7 @@ const COMMUNITY_HUB_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityHub-g
 const STORE_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'FocusStore-D5cRXSIr.js');
 const EVENTS_BUNDLE_ABS        = path.join(PUBLIC_DIR, 'assets', 'EventsCalendar-COHF8nOK.js');
 const SERVICE_WORKER_ABS       = path.join(PUBLIC_DIR, 'sw.js');
+const PWA_MANAGER_BUNDLE_ABS   = path.join(PUBLIC_DIR, 'assets', 'PWAManager-DjIYufp2.js');
 const REMOVED_FEATURE_MODULE   = Buffer.from('export default function RemovedFeature(){return null;}\\n', 'utf8');
 
 const COMMUNITY_FEATURE_RENDER_FROM = 'a==="store"&&e.jsx(U,{onNavigate:i},"store"),a==="events"&&e.jsx(M,{onNavigate:i},"events"),';
@@ -1487,6 +1722,25 @@ function getPatchedCommunityHubBundle() {
     patchedCommunityHubBundle = Buffer.from(raw, 'utf8');
   } catch { patchedCommunityHubBundle = null; }
   return patchedCommunityHubBundle;
+}
+
+// ── PWA manager patch: guard SW-triggered reloads ─────────────────────────────
+const PWA_RELOAD_FROM = `(r.isUpdate || r.isExternal) && window.location.reload()`;
+const PWA_RELOAD_TO   = `(r.isUpdate || r.isExternal) && (typeof window.__isoReloadGuard==='function' ? window.__isoReloadGuard() : window.location.reload())`;
+let patchedPWAManagerBundle = null;
+function getPatchedPWAManagerBundle() {
+  if (patchedPWAManagerBundle) return patchedPWAManagerBundle;
+  try {
+    let raw = fs.readFileSync(PWA_MANAGER_BUNDLE_ABS, 'utf8');
+    if (raw.includes(PWA_RELOAD_FROM)) {
+      raw = raw.replace(PWA_RELOAD_FROM, PWA_RELOAD_TO);
+      console.log('[PWAPatch] SW reload guard applied');
+    } else {
+      console.warn('[PWAPatch] Reload patch string not found in PWAManager bundle');
+    }
+    patchedPWAManagerBundle = Buffer.from(raw, 'utf8');
+  } catch (e) { console.error('[PWAPatch] Error:', e.message); patchedPWAManagerBundle = null; }
+  return patchedPWAManagerBundle;
 }
 
 // ── App bundle patch: disable demo mode ──────────────────────────────────────
@@ -1588,6 +1842,56 @@ function getPatchedAppBundle() {
       patched = patched.replace(CB_FROM, CB_TO);
       console.log('[AppPatch] Circuit breaker disabled');
     } else { console.warn('[AppPatch] Circuit breaker patch string not found'); }
+
+    const appPatch = (from, to, label) => {
+      if (patched.includes(from)) {
+        patched = patched.split(from).join(to);
+        console.log('[AppPatch] ' + label);
+      } else {
+        console.warn('[AppPatch] String not found:', label);
+      }
+    };
+
+    appPatch(
+      'createTemporaryLocalFallback(e, t) {',
+      'createTemporaryLocalFallback(e, t) { return { success: !1, error: "Cloud auth is unavailable. Start the local server and sign in again." };',
+      'Temporary local auth fallback disabled'
+    );
+    appPatch(
+      'async restoreLocalWorkspaceSession() {',
+      'async restoreLocalWorkspaceSession() { return null;',
+      'Local workspace session restore disabled'
+    );
+    appPatch(
+      'if (!M() || !w) return {\n            success: !0,\n            user: this.createLocalUser(r)\n        };',
+      'if (!M() || !w) return {\n            success: !1,\n            error: "Cloud auth is not configured"\n        };',
+      'Sign-up local fake user disabled'
+    );
+    appPatch(
+      'if (!M() || !w) return {\n            success: !0,\n            user: this.createLocalUser(e)\n        };',
+      'if (!M() || !w) return {\n            success: !1,\n            error: "Cloud auth is not configured"\n        };',
+      'Sign-in local fake user disabled'
+    );
+    appPatch(
+      '} catch (r) {\n            O(r) && this.setDegradedMode(r, Z("Cloud profile sync"))\n        }\n    }\n    async pushPublicProfileFields',
+      '} catch (r) {\n            O(r) && this.setDegradedMode(r, Z("Cloud profile sync"));\n            throw r\n        }\n    }\n    async pushPublicProfileFields',
+      'Profile sync errors surface'
+    );
+    appPatch(
+      '} catch (r) {\n            O(r) && this.setDegradedMode(r, Z("Public profile sync"))\n        }\n    }\n    async pushRecord',
+      '} catch (r) {\n            O(r) && this.setDegradedMode(r, Z("Public profile sync"));\n            throw r\n        }\n    }\n    async pushRecord',
+      'Public profile sync errors surface'
+    );
+    appPatch(
+      'if (this.isTableMissingError(i, s)) {\n                this.markTableUnsupported(s);\n                return\n            }\n        }\n    }\n    async deleteRecord',
+      'if (this.isTableMissingError(i, s)) {\n                this.markTableUnsupported(s);\n                return\n            }\n            throw i\n        }\n    }\n    async deleteRecord',
+      'Record sync errors surface'
+    );
+    appPatch(
+      'if (this.isTableMissingError(i, s)) {\n                this.markTableUnsupported(s);\n                return\n            }\n        }\n    }\n    async pushAllData',
+      'if (this.isTableMissingError(i, s)) {\n                this.markTableUnsupported(s);\n                return\n            }\n            throw i\n        }\n    }\n    async pushAllData',
+      'Delete sync errors surface'
+    );
 
     patchedAppBundle = Buffer.from(patched, 'utf8');
   } catch (e) { console.error('[AppPatch] Error:', e.message); patchedAppBundle = null; }
@@ -1715,6 +2019,12 @@ function getPatchedAuthBundle() {
     // Sign In: button label
     p('"Sign In with Email"', '"Sign In"');
 
+    // Sign In: route only after server verified profile/onboarding state.
+    p(
+      'p = async h => {\n            h.preventDefault(), u(null), (await j(s, t)).success && setTimeout(() => {\n                b("/dashboard", {\n                    replace: !0\n                })\n            }, 100)\n        },',
+      'p = async h => {\n            h.preventDefault(), u(null);\n            var __r = await window.__isoLogin(s, t);\n            if (!__r.ok) {\n                m.setState({ error: __r.err || "Login failed", isLoading: false });\n                return\n            }\n            window.location.href = __r.onboarding_completed === false ? "/onboarding" : "/dashboard"\n        },'
+    );
+
     // Sign Up: replace email-validation + signUp call → server-side signup
     // Form variables: s = Full Name, t = Email, l = Password
     // We pass t (email) + l (password) to server — real email used directly
@@ -1725,12 +2035,88 @@ function getPatchedAuthBundle() {
     // Sign Up: button label
     p('"Create Account with Email"', '"Create Account"');
 
-    console.log('[AuthPatch] ' + applied + '/4 patches applied to Auth bundle');
+    // Landing panel version badge: update stale hardcoded version string.
+    p('children: "IsotopeAI v2.0"', 'children: "IsotopeAI v3.1"');
+
+    console.log('[AuthPatch] ' + applied + '/6 patches applied to Auth bundle');
     patchedAuthBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[AuthPatch] Error:', e.message); patchedAuthBundle = null; }
   return patchedAuthBundle;
 }
 // getPatchedAuthBundle() — deferred to after server.listen()
+
+// ── Onboarding bundle patch: cloud-verified completion ──────────────────────
+const ONBOARDING_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Onboarding-qvAqCBbb.js');
+let patchedOnboardingBundle = null;
+function getPatchedOnboardingBundle() {
+  if (patchedOnboardingBundle) return patchedOnboardingBundle;
+  try {
+    let raw = fs.readFileSync(ONBOARDING_BUNDLE_ABS, 'utf8');
+    const from = 'a({\n                    currentStep: 7\n                }), await r({\n                    isOnboarded: !0,\n                    onboardingCompletedAt: new Date().toISOString()\n                })';
+    const to = 'const __isoOnbAt = new Date().toISOString(), __isoOnbSave = window.__isoCompleteOnboarding ? await window.__isoCompleteOnboarding({ isOnboarded: !0, onboardingCompletedAt: __isoOnbAt }) : { ok: !1, err: "Cloud onboarding sync is unavailable" };\n                if (!__isoOnbSave.ok) throw new Error(__isoOnbSave.err || "Onboarding cloud save failed");\n                a({\n                    currentStep: 7\n                }), await r({\n                    isOnboarded: !0,\n                    onboardingCompletedAt: __isoOnbAt\n                })';
+    if (raw.includes(from)) {
+      raw = raw.replace(from, to);
+      console.log('[OnboardingPatch] Completion requires verified Supabase write');
+    } else {
+      console.warn('[OnboardingPatch] Completion patch string not found');
+    }
+    patchedOnboardingBundle = Buffer.from(raw, 'utf8');
+  } catch (e) { console.error('[OnboardingPatch] Error:', e.message); patchedOnboardingBundle = null; }
+  return patchedOnboardingBundle;
+}
+
+// ── Group bundle patch: account-backed guided tour state ────────────────────
+const SINGLE_GROUP_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'SingleGroup-DU1IhoNK.js');
+let patchedSingleGroupBundle = null;
+function getPatchedSingleGroupBundle() {
+  if (patchedSingleGroupBundle) return patchedSingleGroupBundle;
+  try {
+    let raw = fs.readFileSync(SINGLE_GROUP_BUNDLE_ABS, 'utf8');
+    let applied = 0;
+    const patch = (from, to, label) => {
+      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
+      else console.warn('[SingleGroupPatch] Not found:', label);
+    };
+    patch(
+      'setHasSeenTour:(s,a)=>t(l=>({hasSeenTour:{...l.hasSeenTour,[s]:a}}))',
+      'setHasSeenTour:(s,a)=>{t(l=>({hasSeenTour:{...l.hasSeenTour,[s]:a,community_group_v1:a}}));try{window.__isoPersistTour&&window.__isoPersistTour(s,a),s!=="community_group_v1"&&window.__isoPersistTour&&window.__isoPersistTour("community_group_v1",a)}catch(_){}}',
+      'tour setter'
+    );
+    patch(
+      'i=a[t]??!1',
+      'i=a[t]===!0||a.community_group_v1===!0||(typeof window<"u"&&window.__isoTourSeen&&window.__isoTourSeen("community_group_v1")===!0)',
+      'tour seen check'
+    );
+    patch(
+      'onDestroyed:()=>{l(t,!0)}})',
+      'onDestroyed:()=>{l(t,!0);l("community_group_v1",!0)}})',
+      'tour completion'
+    );
+    console.log('[SingleGroupPatch] ' + applied + '/3 guided-tour patches applied');
+    patchedSingleGroupBundle = Buffer.from(raw, 'utf8');
+  } catch (e) { console.error('[SingleGroupPatch] Error:', e.message); patchedSingleGroupBundle = null; }
+  return patchedSingleGroupBundle;
+}
+
+// ── Leaderboard bundle patch: Supabase stats are the authenticated truth ─────
+const LEADERBOARD_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useLeaderboard-BpvH5FXA.js');
+let patchedLeaderboardBundle = null;
+function getPatchedLeaderboardBundle() {
+  if (patchedLeaderboardBundle) return patchedLeaderboardBundle;
+  try {
+    let raw = fs.readFileSync(LEADERBOARD_BUNDLE_ABS, 'utf8');
+    const from = 'async function N(){try{const s=await S.getSessions();return A(s)}catch(s){return console.error("[localCommunityStats] Failed to calculate local stats:",s),{total_hours:0,weekly_hours:0,monthly_hours:0,daily_hours:0,total_sessions:0,last_session_at:null}}}';
+    const to = 'async function N(){return{total_hours:0,weekly_hours:0,monthly_hours:0,daily_hours:0,total_sessions:0,last_session_at:null,source:"local-cache-disabled"}}';
+    if (raw.includes(from)) {
+      raw = raw.replace(from, to);
+      console.log('[LeaderboardPatch] Authenticated user stats ignore browser-local sessions');
+    } else {
+      console.warn('[LeaderboardPatch] Local stats patch string not found');
+    }
+    patchedLeaderboardBundle = Buffer.from(raw, 'utf8');
+  } catch (e) { console.error('[LeaderboardPatch] Error:', e.message); patchedLeaderboardBundle = null; }
+  return patchedLeaderboardBundle;
+}
 
 // ── Invites bundle patch ──────────────────────────────────────────────────────
 // The compiled bundle sends {token_input: "..."} to accept_invite and
@@ -1881,6 +2267,165 @@ function fetchRemoteAsset(assetName) {
 function getUserIdFromJwt(jwt) {
   const payload = decodeJwtPayload(jwt);
   return payload && typeof payload.sub === 'string' ? payload.sub : null;
+}
+
+function errorMessageFromSupa(res, fallback = 'Supabase request failed') {
+  const body = res && res.body;
+  if (body && typeof body === 'object') {
+    return body.message || body.error_description || body.error || body.hint || body.code || fallback;
+  }
+  if (typeof body === 'string' && body.trim()) return body.slice(0, 300);
+  return fallback;
+}
+
+function assertSupaOk(res, label) {
+  if (res && res.status >= 200 && res.status < 300) return res;
+  const detail = errorMessageFromSupa(res, label + ' failed');
+  const err = new Error(label + ' failed: ' + detail);
+  err.status = res ? res.status : 0;
+  err.body = res ? res.body : null;
+  throw err;
+}
+
+function compactObject(obj) {
+  const out = {};
+  for (const [key, value] of Object.entries(obj || {})) {
+    if (value !== undefined) out[key] = value;
+  }
+  return out;
+}
+
+function profileLegacyOnboarding(profileData) {
+  const done = profileData?.isOnboarded === true || profileData?.onboarding_completed === true;
+  return {
+    completed: done,
+    completed_at: done
+      ? (profileData?.onboardingCompletedAt || profileData?.onboarding_completed_at || new Date().toISOString())
+      : null,
+  };
+}
+
+async function supaRestAsUser(method, restPath, userJwt, bodyObj, extraHeaders = {}) {
+  const methodName = String(method || 'GET').toUpperCase();
+  // Historical call sites used both (method, path, jwt, body, headers) and
+  // (method, path, body, jwt, headers). Normalize here so mutations always send
+  // the intended JSON object and user JWT.
+  if (methodName !== 'GET' && userJwt && typeof userJwt === 'object' && (typeof bodyObj === 'string' || bodyObj == null)) {
+    const actualBody = userJwt;
+    userJwt = bodyObj;
+    bodyObj = actualBody;
+  }
+  const key = ADMIN_MODE_READY ? SUPA_SERVICE_KEY : SUPA_ANON_KEY;
+  const auth = ADMIN_MODE_READY ? SUPA_SERVICE_KEY : userJwt;
+  return supaRestReq(method, restPath, bodyObj, {
+    'Authorization': 'Bearer ' + auth,
+    'apikey': key,
+    ...extraHeaders,
+  });
+}
+
+async function fetchUserProfileBundle(userId, userJwt) {
+  const [profRes, userRes, onboardingRes] = await Promise.all([
+    supaRestAsUser('GET', `/rest/v1/user_profiles?user_id=eq.${encodeURIComponent(userId)}&select=profile_data,updated_at&limit=1`, userJwt),
+    supaRestAsUser('GET', `/rest/v1/users?id=eq.${encodeURIComponent(userId)}&select=username,name,avatar_url,coins,gems,plan_type,email&limit=1`, userJwt),
+    supaRestAsUser('GET', `/rest/v1/user_onboarding?user_id=eq.${encodeURIComponent(userId)}&select=completed,completed_at&limit=1`, userJwt)
+      .catch(() => ({ status: 0, body: [] })),
+  ]);
+  assertSupaOk(profRes, 'Fetch user profile');
+  assertSupaOk(userRes, 'Fetch public user');
+  const profileRow = Array.isArray(profRes.body) && profRes.body[0] ? profRes.body[0] : null;
+  const userData = Array.isArray(userRes.body) && userRes.body[0] ? userRes.body[0] : {};
+  const profileData = profileRow?.profile_data || {};
+  let onboardingData = Array.isArray(onboardingRes.body) && onboardingRes.body[0] ? onboardingRes.body[0] : null;
+
+  if (!onboardingData) {
+    const legacy = profileLegacyOnboarding(profileData);
+    await supaRestAsUser('POST', '/rest/v1/user_onboarding?on_conflict=user_id', {
+      user_id: userId,
+      completed: legacy.completed,
+      completed_at: legacy.completed_at,
+      updated_at: new Date().toISOString(),
+    }, userJwt, { 'Prefer': 'resolution=merge-duplicates,return=minimal' }).catch(() => {});
+    onboardingData = legacy;
+  }
+
+  const isOnboarded = onboardingData.completed === true;
+  return {
+    userData,
+    profileData,
+    profileUpdatedAt: profileRow?.updated_at || null,
+    onboardingData,
+    profile: {
+      ...userData,
+      ...profileData,
+      isOnboarded,
+      onboarding_completed: isOnboarded,
+      onboarding_completed_at: onboardingData.completed_at || profileData.onboardingCompletedAt || null,
+    },
+  };
+}
+
+async function bootstrapUserRows({ userId, email = '', displayName = '', userJwt, onboardingCompleted = false, createOnboarding = true }) {
+  if (!userId || !userJwt) throw new Error('Cannot bootstrap user rows without a Supabase session');
+  const now = new Date().toISOString();
+  const username = String(displayName || email.split('@')[0] || ('user_' + userId.slice(0, 8))).replace(/[^a-zA-Z0-9_]/g, '_');
+  const name = String(displayName || username).trim();
+  const required = [
+    supaRestAsUser('POST', '/rest/v1/users?on_conflict=id', compactObject({
+      id: userId,
+      email,
+      username,
+      name,
+      plan_type: 'ranker',
+      billing_status: 'active',
+      plan_expires_at: '2099-12-31T23:59:59.000Z',
+      access_ends_at: '2099-12-31T23:59:59.000Z',
+      updated_at: now,
+    }), userJwt, { 'Prefer': 'resolution=ignore-duplicates,return=minimal' }).then((r) => assertSupaOk(r, 'Bootstrap public user')),
+    supaRestAsUser('POST', '/rest/v1/user_profiles?on_conflict=user_id', {
+      user_id: userId,
+      profile_data: {},
+      updated_at: now,
+    }, userJwt, { 'Prefer': 'resolution=ignore-duplicates,return=minimal' }).then((r) => assertSupaOk(r, 'Bootstrap user profile')),
+    supaRestAsUser('POST', '/rest/v1/user_stats_summary?on_conflict=user_id', {
+      user_id: userId,
+      total_study_seconds: 0,
+      total_hours: 0,
+      weekly_hours: 0,
+      monthly_hours: 0,
+      streak_days: 0,
+      current_streak: 0,
+      max_streak_days: 0,
+      longest_streak: 0,
+      session_count: 0,
+      total_sessions: 0,
+      updated_at: now,
+    }, userJwt, { 'Prefer': 'resolution=ignore-duplicates,return=minimal' }).then((r) => assertSupaOk(r, 'Bootstrap stats summary')),
+  ];
+  if (createOnboarding) {
+    required.push(
+      supaRestAsUser('POST', '/rest/v1/user_onboarding?on_conflict=user_id', {
+        user_id: userId,
+        completed: onboardingCompleted === true,
+        completed_at: onboardingCompleted ? now : null,
+        updated_at: now,
+      }, userJwt, { 'Prefer': 'resolution=ignore-duplicates,return=minimal' }).then((r) => assertSupaOk(r, 'Bootstrap onboarding'))
+    );
+  }
+  await Promise.all(required);
+
+  await Promise.all([
+    supaRestAsUser('POST', '/rest/v1/user_settings?on_conflict=user_id', {
+      user_id: userId,
+      settings: {},
+      updated_at: now,
+    }, userJwt, { 'Prefer': 'resolution=ignore-duplicates,return=minimal' }).catch(() => null),
+    supaRestAsUser('POST', '/rest/v1/user_presence?on_conflict=user_id', {
+      user_id: userId,
+      status: 'offline',
+      last_seen: now,
+    }, userJwt, { 'Prefer': 'resolution=ignore-duplicates,return=minimal' }).catch(() => null),
+  ]);
 }
 
 function supaPasswordSignIn(email, password) {
@@ -2041,6 +2586,23 @@ function readLocalVersionInfo() {
   return info;
 }
 
+function parseSemver(value) {
+  const m = String(value || '').match(/\bv?(\d+)\.(\d+)\.(\d+)\b/);
+  if (!m) return null;
+  return [Number(m[1]), Number(m[2]), Number(m[3])];
+}
+
+function compareSemver(a, b) {
+  const av = parseSemver(a);
+  const bv = parseSemver(b);
+  if (!av || !bv) return null;
+  for (let i = 0; i < 3; i++) {
+    if (av[i] > bv[i]) return 1;
+    if (av[i] < bv[i]) return -1;
+  }
+  return 0;
+}
+
 let LOCAL_VERSION = readLocalVersionInfo();
 let DEPLOYED_SHA = LOCAL_VERSION.sha || 'unknown';
 console.log('[Update] Local version: ' + LOCAL_VERSION.version + ' (' + String(DEPLOYED_SHA).slice(0, 7) + ', ' + LOCAL_VERSION.source + ')');
@@ -2172,19 +2734,24 @@ const server = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url.startsWith('/__supa/functions/v1/')) {
     const fnPath = req.url.replace('/__supa/functions/v1/', '').split('?')[0];
     const jsonOk = (obj) => { const b = JSON.stringify(obj); res.writeHead(200, {'Content-Type':'application/json','Content-Length':String(b.length),'Cache-Control':'no-store'}); res.end(b); };
+    const jsonUnavailable = (obj) => {
+      const b = JSON.stringify({ intercepted: true, ...obj });
+      res.writeHead(502, {'Content-Type':'application/json','Content-Length':String(b.length),'Cache-Control':'no-store'});
+      res.end(b);
+    };
 
-    // Leaderboard / analytics — return valid empty-shape stubs for server-side calls.
-    // Real browser requests are intercepted by the fetch override and never reach here.
+    // Leaderboard / analytics / study-session sync must not return successful
+    // fake empty data. Real browser requests are handled by the runtime fetch
+    // override and execute Supabase REST/RPC calls with the user's JWT.
     if (fnPath === 'get-leaderboard' || fnPath === 'get-daily-leaderboard') {
-      return jsonOk({ data: [], type: fnPath, intercepted: true });
+      return jsonUnavailable({ error: 'No fake leaderboard data. Use the browser runtime Supabase-backed leaderboard path.', type: fnPath });
     }
     if (fnPath === 'get-group-leaderboard' || fnPath === 'get-group-analytics') {
-      return jsonOk({ data: [], members: [], intercepted: true });
+      return jsonUnavailable({ error: 'No fake group analytics data. Use the browser runtime Supabase-backed community path.', type: fnPath });
     }
 
-    // finish-session — stub for server-side smoke-test; real calls go via fetch override
     if (fnPath === 'finish-session') {
-      return jsonOk({ ok: true, intercepted: true, message: 'finish-session intercepted server-side' });
+      return jsonUnavailable({ error: 'No fake study-session sync. finish-session requires the browser runtime Supabase RPC path.', type: fnPath });
     }
 
     // Payment / billing stubs — not deployed in self-hosted mode
@@ -2280,7 +2847,7 @@ const server = http.createServer((req, res) => {
       local_server: true,
       update_command: 'isotope update',
       start_command: 'isotope start',
-      pwa_cache: 'isotope-shell-' + LOCAL_VERSION.version + '-' + String(DEPLOYED_SHA).slice(0, 12),
+      pwa_cache: 'isotope-local-shell-' + LOCAL_VERSION.version + '-' + String(DEPLOYED_SHA).slice(0, 12),
     }));
     return;
   }
@@ -2297,11 +2864,16 @@ const server = http.createServer((req, res) => {
       .then(function (latest) {
         LOCAL_VERSION = readLocalVersionInfo();
         DEPLOYED_SHA = LOCAL_VERSION.sha || DEPLOYED_SHA;
-        const hasUpdate = /^[0-9a-f]{40}$/i.test(DEPLOYED_SHA) && latest.sha && latest.sha !== DEPLOYED_SHA;
+        const upstreamVer = (latest.message || '').match(/\bv?(\d+\.\d+\.\d+)\b/)?.[1] || null;
+        const versionCmp = upstreamVer ? compareSemver(upstreamVer, LOCAL_VERSION.version) : null;
+        const hasUpdate = versionCmp !== null
+          ? versionCmp > 0
+          : /^[0-9a-f]{40}$/i.test(DEPLOYED_SHA) && latest.sha && latest.sha !== DEPLOYED_SHA;
         _ghCache = {
           hasUpdate:  hasUpdate,
           deployed:   DEPLOYED_SHA,
           deployed_version: LOCAL_VERSION.version,
+          latest_version: upstreamVer,
           latest:     latest.sha,
           message:    latest.message,
           pushed_at:  latest.pushed_at,
@@ -2380,40 +2952,14 @@ const server = http.createServer((req, res) => {
         return;
       }
       try {
-        const svcKey = ADMIN_MODE_READY ? SUPA_SERVICE_KEY : SUPA_ANON_KEY;
-        const restAuth = ADMIN_MODE_READY ? SUPA_SERVICE_KEY : userJwt;
-        const supaHost = new URL(SUPA_URL).hostname;
-        const [profRes, userRes, onboardingRes] = await Promise.all([
-          new Promise((resolve, reject) => {
-            const o = { hostname: supaHost, path: `/rest/v1/user_profiles?user_id=eq.${encodeURIComponent(userId)}&select=profile_data&limit=1`, method: 'GET', headers: { 'apikey': svcKey, 'Authorization': 'Bearer ' + restAuth, 'Accept': 'application/json' } };
-            const rq = https.request(o, r => { const ch = []; r.on('data', c => ch.push(c)); r.on('end', () => { try { resolve(JSON.parse(Buffer.concat(ch).toString())); } catch { resolve([]); } }); });
-            rq.on('error', reject); rq.end();
-          }),
-          new Promise((resolve, reject) => {
-            const o = { hostname: supaHost, path: `/rest/v1/users?id=eq.${encodeURIComponent(userId)}&select=username,name,avatar_url,coins,gems,plan_type&limit=1`, method: 'GET', headers: { 'apikey': svcKey, 'Authorization': 'Bearer ' + restAuth, 'Accept': 'application/json' } };
-            const rq = https.request(o, r => { const ch = []; r.on('data', c => ch.push(c)); r.on('end', () => { try { resolve(JSON.parse(Buffer.concat(ch).toString())); } catch { resolve([]); } }); });
-            rq.on('error', reject); rq.end();
-          }),
-          supaRestReq('GET', `/rest/v1/user_onboarding?user_id=eq.${encodeURIComponent(userId)}&select=completed,completed_at&limit=1`, null, { 'Authorization': 'Bearer ' + restAuth, 'apikey': svcKey })
-            .catch(() => ({ status: 0, body: [] })),
-        ]);
-        const profileData = (Array.isArray(profRes) && profRes[0]) ? (profRes[0].profile_data || {}) : {};
-        const userData = (Array.isArray(userRes) && userRes[0]) ? userRes[0] : {};
-        const onboardingData = (Array.isArray(onboardingRes.body) && onboardingRes.body[0]) ? onboardingRes.body[0] : null;
-        const isOnboarded = onboardingData
-          ? onboardingData.completed === true
-          : profileData.isOnboarded === true;
+        const bundle = await fetchUserProfileBundle(userId, userJwt);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           ok: true,
           user_id: userId,
-          profile: {
-            ...userData,
-            ...profileData,
-            isOnboarded,
-            onboarding_completed: isOnboarded,
-            onboarding_completed_at: onboardingData?.completed_at || profileData.onboardingCompletedAt || null,
-          },
+          profile: bundle.profile,
+          profile_updated_at: bundle.profileUpdatedAt,
+          onboarding: bundle.onboardingData,
         }));
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -2450,65 +2996,96 @@ const server = http.createServer((req, res) => {
         return;
       }
 
-      const { display_name, username, bio, avatar_url, preferences, isOnboarded, onboarding_completed } = body || {};
-
       try {
-        const svcKey = ADMIN_MODE_READY ? SUPA_SERVICE_KEY : SUPA_ANON_KEY;
-        const restAuth = ADMIN_MODE_READY ? SUPA_SERVICE_KEY : userJwt;
-        const supaHost = new URL(SUPA_URL).hostname;
-
-        // 3. Fetch current profile_data blob
-        const profRes = await new Promise((resolve, reject) => {
-          const o = { hostname: supaHost, path: `/rest/v1/user_profiles?user_id=eq.${encodeURIComponent(userId)}&select=profile_data&limit=1`, method: 'GET', headers: { 'apikey': svcKey, 'Authorization': 'Bearer ' + restAuth, 'Accept': 'application/json' } };
-          const rq = https.request(o, r => { const ch = []; r.on('data', c => ch.push(c)); r.on('end', () => { try { resolve({ status: r.statusCode, body: JSON.parse(Buffer.concat(ch).toString()) }); } catch { resolve({ status: r.statusCode, body: [] }); } }); });
-          rq.on('error', reject); rq.end();
-        });
-        const currentProfile = (Array.isArray(profRes.body) && profRes.body[0]) ? (profRes.body[0].profile_data || {}) : {};
-
-        // 4. Deep-merge new fields into profile_data
+        const incoming = body && typeof body === 'object' ? body : {};
+        const currentBundle = await fetchUserProfileBundle(userId, userJwt).catch(() => ({ profileData: {}, userData: {} }));
+        const currentProfile = currentBundle.profileData || {};
+        const now = new Date().toISOString();
         const merged = Object.assign({}, currentProfile);
-        if (display_name !== undefined) merged.display_name = String(display_name).trim();
-        if (bio         !== undefined) merged.bio          = String(bio).trim();
-        if (avatar_url  !== undefined) merged.avatar_url   = String(avatar_url).trim();
-        if (isOnboarded !== undefined) merged.isOnboarded = isOnboarded === true;
-        if (onboarding_completed !== undefined) merged.isOnboarded = onboarding_completed === true;
-        if (preferences !== undefined && typeof preferences === 'object') {
-          merged.preferences = Object.assign({}, currentProfile.preferences || {}, preferences);
+
+        if (incoming.profile_data && typeof incoming.profile_data === 'object') {
+          Object.assign(merged, incoming.profile_data);
+        }
+        for (const key of Object.keys(incoming)) {
+          if ([
+            'id','user_id','email','access_token','refresh_token','session','password',
+            'preferences','settings','tours','profile_data','display_name','username',
+            'name','bio','avatar_url','isOnboarded','onboarding_completed'
+          ].includes(key)) continue;
+          if (incoming[key] !== undefined) merged[key] = incoming[key];
+        }
+        if (incoming.display_name !== undefined) merged.display_name = String(incoming.display_name || '').trim();
+        if (incoming.name !== undefined && incoming.display_name === undefined) merged.display_name = String(incoming.name || '').trim();
+        if (incoming.username !== undefined) merged.username = String(incoming.username || '').trim();
+        if (incoming.bio !== undefined) merged.bio = String(incoming.bio || '').trim();
+        if (incoming.avatar_url !== undefined) merged.avatar_url = String(incoming.avatar_url || '').trim();
+        if (incoming.preferences !== undefined && typeof incoming.preferences === 'object') {
+          merged.preferences = Object.assign({}, currentProfile.preferences || {}, incoming.preferences);
+        }
+        if (incoming.settings !== undefined && typeof incoming.settings === 'object') {
+          merged.settings = Object.assign({}, currentProfile.settings || {}, incoming.settings);
+        }
+        if (incoming.tours !== undefined && typeof incoming.tours === 'object') {
+          merged.tours = Object.assign({}, currentProfile.tours || {}, incoming.tours);
         }
 
-        // 5. Upsert user_profiles row with merged data (use service_role to bypass RLS write restriction)
-        const upsertBody = Buffer.from(JSON.stringify({ user_id: userId, profile_data: merged }));
-        await new Promise((resolve, reject) => {
-            const o = { hostname: supaHost, path: `/rest/v1/user_profiles?user_id=eq.${encodeURIComponent(userId)}`, method: 'PATCH', headers: { 'apikey': svcKey, 'Authorization': 'Bearer ' + restAuth, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': String(upsertBody.length) } };
-          const rq = https.request(o, r => { r.resume(); r.on('end', resolve); });
-          rq.on('error', reject); rq.write(upsertBody); rq.end();
-        });
-
-        // 6. If username or display_name changed, also sync to public.users
-        const usersUpdate = {};
-        if (username     !== undefined) usersUpdate.username  = String(username).trim();
-        if (display_name !== undefined) usersUpdate.name      = String(display_name).trim();
-        if (avatar_url   !== undefined) usersUpdate.avatar_url = String(avatar_url).trim();
-        if (Object.keys(usersUpdate).length > 0) {
-          const usersBody = Buffer.from(JSON.stringify(usersUpdate));
-          await new Promise((resolve, reject) => {
-            const o = { hostname: supaHost, path: `/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, method: 'PATCH', headers: { 'apikey': svcKey, 'Authorization': 'Bearer ' + restAuth, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': String(usersBody.length) } };
-            const rq = https.request(o, r => { r.resume(); r.on('end', resolve); });
-            rq.on('error', reject); rq.write(usersBody); rq.end();
-          });
+        const completed = incoming.isOnboarded === true || incoming.onboarding_completed === true || currentProfile.isOnboarded === true;
+        if (incoming.isOnboarded !== undefined || incoming.onboarding_completed !== undefined) {
+          merged.isOnboarded = completed === true;
+          if (completed && !merged.onboardingCompletedAt) merged.onboardingCompletedAt = now;
         }
+        merged.last_sync_at = now;
 
-        if (merged.isOnboarded === true) {
-          await supaRestReq('POST', '/rest/v1/user_onboarding', {
+        if (!ADMIN_MODE_READY) {
+          const profEnsure = await supaRestAsUser('POST', '/rest/v1/user_profiles?on_conflict=user_id', {
             user_id: userId,
-            completed: true,
-            completed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }, { 'Prefer': 'resolution=merge-duplicates,return=minimal', 'Authorization': 'Bearer ' + restAuth, 'apikey': svcKey }).catch(() => {});
+            profile_data: {},
+            updated_at: now,
+          }, userJwt, { 'Prefer': 'resolution=ignore-duplicates,return=minimal' });
+          assertSupaOk(profEnsure, 'Profile row ensure');
+        }
+        const profilePatchBody = {
+          profile_data: merged,
+          updated_at: now,
+        };
+        const profPatch = ADMIN_MODE_READY
+          ? await supaAdminReq('PATCH', `/rest/v1/user_profiles?user_id=eq.${encodeURIComponent(userId)}`, profilePatchBody)
+          : await supaRestAsUser('PATCH', `/rest/v1/user_profiles?user_id=eq.${encodeURIComponent(userId)}`, profilePatchBody, userJwt, { 'Prefer': 'return=representation' });
+        assertSupaOk(profPatch, 'Profile sync');
+
+        const usersUpdate = compactObject({
+          username: incoming.username !== undefined ? String(incoming.username || '').trim() : undefined,
+          name: incoming.display_name !== undefined ? String(incoming.display_name || '').trim() : (incoming.name !== undefined ? String(incoming.name || '').trim() : undefined),
+          avatar_url: incoming.avatar_url !== undefined ? String(incoming.avatar_url || '').trim() : undefined,
+          updated_at: now,
+        });
+        if (Object.keys(usersUpdate).length > 1) {
+          const userPatch = ADMIN_MODE_READY
+            ? await supaAdminReq('PATCH', `/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, usersUpdate)
+            : await supaRestAsUser('PATCH', `/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, usersUpdate, userJwt, { 'Prefer': 'return=minimal' });
+          assertSupaOk(userPatch, 'Public profile sync');
         }
 
+        if (completed === true && (incoming.isOnboarded !== undefined || incoming.onboarding_completed !== undefined)) {
+          const onboardingBody = {
+            completed: true,
+            completed_at: merged.onboardingCompletedAt || now,
+            data: incoming.onboarding_data && typeof incoming.onboarding_data === 'object' ? incoming.onboarding_data : {},
+            updated_at: now,
+          };
+          const onboardingUpdate = ADMIN_MODE_READY
+            ? await supaAdminReq('PATCH', `/rest/v1/user_onboarding?user_id=eq.${encodeURIComponent(userId)}`, onboardingBody)
+            : await supaRestAsUser('PATCH', `/rest/v1/user_onboarding?user_id=eq.${encodeURIComponent(userId)}`, onboardingBody, userJwt, { 'Prefer': 'return=representation' });
+          assertSupaOk(onboardingUpdate, 'Onboarding sync');
+          const verify = await supaRestAsUser('GET', `/rest/v1/user_onboarding?user_id=eq.${encodeURIComponent(userId)}&select=completed,completed_at&limit=1`, userJwt);
+          assertSupaOk(verify, 'Onboarding verification');
+          const row = Array.isArray(verify.body) && verify.body[0] ? verify.body[0] : null;
+          if (!row || row.completed !== true) throw new Error('Onboarding completion was not persisted');
+        }
+
+        const fresh = await fetchUserProfileBundle(userId, userJwt);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, user_id: userId, profile: merged }));
+        res.end(JSON.stringify({ ok: true, user_id: userId, profile: fresh.profile, onboarding: fresh.onboardingData }));
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: e.message }));
@@ -2572,8 +3149,22 @@ const server = http.createServer((req, res) => {
           res.end(JSON.stringify({ error: 'Account created but auto sign-in failed. If email confirmation is enabled, confirm the account and sign in manually.' }));
           return;
         }
+        const session = signin.body;
+        const userId = session.user?.id || getUserIdFromJwt(session.access_token);
+        if (!userId) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Account created but Supabase session did not include a user id.' }));
+          return;
+        }
+        await bootstrapUserRows({ userId, email, displayName, userJwt: session.access_token, onboardingCompleted: false });
+        const bundle = await fetchUserProfileBundle(userId, session.access_token);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ session: signin.body }));
+        res.end(JSON.stringify({
+          session,
+          user_id: userId,
+          profile: bundle.profile,
+          onboarding_completed: bundle.profile.onboarding_completed === true,
+        }));
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: err.message }));
@@ -2986,7 +3577,7 @@ function copySQL(){
       const SCHEMA = {
         users:                        ['id','email','username','plan_type','billing_status','coins','gems'],
         user_profiles:                ['user_id','profile_data'],
-        user_onboarding:              ['user_id','completed','completed_at','updated_at'],
+        user_onboarding:              ['user_id','completed','completed_at','data','updated_at'],
         user_points:                  ['user_id','points','lifetime_points'],
         user_stats_summary:           ['user_id','total_study_seconds','total_hours','weekly_hours','monthly_hours','streak_days','current_streak','max_streak_days','longest_streak','session_count','total_sessions','last_study_date','last_session_at'],
         daily_user_stats:             ['user_id','date','seconds_studied'],
@@ -3076,28 +3667,28 @@ function copySQL(){
       const interceptorTests = await Promise.all([
         (async () => {
           const r = await localReq('POST', '/__supa/functions/v1/get-leaderboard', {});
-          const ok = r.status === 200 && (Array.isArray(r.body) || Array.isArray(r.body?.data) || typeof r.body === 'object');
-          return { name:'get-leaderboard', ok, detail: ok ? `HTTP 200 — ${JSON.stringify(r.body).slice(0,50)}` : `HTTP ${r.status} ${JSON.stringify(r.body).slice(0,60)}` };
+          const ok = r.status === 502 && /No fake leaderboard data/i.test(String(r.body?.error || ''));
+          return { name:'get-leaderboard fake-success guard', ok, detail: ok ? 'HTTP 502 — fake data blocked' : `HTTP ${r.status} ${JSON.stringify(r.body).slice(0,80)}` };
         })(),
         (async () => {
           const r = await localReq('POST', '/__supa/functions/v1/get-daily-leaderboard', {});
-          const ok = r.status === 200;
-          return { name:'get-daily-leaderboard', ok, detail: ok ? 'HTTP 200' : `HTTP ${r.status}` };
+          const ok = r.status === 502 && /No fake leaderboard data/i.test(String(r.body?.error || ''));
+          return { name:'get-daily-leaderboard fake-success guard', ok, detail: ok ? 'HTTP 502 — fake data blocked' : `HTTP ${r.status} ${JSON.stringify(r.body).slice(0,80)}` };
         })(),
         (async () => {
           const r = await localReq('POST', '/__supa/functions/v1/get-group-leaderboard', {group_id:'__test__'});
-          const ok = r.status === 200;
-          return { name:'get-group-leaderboard', ok, detail: ok ? 'HTTP 200' : `HTTP ${r.status}` };
+          const ok = r.status === 502 && /No fake group analytics data/i.test(String(r.body?.error || ''));
+          return { name:'get-group-leaderboard fake-success guard', ok, detail: ok ? 'HTTP 502 — fake data blocked' : `HTTP ${r.status} ${JSON.stringify(r.body).slice(0,80)}` };
         })(),
         (async () => {
           const r = await localReq('POST', '/__supa/functions/v1/get-group-analytics', {group_id:'__test__'});
-          const ok = r.status === 200;
-          return { name:'get-group-analytics', ok, detail: ok ? 'HTTP 200' : `HTTP ${r.status}` };
+          const ok = r.status === 502 && /No fake group analytics data/i.test(String(r.body?.error || ''));
+          return { name:'get-group-analytics fake-success guard', ok, detail: ok ? 'HTTP 502 — fake data blocked' : `HTTP ${r.status} ${JSON.stringify(r.body).slice(0,80)}` };
         })(),
         (async () => {
           const r = await localReq('POST', '/__supa/functions/v1/finish-session', {user_id:null,duration_seconds:0});
-          const ok = r.status === 200;
-          return { name:'finish-session', ok, detail: ok ? 'HTTP 200' : `HTTP ${r.status} — ${JSON.stringify(r.body).slice(0,60)}` };
+          const ok = r.status === 502 && /No fake study-session sync/i.test(String(r.body?.error || ''));
+          return { name:'finish-session fake-success guard', ok, detail: ok ? 'HTTP 502 — fake sync blocked' : `HTTP ${r.status} — ${JSON.stringify(r.body).slice(0,80)}` };
         })(),
         (async () => {
           const r = await localReq('POST', '/__supa/functions/v1/create_checkout', {});
@@ -3129,6 +3720,27 @@ function copySQL(){
         (async () => {
           const r = await localReq('GET', '/api/health');
           return { name:'/api/health', ok: r.status === 200 && r.body?.status === 'ok', detail:`HTTP ${r.status}` };
+        })(),
+        (async () => {
+          const r = await localReq('GET', '/api/version');
+          const ok = r.status === 200 && r.body?.local_server === true && typeof r.body?.pwa_cache === 'string' && r.body.pwa_cache.includes(String(r.body.version || ''));
+          return { name:'/api/version + PWA cache', ok, detail: ok ? `${r.body.version} ${String(r.body.sha || '').slice(0,7)} ${r.body.pwa_cache}` : `HTTP ${r.status}` };
+        })(),
+        (async () => {
+          const r = await localReq('GET', '/sw.js');
+          return { name:'/sw.js', ok: r.status === 200, detail:`HTTP ${r.status}` };
+        })(),
+        (async () => {
+          const r = await localReq('GET', '/manifest.webmanifest');
+          return { name:'/manifest.webmanifest', ok: r.status === 200, detail:`HTTP ${r.status}` };
+        })(),
+        (async () => {
+          const r = await localReq('GET', '/offline.html');
+          return { name:'/offline.html', ok: r.status === 200, detail:`HTTP ${r.status}` };
+        })(),
+        (async () => {
+          const r = await localReq('GET', '/api/community-events');
+          return { name:'Events API removed', ok: r.status === 404, detail:`HTTP ${r.status}` };
         })(),
         (async () => {
           const r = await supaReq('GET', '/rest/v1/', null, svcKey);
@@ -3213,6 +3825,64 @@ function copySQL(){
         })(),
       ]);
 
+      // ── CATEGORY 8: Local integration drift checks ───────────────────────
+      function fileContains(rel, pattern) {
+        try {
+          const txt = fs.readFileSync(path.join(__dirname, rel), 'utf8');
+          if (pattern instanceof RegExp) return pattern.test(txt);
+          return txt.includes(pattern);
+        } catch {
+          return false;
+        }
+      }
+      const integrationChecks = [
+        {
+          name: 'Onboarding completion uses verified cloud write',
+          ok: fileContains('server.mjs', '__isoCompleteOnboarding') && fileContains('server.mjs', 'Onboarding save was not verified'),
+          detail: 'served Onboarding bundle requires /__auth/profile verification',
+        },
+        {
+          name: 'Tour state is account-backed',
+          ok: fileContains('server.mjs', '__isoPersistTour') && fileContains('server.mjs', 'community_group_v1'),
+          detail: 'community_group_v1 persists through user_profiles.profile_data.tours',
+        },
+        {
+          name: 'No local fake auth fallback in served bundle',
+          ok: fileContains('server.mjs', 'Temporary local auth fallback disabled') && fileContains('server.mjs', 'Local workspace session restore disabled'),
+          detail: 'serve-time App patch disables temporary local sessions',
+        },
+        {
+          name: 'Session sync failures stay visible',
+          ok: fileContains('server.mjs', 'Session sync failed') && fileContains('server.mjs', 'finish_session_sync HTTP'),
+          detail: 'finish-session shim returns error on RPC failure',
+        },
+        {
+          name: 'Leaderboard user stats use Supabase truth',
+          ok: fileContains('server.mjs', 'local-cache-disabled') && fileContains('server.mjs', 'No fake leaderboard data'),
+          detail: 'served leaderboard bundle does not merge browser-local sessions into authenticated stats',
+        },
+        {
+          name: 'Offline PWA checks local server truth',
+          ok: fileContains('public/pwa-local.js', "fetch('/api/version'") && fileContains('public/pwa-local.js', 'Offline cached mode'),
+          detail: 'cached shell labels server-down state',
+        },
+        {
+          name: 'Update checker suppresses offline/stale banners',
+          ok: fileContains('public/update-checker.js', "fetch('/api/version'") && fileContains('public/update-checker.js', 'clearStaleFlags'),
+          detail: 'update banner waits for local /api/version',
+        },
+        {
+          name: 'Termux command checks live local server',
+          ok: fileContains('bin/isotope', '/api/version') && fileContains('bin/isotope', 'report_stale_aliases'),
+          detail: 'start/open/doctor use /api/version and stale alias detection',
+        },
+        {
+          name: 'Termux Widget uses absolute command path',
+          ok: fileContains('setup-termux-widget.sh', '/data/data/com.termux/files/usr/bin/isotope') && !fileContains('setup-termux-widget.sh', 'command -v isotope >/dev/null 2>&1; then\n    isotope'),
+          detail: 'shortcuts avoid shell alias dependency',
+        },
+      ];
+
       // ── Aggregate results ─────────────────────────────────────────────────
       const allTests = [
         ...tableChecks.map(c => c.ok),
@@ -3222,6 +3892,7 @@ function copySQL(){
         ...serverChecks.map(c => c.ok),
         ...communityChecks.map(c => c.ok),
         ...storageChecks.map(c => c.ok),
+        ...integrationChecks.map(c => c.ok),
       ];
       const nPass = allTests.filter(Boolean).length;
       const nFail = allTests.length - nPass;
@@ -3346,6 +4017,14 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
   </table>
 </section>
 
+<section>
+  <div class="sec-hdr"><h3>🔗 Integration Wiring</h3><span class="sec-stat">${pct(integrationChecks)} passing</span></div>
+  <table>
+    <tr><th>Check</th><th>Status</th><th>Detail</th></tr>
+    ${rows(integrationChecks)}
+  </table>
+</section>
+
 </div></body></html>`;
 
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -3384,8 +4063,25 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
           res.end(JSON.stringify({ error: 'Invalid email or password' }));
           return;
         }
+        const session = signin.body;
+        const userId = session.user?.id || getUserIdFromJwt(session.access_token);
+        if (!userId) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Supabase session did not include a user id.' }));
+          return;
+        }
+        const sessionEmail = session.user?.email || email;
+        const displayName = (session.user?.user_metadata && (session.user.user_metadata.full_name || session.user.user_metadata.username || session.user.user_metadata.name))
+          || sessionEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
+        await bootstrapUserRows({ userId, email: sessionEmail, displayName, userJwt: session.access_token, onboardingCompleted: false, createOnboarding: false });
+        const bundle = await fetchUserProfileBundle(userId, session.access_token);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ session: signin.body }));
+        res.end(JSON.stringify({
+          session,
+          user_id: userId,
+          profile: bundle.profile,
+          onboarding_completed: bundle.profile.onboarding_completed === true,
+        }));
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: err.message }));
@@ -3449,6 +4145,14 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
   try { urlPath = decodeURIComponent(urlPath); } catch {}
   const safePath = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, '');
   const filePath = path.join(PUBLIC_DIR, safePath);
+
+  // /login, /signup, and /reset-password are not standalone React routes in the
+  // shipped SPA. Send direct visits back to the auth shell at /.
+  if (req.method === 'GET' && (urlPath === '/login' || urlPath === '/signup' || urlPath === '/reset-password')) {
+    res.writeHead(302, { Location: '/' });
+    res.end();
+    return;
+  }
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -3528,6 +4232,18 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
       const buf = getPatchedAuthBundle();
       if (buf) { send(buf); return; }
     }
+    if (fp === ONBOARDING_BUNDLE_ABS) {
+      const buf = getPatchedOnboardingBundle();
+      if (buf) { send(buf); return; }
+    }
+    if (fp === SINGLE_GROUP_BUNDLE_ABS) {
+      const buf = getPatchedSingleGroupBundle();
+      if (buf) { send(buf); return; }
+    }
+    if (fp === LEADERBOARD_BUNDLE_ABS) {
+      const buf = getPatchedLeaderboardBundle();
+      if (buf) { send(buf); return; }
+    }
     if (fp === INVITES_BUNDLE_ABS) {
       const buf = getPatchedInvitesBundle();
       if (buf) { send(buf); return; }
@@ -3538,6 +4254,10 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
     }
     if (fp === COMMUNITY_HUB_BUNDLE_ABS) {
       const buf = getPatchedCommunityHubBundle();
+      if (buf) { send(buf); return; }
+    }
+    if (fp === PWA_MANAGER_BUNDLE_ABS) {
+      const buf = getPatchedPWAManagerBundle();
       if (buf) { send(buf); return; }
     }
     if (fp === STORE_BUNDLE_ABS || fp === EVENTS_BUNDLE_ABS) {
@@ -3603,9 +4323,13 @@ server.listen(port, '0.0.0.0', () => {
     getPatchedFocusBundle();
     getPatchedAppBundle();
     getPatchedAuthBundle();
+    getPatchedOnboardingBundle();
+    getPatchedSingleGroupBundle();
+    getPatchedLeaderboardBundle();
     getPatchedInvitesBundle();
     getPatchedCommunityBundle();
     getPatchedCommunityHubBundle();
+    getPatchedPWAManagerBundle();
   });
 
   // Auto-run DML backfills on startup (safe REST-only operations, no DDL needed)

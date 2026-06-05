@@ -8,9 +8,9 @@ Complete reference for every admin feature, endpoint, env var, and operational p
 
 | Panel | URL | Purpose |
 |-------|-----|---------|
-| Test Suite | `/__admin/verify` | 63 automated tests — schema, RPCs, RLS, server health |
+| Test Suite | `/__admin/verify` | Core diagnostics — schema, RPCs, RLS, server health |
 | SQL Patch | `/__admin/patch` | Apply community SQL patches to Supabase |
-| Events | `/__admin/events` | CRUD management of community events |
+| Removed Events | `/__admin/events*` | Removed-feature JSON response; Events admin is not active |
 
 ---
 
@@ -61,7 +61,7 @@ Open `/__admin/login` in the browser. You can unlock with `ADMIN_SECRET`, or cli
 **Auth:** Admin unlock
 **Auto-refreshes:** every 30 seconds
 
-Runs diagnostics against your configured Supabase project. In admin mode, table/RPC/bucket checks can use the server-side service-role key. Results are grouped by schema, RPC, RLS, server health, community/events, and storage.
+Runs diagnostics against your configured Supabase project. In admin mode, table/RPC/bucket checks can use the server-side service-role key. Results are grouped by schema, RPC, RLS, server health, community, removed-feature, and storage checks.
 
 ### Category 1: Tables (20 tests)
 Checks every required table exists with all expected columns.
@@ -180,53 +180,19 @@ Serves the full contents of `community-patch-v4.sql` as a runnable SQL patch. Pr
 
 ---
 
-## 4. Community Events Admin — `/__admin/events`
+## 4. Removed Events/Admin Surface
 
-**URL:** `GET /__admin/events`
-**Auth:** Admin unlock
+Events and Store were removed from the product in v3.0.0. They are not active admin tools and should not be reintroduced without an explicit new implementation request.
 
-Full CRUD management UI for community events — no SQL editor needed.
+Current behavior:
 
-### Admin UI features
+| Route | Response |
+|-------|----------|
+| `/__admin/events*` | Removed-feature 404 JSON |
+| `/api/events*` | Removed-feature 404 JSON |
+| `/api/community-events` | Removed-feature 404 JSON |
 
-- **List all events** — including inactive ones (uses service_role key to bypass `is_active` RLS filter)
-- **Create event** — modal form with all fields
-- **Edit event** — pre-fills modal from existing event data
-- **Publish / Unpublish** — toggle `is_active` without opening the edit form
-- **Delete** — with confirmation prompt; cascades to all attendees
-- **Refresh Past Dates** — pushes all events with `start_time < now()` forward using a 1–14 day offset schedule
-
-### Event API endpoints (all under `/__admin/`, protected by admin mode and `ADMIN_SECRET`)
-
-| Method | Endpoint | Payload | Response |
-|--------|----------|---------|----------|
-| `GET` | `/__admin/events` | — | HTML management page |
-| `GET` | `/__admin/events.json` | — | `[{id, title, event_type, …}]` |
-| `POST` | `/__admin/events/create` | `{title*, event_type, description, host, start_time*, end_time, image_gradient, image_url, tags, max_attendees, is_featured, is_active}` | `{ok, event}` |
-| `POST` | `/__admin/events/update` | `{id*, …any fields…}` | `{ok, event}` |
-| `POST` | `/__admin/events/delete` | `{id*}` | `{ok}` |
-| `POST` | `/__admin/events/publish` | `{id*, is_active*}` | `{ok}` |
-| `POST` | `/__admin/events/refresh-dates` | `{}` | `{ok, updated, total}` |
-
-`*` = required
-
-### Event field reference
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `title` | text | Required. Max 200 chars |
-| `event_type` | text | `webinar`, `workshop`, `marathon`, `challenge`, `ama` — default: `webinar` |
-| `description` | text | Optional. Event description |
-| `host` | text | Host name/handle |
-| `start_time` | timestamptz | Required. ISO 8601 format |
-| `end_time` | timestamptz | Optional. Defaults to start + 2 hours on date refresh |
-| `image_gradient` | text | Tailwind gradient class, e.g. `from-purple-600 to-blue-500` |
-| `image_url` | text | Optional. Real image URL. Overrides `image_gradient` in UI |
-| `tags` | text[] | Comma-separated string or array |
-| `max_attendees` | integer | Optional cap |
-| `is_featured` | boolean | Featured events get highlighted in the UI |
-| `is_active` | boolean | Only active events show to users (RLS filtered) |
-| `attendee_count` | integer | Auto-managed by `join/leave_community_event` RPCs |
+The cleanup SQL in `community-patch-v4.sql` and `events-expansion.sql` removes Events/Store tables, RPCs, policies, triggers, views, and storage bucket residue.
 
 ## 5. Storage Buckets
 
@@ -283,7 +249,7 @@ Rate limits:
 | `GET` | `/api/health` | None | Returns local server and Supabase health checks |
 | `GET` | `/api/version` | None | Returns package version, local Git SHA, and command metadata |
 | `POST` | `/api/restart` | None | Legacy no-op. Returns `isotope update` guidance and never stops the server |
-| `GET` | `/api/check-update` | None | Checks GitHub for newer commit SHA |
+| `GET` | `/api/check-update` | None | Checks GitHub for a newer version, falling back to SHA when needed |
 | `GET` | `/api/community-events`, `/api/events*` | None | Removed-feature 404; Events has been removed |
 
 ---
@@ -319,15 +285,18 @@ The server intercepts specific edge function calls before they hit Supabase:
 
 ## 9. Server-Side Patches (Bundle Overrides)
 
-The server intercepts and patches 5 compiled JavaScript bundles at request time:
+The server intercepts and patches selected compiled JavaScript bundles at request time:
 
 | Bundle | What is patched |
 |--------|----------------|
 | `App bundle` (main JS) | `planType` hardcoded → `ranker`; circuit breaker disabled; community URL patched |
 | `AI store` | `getApiKey()` → reads from `window.__IK__` (injected by server from env vars) |
 | `Focus/AI bundle` | Replaces hardcoded production Supabase URL with self-hosted URL |
-| `Auth bundle` | Username-as-email support; 4 auth flow patches |
+| `Auth bundle` | Username-as-email support; auth flow patches; stale `IsotopeAI v2.0` badge → `v3.1` |
 | `Invites bundle` | `token_input` → `p_code` (accept_invite + get_invite_details) |
+| `Community` / `CommunityHub` bundles | Store and Events navigation/cards removed |
+| `PWAManager` bundle | Service-worker activation reload routed through `window.__isoReloadGuard()` |
+| Store and Events chunks | Served as empty modules |
 
 ### `window.__IK__` injection
 
@@ -454,16 +423,10 @@ On first start, the server automatically:
 | `/__admin/patch` | GET | ✓ | SQL patch manager UI |
 | `/__admin/patch.sql` | GET | ✓ | Raw SQL download |
 | `/__admin/apply-sql` | POST | ✓ | Execute SQL via Management API proxy |
-| `/__admin/events` | GET | ✓ | Community events manager UI |
-| `/__admin/events.json` | GET | ✓ | List all events (incl. inactive) as JSON |
-| `/__admin/events/create` | POST | ✓ | Create new event |
-| `/__admin/events/update` | POST | ✓ | Update event fields |
-| `/__admin/events/delete` | POST | ✓ | Delete event (cascades attendees) |
-| `/__admin/events/publish` | POST | ✓ | Toggle event `is_active` |
-| `/__admin/events/refresh-dates` | POST | ✓ | Push past-dated events to future |
+| `/__admin/events*` | Any | ✓ | Removed-feature 404 JSON; Events admin is inactive |
 
 ✓ = protected by admin mode and `ADMIN_SECRET`
 
 ---
 
-_Last updated: v2.7.0 — 2026-06-01_
+_Last updated: v3.1.x — 2026-06-05_

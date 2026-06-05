@@ -43,6 +43,7 @@ The command system stores state in `~/.isotope`:
 - `logs/update.log`
 
 Termux Widget shortcuts are installed by `setup-termux-widget.sh` into `~/.shortcuts/isotope-*`.
+The installer embeds an absolute `isotope` command path when available because Termux Widget launches do not always inherit the interactive shell `PATH`.
 
 ## What `server.mjs` Does
 
@@ -59,6 +60,8 @@ It:
 7. Serves PWA/offline files and version endpoints
 
 Do not rebuild or directly edit compiled files in `public/assets`. Use serve-time patches in `server.mjs`.
+
+Do not replace the root `package.json` with a Replit/Vite workspace package. This repository is distributed as a zero-dependency local Node server, and `npm start` must continue to run `node server.mjs`.
 
 ## Removed Product Surfaces
 
@@ -130,6 +133,7 @@ When the local server is off:
 Do not fake online/cloud features.
 
 Cache names include app version and Git SHA. `/api/version` reports the current package version and local Git SHA when available. `/api/check-update` compares the local Git SHA to GitHub `main`.
+The reported PWA cache name must match `public/sw.js` (`isotope-local-shell-<version>-<sha12>`). Service-worker activation reloads must go through the injected one-shot reload guard, not a bare repeated reload loop.
 
 ## Update Rules
 
@@ -148,6 +152,8 @@ The safe updater:
 - Runs `npm install` if package files changed
 - Restarts only if the managed server was running before update
 - Writes logs to `~/.isotope/logs/update.log`
+
+Update checks should prefer semantic release versions when GitHub commit metadata contains one, and only fall back to SHA comparison when no version is available. When `hasUpdate=false`, clear stale dismissed-banner state rather than leaving hidden update state behind.
 
 ## Supabase Schema Notes
 

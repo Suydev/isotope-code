@@ -5,6 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased] — 2026-06-05 — PR #1 local-server cherry-picks
+
+### Changed
+- Closed the Replit QA pull request without merging its Vite/workspace `package.json` rewrite.
+- Kept the root package as a zero-dependency local-server package where `npm start` runs `node server.mjs`.
+- `isotope doctor` now reports whether the global `isotope` command is available in `PATH`.
+- `isotope open` and the Windows `open` command now warn when the managed local server is not responding before opening the browser.
+- Termux Widget shortcuts now prefer the absolute Termux `isotope` command path and fall back to the project-local wrapper when needed.
+
+### Fixed
+- Added a serve-time PWA manager patch so service-worker activation reloads go through a one-shot reload guard.
+- `/api/version` now reports the cache name format used by `public/sw.js`.
+- `/api/check-update` now prefers semantic version comparison and only falls back to Git SHA comparison when no version can be inferred.
+- The update checker clears stale dismissed-banner state when the server reports `hasUpdate=false`.
+- Direct visits to `/login`, `/signup`, and `/reset-password` redirect to the SPA auth shell at `/`.
+- The served auth bundle patches the stale landing badge from `IsotopeAI v2.0` to `IsotopeAI v3.1`.
+
 ## [3.1.0] — 2026-06-05 — Local server PWA and command system
 
 ### Added
@@ -22,7 +39,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - The update banner now opens a command dialog showing `isotope update`; it no longer stops or restarts the server from the browser.
 - `/api/restart` is now a legacy no-op response and cannot terminate the local process.
-- Update checks compare GitHub `main` with the local Git SHA so the banner disappears after a real update.
+- Update checks compare GitHub `main` with the local version/SHA so the banner disappears after a real update.
 
 ## [3.0.0] — 2026-06-05 — Professional core app cleanup
 

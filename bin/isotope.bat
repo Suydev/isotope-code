@@ -233,6 +233,11 @@ exit /b 0
 
 :open
 call :read_port
+call :is_running
+if not "%RUNNING%"=="1" (
+  echo WARN: Server is not responding on port %PORT_VALUE%. You may see a cached offline page.
+  echo WARN: Start the server first with: isotope start
+)
 set URL=http://127.0.0.1:%PORT_VALUE%
 start "" "%URL%" >nul 2>nul
 if errorlevel 1 echo Open this in browser: %URL%

@@ -2061,9 +2061,13 @@ CREATE TABLE IF NOT EXISTS public.user_onboarding (
   user_id      uuid PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
   completed    boolean NOT NULL DEFAULT false,
   completed_at timestamptz,
+  data         jsonb NOT NULL DEFAULT '{}'::jsonb,
   source       text NOT NULL DEFAULT 'profile',
   updated_at   timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.user_onboarding
+  ADD COLUMN IF NOT EXISTS data jsonb NOT NULL DEFAULT '{}'::jsonb;
 
 CREATE INDEX IF NOT EXISTS idx_user_onboarding_completed
   ON public.user_onboarding(completed);
