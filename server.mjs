@@ -1411,16 +1411,37 @@ function buildAuthGuardScript() {
 }
 const AUTH_GUARD_SCRIPT = buildAuthGuardScript();
 
+// ── Reload guard — prevents infinite SW-triggered reload loops ────────────────
+// Injected early (<head>) so it is present before the PWA/SW manager code runs.
+// window.__isoReloadGuard() allows at most ONE automatic reload per browser
+// session per app version.  Extra calls are silently suppressed with a console
+// warning so the user never sees a reload loop even if the SW fires repeatedly.
+const RELOAD_GUARD_SCRIPT = `<script>
+(function(){
+  var _k='iso_sw_rg_v3';
+  window.__isoReloadGuard=function(){
+    if(sessionStorage.getItem(_k)){
+      console.warn('[Isotope] SW reload guard: blocked repeat automatic reload');
+      return false;
+    }
+    sessionStorage.setItem(_k,'1');
+    window.location.reload();
+    return true;
+  };
+})();
+</script>`;
+
 function injectScripts(html) {
   // Injection order (all into </head> so they run before React):
   //  1. ORIGIN_SCRIPT   — sets window.__ISO_ORIGIN__, __ISO_SUPA_URL__, __ISO_ANON__
   //  2. LOCAL_DATA_GUARD_SCRIPT — per-user local workspace isolation
   //  3. AUTH_GUARD_SCRIPT — immediate redirect if no valid session (must be early)
   //  4. PREMIUM_SCRIPT  — fetch interceptor + profile upgrade (only runs if authed)
-  //  5. KEY_SCRIPT      — AI API keys
-  //  6. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
+  //  5. RELOAD_GUARD_SCRIPT — one-shot SW reload guard (max 1 auto-reload/session)
+  //  6. KEY_SCRIPT      — AI API keys
+  //  7. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
   // UPDATE_COMMAND_DIALOG_SCRIPT goes before </body> (needs document.body).
-  let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + '</head>');
+  let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + RELOAD_GUARD_SCRIPT + '</head>');
   if (KEY_SCRIPT) out = out.replace('</head>', KEY_SCRIPT + '</head>');
   out = out.replace('</head>', USERNAME_AUTH_SCRIPT + '</head>');
   out = out.replace('</body>', UPDATE_COMMAND_DIALOG_SCRIPT + '</body>');
@@ -1454,6 +1475,7 @@ const COMMUNITY_HUB_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityHub-g
 const STORE_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'FocusStore-D5cRXSIr.js');
 const EVENTS_BUNDLE_ABS        = path.join(PUBLIC_DIR, 'assets', 'EventsCalendar-COHF8nOK.js');
 const SERVICE_WORKER_ABS       = path.join(PUBLIC_DIR, 'sw.js');
+const PWA_MANAGER_BUNDLE_ABS   = path.join(PUBLIC_DIR, 'assets', 'PWAManager-DjIYufp2.js');
 const REMOVED_FEATURE_MODULE   = Buffer.from('export default function RemovedFeature(){return null;}\\n', 'utf8');
 
 const COMMUNITY_FEATURE_RENDER_FROM = 'a==="store"&&e.jsx(U,{onNavigate:i},"store"),a==="events"&&e.jsx(M,{onNavigate:i},"events"),';
@@ -1487,6 +1509,32 @@ function getPatchedCommunityHubBundle() {
     patchedCommunityHubBundle = Buffer.from(raw, 'utf8');
   } catch { patchedCommunityHubBundle = null; }
   return patchedCommunityHubBundle;
+}
+
+// ── PWAManager bundle patch: reload guard ────────────────────────────────────
+// The compiled PWAManager bundle fires window.location.reload() automatically
+// whenever a service-worker 'activated' event fires with isUpdate||isExternal.
+// On some devices/browsers this loops: SW activates → reload → SW activates →
+// reload … indefinitely while the server is offline or the SW cache is stale.
+// Fix: replace the bare reload() with window.__isoReloadGuard() which allows at
+// most one automatic reload per session (the guard script is injected early in
+// index.html before any bundles load).
+const PWA_RELOAD_FROM = `(r.isUpdate || r.isExternal) && window.location.reload()`;
+const PWA_RELOAD_TO   = `(r.isUpdate || r.isExternal) && (typeof window.__isoReloadGuard==='function' ? window.__isoReloadGuard() : window.location.reload())`;
+let patchedPWAManagerBundle = null;
+function getPatchedPWAManagerBundle() {
+  if (patchedPWAManagerBundle) return patchedPWAManagerBundle;
+  try {
+    let raw = fs.readFileSync(PWA_MANAGER_BUNDLE_ABS, 'utf8');
+    if (raw.includes(PWA_RELOAD_FROM)) {
+      raw = raw.replace(PWA_RELOAD_FROM, PWA_RELOAD_TO);
+      console.log('[PWAPatch] SW reload guard applied — auto-reload loop prevented');
+    } else {
+      console.warn('[PWAPatch] Reload patch string not found in PWAManager bundle');
+    }
+    patchedPWAManagerBundle = Buffer.from(raw, 'utf8');
+  } catch (e) { console.error('[PWAPatch] Error:', e.message); patchedPWAManagerBundle = null; }
+  return patchedPWAManagerBundle;
 }
 
 // ── App bundle patch: disable demo mode ──────────────────────────────────────
@@ -1725,7 +1773,10 @@ function getPatchedAuthBundle() {
     // Sign Up: button label
     p('"Create Account with Email"', '"Create Account"');
 
-    console.log('[AuthPatch] ' + applied + '/4 patches applied to Auth bundle');
+    // Landing panel version badge: update stale hardcoded version string
+    p('children: "IsotopeAI v2.0"', 'children: "IsotopeAI v3.1"');
+
+    console.log('[AuthPatch] ' + applied + '/5 patches applied to Auth bundle');
     patchedAuthBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[AuthPatch] Error:', e.message); patchedAuthBundle = null; }
   return patchedAuthBundle;
@@ -2280,7 +2331,7 @@ const server = http.createServer((req, res) => {
       local_server: true,
       update_command: 'isotope update',
       start_command: 'isotope start',
-      pwa_cache: 'isotope-shell-' + LOCAL_VERSION.version + '-' + String(DEPLOYED_SHA).slice(0, 12),
+      pwa_cache: 'isotope-local-shell-' + LOCAL_VERSION.version + '-' + String(DEPLOYED_SHA).slice(0, 12),
     }));
     return;
   }
@@ -2297,7 +2348,16 @@ const server = http.createServer((req, res) => {
       .then(function (latest) {
         LOCAL_VERSION = readLocalVersionInfo();
         DEPLOYED_SHA = LOCAL_VERSION.sha || DEPLOYED_SHA;
-        const hasUpdate = /^[0-9a-f]{40}$/i.test(DEPLOYED_SHA) && latest.sha && latest.sha !== DEPLOYED_SHA;
+        // Prefer version-string comparison: extract semver from upstream commit message
+        // (e.g. "release: v3.1.0 ...") and compare with local package.json version.
+        // Falls back to SHA comparison only when no version tag is present in message.
+        // This prevents false-positive update banners in Replit / CI environments where
+        // the workspace git SHA always differs from the upstream repo SHA.
+        const upstreamVer = (latest.message || '').match(/\bv?(\d+\.\d+\.\d+)\b/)?.[1] || null;
+        const localVer = LOCAL_VERSION.version;
+        const hasUpdate = upstreamVer
+          ? upstreamVer !== localVer
+          : /^[0-9a-f]{40}$/i.test(DEPLOYED_SHA) && latest.sha && latest.sha !== DEPLOYED_SHA;
         _ghCache = {
           hasUpdate:  hasUpdate,
           deployed:   DEPLOYED_SHA,
@@ -3450,6 +3510,15 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
   const safePath = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, '');
   const filePath = path.join(PUBLIC_DIR, safePath);
 
+  // ── SPA alias redirects — paths in PUBLIC_PATHS that have no React Router route ──
+  // /login, /signup, /reset-password are not defined in the SPA router; navigating
+  // to them directly renders the SPA 404 page. Redirect them to / (the auth form).
+  if (req.method === 'GET' && (urlPath === '/login' || urlPath === '/signup' || urlPath === '/reset-password')) {
+    res.writeHead(302, { Location: '/' });
+    res.end();
+    return;
+  }
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, apikey, x-client-info');
@@ -3540,6 +3609,10 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
       const buf = getPatchedCommunityHubBundle();
       if (buf) { send(buf); return; }
     }
+    if (fp === PWA_MANAGER_BUNDLE_ABS) {
+      const buf = getPatchedPWAManagerBundle();
+      if (buf) { send(buf); return; }
+    }
     if (fp === STORE_BUNDLE_ABS || fp === EVENTS_BUNDLE_ABS) {
       send(REMOVED_FEATURE_MODULE);
       return;
@@ -3606,6 +3679,7 @@ server.listen(port, '0.0.0.0', () => {
     getPatchedInvitesBundle();
     getPatchedCommunityBundle();
     getPatchedCommunityHubBundle();
+    getPatchedPWAManagerBundle();
   });
 
   // Auto-run DML backfills on startup (safe REST-only operations, no DDL needed)
