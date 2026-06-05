@@ -16,10 +16,25 @@ LOG_DIR="$ISO_HOME/logs"
 mkdir -p "$ISO_HOME" "$LOG_DIR" "$SHORTCUT_DIR"
 printf '%s\n' "$PROJECT_DIR" > "$ISO_HOME/project-path"
 
+# Resolve the absolute global command path at install time so shortcuts do not
+# rely on PATH being correct inside a Termux Widget execution context.
+# Widget processes launched from the Android home screen do not inherit the same
+# PATH as an interactive Termux terminal, so a bare `isotope` lookup often fails.
+TERMUX_BIN_ISO="/data/data/com.termux/files/usr/bin/isotope"
+if [ -x "$TERMUX_BIN_ISO" ]; then
+  GLOBAL_ISO="$TERMUX_BIN_ISO"
+elif command -v isotope >/dev/null 2>&1; then
+  GLOBAL_ISO="$(command -v isotope)"
+else
+  GLOBAL_ISO=""
+fi
+
 make_shortcut() {
   name="$1"
   command="$2"
   file="$SHORTCUT_DIR/$name"
+  # Embed the resolved absolute path so the shortcut works without PATH.
+  # Falls back to project-local bin/isotope if the global command is absent.
   cat > "$file" <<EOF
 #!/usr/bin/env bash
 set -u
@@ -28,10 +43,22 @@ PROJECT_PATH_FILE="\$ISO_HOME/project-path"
 PROJECT_DIR=""
 [ -f "\$PROJECT_PATH_FILE" ] && PROJECT_DIR="\$(sed -n '1p' "\$PROJECT_PATH_FILE")"
 run_isotope() {
+  # 1. Absolute Termux global path (works even when PATH is not set by widget)
+  if [ -x "/data/data/com.termux/files/usr/bin/isotope" ]; then
+    "/data/data/com.termux/files/usr/bin/isotope" "$command"
+    return \$?
+  fi
+  # 2. Absolute path resolved at install time (non-Termux Linux/macOS)
+  if [ -n "${GLOBAL_ISO:-}" ] && [ -x "${GLOBAL_ISO:-}" ]; then
+    "${GLOBAL_ISO}" "$command"
+    return \$?
+  fi
+  # 3. PATH lookup (fallback for interactive shells with correct PATH)
   if command -v isotope >/dev/null 2>&1; then
     isotope "$command"
     return \$?
   fi
+  # 4. Project-local binary (last resort)
   if [ -n "\$PROJECT_DIR" ] && [ -x "\$PROJECT_DIR/bin/isotope" ]; then
     ISOTOPE_PROJECT_DIR="\$PROJECT_DIR" "\$PROJECT_DIR/bin/isotope" "$command"
     return \$?
@@ -59,10 +86,13 @@ for f in isotope-start isotope-stop isotope-restart isotope-update isotope-open 
   if [ -x "$SHORTCUT_DIR/$f" ]; then info "  $SHORTCUT_DIR/$f"; else warn "Missing executable: $SHORTCUT_DIR/$f"; fi
 done
 
-if command -v isotope >/dev/null 2>&1; then
-  info "Global isotope command: configured"
+if [ -x "$TERMUX_BIN_ISO" ]; then
+  info "Global isotope command: $TERMUX_BIN_ISO (absolute path embedded in shortcuts)"
+elif [ -n "$GLOBAL_ISO" ]; then
+  info "Global isotope command: $GLOBAL_ISO (absolute path embedded in shortcuts)"
 else
-  warn "Global isotope command not found in PATH. Shortcuts will fall back to $PROJECT_DIR/bin/isotope."
+  warn "Global isotope command not found. Shortcuts will fall back to $PROJECT_DIR/bin/isotope."
+  warn "Run bash setup.sh first to install the global command."
 fi
 
 info ""
