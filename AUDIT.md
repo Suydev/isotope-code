@@ -1,9 +1,17 @@
 # IsotopeAI Self-Host — Full Modification Audit
 
-> Last updated: 2026-06-04 (stabilization audit)
+> Last updated: 2026-06-05 (local-server command/PWA audit)
 > Repository: [Suydev/isotope-code](https://github.com/Suydev/isotope-code)
 
 This document describes every modification made to the original IsotopeAI application for self-hosting, premium unlock, community feature wiring, and production hardening.
+
+## Current 2026-06-05 Architecture Note
+
+Isotope is now documented and packaged as downloadable local-server software. The user-facing app runs from `node server.mjs` or the installed `isotope` command on each user's device.
+
+Supabase is backend/cloud sync only: auth, database, storage, realtime, community/group sync, and optional edge functions. Supabase is not used as static frontend hosting, a VPS replacement, or the main website.
+
+Events and Store product surfaces were removed in v3.0.0. v3.1.0 adds the global command system, Termux Widget shortcuts, service-worker app-shell caching, offline/local-server status UI, and command-based update dialog.
 
 ---
 

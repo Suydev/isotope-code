@@ -4,45 +4,47 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>IsotopeAI Local</title>
-<meta name="description" content="A local study app with Supabase cloud sync.">
+<meta name="description" content="A downloadable local-server study app with Supabase cloud sync.">
 <style>
-:root{--bg:#08090b;--panel:#101216;--line:#252a33;--text:#f5f7fb;--muted:#a5adba;--brand:#53e0c2;--accent:#8fb7ff;--warn:#ffd166}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.55}a{color:inherit}.hero{min-height:76vh;background:linear-gradient(90deg,rgba(8,9,11,.86),rgba(8,9,11,.46)),url('https://raw.githubusercontent.com/Suydev/isotope-code/main/public/opengraph.jpg') center/cover;padding:28px;display:flex;align-items:flex-end}.hero-inner{max-width:1100px;margin:0 auto;width:100%;padding:80px 0 48px}.nav{position:absolute;top:0;left:0;right:0;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(rgba(0,0,0,.55),transparent)}.brand{display:flex;align-items:center;gap:12px;font-weight:800}.brand img{width:36px;height:36px}.links{display:flex;gap:10px;flex-wrap:wrap}.links a,.btn{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);text-decoration:none;border-radius:8px;padding:9px 13px;color:var(--text)}h1{font-size:clamp(42px,8vw,88px);line-height:.94;margin:0 0 18px;max-width:860px;letter-spacing:0}.lead{font-size:clamp(18px,2.5vw,26px);max-width:760px;color:#d7dde8;margin:0 0 28px}.cta{display:flex;gap:12px;flex-wrap:wrap}.primary{background:var(--brand);color:#06211b;border-color:var(--brand);font-weight:800}.main{max-width:1100px;margin:0 auto;padding:52px 28px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:22px}.card h3{margin:0 0 8px;font-size:18px}.card p{margin:0;color:var(--muted)}.band{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#0c0e12;margin:38px -28px;padding:38px 28px}.code{background:#050608;border:1px solid var(--line);border-radius:8px;padding:18px;overflow:auto;color:#b7f7df}.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;counter-reset:s}.step{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px}.step:before{counter-increment:s;content:counter(s);display:inline-grid;place-items:center;width:30px;height:30px;background:var(--accent);color:#061328;border-radius:50%;font-weight:800;margin-bottom:14px}.split{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:760px){.split{grid-template-columns:1fr}.hero{padding:20px}.links{display:none}}footer{padding:36px 28px;border-top:1px solid var(--line);color:var(--muted);text-align:center}</style>
+:root{--bg:#08090b;--panel:#101216;--line:#252a33;--text:#f5f7fb;--muted:#a5adba;--brand:#53e0c2;--accent:#8fb7ff;--warn:#ffd166}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.55}a{color:inherit}.hero{min-height:72vh;background:linear-gradient(90deg,rgba(8,9,11,.88),rgba(8,9,11,.48)),url('https://raw.githubusercontent.com/Suydev/isotope-code/main/public/opengraph.jpg') center/cover;padding:28px;display:flex;align-items:flex-end}.hero-inner{max-width:1100px;margin:0 auto;width:100%;padding:80px 0 48px}.nav{position:absolute;top:0;left:0;right:0;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(rgba(0,0,0,.55),transparent)}.brand{display:flex;align-items:center;gap:12px;font-weight:800}.brand img{width:36px;height:36px}.links{display:flex;gap:10px;flex-wrap:wrap}.links a,.btn{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);text-decoration:none;border-radius:8px;padding:9px 13px;color:var(--text)}h1{font-size:clamp(40px,7vw,80px);line-height:.96;margin:0 0 18px;max-width:900px;letter-spacing:0}.lead{font-size:clamp(18px,2.4vw,25px);max-width:820px;color:#d7dde8;margin:0 0 28px}.cta{display:flex;gap:12px;flex-wrap:wrap}.primary{background:var(--brand);color:#06211b;border-color:var(--brand);font-weight:800}.main{max-width:1100px;margin:0 auto;padding:52px 28px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:22px}.card h3{margin:0 0 8px;font-size:18px}.card p,.card li{color:var(--muted)}.card p{margin:0}.band{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#0c0e12;margin:38px -28px;padding:38px 28px}.code{background:#050608;border:1px solid var(--line);border-radius:8px;padding:18px;overflow:auto;color:#b7f7df}.split{display:grid;grid-template-columns:1fr 1fr;gap:18px}.warn{border-color:rgba(255,209,102,.45);background:#17130a}@media(max-width:760px){.split{grid-template-columns:1fr}.hero{padding:20px}.links{display:none}}footer{padding:36px 28px;border-top:1px solid var(--line);color:var(--muted);text-align:center}</style>
 </head>
 <body>
 <header class="hero">
   <nav class="nav"><div class="brand"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/logo.svg" alt="">IsotopeAI Local</div><div class="links"><a href="https://github.com/Suydev/isotope-code">GitHub</a><a href="https://github.com/Suydev/isotope-code/releases">Releases</a></div></nav>
   <div class="hero-inner">
-    <h1>Run the study app on your own device.</h1>
-    <p class="lead">IsotopeAI Local is downloadable software: a local server, a browser app, offline-friendly study tools, and Supabase cloud sync for community, events, auth, storage, and realtime.</p>
+    <h1>Run Isotope on your own device.</h1>
+    <p class="lead">Isotope is downloadable local-server software. Supabase provides auth, database, storage, realtime, and community sync, but the user-facing app runs through your local Node server.</p>
     <div class="cta"><a class="btn primary" href="https://github.com/Suydev/isotope-code/releases">Download release</a><a class="btn" href="https://github.com/Suydev/isotope-code">View source</a></div>
   </div>
 </header>
 <main class="main">
   <section class="grid">
-    <div class="card"><h3>Local first</h3><p>Starts on your computer or phone. No VPS needed. Open localhost and study.</p></div>
-    <div class="card"><h3>Cloud synced</h3><p>Supabase powers auth, onboarding, community, events, storage, and realtime when online.</p></div>
-    <div class="card"><h3>Offline tolerant</h3><p>Local study flows keep working; cloud widgets degrade cleanly instead of crashing.</p></div>
-    <div class="card"><h3>Owner tools</h3><p>Private admin mode for diagnostics, SQL patching, event management, and verification.</p></div>
+    <div class="card"><h3>Local server</h3><p>Run <code>node server.mjs</code> or <code>isotope start</code>, then open localhost.</p></div>
+    <div class="card"><h3>Cloud sync</h3><p>Supabase powers online auth, profiles, community groups, storage, and realtime.</p></div>
+    <div class="card"><h3>Offline shell</h3><p>The service worker caches the app shell after first launch and shows honest offline status.</p></div>
+    <div class="card"><h3>Command updates</h3><p>The update banner shows <code>isotope update</code>. It never stops the server from the browser.</p></div>
   </section>
+
   <section class="band">
-    <h2>Install in one command</h2>
+    <h2>Install</h2>
     <div class="split"><pre class="code"># macOS, Linux, Termux
-chmod +x setup.sh
-./setup.sh</pre><pre class="code">:: Windows
+bash setup.sh</pre><pre class="code">:: Windows
 setup.bat
 
 :: PowerShell
-./install.ps1</pre></div>
+.\install.ps1</pre></div>
   </section>
-  <section>
-    <h2>How it works</h2>
-    <div class="steps"><div class="step"><h3>Download</h3><p>Clone or unzip the GitHub release.</p></div><div class="step"><h3>Run setup</h3><p>The script detects your platform, checks Node/Git, creates .env, and starts the server.</p></div><div class="step"><h3>Open localhost</h3><p>The app runs locally while Supabase syncs shared data online.</p></div></div>
+
+  <section class="grid">
+    <div class="card"><h3>Global commands</h3><p><code>isotope start</code>, <code>isotope stop</code>, <code>isotope restart</code>, <code>isotope update</code>, <code>isotope status</code>, <code>isotope doctor</code>, <code>isotope open</code>, and <code>isotope logs</code> work from any directory after setup.</p></div>
+    <div class="card"><h3>Termux Widget</h3><p>Run <code>bash setup-termux-widget.sh</code>, then add Android home-screen shortcuts such as isotope-start, isotope-update, isotope-open, and isotope-doctor.</p></div>
   </section>
-  <section class="band">
-    <h2>Not a hosting site</h2>
-    <p>Do not deploy this as one central web backend for everyone. The intended model is many local installs worldwide connected to the Isotope Supabase cloud with RLS, auth, storage, and realtime.</p>
+
+  <section class="band warn">
+    <h2>Supabase is not the website host</h2>
+    <p>Do not try to host the app at <code>https://&lt;project-ref&gt;.supabase.co/</code>. That URL is for Supabase APIs and services. Isotope is intended as many local installs connected to Supabase cloud sync with RLS, auth, storage, and realtime.</p>
   </section>
 </main>
-<footer>IsotopeAI Local · local software with Supabase cloud sync</footer>
+<footer>IsotopeAI Local · downloadable local-server software with Supabase cloud sync</footer>
 </body>
 </html>

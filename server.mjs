@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
 import crypto from 'crypto';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 // ── Simple in-memory rate limiter for auth routes ─────────────────────────────
@@ -28,6 +29,10 @@ setInterval(() => {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, 'public');
+
+process.on('unhandledRejection', (err) => {
+  console.error('[Runtime] Unhandled promise rejection:', err && err.message ? err.message : err);
+});
 
 // ── Auto-load .env file ─────────────────────────────────────────────────────
 // Allows starting with just `node server.mjs`; host environment values win.
@@ -1221,40 +1226,113 @@ const PREMIUM_SCRIPT = `<script>
 })();
 </script>`;
 
-// ── "Reload to update" banner patch ──────────────────────────────────────────
-// The compiled React bundle renders an update banner with a "Reload to update"
-// button that just calls window.location.reload(). This script intercepts that
-// click and instead calls POST /api/restart so the Node process exits and
-// The process manager starts it fresh, then polls until it's back up.
-const UPDATE_RESTART_SCRIPT = `<script>
+// ── Update command dialog patch ──────────────────────────────────────────────
+// The downloadable app runs from a local Node server. A browser button must never
+// kill the server. Update UI only shows the safe local command system.
+const UPDATE_COMMAND_DIALOG_SCRIPT = `<script>
 (function() {
+  function platformHint() {
+    var ua = navigator.userAgent || '';
+    if (/Android/i.test(ua)) {
+      return 'Android/Termux: run isotope update in Termux. If Termux Widget shortcuts are installed, tap isotope-update from your home screen.';
+    }
+    if (/Windows/i.test(ua)) {
+      return 'Windows: open Command Prompt or PowerShell and run isotope update. If the command is not installed, run setup.bat again.';
+    }
+    if (/Macintosh|Mac OS/i.test(ua)) {
+      return 'macOS: open Terminal and run isotope update. If the command is not installed, run bash setup.sh again.';
+    }
+    return 'Linux/Termux: open a terminal and run isotope update. If the command is not installed, run bash setup.sh again.';
+  }
+
+  function copyCommand(btn) {
+    var cmd = 'isotope update';
+    function done(ok) {
+      if (!btn) return;
+      var old = btn.textContent;
+      btn.textContent = ok ? 'Copied' : 'Copy failed';
+      setTimeout(function(){ btn.textContent = old; }, 1400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(cmd).then(function(){ done(true); }).catch(function(){ done(false); });
+    } else {
+      try {
+        var t = document.createElement('textarea');
+        t.value = cmd;
+        t.style.position = 'fixed';
+        t.style.opacity = '0';
+        document.body.appendChild(t);
+        t.select();
+        document.execCommand('copy');
+        t.remove();
+        done(true);
+      } catch(e) { done(false); }
+    }
+  }
+
+  window.__isoShowUpdateDialog = function() {
+    var existing = document.getElementById('__iso_update_modal__');
+    if (existing) existing.remove();
+    var wrap = document.createElement('div');
+    wrap.id = '__iso_update_modal__';
+    wrap.innerHTML =
+      '<div class="iso-update-backdrop" role="presentation"></div>' +
+      '<section class="iso-update-dialog" role="dialog" aria-modal="true" aria-labelledby="iso-update-title">' +
+      '<button class="iso-update-x" type="button" aria-label="Close">x</button>' +
+      '<h2 id="iso-update-title">Update available</h2>' +
+      '<p>A new version of Isotope is available. Because this app runs locally on your device, update must be applied through the local command system.</p>' +
+      '<label>Run this command</label>' +
+      '<pre><code>isotope update</code></pre>' +
+      '<p class="iso-update-hint">' + platformHint() + '</p>' +
+      '<p class="iso-update-hint">After update, run <code>isotope start</code> if the server did not restart automatically.</p>' +
+      '<div class="iso-update-actions">' +
+      '<button class="iso-copy" type="button">Copy command</button>' +
+      '<button class="iso-later" type="button">Later</button>' +
+      '<a class="iso-docs" href="https://github.com/Suydev/isotope-code/blob/main/README.md#updating" target="_blank" rel="noreferrer">Open docs / troubleshooting</a>' +
+      '</div>' +
+      '</section>';
+    var css = document.getElementById('__iso_update_modal_css__');
+    if (!css) {
+      css = document.createElement('style');
+      css.id = '__iso_update_modal_css__';
+      css.textContent =
+        '#__iso_update_modal__{position:fixed;inset:0;z-index:2147483647;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f4f4f5}' +
+        '#__iso_update_modal__ .iso-update-backdrop{position:absolute;inset:0;background:rgba(9,9,11,.72);backdrop-filter:blur(5px)}' +
+        '#__iso_update_modal__ .iso-update-dialog{position:relative;margin:72px auto 0;width:min(520px,calc(100vw - 28px));background:#18181b;border:1px solid rgba(245,158,11,.32);border-radius:8px;box-shadow:0 24px 80px rgba(0,0,0,.45);padding:22px}' +
+        '#__iso_update_modal__ h2{margin:0 32px 10px 0;font-size:22px;line-height:1.2;letter-spacing:0;color:#fff}' +
+        '#__iso_update_modal__ p{margin:10px 0;color:#d4d4d8;font-size:14px;line-height:1.5}' +
+        '#__iso_update_modal__ label{display:block;margin-top:16px;margin-bottom:6px;color:#a1a1aa;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}' +
+        '#__iso_update_modal__ pre{margin:0;background:#09090b;border:1px solid #3f3f46;border-radius:7px;padding:14px;overflow:auto}' +
+        '#__iso_update_modal__ code{font-family:Consolas,"SFMono-Regular",monospace;color:#fbbf24;font-size:14px}' +
+        '#__iso_update_modal__ .iso-update-hint{font-size:13px;color:#a1a1aa}' +
+        '#__iso_update_modal__ .iso-update-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}' +
+        '#__iso_update_modal__ button,#__iso_update_modal__ .iso-docs{border-radius:7px;padding:9px 13px;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer}' +
+        '#__iso_update_modal__ .iso-copy{border:0;background:#f59e0b;color:#18181b}' +
+        '#__iso_update_modal__ .iso-later{border:1px solid #3f3f46;background:#27272a;color:#f4f4f5}' +
+        '#__iso_update_modal__ .iso-docs{border:1px solid #52525b;color:#e4e4e7;background:transparent}' +
+        '#__iso_update_modal__ .iso-update-x{position:absolute;right:14px;top:12px;border:0;background:transparent;color:#a1a1aa;padding:6px 9px;font-size:16px}';
+      document.head.appendChild(css);
+    }
+    document.body.appendChild(wrap);
+    var close = function(){ if (wrap.parentNode) wrap.remove(); };
+    wrap.querySelector('.iso-copy').addEventListener('click', function(){ copyCommand(this); });
+    wrap.querySelector('.iso-later').addEventListener('click', close);
+    wrap.querySelector('.iso-update-x').addEventListener('click', close);
+    wrap.querySelector('.iso-update-backdrop').addEventListener('click', close);
+  };
+
   function patchUpdateBtn() {
     var btns = document.querySelectorAll('button, a, [role="button"]');
     for (var i = 0; i < btns.length; i++) {
       var el = btns[i];
       if (el.__isoPatch) continue;
       var txt = (el.textContent || '').trim();
-      if (txt === 'Reload to update' || txt.indexOf('Reload to update') !== -1) {
+      if (txt === 'Reload to update' || txt === 'Update now' || txt.indexOf('Reload to update') !== -1) {
         el.__isoPatch = true;
         el.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopImmediatePropagation();
-          var orig = this.textContent;
-          this.textContent = 'Restarting server…';
-          this.disabled = true;
-          fetch('/api/restart', { method: 'POST' })
-            .catch(function(){})
-            .finally(function() {
-              // Poll until the server is back, then reload
-              var tries = 0;
-              var poll = setInterval(function() {
-                tries++;
-                fetch('/api/version', { cache: 'no-store' })
-                  .then(function(r) { if (r.ok) { clearInterval(poll); window.location.reload(); } })
-                  .catch(function() {});
-                if (tries > 30) clearInterval(poll);
-              }, 1000);
-            });
+          window.__isoShowUpdateDialog();
         }, true);
       }
     }
@@ -1341,11 +1419,11 @@ function injectScripts(html) {
   //  4. PREMIUM_SCRIPT  — fetch interceptor + profile upgrade (only runs if authed)
   //  5. KEY_SCRIPT      — AI API keys
   //  6. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
-  // UPDATE_RESTART_SCRIPT goes before </body> (needs document.body to exist)
+  // UPDATE_COMMAND_DIALOG_SCRIPT goes before </body> (needs document.body).
   let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + '</head>');
   if (KEY_SCRIPT) out = out.replace('</head>', KEY_SCRIPT + '</head>');
   out = out.replace('</head>', USERNAME_AUTH_SCRIPT + '</head>');
-  out = out.replace('</body>', UPDATE_RESTART_SCRIPT + '</body>');
+  out = out.replace('</body>', UPDATE_COMMAND_DIALOG_SCRIPT + '</body>');
   return out;
 }
 function injectKeys(htmlBuffer) {
@@ -1366,6 +1444,49 @@ function getPatchedAiStore() {
     );
   } catch { patchedAiStore = null; }
   return patchedAiStore;
+}
+
+// ── Feature removal patches: Events and Store ────────────────────────────────
+// The app is distributed as pre-built chunks.  Keep removal in serve-time patches
+// so the original compiled assets remain untouched and no rebuild is required.
+const COMMUNITY_BUNDLE_ABS     = path.join(PUBLIC_DIR, 'assets', 'Community-DIqF5406.js');
+const COMMUNITY_HUB_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityHub-gANxZssO.js');
+const STORE_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'FocusStore-D5cRXSIr.js');
+const EVENTS_BUNDLE_ABS        = path.join(PUBLIC_DIR, 'assets', 'EventsCalendar-COHF8nOK.js');
+const SERVICE_WORKER_ABS       = path.join(PUBLIC_DIR, 'sw.js');
+const REMOVED_FEATURE_MODULE   = Buffer.from('export default function RemovedFeature(){return null;}\\n', 'utf8');
+
+const COMMUNITY_FEATURE_RENDER_FROM = 'a==="store"&&e.jsx(U,{onNavigate:i},"store"),a==="events"&&e.jsx(M,{onNavigate:i},"events"),';
+const COMMUNITY_FEATURE_RENDER_TO   = '';
+const COMMUNITY_HUB_CARDS_FROM = 'h=[{id:"discovery",label:"Browse Groups",icon:xe,color:"text-brand-500"},{id:"challenges",label:"Challenges",icon:T,color:"text-rose-500"},{id:"leaderboard",label:"Leaderboard",icon:z,color:"text-amber-500"},{id:"store",label:"Store",icon:ge,color:"text-orange-500"},{id:"events",label:"Events",icon:be,color:"text-emerald-500"}]';
+const COMMUNITY_HUB_CARDS_TO   = 'h=[{id:"discovery",label:"Browse Groups",icon:xe,color:"text-brand-500"},{id:"challenges",label:"Challenges",icon:T,color:"text-rose-500"},{id:"leaderboard",label:"Leaderboard",icon:z,color:"text-amber-500"}]';
+
+let patchedCommunityBundle = null;
+function getPatchedCommunityBundle() {
+  if (patchedCommunityBundle) return patchedCommunityBundle;
+  try {
+    let raw = fs.readFileSync(COMMUNITY_BUNDLE_ABS, 'utf8');
+    if (raw.includes(COMMUNITY_FEATURE_RENDER_FROM)) {
+      raw = raw.replace(COMMUNITY_FEATURE_RENDER_FROM, COMMUNITY_FEATURE_RENDER_TO);
+      console.log('[FeaturePatch] Store and Events render paths removed');
+    } else { console.warn('[FeaturePatch] Community render removal string not found'); }
+    patchedCommunityBundle = Buffer.from(raw, 'utf8');
+  } catch { patchedCommunityBundle = null; }
+  return patchedCommunityBundle;
+}
+
+let patchedCommunityHubBundle = null;
+function getPatchedCommunityHubBundle() {
+  if (patchedCommunityHubBundle) return patchedCommunityHubBundle;
+  try {
+    let raw = fs.readFileSync(COMMUNITY_HUB_BUNDLE_ABS, 'utf8');
+    if (raw.includes(COMMUNITY_HUB_CARDS_FROM)) {
+      raw = raw.replace(COMMUNITY_HUB_CARDS_FROM, COMMUNITY_HUB_CARDS_TO);
+      console.log('[FeaturePatch] Store and Events hub cards removed');
+    } else { console.warn('[FeaturePatch] Community hub card removal string not found'); }
+    patchedCommunityHubBundle = Buffer.from(raw, 'utf8');
+  } catch { patchedCommunityHubBundle = null; }
+  return patchedCommunityHubBundle;
 }
 
 // ── App bundle patch: disable demo mode ──────────────────────────────────────
@@ -1757,67 +1878,6 @@ function fetchRemoteAsset(assetName) {
   });
 }
 
-function eventDateLabel(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Upcoming';
-  const today = new Date();
-  const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const startEvent = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffDays = Math.round((startEvent - startToday) / 86400000);
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Tomorrow';
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function eventTimeLabel(startValue, endValue) {
-  const start = new Date(startValue);
-  if (Number.isNaN(start.getTime())) return 'Time TBD';
-  const startText = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  const end = new Date(endValue);
-  if (Number.isNaN(end.getTime())) return startText;
-  return startText + ' - ' + end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
-
-function normalizeTags(value, fallback) {
-  if (Array.isArray(value)) return value.filter(Boolean).map(String).slice(0, 5);
-  if (typeof value === 'string' && value.trim()) {
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String).slice(0, 5);
-    } catch {}
-    return value.split(',').map((v) => v.trim()).filter(Boolean).slice(0, 5);
-  }
-  return fallback ? [fallback] : [];
-}
-
-function toCommunityEventCard(row) {
-  const type = String(row?.event_type || row?.type || row?.category || 'study');
-  const attendeeCount = Number(
-    row?.attendee_count ??
-    row?.attendees_count ??
-    row?.rsvp_going ??
-    row?.going_count ??
-    row?.participant_count ??
-    0
-  );
-  return {
-    id: row?.id || row?.event_id || ('event-' + Buffer.from(String(row?.title || row?.name || Date.now())).toString('base64url').slice(0, 12)),
-    title: String(row?.title || row?.name || 'Untitled event'),
-    description: row?.description || '',
-    type,
-    date: eventDateLabel(row?.start_time || row?.starts_at || row?.event_date),
-    time: eventTimeLabel(row?.start_time || row?.starts_at || row?.event_date, row?.end_time || row?.ends_at),
-    attendees: Number.isFinite(attendeeCount) && attendeeCount > 0 ? attendeeCount : 0,
-    tags: normalizeTags(row?.tags || row?.subjects, type),
-    image: row?.gradient || row?.theme || 'from-brand-500 to-indigo-600',
-    image_url: row?.image_url || row?.cover_image_url || null,
-    starts_at: row?.start_time || row?.starts_at || row?.event_date || null,
-    ends_at: row?.end_time || row?.ends_at || null,
-    is_featured: row?.is_featured === true,
-    raw: row,
-  };
-}
-
 function getUserIdFromJwt(jwt) {
   const payload = decodeJwtPayload(jwt);
   return payload && typeof payload.sub === 'string' ? payload.sub : null;
@@ -1949,14 +2009,41 @@ function handleSupabaseProxy(req, res) {
 const GH_OWNER = 'Suydev';
 const GH_REPO  = 'isotope-code';
 
-// Read deployed commit SHA from VERSION file written at push time
-let DEPLOYED_SHA = 'unknown';
-try {
-  const vf = path.join(__dirname, 'VERSION');
-  const vdata = JSON.parse(fs.readFileSync(vf, 'utf8'));
-  DEPLOYED_SHA = vdata.sha || 'unknown';
-  console.log('[Update] Deployed: ' + DEPLOYED_SHA.slice(0, 7));
-} catch {}
+function readLocalVersionInfo() {
+  const info = {
+    version: '0.0.0',
+    sha: 'unknown',
+    source: 'unknown',
+    message: '',
+    updated_at: '',
+  };
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    if (pkg && pkg.version) info.version = String(pkg.version);
+  } catch {}
+  try {
+    const vf = path.join(__dirname, 'VERSION');
+    const vdata = JSON.parse(fs.readFileSync(vf, 'utf8'));
+    if (vdata.sha) info.sha = String(vdata.sha);
+    if (vdata.message) info.message = String(vdata.message);
+    if (vdata.updated_at) info.updated_at = String(vdata.updated_at);
+    info.source = 'VERSION';
+  } catch {}
+  try {
+    const gitSha = execSync('git rev-parse HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    if (/^[0-9a-f]{40}$/i.test(gitSha)) {
+      info.sha = gitSha;
+      info.source = 'git';
+    }
+    const msg = execSync('git log -1 --pretty=%s', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    if (msg) info.message = msg;
+  } catch {}
+  return info;
+}
+
+let LOCAL_VERSION = readLocalVersionInfo();
+let DEPLOYED_SHA = LOCAL_VERSION.sha || 'unknown';
+console.log('[Update] Local version: ' + LOCAL_VERSION.version + ' (' + String(DEPLOYED_SHA).slice(0, 7) + ', ' + LOCAL_VERSION.source + ')');
 
 // Cache GitHub response for 10 min to avoid rate-limit
 let _ghCache = null;
@@ -2053,6 +2140,12 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(405, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return;
+  }
+
+  if (adminPath === '/__admin/events' || adminPath === '/__admin/events.json' || adminPath.startsWith('/__admin/events/')) {
+    res.writeHead(404, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ error: 'Events admin has been removed from this installation.' }));
     return;
   }
 
@@ -2174,8 +2267,21 @@ const server = http.createServer((req, res) => {
 
   // ── /api/version — returns deployed commit SHA ───────────────────────────────
   if (req.method === 'GET' && req.url === '/api/version') {
+    LOCAL_VERSION = readLocalVersionInfo();
+    DEPLOYED_SHA = LOCAL_VERSION.sha || DEPLOYED_SHA;
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-    res.end(JSON.stringify({ sha: DEPLOYED_SHA, repo: GH_OWNER + '/' + GH_REPO }));
+    res.end(JSON.stringify({
+      version: LOCAL_VERSION.version,
+      sha: DEPLOYED_SHA,
+      source: LOCAL_VERSION.source,
+      message: LOCAL_VERSION.message,
+      updated_at: LOCAL_VERSION.updated_at,
+      repo: GH_OWNER + '/' + GH_REPO,
+      local_server: true,
+      update_command: 'isotope update',
+      start_command: 'isotope start',
+      pwa_cache: 'isotope-shell-' + LOCAL_VERSION.version + '-' + String(DEPLOYED_SHA).slice(0, 12),
+    }));
     return;
   }
 
@@ -2189,14 +2295,18 @@ const server = http.createServer((req, res) => {
     }
     fetchLatestCommit()
       .then(function (latest) {
-        const hasUpdate = DEPLOYED_SHA !== 'unknown' && latest.sha !== DEPLOYED_SHA;
+        LOCAL_VERSION = readLocalVersionInfo();
+        DEPLOYED_SHA = LOCAL_VERSION.sha || DEPLOYED_SHA;
+        const hasUpdate = /^[0-9a-f]{40}$/i.test(DEPLOYED_SHA) && latest.sha && latest.sha !== DEPLOYED_SHA;
         _ghCache = {
           hasUpdate:  hasUpdate,
           deployed:   DEPLOYED_SHA,
+          deployed_version: LOCAL_VERSION.version,
           latest:     latest.sha,
           message:    latest.message,
           pushed_at:  latest.pushed_at,
           repo:       GH_OWNER + '/' + GH_REPO,
+          update_command: 'isotope update',
         };
         _ghCacheTs = now;
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -2209,688 +2319,22 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // ── /api/community-events — serve real community events from Supabase ────────
-  // EventsCalendar compiled bundle fetches from this endpoint instead of using
-  // its hardcoded dummy data. Also handles POST /api/events/:id/attend.
-  if (req.method === 'GET' && req.url === '/api/community-events') {
-    supaRestReq('GET', '/rest/v1/community_events?is_active=eq.true&order=start_time.asc&select=*', null)
-      .then((r) => {
-        if (r.status >= 400 || !Array.isArray(r.body)) {
-          res.writeHead(200, {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store',
-            'Access-Control-Allow-Origin': '*',
-            'X-Isotope-Data-Status': 'community-events-unavailable'
-          });
-          res.end(JSON.stringify([]));
-          return;
-        }
-        const events = r.body.map(toCommunityEventCard);
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' });
-        res.end(JSON.stringify(events));
-      })
-      .catch((e) => {
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store',
-          'Access-Control-Allow-Origin': '*',
-          'X-Isotope-Data-Status': 'community-events-unavailable'
-        });
-        res.end(JSON.stringify([]));
-      });
+  // ── Removed product surfaces: Events API ────────────────────────────────────
+  if (req.url && (req.url === '/api/community-events' || req.url === '/api/events' || req.url.startsWith('/api/events/') || req.url.startsWith('/api/events?'))) {
+    res.writeHead(404, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ error: 'Events has been removed from this installation.' }));
     return;
   }
 
-
-  // ── Events Social Ecosystem API (/api/events/*) ─────────────────────────────
-  // Full living social ecosystem: RSVP states, event chat, reaction counters,
-  // discussion threads, resources, roles, presence, analytics, feedback,
-  // recordings, announcements, reminders and discovery feeds.
-  // All write endpoints require a valid user JWT in the Authorization header.
-  if (req.url && (req.url === '/api/events' || req.url.startsWith('/api/events/') || req.url.startsWith('/api/events?'))) {
-    (async () => {
-    const parsedEvt = new URL('http://x' + req.url);
-    const evtSegments = parsedEvt.pathname.replace(/^\/api\/events\/?/, '').split('/').filter(Boolean);
-    const seg0 = evtSegments[0] || ''; // event id OR "discover"
-    const seg1 = evtSegments[1] || ''; // sub-resource: rsvp|messages|threads|reactions|...
-    const seg2 = evtSegments[2] || ''; // child id (thread id, message id, resource id)
-    const seg3 = evtSegments[3] || ''; // "replies" under thread
-    const key = SUPA_SERVICE_KEY || SUPA_ANON_KEY;
-    const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
-    const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
-    const isAuth  = !!userJwt;
-    const eventUserId = userJwt ? getUserIdFromJwt(userJwt) : null;
-    const qp      = parsedEvt.searchParams;
-
-    function evtJson(code, data) {
-      res.writeHead(code, {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-      });
-      res.end(JSON.stringify(data));
-    }
-
-    // Helper: call an RPC with the user's JWT (so auth.uid() resolves correctly)
-    function userRpc(rpcName, params) {
-      return new Promise((resolve) => {
-      if (!userJwt || !eventUserId) { resolve({ status: 401, body: { error: 'unauthenticated' } }); return; }
-        const supaHost = new URL(SUPA_URL).hostname;
-        const bodyBuf  = Buffer.from(JSON.stringify(params || {}));
-        const opts = {
-          hostname: supaHost,
-          path: `/rest/v1/rpc/${rpcName}`,
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept':        'application/json',
-            'apikey':        SUPA_ANON_KEY,
-            'Authorization': 'Bearer ' + userJwt,
-            'Content-Length': String(bodyBuf.length),
-          },
-        };
-        const rq = https.request(opts, (r) => {
-          let d = ''; r.on('data', c => d += c);
-          r.on('end', () => {
-            try { resolve({ status: r.statusCode, body: JSON.parse(d) }); }
-            catch { resolve({ status: r.statusCode, body: d }); }
-          });
-        });
-        rq.on('error', () => resolve({ status: 500, body: { error: 'RPC failed' } }));
-        rq.setTimeout(12000, () => { rq.destroy(); resolve({ status: 504, body: { error: 'RPC timeout' } }); });
-        rq.write(bodyBuf); rq.end();
-      });
-    }
-
-    // ── OPTIONS preflight ────────────────────────────────────────────────────
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,DELETE,PATCH,OPTIONS', 'Access-Control-Allow-Headers': 'Authorization,Content-Type' });
-      res.end(); return;
-    }
-
-    // POST/DELETE /api/events/:id/attend|leave — join or leave a community event.
-    if (seg0 && (seg1 === 'attend' || seg1 === 'leave') && (req.method === 'POST' || req.method === 'DELETE')) {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required to attend events' }); return; }
-      await readReqBody(req).catch(() => ({}));
-      const rpcName = seg1 === 'leave' ? 'leave_community_event' : 'join_community_event';
-      const r = await userRpc(rpcName, { p_event_id: seg0 });
-      evtJson(r.status < 400 ? 200 : r.status, r.body);
-      return;
-    }
-
-    // ── GET /api/events/discover?type=trending|upcoming|featured|near_full|starting_soon|my_groups&limit=20&offset=0
-    if (req.method === 'GET' && seg0 === 'discover') {
-      const type   = qp.get('type')   || 'upcoming';
-      const limit  = Math.min(parseInt(qp.get('limit') || '20', 10), 100);
-      const offset = parseInt(qp.get('offset') || '0', 10);
-      const r = await supaRestReq('POST', '/rest/v1/rpc/get_event_discovery',
-        { p_type: type, p_limit: limit, p_offset: offset });
-      evtJson(r.status < 400 ? 200 : r.status, r.body || []);
-      return;
-    }
-
-    // ── GET /api/events — list all active events (alias for /api/community-events with extras)
-    if (req.method === 'GET' && !seg0) {
-      const limit  = Math.min(parseInt(qp.get('limit') || '50', 10), 200);
-      const offset = parseInt(qp.get('offset') || '0', 10);
-      const featured = qp.get('featured') === 'true' ? '&is_featured=eq.true' : '';
-      const category = qp.get('category') ? `&category_id=eq.${encodeURIComponent(qp.get('category'))}` : '';
-      const r = await supaRestReq('GET',
-        `/rest/v1/community_events?is_active=eq.true&order=start_time.asc&limit=${limit}&offset=${offset}${featured}${category}&select=*,category:event_categories(name,slug,icon,color)`,
-        null, { 'Prefer': 'count=exact' });
-      evtJson(200, Array.isArray(r.body) ? r.body : []);
-      return;
-    }
-
-    // ── GET /api/events/:id — full event details with reactions + RSVP state
-    if (req.method === 'GET' && seg0 && !seg1 && seg0 !== 'categories' && seg0 !== 'leaderboard' && seg0 !== 'discover') {
-      // Track view (fire and forget)
-      supaRestReq('POST', '/rest/v1/rpc/track_event_view', { p_event_id: seg0 }).catch(() => {});
-      const r = await supaRestReq('POST', '/rest/v1/rpc/get_event_full', { p_event_id: seg0 });
-      evtJson(r.status < 400 ? 200 : r.status, r.body);
-      return;
-    }
-
-    // ── POST /api/events/:id/view — explicit view tracking
-    if (req.method === 'POST' && seg0 && seg1 === 'view') {
-      await supaRestReq('POST', '/rest/v1/rpc/track_event_view', { p_event_id: seg0 });
-      evtJson(200, { ok: true });
-      return;
-    }
-
-    // ══════════════ RSVP ══════════════════════════════════════════════════════
-
-    // GET /api/events/:id/rsvp — get current user RSVP state
-    if (req.method === 'GET' && seg0 && seg1 === 'rsvp') {
-      if (!isAuth) { evtJson(401, { error: 'Authentication required' }); return; }
-      if (!eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_rsvp?event_id=eq.${encodeURIComponent(seg0)}&user_id=eq.${encodeURIComponent(eventUserId)}&select=*`);
-      // Also return aggregated counts
-      const counts = await supaRestReq('GET',
-        `/rest/v1/community_events?id=eq.${encodeURIComponent(seg0)}&select=rsvp_going,rsvp_interested,rsvp_maybe,attendee_count`);
-      const myRsvp = Array.isArray(r.body) ? r.body[0] : null;
-      evtJson(200, {
-        my_state: myRsvp?.state || null,
-        counts: Array.isArray(counts.body) ? counts.body[0] || {} : {},
-        all: Array.isArray(r.body) ? r.body : [],
-      });
-      return;
-    }
-
-    // POST /api/events/:id/rsvp — upsert RSVP state {state: "going"|"interested"|"maybe"|"not_going"}
-    if (req.method === 'POST' && seg0 && seg1 === 'rsvp') {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      const state = body.state || 'going';
-      const r = await userRpc('rsvp_event', { p_event_id: seg0, p_state: state });
-      evtJson(r.status < 400 ? 200 : r.status, r.body);
-      return;
-    }
-
-    // DELETE /api/events/:id/rsvp — remove RSVP (set to not_going)
-    if (req.method === 'DELETE' && seg0 && seg1 === 'rsvp') {
-      if (!isAuth) { evtJson(401, { error: 'Authentication required' }); return; }
-      const r = await userRpc('rsvp_event', { p_event_id: seg0, p_state: 'not_going' });
-      evtJson(r.status < 400 ? 200 : r.status, r.body);
-      return;
-    }
-
-    // ══════════════ CHAT MESSAGES ══════════════════════════════════════════════
-
-    // GET /api/events/:id/messages?limit=50&before=<timestamp>
-    if (req.method === 'GET' && seg0 && seg1 === 'messages' && !seg2) {
-      const limit  = Math.min(parseInt(qp.get('limit') || '50', 10), 200);
-      const before = qp.get('before') ? `&created_at=lt.${encodeURIComponent(qp.get('before'))}` : '';
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_messages?event_id=eq.${encodeURIComponent(seg0)}&deleted_at=is.null${before}&order=created_at.desc&limit=${limit}&select=*`);
-      evtJson(200, Array.isArray(r.body) ? r.body.reverse() : []);
-      return;
-    }
-
-    // POST /api/events/:id/messages — send a chat message {content, reply_to_id?}
-    if (req.method === 'POST' && seg0 && seg1 === 'messages' && !seg2) {
-      if (!isAuth) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      if (!body.content || !body.content.trim()) { evtJson(400, { error: 'content required' }); return; }
-      const row = {
-        event_id: seg0,
-        user_id: eventUserId,
-        content: body.content.trim().slice(0, 2000),
-        ...(body.reply_to_id ? { reply_to_id: body.reply_to_id } : {}),
-      };
-      const r = await supaRestReq('POST', '/rest/v1/event_messages', row,
-        { 'Prefer': 'return=representation', 'Authorization': 'Bearer ' + userJwt, 'apikey': SUPA_ANON_KEY });
-      evtJson(r.status < 400 ? 201 : r.status, Array.isArray(r.body) ? r.body[0] : r.body);
-      return;
-    }
-
-    // DELETE /api/events/:id/messages/:msgId — soft-delete (sets deleted_at)
-    if (req.method === 'DELETE' && seg0 && seg1 === 'messages' && seg2) {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const r = await supaRestReq('PATCH',
-        `/rest/v1/event_messages?id=eq.${encodeURIComponent(seg2)}&event_id=eq.${encodeURIComponent(seg0)}`,
-        { deleted_at: new Date().toISOString() }, { 'Prefer': 'return=representation' });
-      evtJson(r.status < 400 ? 200 : r.status, { ok: true });
-      return;
-    }
-
-    // POST /api/events/:id/messages/:msgId/pin — pin/unpin a message
-    if (req.method === 'POST' && seg0 && seg1 === 'messages' && seg2 && seg3 === 'pin') {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      const isPinned = body.pinned !== false;
-      // Toggle is_pinned flag on the message
-      await supaRestReq('PATCH',
-        `/rest/v1/event_messages?id=eq.${encodeURIComponent(seg2)}&event_id=eq.${encodeURIComponent(seg0)}`,
-        { is_pinned: isPinned });
-      if (isPinned) {
-        await supaRestReq('POST', '/rest/v1/event_pinned_messages',
-          { event_id: seg0, message_id: seg2, pinned_by: eventUserId },
-          { 'Prefer': 'resolution=merge-duplicates' });
-      } else {
-        await supaRestReq('DELETE',
-          `/rest/v1/event_pinned_messages?event_id=eq.${encodeURIComponent(seg0)}&message_id=eq.${encodeURIComponent(seg2)}`);
-      }
-      evtJson(200, { ok: true, pinned: isPinned });
-      return;
-    }
-
-    // GET /api/events/:id/messages/pinned — list pinned messages
-    if (req.method === 'GET' && seg0 && seg1 === 'messages' && seg2 === 'pinned') {
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_messages?event_id=eq.${encodeURIComponent(seg0)}&is_pinned=eq.true&deleted_at=is.null&order=created_at.desc&select=*`);
-      evtJson(200, Array.isArray(r.body) ? r.body : []);
-      return;
-    }
-
-    // ══════════════ DISCUSSION THREADS ════════════════════════════════════════
-
-    // GET /api/events/:id/threads?limit=20&offset=0
-    if (req.method === 'GET' && seg0 && seg1 === 'threads' && !seg2) {
-      const limit  = Math.min(parseInt(qp.get('limit') || '20', 10), 100);
-      const offset = parseInt(qp.get('offset') || '0', 10);
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_threads?event_id=eq.${encodeURIComponent(seg0)}&order=is_pinned.desc,created_at.desc&limit=${limit}&offset=${offset}&select=*`);
-      evtJson(200, Array.isArray(r.body) ? r.body : []);
-      return;
-    }
-
-    // POST /api/events/:id/threads — create discussion thread {title, content}
-    if (req.method === 'POST' && seg0 && seg1 === 'threads' && !seg2) {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      if (!body.title || !body.content) { evtJson(400, { error: 'title and content required' }); return; }
-      const row = { event_id: seg0, user_id: eventUserId, content: body.content.trim().slice(0, 5000), title: body.title.trim().slice(0, 200) };
-      const r = await supaRestReq('POST', '/rest/v1/event_threads', row,
-        { 'Prefer': 'return=representation', 'Authorization': 'Bearer ' + userJwt, 'apikey': SUPA_ANON_KEY });
-      evtJson(r.status < 400 ? 201 : r.status, Array.isArray(r.body) ? r.body[0] : r.body);
-      return;
-    }
-
-    // GET /api/events/:id/threads/:tid — get thread with replies
-    if (req.method === 'GET' && seg0 && seg1 === 'threads' && seg2 && seg3 !== 'replies') {
-      const threadR  = await supaRestReq('GET', `/rest/v1/event_threads?id=eq.${encodeURIComponent(seg2)}&select=*`);
-      const repliesR = await supaRestReq('GET',
-        `/rest/v1/event_thread_replies?thread_id=eq.${encodeURIComponent(seg2)}&order=created_at.asc&select=*`);
-      const thread = Array.isArray(threadR.body) ? threadR.body[0] : null;
-      if (!thread) { evtJson(404, { error: 'Thread not found' }); return; }
-      evtJson(200, { ...thread, replies: Array.isArray(repliesR.body) ? repliesR.body : [] });
-      return;
-    }
-
-    // GET /api/events/:id/threads/:tid/replies
-    if (req.method === 'GET' && seg0 && seg1 === 'threads' && seg2 && seg3 === 'replies') {
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_thread_replies?thread_id=eq.${encodeURIComponent(seg2)}&order=created_at.asc&select=*`);
-      evtJson(200, Array.isArray(r.body) ? r.body : []);
-      return;
-    }
-
-    // POST /api/events/:id/threads/:tid/replies — add a reply {content}
-    if (req.method === 'POST' && seg0 && seg1 === 'threads' && seg2 && seg3 === 'replies') {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      if (!body.content) { evtJson(400, { error: 'content required' }); return; }
-      const row = { thread_id: seg2, user_id: eventUserId, content: body.content.trim().slice(0, 3000) };
-      const r = await supaRestReq('POST', '/rest/v1/event_thread_replies', row,
-        { 'Prefer': 'return=representation', 'Authorization': 'Bearer ' + userJwt, 'apikey': SUPA_ANON_KEY });
-      evtJson(r.status < 400 ? 201 : r.status, Array.isArray(r.body) ? r.body[0] : r.body);
-      return;
-    }
-
-    // ══════════════ REACTIONS ══════════════════════════════════════════════════
-
-    // GET /api/events/:id/reactions — aggregated reaction counts {🔥: 5, 🎯: 2, ...}
-    if (req.method === 'GET' && seg0 && seg1 === 'reactions') {
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_reactions?event_id=eq.${encodeURIComponent(seg0)}&select=reaction`);
-      const counts = {};
-      if (Array.isArray(r.body)) {
-        for (const row of r.body) {
-          counts[row.reaction] = (counts[row.reaction] || 0) + 1;
-        }
-      }
-      const myReactions = [];
-      if (isAuth) {
-        // Can't filter by user_id here without user JWT — omit for simplicity
-      }
-      evtJson(200, { counts, total: Array.isArray(r.body) ? r.body.length : 0, my_reactions: myReactions });
-      return;
-    }
-
-    // POST /api/events/:id/reactions — toggle reaction {reaction: "🔥"}
-    if (req.method === 'POST' && seg0 && seg1 === 'reactions') {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      if (!body.reaction) { evtJson(400, { error: 'reaction emoji required' }); return; }
-      const r = await userRpc('react_to_event', { p_event_id: seg0, p_reaction: body.reaction });
-      evtJson(r.status < 400 ? 200 : r.status, r.body);
-      return;
-    }
-
-    // ══════════════ RESOURCES ══════════════════════════════════════════════════
-
-    // GET /api/events/:id/resources
-    if (req.method === 'GET' && seg0 && seg1 === 'resources' && !seg2) {
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_resources?event_id=eq.${encodeURIComponent(seg0)}&order=created_at.desc&select=*`);
-      evtJson(200, Array.isArray(r.body) ? r.body : []);
-      return;
-    }
-
-    // POST /api/events/:id/resources — add resource {title, url, resource_type?, description?}
-    if (req.method === 'POST' && seg0 && seg1 === 'resources' && !seg2) {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      if (!body.title || !body.url) { evtJson(400, { error: 'title and url required' }); return; }
-      const row = {
-        event_id: seg0,
-        uploaded_by: eventUserId,
-        title: body.title.trim().slice(0, 200),
-        url: body.url.trim(),
-        resource_type: body.resource_type || 'link',
-        description: body.description ? body.description.trim().slice(0, 500) : null,
-      };
-      const r = await supaRestReq('POST', '/rest/v1/event_resources', row,
-        { 'Prefer': 'return=representation', 'Authorization': 'Bearer ' + userJwt, 'apikey': SUPA_ANON_KEY });
-      evtJson(r.status < 400 ? 201 : r.status, Array.isArray(r.body) ? r.body[0] : r.body);
-      return;
-    }
-
-    // DELETE /api/events/:id/resources/:rid
-    if (req.method === 'DELETE' && seg0 && seg1 === 'resources' && seg2) {
-      if (!isAuth) { evtJson(401, { error: 'Authentication required' }); return; }
-      const r = await supaRestReq('DELETE',
-        `/rest/v1/event_resources?id=eq.${encodeURIComponent(seg2)}&event_id=eq.${encodeURIComponent(seg0)}`);
-      evtJson(r.status < 400 ? 200 : r.status, { ok: true });
-      return;
-    }
-
-    // POST /api/events/:id/resources/:rid/download — increment download counter
-    if (req.method === 'POST' && seg0 && seg1 === 'resources' && seg2 && seg3 === 'download') {
-      const inc = await supaRestReq('POST', '/rest/v1/rpc/increment_event_resource_download',
-        { p_event_id: seg0, p_resource_id: seg2 });
-      await supaRestReq('POST', '/rest/v1/rpc/track_event_view', { p_event_id: seg0 }); // fire analytics
-      evtJson(inc.status < 400 ? 200 : inc.status, inc.body || { ok: true });
-      return;
-    }
-
-    // ══════════════ ANALYTICS ══════════════════════════════════════════════════
-
-    // GET /api/events/:id/analytics
-    if (req.method === 'GET' && seg0 && seg1 === 'analytics') {
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_analytics?event_id=eq.${encodeURIComponent(seg0)}&select=*`);
-      evtJson(200, Array.isArray(r.body) && r.body.length ? r.body[0] : {});
-      return;
-    }
-
-    // ══════════════ FEEDBACK ══════════════════════════════════════════════════
-
-    // GET /api/events/:id/feedback — aggregate ratings + comments
-    if (req.method === 'GET' && seg0 && seg1 === 'feedback') {
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_feedback?event_id=eq.${encodeURIComponent(seg0)}&order=created_at.desc&select=*`);
-      const rows = Array.isArray(r.body) ? r.body : [];
-      const avg = rows.length ? rows.reduce((s, x) => s + x.rating, 0) / rows.length : 0;
-      evtJson(200, { average_rating: Math.round(avg * 10) / 10, total: rows.length, reviews: rows });
-      return;
-    }
-
-    // POST /api/events/:id/feedback — submit rating {rating: 1-5, comment?}
-    if (req.method === 'POST' && seg0 && seg1 === 'feedback') {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      const rating = parseInt(body.rating, 10);
-      if (!rating || rating < 1 || rating > 5) { evtJson(400, { error: 'rating 1-5 required' }); return; }
-      const row = {
-        event_id: seg0,
-        user_id: eventUserId,
-        rating,
-        ...(body.comment ? { comment: body.comment.trim().slice(0, 1000) } : {}),
-      };
-      const r = await supaRestReq('POST', '/rest/v1/event_feedback', row,
-        { 'Prefer': 'return=representation,resolution=merge-duplicates', 'Authorization': 'Bearer ' + userJwt, 'apikey': SUPA_ANON_KEY });
-      evtJson(r.status < 400 ? 201 : r.status, Array.isArray(r.body) ? r.body[0] : r.body);
-      return;
-    }
-
-    // ══════════════ RECORDINGS ════════════════════════════════════════════════
-
-    // GET /api/events/:id/recordings
-    if (req.method === 'GET' && seg0 && seg1 === 'recordings') {
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_recordings?event_id=eq.${encodeURIComponent(seg0)}&order=created_at.desc&select=*`);
-      evtJson(200, Array.isArray(r.body) ? r.body : []);
-      return;
-    }
-
-    // POST /api/events/:id/recordings — add recording {title?, url, duration_seconds?, thumbnail_url?}
-    if (req.method === 'POST' && seg0 && seg1 === 'recordings') {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      if (!body.url) { evtJson(400, { error: 'url required' }); return; }
-      const row = {
-        event_id: seg0,
-        uploaded_by: eventUserId,
-        title: (body.title || 'Event Recording').trim().slice(0, 200),
-        url: body.url.trim(),
-        ...(body.duration_seconds ? { duration_seconds: parseInt(body.duration_seconds, 10) } : {}),
-        ...(body.thumbnail_url ? { thumbnail_url: body.thumbnail_url.trim() } : {}),
-      };
-      const r = await supaRestReq('POST', '/rest/v1/event_recordings', row,
-        { 'Prefer': 'return=representation', 'Authorization': 'Bearer ' + userJwt, 'apikey': SUPA_ANON_KEY });
-      evtJson(r.status < 400 ? 201 : r.status, Array.isArray(r.body) ? r.body[0] : r.body);
-      return;
-    }
-
-    // ══════════════ ANNOUNCEMENTS ══════════════════════════════════════════════
-
-    // GET /api/events/:id/announcements
-    if (req.method === 'GET' && seg0 && seg1 === 'announcements') {
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_announcements?event_id=eq.${encodeURIComponent(seg0)}&order=is_pinned.desc,created_at.desc&select=*`);
-      evtJson(200, Array.isArray(r.body) ? r.body : []);
-      return;
-    }
-
-    // POST /api/events/:id/announcements — post announcement {content, is_pinned?}
-    if (req.method === 'POST' && seg0 && seg1 === 'announcements') {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      if (!body.content) { evtJson(400, { error: 'content required' }); return; }
-      const row = {
-        event_id: seg0,
-        author_id: eventUserId,
-        content: body.content.trim().slice(0, 3000),
-        is_pinned: body.is_pinned === true,
-      };
-      const r = await supaRestReq('POST', '/rest/v1/event_announcements', row,
-        { 'Prefer': 'return=representation', 'Authorization': 'Bearer ' + userJwt, 'apikey': SUPA_ANON_KEY });
-      evtJson(r.status < 400 ? 201 : r.status, Array.isArray(r.body) ? r.body[0] : r.body);
-      return;
-    }
-
-    // ══════════════ PRESENCE ══════════════════════════════════════════════════
-
-    // GET /api/events/:id/presence — live attendee presence
-    if (req.method === 'GET' && seg0 && seg1 === 'presence') {
-      const since = new Date(Date.now() - 5 * 60 * 1000).toISOString(); // 5 min window
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_presence?event_id=eq.${encodeURIComponent(seg0)}&last_seen=gte.${encodeURIComponent(since)}&status=neq.offline&order=joined_at.asc&select=*`);
-      const rows = Array.isArray(r.body) ? r.body : [];
-      const byStat = {};
-      for (const row of rows) byStat[row.status] = (byStat[row.status] || 0) + 1;
-      evtJson(200, { total_active: rows.length, by_status: byStat, attendees: rows });
-      return;
-    }
-
-    // POST /api/events/:id/presence — update presence {status: "active"|"watching"|"speaking"|"idle"}
-    if (req.method === 'POST' && seg0 && seg1 === 'presence') {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      const status = body.status || 'active';
-      const row = { event_id: seg0, user_id: eventUserId, status, last_seen: new Date().toISOString() };
-      const r = await supaRestReq('POST', '/rest/v1/event_presence', row,
-        { 'Prefer': 'resolution=merge-duplicates,return=representation', 'Authorization': 'Bearer ' + userJwt, 'apikey': SUPA_ANON_KEY });
-      evtJson(r.status < 400 ? 200 : r.status, { ok: true, status });
-      return;
-    }
-
-    // ══════════════ ATTENDEES ══════════════════════════════════════════════════
-
-    // GET /api/events/:id/attendees?limit=50&offset=0
-    if (req.method === 'GET' && seg0 && seg1 === 'attendees') {
-      const limit  = Math.min(parseInt(qp.get('limit') || '50', 10), 200);
-      const offset = parseInt(qp.get('offset') || '0', 10);
-      const r = await supaRestReq('GET',
-        `/rest/v1/community_event_attendees?event_id=eq.${encodeURIComponent(seg0)}&order=joined_at.desc&limit=${limit}&offset=${offset}&select=*`);
-      // Also get RSVP breakdown
-      const rsvpR = await supaRestReq('GET',
-        `/rest/v1/event_rsvp?event_id=eq.${encodeURIComponent(seg0)}&select=user_id,state`);
-      evtJson(200, {
-        attendees: Array.isArray(r.body) ? r.body : [],
-        rsvp_list: Array.isArray(rsvpR.body) ? rsvpR.body : [],
-      });
-      return;
-    }
-
-    // ══════════════ ROLES ══════════════════════════════════════════════════════
-
-    // GET /api/events/:id/roles
-    if (req.method === 'GET' && seg0 && seg1 === 'roles') {
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_roles?event_id=eq.${encodeURIComponent(seg0)}&order=role.asc&select=*`);
-      evtJson(200, Array.isArray(r.body) ? r.body : []);
-      return;
-    }
-
-    // POST /api/events/:id/roles — assign role {user_id, role: "host"|"co_host"|"moderator"|"speaker"|"participant"}
-    if (req.method === 'POST' && seg0 && seg1 === 'roles') {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      if (!body.user_id || !body.role) { evtJson(400, { error: 'user_id and role required' }); return; }
-      const row = { event_id: seg0, user_id: body.user_id, role: body.role, assigned_by: eventUserId };
-      const r = await supaRestReq('POST', '/rest/v1/event_roles', row,
-        { 'Prefer': 'resolution=merge-duplicates,return=representation' });
-      evtJson(r.status < 400 ? 200 : r.status, Array.isArray(r.body) ? r.body[0] : r.body);
-      return;
-    }
-
-    // ══════════════ REMINDERS ══════════════════════════════════════════════════
-
-    // GET /api/events/:id/reminders — get user's scheduled reminders
-    if (req.method === 'GET' && seg0 && seg1 === 'reminders') {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const r = await supaRestReq('GET',
-        `/rest/v1/event_reminders?event_id=eq.${encodeURIComponent(seg0)}&user_id=eq.${encodeURIComponent(eventUserId)}&order=remind_at.asc&select=*`,
-        null, { 'Authorization': 'Bearer ' + userJwt, 'apikey': SUPA_ANON_KEY });
-      evtJson(200, Array.isArray(r.body) ? r.body : []);
-      return;
-    }
-
-    // POST /api/events/:id/reminders — schedule reminders {types: ["24h","1h","15m","start"]}
-    if (req.method === 'POST' && seg0 && seg1 === 'reminders') {
-      if (!isAuth || !eventUserId) { evtJson(401, { error: 'Authentication required' }); return; }
-      const body = await readReqBody(req);
-      // Get event start_time to calculate remind_at
-      const evtR = await supaRestReq('GET',
-        `/rest/v1/community_events?id=eq.${encodeURIComponent(seg0)}&select=start_time`);
-      if (!Array.isArray(evtR.body) || !evtR.body[0]) { evtJson(404, { error: 'Event not found' }); return; }
-      const startTime = new Date(evtR.body[0].start_time).getTime();
-      const typesMap = { '24h': 24*60*60*1000, '1h': 60*60*1000, '15m': 15*60*1000, 'start': 0, 'followup': -60*60*1000 };
-      const types = Array.isArray(body.types) ? body.types : ['1h'];
-      const inserts = types.filter(t => typesMap[t] !== undefined).map(t => ({
-        event_id: seg0,
-        user_id: eventUserId,
-        remind_type: t,
-        remind_at: new Date(startTime - typesMap[t]).toISOString(),
-      }));
-      const results = [];
-      for (const row of inserts) {
-        const r = await supaRestReq('POST', '/rest/v1/event_reminders', row,
-          { 'Prefer': 'resolution=merge-duplicates,return=representation', 'Authorization': 'Bearer ' + userJwt, 'apikey': SUPA_ANON_KEY });
-        results.push(Array.isArray(r.body) ? r.body[0] : r.body);
-      }
-      evtJson(201, { ok: true, reminders: results });
-      return;
-    }
-
-    // ══════════════ CATEGORIES ════════════════════════════════════════════════
-
-    // GET /api/events/categories — list all event categories
-    if (req.method === 'GET' && seg0 === 'categories') {
-      const r = await supaRestReq('GET', '/rest/v1/event_categories?order=name.asc&select=*');
-      evtJson(200, Array.isArray(r.body) ? r.body : []);
-      return;
-    }
-
-    // ══════════════ LEADERBOARDS ══════════════════════════════════════════════
-
-    // GET /api/events/leaderboard?type=hosts|attendees|organizers
-    if (req.method === 'GET' && seg0 === 'leaderboard') {
-      const type  = qp.get('type') || 'attendees';
-      const limit = Math.min(parseInt(qp.get('limit') || '20', 10), 100);
-      let data = [];
-      if (type === 'attendees') {
-        const r = await supaRestReq('GET',
-          `/rest/v1/community_event_attendees?select=user_id&order=user_id.asc&limit=1000`);
-        const counts = {};
-        if (Array.isArray(r.body)) for (const row of r.body) counts[row.user_id] = (counts[row.user_id] || 0) + 1;
-        data = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([uid, cnt]) => ({ user_id: uid, events_attended: cnt }));
-      } else if (type === 'hosts') {
-        const r = await supaRestReq('GET',
-          `/rest/v1/community_events?is_active=eq.true&select=creator_id&limit=1000`);
-        const counts = {};
-        if (Array.isArray(r.body)) for (const row of r.body) if (row.creator_id) counts[row.creator_id] = (counts[row.creator_id] || 0) + 1;
-        data = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([uid, cnt]) => ({ user_id: uid, events_hosted: cnt }));
-      }
-      evtJson(200, data);
-      return;
-    }
-
-    // ── Fallthrough: 404 for unmatched events sub-routes
-    evtJson(404, { error: 'Events route not found', path: parsedEvt.pathname });
-    })().catch((e) => {
-      if (!res.headersSent) {
-        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ error: 'Events API error', detail: e.message }));
-      }
-    });
-    return;
-  }
-
-
-  // POST /api/events/:id/attend  — join or leave a community event
-  // BUG FIX: must be called with the USER's JWT so auth.uid() works inside the RPC.
-  // Previously used service_role key → auth.uid() returned NULL → attendance silently broken.
-  const attendMatch = req.url && req.url.match(/^\/api\/events\/([^/]+)\/(attend|leave)$/);
-  if (attendMatch && (req.method === 'POST' || req.method === 'DELETE')) {
-    const [, evtId, action] = attendMatch;
-    const rpcName = action === 'leave' ? 'leave_community_event' : 'join_community_event';
-    readReqBody(req).then(() => {
-      // Extract user's JWT from Authorization header — required for auth.uid() in RPC
-      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
-      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
-      if (!userJwt) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Authentication required to attend events' }));
-        return;
-      }
-      const body = Buffer.from(JSON.stringify({ p_event_id: evtId }));
-      const opts = {
-        hostname: new URL(SUPA_URL).hostname,
-        path: `/rest/v1/rpc/${rpcName}`,
-        method: 'POST',
-        // Use user JWT so auth.uid() resolves correctly inside the RPC
-        headers: { 'apikey': SUPA_ANON_KEY, 'Authorization': 'Bearer ' + userJwt, 'Content-Type': 'application/json', 'Content-Length': String(body.length) },
-      };
-      const rq = https.request(opts, (r) => {
-        const ch = []; r.on('data', c => ch.push(c));
-        r.on('end', () => {
-          let b; try { b = JSON.parse(Buffer.concat(ch).toString()); } catch { b = {}; }
-          res.writeHead(r.statusCode >= 400 ? r.statusCode : 200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(b));
-        });
-      });
-      rq.on('error', () => { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end('{"error":"Attendance update failed"}'); });
-      rq.write(body); rq.end();
-    });
-    return;
-  }
-
-  // ── /api/restart — acknowledge update reloads without killing the process ───
-  // Set ALLOW_SELF_RESTART=1 only under a supervisor that intentionally restarts
-  // the app after process exit.
+  // ── /api/restart — legacy no-op; browser updates use isotope update now ─────
   if (req.method === 'POST' && req.url === '/api/restart') {
-    const allowed = process.env.ALLOW_SELF_RESTART === '1';
-    res.writeHead(allowed ? 200 : 202, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-    res.end(JSON.stringify({ ok: true, restart: allowed ? 'scheduled' : 'external-supervisor-required' }));
-    if (allowed) {
-      setTimeout(() => { console.log('[Restart] Process exit requested via /api/restart'); process.exit(0); }, 300);
-    }
+    res.writeHead(202, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({
+      ok: true,
+      restart: 'manual-command-required',
+      command: 'isotope update',
+      message: 'This self-hosted local app is updated through the command system. The server was not stopped.',
+    }));
     return;
   }
 
@@ -3179,7 +2623,7 @@ input:focus,select:focus{border-color:#7c3aed}.btn{background:#7c3aed;color:#fff
 .msg-ok{background:#052e16;border:1px solid #14532d;color:#86efac}.msg-err{background:#2d0000;border:1px solid #7f1d1d;color:#fca5a5}</style></head>
 <body>
 <div class="topbar"><h1>🔐 User Roles</h1>
-  <a href="/__admin/verify">← Verify</a><a href="/__admin/events">Events</a><a href="/__admin/patch">Patch</a></div>
+  <a href="/__admin/verify">← Verify</a><a href="/__admin/patch">Patch</a></div>
 <div class="wrap">
   <div class="card">
     <h2>Grant Role</h2>
@@ -3478,520 +2922,6 @@ function copySQL(){
     return;
   }
 
-  // ── /__admin/events.json — list ALL events including inactive (service_role) ─
-  if (req.method === 'GET' && req.url === '/__admin/events.json') {
-    supaRestReq('GET', '/rest/v1/community_events?order=start_time.asc&select=*')
-      .then(r => {
-        const events = Array.isArray(r.body) ? r.body : [];
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify(events));
-      })
-      .catch(e => {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
-      });
-    return;
-  }
-
-  // ── /__admin/events/create ────────────────────────────────────────────────
-  if (req.method === 'POST' && req.url === '/__admin/events/create') {
-    readReqBody(req).then(async (body) => {
-      const { title, event_type, description, host, start_time, end_time,
-              image_gradient, image_url, tags, max_attendees, is_featured, is_active } = body;
-      if (!title || !start_time) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'title and start_time are required' }));
-        return;
-      }
-      const tagsArr = typeof tags === 'string'
-        ? tags.split(',').map(t => t.trim()).filter(Boolean)
-        : (Array.isArray(tags) ? tags : []);
-      const row = {
-        title:          String(title).slice(0, 200),
-        event_type:     event_type || 'webinar',
-        description:    description || null,
-        host:           host || null,
-        start_time,
-        end_time:       end_time || null,
-        image_gradient: image_gradient || 'from-purple-600 to-blue-500',
-        image_url:      image_url || null,
-        tags:           tagsArr,
-        max_attendees:  max_attendees ? parseInt(max_attendees, 10) : null,
-        is_featured:    is_featured === true || is_featured === 'true' || is_featured === '1',
-        is_active:      is_active === undefined ? true : (is_active === true || is_active === 'true' || is_active === '1'),
-        attendee_count: 0,
-        updated_at:     new Date().toISOString(),
-      };
-      const r = await supaRestReq('POST', '/rest/v1/community_events', row, { 'Prefer': 'return=representation' });
-      if (r.status === 201 || r.status === 200) {
-        const created = Array.isArray(r.body) ? r.body[0] : r.body;
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, event: created }));
-      } else {
-        const errMsg = (r.body && (r.body.message || r.body.hint || r.body.details)) || `HTTP ${r.status}`;
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: errMsg }));
-      }
-    }).catch(e => {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: false, error: e.message }));
-    });
-    return;
-  }
-
-  // ── /__admin/events/update ────────────────────────────────────────────────
-  if (req.method === 'POST' && req.url === '/__admin/events/update') {
-    readReqBody(req).then(async (body) => {
-      const { id, ...fields } = body;
-      if (!id) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'id is required' }));
-        return;
-      }
-      if (fields.tags && typeof fields.tags === 'string') {
-        fields.tags = fields.tags.split(',').map(t => t.trim()).filter(Boolean);
-      }
-      if (fields.max_attendees !== undefined) {
-        fields.max_attendees = fields.max_attendees ? parseInt(fields.max_attendees, 10) : null;
-      }
-      if (fields.is_featured !== undefined) {
-        fields.is_featured = fields.is_featured === true || fields.is_featured === 'true' || fields.is_featured === '1';
-      }
-      if (fields.is_active !== undefined) {
-        fields.is_active = fields.is_active === true || fields.is_active === 'true' || fields.is_active === '1';
-      }
-      fields.updated_at = new Date().toISOString();
-      const r = await supaRestReq('PATCH', `/rest/v1/community_events?id=eq.${encodeURIComponent(id)}`, fields, { 'Prefer': 'return=representation' });
-      if (r.status === 200) {
-        const updated = Array.isArray(r.body) ? r.body[0] : r.body;
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, event: updated }));
-      } else {
-        const errMsg = (r.body && (r.body.message || r.body.hint)) || `HTTP ${r.status}`;
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: errMsg }));
-      }
-    }).catch(e => {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: false, error: e.message }));
-    });
-    return;
-  }
-
-  // ── /__admin/events/delete ────────────────────────────────────────────────
-  if (req.method === 'POST' && req.url === '/__admin/events/delete') {
-    readReqBody(req).then(async (body) => {
-      const { id } = body;
-      if (!id) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'id is required' }));
-        return;
-      }
-      const r = await supaRestReq('DELETE', `/rest/v1/community_events?id=eq.${encodeURIComponent(id)}`, null);
-      if (r.status === 200 || r.status === 204) {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      } else {
-        const errMsg = (r.body && (r.body.message || r.body.hint)) || `HTTP ${r.status}`;
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: errMsg }));
-      }
-    }).catch(e => {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: false, error: e.message }));
-    });
-    return;
-  }
-
-  // ── /__admin/events/publish — toggle is_active ────────────────────────────
-  if (req.method === 'POST' && req.url === '/__admin/events/publish') {
-    readReqBody(req).then(async (body) => {
-      const { id, is_active } = body;
-      if (!id || is_active === undefined) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'id and is_active are required' }));
-        return;
-      }
-      const active = is_active === true || is_active === 'true' || is_active === '1';
-      const r = await supaRestReq(
-        'PATCH',
-        `/rest/v1/community_events?id=eq.${encodeURIComponent(id)}`,
-        { is_active: active, updated_at: new Date().toISOString() },
-        { 'Prefer': 'return=representation' }
-      );
-      if (r.status === 200) {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      } else {
-        const errMsg = (r.body && (r.body.message || r.body.hint)) || `HTTP ${r.status}`;
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: errMsg }));
-      }
-    }).catch(e => {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: false, error: e.message }));
-    });
-    return;
-  }
-
-  // ── /__admin/events/refresh-dates — push past-dated events to future ──────
-  if (req.method === 'POST' && req.url === '/__admin/events/refresh-dates') {
-    (async () => {
-      const listR = await supaRestReq('GET', '/rest/v1/community_events?order=start_time.asc&select=id,title,start_time,end_time');
-      const events = Array.isArray(listR.body) ? listR.body : [];
-      const now = Date.now();
-      const seedOffsets = [1, 2, 3, 4, 5, 7, 10, 14];
-      let updated = 0, offsetIdx = 0;
-      for (const evt of events) {
-        if (new Date(evt.start_time).getTime() < now) {
-          const daysAhead  = seedOffsets[offsetIdx % seedOffsets.length];
-          offsetIdx++;
-          const newStart   = new Date(now + daysAhead * 86400000);
-          const origDur    = evt.end_time ? new Date(evt.end_time).getTime() - new Date(evt.start_time).getTime() : 0;
-          const patch      = { start_time: newStart.toISOString(), updated_at: new Date().toISOString() };
-          if (evt.end_time && origDur > 0) patch.end_time = new Date(newStart.getTime() + origDur).toISOString();
-          await supaRestReq('PATCH', `/rest/v1/community_events?id=eq.${encodeURIComponent(evt.id)}`, patch);
-          updated++;
-        }
-      }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, updated, total: events.length }));
-    })().catch(e => {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: false, error: e.message }));
-    });
-    return;
-  }
-
-  // ── /__admin/events — Community Events Manager UI ─────────────────────────
-  if (req.method === 'GET' && req.url === '/__admin/events') {
-    (async () => {
-      const listR = await supaRestReq('GET', '/rest/v1/community_events?order=start_time.asc&select=*');
-      const events = Array.isArray(listR.body) ? listR.body : [];
-      const gradients = [
-        'from-purple-600 to-blue-500','from-violet-600 to-indigo-500','from-emerald-600 to-teal-500',
-        'from-blue-600 to-cyan-500','from-orange-600 to-amber-500','from-rose-600 to-red-500',
-        'from-purple-600 to-pink-500','from-green-600 to-teal-500','from-sky-600 to-blue-500',
-        'from-fuchsia-600 to-purple-500','from-yellow-600 to-orange-500','from-teal-600 to-green-500',
-      ];
-      const html = `<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>IsotopeAI — Events Admin</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;font-size:13px}
-.topbar{background:#111;border-bottom:1px solid #1f1f1f;padding:12px 24px;display:flex;align-items:center;gap:16px}
-.topbar h1{font-size:18px;font-weight:800;color:#a78bfa;flex:1}
-.topbar a{color:#555;text-decoration:none;font-size:11px}.topbar a:hover{color:#a78bfa}
-.wrap{max-width:1140px;margin:0 auto;padding:24px 20px}
-.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:none;text-decoration:none;transition:background .15s}
-.btn-primary{background:#7c3aed;color:#fff}.btn-primary:hover{background:#6d28d9}
-.btn-secondary{background:#1f1f1f;color:#aaa;border:1px solid #2d2d2d}.btn-secondary:hover{background:#2a2a2a;color:#e5e5e5}
-.btn-danger{background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d}.btn-danger:hover{background:#7f1d1d}
-.btn-sm{padding:4px 10px;font-size:10px;border-radius:5px}
-.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:800;letter-spacing:.3px}
-.b-active{background:#052e16;color:#86efac;border:1px solid #14532d}
-.b-inactive{background:#2d0000;color:#fca5a5;border:1px solid #7f1d1d}
-.b-type{background:#12122a;color:#818cf8;border:1px solid #1e1e40}
-.b-featured{background:#1a0f00;color:#fbbf24;border:1px solid #78350f}
-.b-past{background:#1a0e00;color:#fb923c;border:1px solid #9a3412}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:8px 10px;color:#3f3f46;font-weight:600;border-bottom:1px solid #1a1a1a;font-size:10px;text-transform:uppercase;background:#0d0d0d;position:sticky;top:0;z-index:1}
-td{padding:7px 10px;border-bottom:1px solid #141414;vertical-align:middle}
-tr:hover td{background:#0f0f0f}
-.tc-title{max-width:200px}
-.tc-title strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#d4d4d8;font-weight:600}
-.tc-title span{display:block;font-size:10px;color:#555;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tags{display:flex;flex-wrap:wrap;gap:3px}
-.tag{background:#1a1a2e;color:#818cf8;font-size:9px;padding:1px 5px;border-radius:3px}
-.actions{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
-.table-wrap{background:#111;border:1px solid #1f1f1f;border-radius:10px;overflow:hidden}
-.empty{text-align:center;padding:40px;color:#444}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;align-items:center;justify-content:center;padding:20px}
-.overlay.open{display:flex}
-.modal{background:#0f0f0f;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:100%;max-width:700px;max-height:92vh;overflow-y:auto}
-.modal h2{font-size:16px;font-weight:800;color:#a78bfa;margin-bottom:16px}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.fg{display:flex;flex-direction:column;gap:5px}
-.fg.full{grid-column:1/-1}
-.fg label{font-size:10px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
-input,select,textarea{background:#0a0a0a;border:1px solid #252525;border-radius:6px;padding:7px 10px;color:#e5e5e5;font-size:12px;font-family:inherit;width:100%;outline:none;transition:border-color .15s}
-input:focus,select:focus,textarea:focus{border-color:#7c3aed}
-textarea{resize:vertical;min-height:75px}
-.cb-row{grid-column:1/-1;display:flex;gap:24px}
-.cb-item{display:flex;align-items:center;gap:7px}
-.cb-item input{width:auto}
-.cb-item label{font-size:12px;color:#aaa;text-transform:none;letter-spacing:0}
-.form-actions{margin-top:16px;display:flex;gap:10px;justify-content:flex-end}
-.msg{padding:9px 14px;border-radius:6px;font-size:12px;margin-bottom:12px}
-.msg-ok{background:#052e16;border:1px solid #14532d;color:#86efac}
-.msg-err{background:#2d0000;border:1px solid #7f1d1d;color:#fca5a5}
-#top-msg{margin-bottom:12px}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid #333;border-top-color:#a78bfa;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle}
-@keyframes sp{to{transform:rotate(360deg)}}
-</style></head>
-<body>
-<div class="topbar">
-  <h1>📅 Events Admin</h1>
-  <a href="/__admin/verify">← Verify</a>
-  <a href="/__admin/roles">Roles</a>
-  <a href="/__admin/patch">Patch</a>
-</div>
-<div class="wrap">
-  <div class="toolbar">
-    <button class="btn btn-primary" onclick="openCreate()">+ Create Event</button>
-    <button class="btn btn-secondary" onclick="refreshDates()">🔄 Refresh Past Dates</button>
-    <button class="btn btn-secondary" onclick="loadEvents()">↻ Reload</button>
-    <span id="st" style="font-size:11px;color:#555;margin-left:4px"></span>
-  </div>
-  <div id="top-msg"></div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr>
-        <th style="width:200px">Title / Host</th>
-        <th>Type</th>
-        <th>Status</th>
-        <th>Start</th>
-        <th>End</th>
-        <th style="text-align:center">Attendees</th>
-        <th>Tags</th>
-        <th style="width:220px">Actions</th>
-      </tr></thead>
-      <tbody id="tbody"><tr><td colspan="8" class="empty"><span class="spin"></span> Loading…</td></tr></tbody>
-    </table>
-  </div>
-</div>
-
-<div class="overlay" id="modal">
-  <div class="modal">
-    <h2 id="modal-title">Create Event</h2>
-    <div id="form-msg"></div>
-    <form id="evt-form" onsubmit="submitForm(event)">
-      <input type="hidden" id="f-id">
-      <div class="form-grid">
-        <div class="fg full">
-          <label>Title *</label>
-          <input type="text" id="f-title" required maxlength="200" placeholder="Event title">
-        </div>
-        <div class="fg">
-          <label>Event Type</label>
-          <select id="f-type">
-            <option value="webinar">Webinar</option>
-            <option value="workshop">Workshop</option>
-            <option value="study_session">Study Session</option>
-            <option value="mock_test">Mock Test</option>
-            <option value="ama">AMA</option>
-            <option value="q_and_a">Q&amp;A</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label>Host / Speaker</label>
-          <input type="text" id="f-host" placeholder="e.g. Prof. Anupam Gupta">
-        </div>
-        <div class="fg">
-          <label>Start Time *</label>
-          <input type="datetime-local" id="f-start" required>
-        </div>
-        <div class="fg">
-          <label>End Time</label>
-          <input type="datetime-local" id="f-end">
-        </div>
-        <div class="fg">
-          <label>Max Attendees</label>
-          <input type="number" id="f-maxatt" min="1" placeholder="Unlimited if blank">
-        </div>
-        <div class="fg full">
-          <label>Description</label>
-          <textarea id="f-desc" placeholder="Event description…"></textarea>
-        </div>
-        <div class="fg">
-          <label>Image Gradient (Tailwind)</label>
-          <select id="f-grad">
-            ${gradients.map(g => `<option value="${g}">${g}</option>`).join('')}
-          </select>
-        </div>
-        <div class="fg">
-          <label>Image URL (overrides gradient)</label>
-          <input type="url" id="f-imgurl" placeholder="https://…">
-        </div>
-        <div class="fg full">
-          <label>Tags (comma-separated)</label>
-          <input type="text" id="f-tags" placeholder="e.g. JEE, Physics, Strategy">
-        </div>
-        <div class="cb-row">
-          <div class="cb-item"><input type="checkbox" id="f-featured"><label for="f-featured">Featured event</label></div>
-          <div class="cb-item"><input type="checkbox" id="f-active" checked><label for="f-active">Active (visible to users)</label></div>
-        </div>
-      </div>
-      <div class="form-actions">
-        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="submit-btn">Save Event</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script>
-let evts = ${JSON.stringify(events)};
-
-const pad = n => String(n).padStart(2,'0');
-function toLocal(iso){ if(!iso) return ''; const d=new Date(iso); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); }
-function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); }
-function showMsg(msg,err=false,area='top-msg'){ const el=document.getElementById(area); el.innerHTML='<div class="msg '+(err?'msg-err':'msg-ok')+'">'+msg+'</div>'; if(!err) setTimeout(()=>{el.innerHTML='';},4000); }
-function st(t){ document.getElementById('st').textContent=t; }
-
-function renderTable(data){
-  const tb=document.getElementById('tbody');
-  if(!data.length){ tb.innerHTML='<tr><td colspan="8" class="empty">No events. Create one above.</td></tr>'; return; }
-  const now=Date.now();
-  tb.innerHTML=data.map(e=>{
-    const past=e.start_time&&new Date(e.start_time).getTime()<now;
-    const tagsHtml=(e.tags||[]).slice(0,4).map(t=>'<span class="tag">'+t+'</span>').join('');
-    return '<tr>'+
-      '<td class="tc-title"><strong title="'+esc(e.title||'')+'">'+esc(e.title||'—')+'</strong><span>'+esc(e.host||'')+'</span></td>'+
-      '<td><span class="badge b-type">'+esc(e.event_type||'webinar')+'</span></td>'+
-      '<td>'+
-        (e.is_active?'<span class="badge b-active">Active</span>':'<span class="badge b-inactive">Inactive</span>')+
-        (e.is_featured?' <span class="badge b-featured">★ Featured</span>':'')+
-        (past?' <span class="badge b-past">Past</span>':'')+
-      '</td>'+
-      '<td style="font-size:11px;white-space:nowrap">'+fmtDate(e.start_time)+'</td>'+
-      '<td style="font-size:11px;white-space:nowrap">'+fmtDate(e.end_time)+'</td>'+
-      '<td style="text-align:center;font-size:12px">'+(e.attendee_count||0)+(e.max_attendees?'/'+e.max_attendees:'')+'</td>'+
-      '<td><div class="tags">'+tagsHtml+'</div></td>'+
-      '<td><div class="actions">'+
-        '<button class="btn btn-secondary btn-sm" onclick="openEdit(\''+e.id+'\')">Edit</button>'+
-        '<button class="btn btn-secondary btn-sm" onclick="toggle(\''+e.id+'\','+(!e.is_active)+')">'+( e.is_active?'Unpublish':'Publish')+'</button>'+
-        '<button class="btn btn-danger btn-sm" onclick="del(\''+e.id+'\',\''+esc(e.title||'')+'\')">Delete</button>'+
-      '</div></td>'+
-    '</tr>';
-  }).join('');
-}
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-
-async function loadEvents(){
-  st('Loading…');
-  try{
-    const r=await fetch('/__admin/events.json',{credentials:'include'});
-    evts=await r.json();
-    renderTable(evts);
-    st(evts.length+' events');
-  }catch(e){ st('Error: '+e.message); }
-}
-
-function openCreate(){
-  document.getElementById('modal-title').textContent='Create Event';
-  document.getElementById('evt-form').reset();
-  document.getElementById('f-id').value='';
-  document.getElementById('f-active').checked=true;
-  document.getElementById('f-featured').checked=false;
-  document.getElementById('form-msg').innerHTML='';
-  const tmr=new Date(Date.now()+86400000);
-  document.getElementById('f-start').value=toLocal(tmr.toISOString());
-  document.getElementById('modal').classList.add('open');
-}
-
-function openEdit(id){
-  const e=evts.find(ev=>ev.id===id); if(!e) return;
-  document.getElementById('modal-title').textContent='Edit Event';
-  document.getElementById('f-id').value=e.id;
-  document.getElementById('f-title').value=e.title||'';
-  document.getElementById('f-type').value=e.event_type||'webinar';
-  document.getElementById('f-host').value=e.host||'';
-  document.getElementById('f-start').value=toLocal(e.start_time);
-  document.getElementById('f-end').value=toLocal(e.end_time);
-  document.getElementById('f-maxatt').value=e.max_attendees||'';
-  document.getElementById('f-desc').value=e.description||'';
-  document.getElementById('f-grad').value=e.image_gradient||'from-purple-600 to-blue-500';
-  document.getElementById('f-imgurl').value=e.image_url||'';
-  document.getElementById('f-tags').value=(e.tags||[]).join(', ');
-  document.getElementById('f-featured').checked=!!e.is_featured;
-  document.getElementById('f-active').checked=!!e.is_active;
-  document.getElementById('form-msg').innerHTML='';
-  document.getElementById('modal').classList.add('open');
-}
-
-function closeModal(){ document.getElementById('modal').classList.remove('open'); }
-
-async function submitForm(ev){
-  ev.preventDefault();
-  const id=document.getElementById('f-id').value;
-  const isEdit=!!id;
-  const sRaw=document.getElementById('f-start').value;
-  const eRaw=document.getElementById('f-end').value;
-  const payload={
-    title:           document.getElementById('f-title').value.trim(),
-    event_type:      document.getElementById('f-type').value,
-    host:            document.getElementById('f-host').value.trim(),
-    start_time:      sRaw?new Date(sRaw).toISOString():null,
-    end_time:        eRaw?new Date(eRaw).toISOString():null,
-    max_attendees:   document.getElementById('f-maxatt').value?parseInt(document.getElementById('f-maxatt').value):null,
-    description:     document.getElementById('f-desc').value.trim(),
-    image_gradient:  document.getElementById('f-grad').value,
-    image_url:       document.getElementById('f-imgurl').value.trim()||null,
-    tags:            document.getElementById('f-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
-    is_featured:     document.getElementById('f-featured').checked,
-    is_active:       document.getElementById('f-active').checked,
-  };
-  if(isEdit) payload.id=id;
-  const url=isEdit?'/__admin/events/update':'/__admin/events/create';
-  const btn=document.getElementById('submit-btn');
-  btn.disabled=true; btn.textContent='Saving…';
-  try{
-    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),credentials:'include'});
-    const d=await r.json();
-    if(d.ok){ showMsg(isEdit?'Updated!':'Created!',false,'form-msg'); setTimeout(()=>{closeModal();loadEvents();},900); }
-    else showMsg('Error: '+(d.error||'Unknown'),true,'form-msg');
-  }catch(e){ showMsg('Error: '+e.message,true,'form-msg'); }
-  finally{ btn.disabled=false; btn.textContent='Save Event'; }
-}
-
-async function toggle(id,active){
-  try{
-    const r=await fetch('/__admin/events/publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,is_active:active}),credentials:'include'});
-    const d=await r.json();
-    if(d.ok){showMsg(active?'Published!':'Unpublished!');loadEvents();}
-    else showMsg('Error: '+(d.error||''),true);
-  }catch(e){showMsg('Error: '+e.message,true);}
-}
-
-async function del(id,title){
-  if(!confirm('Delete event "'+title+'"?\\nThis cannot be undone.')) return;
-  try{
-    const r=await fetch('/__admin/events/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id}),credentials:'include'});
-    const d=await r.json();
-    if(d.ok){showMsg('Deleted.');loadEvents();}
-    else showMsg('Error: '+(d.error||''),true);
-  }catch(e){showMsg('Error: '+e.message,true);}
-}
-
-async function refreshDates(){
-  if(!confirm('Push all past-dated events to future dates?')) return;
-  st('Refreshing…');
-  try{
-    const r=await fetch('/__admin/events/refresh-dates',{method:'POST',credentials:'include'});
-    const d=await r.json();
-    if(d.ok){showMsg('Updated '+d.updated+'/'+d.total+' events to future dates.');loadEvents();}
-    else showMsg('Error: '+(d.error||''),true);
-  }catch(e){showMsg('Error: '+e.message,true);}
-  finally{st('');}
-}
-
-document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
-renderTable(evts);
-</script>
-</body></html>`;
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-      res.end(html);
-    })().catch(e => {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Events admin error: ' + e.message);
-    });
-    return;
-  }
-
   // ── /__admin/verify — full automated test suite ───────────────────────────
   if (req.method === 'GET' && new URL('http://x' + req.url).pathname === '/__admin/verify') {
     (async () => {
@@ -4061,8 +2991,6 @@ renderTable(evts);
         user_stats_summary:           ['user_id','total_study_seconds','total_hours','weekly_hours','monthly_hours','streak_days','current_streak','max_streak_days','longest_streak','session_count','total_sessions','last_study_date','last_session_at'],
         daily_user_stats:             ['user_id','date','seconds_studied'],
         study_sessions_log:           ['id','user_id','duration_minutes','ended_at','created_at'],
-        store_items:                  ['id','name','price','currency','category','image','active'],
-        user_inventory:               ['id','user_id','item_id','equipped'],
         groups:                       ['id','name','slug','member_count','owner_id','is_public','max_members','settings','deleted_at'],
         group_members:                ['id','group_id','user_id','role','joined_at'],
         group_chat_messages:          ['id','group_id','user_id','content','message_type','created_at','deleted_at'],
@@ -4073,23 +3001,6 @@ renderTable(evts);
         group_milestones:             ['id','group_id','milestone_type','earned_at'],
         notifications:                ['id','user_id','type','title','body','read_at'],
         user_presence:                ['user_id','status','last_seen'],
-        community_events:             ['id','title','event_type','description','host','start_time','end_time','image_gradient','image_url','tags','max_attendees','attendee_count','is_featured','is_active','updated_at'],
-        community_event_attendees:    ['event_id','user_id','joined_at'],
-        event_categories:             ['id','name','slug','icon','color'],
-        event_rsvp:                   ['event_id','user_id','state','updated_at'],
-        event_messages:               ['id','event_id','user_id','content','created_at','deleted_at'],
-        event_threads:                ['id','event_id','user_id','title','content','created_at'],
-        event_thread_replies:         ['id','thread_id','user_id','content','created_at'],
-        event_reactions:              ['event_id','user_id','reaction','created_at'],
-        event_resources:              ['id','event_id','uploaded_by','title','url','resource_type','download_count'],
-        event_roles:                  ['event_id','user_id','role','assigned_by'],
-        event_presence:               ['event_id','user_id','status','last_seen'],
-        event_analytics:              ['event_id','view_count','chat_message_count','reaction_count','resource_count'],
-        event_feedback:               ['event_id','user_id','rating','comment'],
-        event_recordings:             ['id','event_id','uploaded_by','title','url'],
-        event_reminders:              ['event_id','user_id','remind_type','remind_at','sent_at'],
-        event_announcements:          ['id','event_id','author_id','content','is_pinned'],
-        event_pinned_messages:        ['event_id','message_id','pinned_by'],
       };
 
       const tableChecks = await Promise.all(Object.entries(SCHEMA).map(async ([table, cols]) => {
@@ -4148,12 +3059,6 @@ renderTable(evts);
             JSON.stringify({p_group_id: null, p_days: 30}), svcKey);
           const missing = r.status === 404;
           return { name:'get_group_analytics_from_snapshots(p_group_id,p_days)', ok: !missing, detail: missing ? '⛔ RPC MISSING' : `HTTP ${r.status} — ${err(r)||'ok'}` };
-        })(),
-        (async () => {
-          const r = await supaReq('POST', '/rest/v1/rpc/increment_event_resource_download',
-            JSON.stringify({p_event_id: null, p_resource_id: null}), svcKey);
-          const missing = r.status === 404;
-          return { name:'increment_event_resource_download(p_event_id,p_resource_id)', ok: !missing, detail: missing ? '⛔ RPC MISSING' : `HTTP ${r.status} — ${err(r)||'ok'}` };
         })(),
       ]);
 
@@ -4222,17 +3127,8 @@ renderTable(evts);
           return { name:'/ (app root)', ok: r.status === 200, detail:`HTTP ${r.status}` };
         })(),
         (async () => {
-          const r = await localReq('GET', '/api/community-events');
-          const ok = r.status === 200 && Array.isArray(r.body);
-          return { name:'/api/community-events', ok, detail: ok ? `HTTP 200 — ${(r.body||[]).length} events` : `HTTP ${r.status}` };
-        })(),
-        (async () => {
           const r = await localReq('GET', '/api/health');
           return { name:'/api/health', ok: r.status === 200 && r.body?.status === 'ok', detail:`HTTP ${r.status}` };
-        })(),
-        (async () => {
-          const r = await localReq('GET', '/__admin/events');
-          return { name:'/__admin/events UI', ok: r.status === 200, detail:`HTTP ${r.status}` };
         })(),
         (async () => {
           const r = await supaReq('GET', '/rest/v1/', null, svcKey);
@@ -4244,7 +3140,7 @@ renderTable(evts);
         })(),
       ]);
 
-      // ── CATEGORY 6: Admin user + community events functional tests ────────
+      // ── CATEGORY 6: Admin, community, and realtime functional tests ────────
       const communityChecks = await Promise.all([
         // Admin user exists in auth.users
         (async () => {
@@ -4266,31 +3162,6 @@ renderTable(evts);
           const ok = r.status === 200 && Array.isArray(r.body) && r.body.length > 0;
           return { name:'Admin row in public.users', ok, detail: ok ? `username=${r.body[0].username||'—'} plan_type=${r.body[0].plan_type}` : `HTTP ${r.status} — not found (email: ${adminEmailDisplay()})` };
         })(),
-        // community_events has seeded data
-        (async () => {
-          const r = await supaReq('GET', '/rest/v1/community_events?select=id,title&limit=10', null, svcKey);
-          const ok = r.status === 200 && Array.isArray(r.body) && r.body.length > 0;
-          return { name:'community_events has data', ok, detail: ok ? `${r.body.length} events — "${(r.body[0]||{}).title||''}"` : '⛔ Table empty or missing' };
-        })(),
-        // community_events RLS: public can read (anon key)
-        (async () => {
-          const r = await supaReq('GET', '/rest/v1/community_events?select=id,title&limit=1', null, anonKey);
-          const ok = r.status === 200;
-          const recursive = isRlsRecursion(r);
-          return { name:'community_events RLS (anon can read)', ok: ok && !recursive, detail: recursive ? '⛔ RLS RECURSION' : ok ? 'anon read OK' : `HTTP ${r.status}` };
-        })(),
-        // join_community_event RPC exists
-        (async () => {
-          const r = await supaReq('POST', '/rest/v1/rpc/join_community_event', JSON.stringify({p_event_id: null}), svcKey);
-          const missing = r.status === 404 || /does not exist|not found/i.test(err(r));
-          return { name:'join_community_event(p_event_id)', ok: !missing, detail: missing ? '⛔ RPC MISSING' : `HTTP ${r.status} — ${err(r)||'ok'}` };
-        })(),
-        // leave_community_event RPC exists
-        (async () => {
-          const r = await supaReq('POST', '/rest/v1/rpc/leave_community_event', JSON.stringify({p_event_id: null}), svcKey);
-          const missing = r.status === 404 || /does not exist|not found/i.test(err(r));
-          return { name:'leave_community_event(p_event_id)', ok: !missing, detail: missing ? '⛔ RPC MISSING' : `HTTP ${r.status} — ${err(r)||'ok'}` };
-        })(),
         // _is_group_member helper function exists (SECURITY DEFINER, no recursion)
         (async () => {
           const r = await supaReq('POST', '/rest/v1/rpc/_is_group_member', JSON.stringify({gid: null, uid: null}), svcKey);
@@ -4308,44 +3179,6 @@ renderTable(evts);
           const r = await supaReq('GET', '/rest/v1/user_presence?select=user_id,status,last_seen&limit=1', null, svcKey);
           const ok = r.status === 200;
           return { name:'user_presence (realtime)', ok, detail: ok ? `accessible — ${Array.isArray(r.body)?r.body.length:0} row(s)` : `HTTP ${r.status}` };
-        })(),
-        // create_community_event RPC exists (patch v7)
-        (async () => {
-          const r = await supaReq('POST', '/rest/v1/rpc/create_community_event', JSON.stringify({p_title:'__probe__',p_start_time:null}), svcKey);
-          const missing = r.status === 404 || /does not exist|not found/i.test(err(r));
-          return { name:'create_community_event RPC', ok: !missing, detail: missing ? '⛔ MISSING — apply patch v7' : `HTTP ${r.status} — ${err(r)||'ok'}` };
-        })(),
-        // update_community_event RPC exists (patch v7)
-        // Note: sends a nil UUID so the RPC returns {"ok":false,"error":"Event not found"} — HTTP 200.
-        // A Supabase "function does not exist" error returns HTTP 404 with a different message.
-        // We only flag as MISSING on status 404 to avoid matching the RPC's own "Event not found" message.
-        (async () => {
-          const nilId = '00000000-0000-0000-0000-000000000000';
-          const r = await supaReq('POST', '/rest/v1/rpc/update_community_event', JSON.stringify({p_id: nilId}), svcKey);
-          const missing = r.status === 404 || /function .* does not exist|could not find the function/i.test(err(r));
-          return { name:'update_community_event RPC', ok: !missing, detail: missing ? '⛔ MISSING — apply patch v7' : `HTTP ${r.status} — ${err(r)||'ok'}` };
-        })(),
-        // delete_community_event RPC exists (patch v7)
-        (async () => {
-          const r = await supaReq('POST', '/rest/v1/rpc/delete_community_event', JSON.stringify({p_id:null}), svcKey);
-          const missing = r.status === 404 || /does not exist|not found/i.test(err(r));
-          return { name:'delete_community_event RPC', ok: !missing, detail: missing ? '⛔ MISSING — apply patch v7' : `HTTP ${r.status} — ${err(r)||'ok'}` };
-        })(),
-        // get_event_attendees RPC exists (patch v7)
-        (async () => {
-          const r = await supaReq('POST', '/rest/v1/rpc/get_event_attendees', JSON.stringify({p_event_id:null}), svcKey);
-          const missing = r.status === 404 || /does not exist|not found/i.test(err(r));
-          return { name:'get_event_attendees RPC', ok: !missing, detail: missing ? '⛔ MISSING — apply patch v7' : `HTTP ${r.status} — ${err(r)||'ok'}` };
-        })(),
-        // community_events date freshness (all events should be in the future)
-        (async () => {
-          const r = await supaReq('GET', '/rest/v1/community_events?select=id,start_time&is_active=eq.true&order=start_time.asc&limit=20', null, svcKey);
-          const ok = r.status === 200 && Array.isArray(r.body) && r.body.length > 0;
-          if (!ok) return { name:'community_events (date freshness)', ok: false, detail: `No active events found` };
-          const now = Date.now();
-          const future = r.body.filter(e => new Date(e.start_time).getTime() > now).length;
-          const stale  = r.body.length - future;
-          return { name:'community_events (date freshness)', ok: future > 0, detail: future > 0 ? `${future} upcoming, ${stale} past` : `⚠️ All ${stale} active events have past dates — use /__admin/events → Refresh Past Dates` };
         })(),
       ]);
 
@@ -4368,12 +3201,6 @@ renderTable(evts);
           const r = await supaReq('GET', '/storage/v1/bucket/notes', null, svcKey);
           const ok = r.status === 200 && r.body && r.body.id === 'notes';
           return { name:'notes bucket (private)', ok, detail: ok ? `public=${r.body.public} limit=${r.body.file_size_limit}b` : `HTTP ${r.status} — ⛔ MISSING` };
-        })(),
-        // event-images bucket (public — event banners)
-        (async () => {
-          const r = await supaReq('GET', '/storage/v1/bucket/event-images', null, svcKey);
-          const ok = r.status === 200 && r.body && r.body.id === 'event-images';
-          return { name:'event-images bucket (public)', ok, detail: ok ? `public=${r.body.public} limit=${r.body.file_size_limit}b` : `HTTP ${r.status} — ⛔ MISSING` };
         })(),
         // avatars RLS: public read — list via POST (Supabase list-objects endpoint)
         (async () => {
@@ -4451,7 +3278,7 @@ tr:last-child td{border-bottom:none}
 <body><div class="wrap">
 <a class="refresh" href="javascript:location.reload()">↻ Auto-refreshes every 30s</a>
 <h1>🧪 Automated Test Suite</h1>
-<p class="sub">${SUPA_URL} &nbsp;·&nbsp; Ran ${allTests.length} tests in ${elapsed}ms &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/patch">Patch →</a> &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/events">Events →</a> &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/roles">Roles →</a></p>
+<p class="sub">${SUPA_URL} &nbsp;·&nbsp; Ran ${allTests.length} tests in ${elapsed}ms &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/patch">Patch →</a> &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/roles">Roles →</a></p>
 
 <div class="summary">
   <div class="pill pill-n"><span class="num">${allTests.length}</span>total tests</div>
@@ -4675,6 +3502,20 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
       const buf = getPatchedAiStore();
       if (buf) { send(buf); return; }
     }
+    if (fp === SERVICE_WORKER_ABS) {
+      fs.readFile(fp, 'utf8', (err, raw) => {
+        if (err) { res.writeHead(404); res.end('Not found'); return; }
+        LOCAL_VERSION = readLocalVersionInfo();
+        DEPLOYED_SHA = LOCAL_VERSION.sha || DEPLOYED_SHA;
+        const patched = raw
+          .replace(/__ISOTOPE_APP_VERSION__/g, LOCAL_VERSION.version)
+          .replace(/__ISOTOPE_APP_SHA__/g, String(DEPLOYED_SHA).slice(0, 12));
+        res.setHeader('Cache-Control', 'no-cache');
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(patched);
+      });
+      return;
+    }
     if (fp === FOCUS_BUNDLE_ABS) {
       const buf = getPatchedFocusBundle();
       if (buf) { send(buf); return; }
@@ -4690,6 +3531,18 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
     if (fp === INVITES_BUNDLE_ABS) {
       const buf = getPatchedInvitesBundle();
       if (buf) { send(buf); return; }
+    }
+    if (fp === COMMUNITY_BUNDLE_ABS) {
+      const buf = getPatchedCommunityBundle();
+      if (buf) { send(buf); return; }
+    }
+    if (fp === COMMUNITY_HUB_BUNDLE_ABS) {
+      const buf = getPatchedCommunityHubBundle();
+      if (buf) { send(buf); return; }
+    }
+    if (fp === STORE_BUNDLE_ABS || fp === EVENTS_BUNDLE_ABS) {
+      send(REMOVED_FEATURE_MODULE);
+      return;
     }
 
     fs.readFile(fp, (err, data) => {
@@ -4730,7 +3583,7 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
     console.warn('[Startup] Owner tools requested but not ready. Add SUPABASE_SERVICE_ROLE_KEY in your private .env.');
   } else {
     console.info('[Startup] Owner tools enabled. Protect admin credentials and service-role key.');
-    console.info('[Startup] Admin panel: /__admin/verify | /__admin/events | /__admin/roles | /__admin/patch');
+    console.info('[Startup] Admin panel: /__admin/verify | /__admin/roles | /__admin/patch');
     if (!ADMIN_PASSWORD || !ADMIN_EMAIL) {
       console.info('[Startup] ADMIN_EMAIL/ADMIN_PASSWORD not both set; admin account auto-create will be skipped.');
     }
@@ -4751,6 +3604,8 @@ server.listen(port, '0.0.0.0', () => {
     getPatchedAppBundle();
     getPatchedAuthBundle();
     getPatchedInvitesBundle();
+    getPatchedCommunityBundle();
+    getPatchedCommunityHubBundle();
   });
 
   // Auto-run DML backfills on startup (safe REST-only operations, no DDL needed)
@@ -4900,29 +3755,6 @@ async function runStartupBackfills() {
       console.warn('[Startup] Admin user check failed:', adminErr.message);
     }
 
-    // 7. Seed community events if table is empty
-    try {
-      const evtCheck = await supaRest('GET', 'community_events', 'select=id&limit=1');
-      if (evtCheck.status === 200) {
-        let evts = []; try { evts = JSON.parse(evtCheck.body); } catch {}
-        if (Array.isArray(evts) && evts.length === 0) {
-          const now = new Date();
-          const d = (days, hours = 0) => new Date(now.getTime() + days * 86400000 + hours * 3600000).toISOString();
-          const events = [
-            { title: 'Weekly Community Study Session', event_type: 'study_session', description: 'Join 200+ students for a focused 2-hour session with Pomodoro timer and live leaderboard.', host: 'IsotopeAI Community', start_time: d(1), end_time: d(1, 2), image_gradient: 'from-purple-600 to-pink-500', tags: ['Community', 'Focus', 'Leaderboard'], is_featured: true, is_active: true },
-            { title: 'JEE Advanced Strategy Session', event_type: 'webinar', description: 'Expert breakdown of JEE Advanced paper pattern, high-weightage topics, and last-minute revision strategy.', host: 'Prof. Anupam Gupta', start_time: d(3), end_time: d(3, 2), image_gradient: 'from-violet-600 to-indigo-500', tags: ['JEE', 'Strategy', 'Physics'], max_attendees: 500, is_featured: true, is_active: true },
-            { title: 'NEET Biology Deep Dive', event_type: 'workshop', description: 'Intensive workshop: Genetics, Ecology, Human Physiology — the chapters that decide NEET ranks.', host: 'Dr. Priya Sharma', start_time: d(5), end_time: d(5, 3), image_gradient: 'from-emerald-600 to-teal-500', tags: ['NEET', 'Biology', 'Genetics'], max_attendees: 300, is_featured: true, is_active: true },
-            { title: 'Physics Problem-Solving Workshop', event_type: 'workshop', description: 'Live problem solving for Mechanics, Electrostatics and Modern Physics.', host: 'IIT Alumni Study Group', start_time: d(7), end_time: d(7, 2), image_gradient: 'from-blue-600 to-cyan-500', tags: ['Physics', 'Mechanics', 'JEE'], max_attendees: 200, is_featured: false, is_active: true },
-            { title: 'Chemistry Organic Reaction Masterclass', event_type: 'webinar', description: 'Name Reactions, Mechanisms and shortcuts for Organic Chemistry in JEE and NEET.', host: 'Dr. Rahul Verma', start_time: d(10), end_time: d(10, 2), image_gradient: 'from-orange-600 to-amber-500', tags: ['Chemistry', 'Organic', 'JEE', 'NEET'], max_attendees: 400, is_featured: false, is_active: true },
-            { title: 'Mathematics Integration & Calculus Sprint', event_type: 'workshop', description: 'Speed math for Integration, Differential Equations and limits — shortcuts that save 5+ minutes.', host: 'Ishaan Arora (IIT Bombay 2023)', start_time: d(14), end_time: d(14, 2), image_gradient: 'from-rose-600 to-red-500', tags: ['Maths', 'Calculus', 'JEE'], max_attendees: 250, is_featured: false, is_active: true },
-          ];
-          await supaRest('POST', 'community_events', null, events);
-          console.log('[Startup] Seeded', events.length, 'community events');
-        }
-      }
-    } catch (evtErr) {
-      console.warn('[Startup] Community events seed skipped:', evtErr.message);
-    }
   } catch (e) {
     console.warn('[Startup] DML backfill warning:', e.message);
   }

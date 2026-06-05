@@ -1,38 +1,61 @@
 ---
 title: IsotopeAI Local
-description: A local study app with Supabase cloud sync.
+description: A downloadable local-server study app with Supabase cloud sync.
 ---
 
 # IsotopeAI Local
 
-Install it on your own device. Open it in your browser. Study offline where possible. Sync online through the Isotope Supabase cloud.
+Isotope is downloadable software. Run the Node server on your own device, then open the app in your browser.
+
+Supabase is backend/cloud sync only:
+
+- Auth
+- Database
+- Storage
+- Realtime
+- Community/group sync
+- Optional edge functions
+
+Supabase is not static website hosting, a VPS replacement, or the main website. Do not try to open the app at `https://<project-ref>.supabase.co/`.
 
 ## Start Fast
 
 - Windows: run `setup.bat`
-- macOS/Linux/Termux: run `./setup.sh`
-- PowerShell: run `./install.ps1`
+- macOS/Linux/Termux: run `bash setup.sh`
+- PowerShell: run `.\install.ps1`
 
-The default public Supabase config is already included for normal users. Owner/admin keys stay blank unless you privately enable admin mode.
+Normal users only need `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Owner/admin fields stay blank unless private admin mode is enabled.
 
-## What It Is
+## Commands
 
-A portable local software package:
+After setup, run these from any directory:
 
+```bash
+isotope start
+isotope stop
+isotope restart
+isotope update
+isotope status
+isotope doctor
+isotope open
+isotope logs
 ```
-your device -> local Node server -> browser app
-                         -> Supabase cloud sync when online
-```
-
-It is not a VPS requirement and not a centrally hosted website.
-
-## Online Sync
-
-Supabase handles auth, profiles, onboarding, community groups, events, chat, storage, leaderboard, notifications, and realtime.
 
 ## Offline Support
 
-The local server keeps the app open when the network is down. Study workspace pages and cached assets continue to work; cloud-only widgets degrade instead of crashing.
+After the first successful visit with the local server running, the browser caches the app shell and core assets.
+
+If the local server later stops, the cached shell may still load. Local API routes and Supabase-backed features do not work until the server and network are available again. The UI shows an offline/server-unavailable indicator instead of pretending cloud features are online.
+
+## Android / Termux Widget
+
+Install shortcuts with:
+
+```bash
+bash setup-termux-widget.sh
+```
+
+Then add Termux Widget buttons such as `isotope-start`, `isotope-update`, `isotope-open`, and `isotope-doctor` to the Android home screen.
 
 ## Admin
 

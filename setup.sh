@@ -2,9 +2,17 @@
 set -euo pipefail
 
 NODE_MIN=18
-PORT_VALUE="${PORT:-5000}"
 NO_START=0
-[ "${1:-}" = "--no-start" ] && NO_START=1
+YES=0
+PORT_VALUE="${PORT:-5000}"
+
+for arg in "$@"; do
+  case "$arg" in
+    --no-start) NO_START=1 ;;
+    --yes|-y) YES=1 ;;
+    --port=*) PORT_VALUE="${arg#--port=}" ;;
+  esac
+done
 
 info() { printf '%s\n' "$*"; }
 warn() { printf 'WARN: %s\n' "$*" >&2; }
@@ -21,46 +29,43 @@ platform() {
   esac
 }
 
-try_install_node_git() {
+try_install_deps() {
   os="$(platform)"
   info "Detected platform: $os"
-  if has node && has git; then return; fi
-
+  if has node && has npm && has git; then return; fi
   case "$os" in
     termux)
-      has pkg && pkg update -y && pkg install -y nodejs git || true
+      if has pkg; then
+        info "Installing Node.js, npm, and Git with pkg if needed..."
+        pkg update -y || true
+        has node || pkg install -y nodejs || true
+        has git || pkg install -y git || true
+      fi
       ;;
     macos)
       if has brew; then
         has node || brew install node
         has git || brew install git
       else
-        warn "Homebrew is not installed. Install Node.js from https://nodejs.org and Git from https://git-scm.com."
+        warn "Install Node.js 18+ from https://nodejs.org and Git from https://git-scm.com, then re-run setup.sh."
       fi
       ;;
     linux)
+      SUDO=""
+      [ "$(id -u)" -ne 0 ] && has sudo && SUDO=sudo
       if has apt-get; then
-        SUDO=""; [ "$(id -u)" -ne 0 ] && has sudo && SUDO=sudo
         $SUDO apt-get update || true
         $SUDO apt-get install -y nodejs npm git || true
       elif has dnf; then
-        SUDO=""; [ "$(id -u)" -ne 0 ] && has sudo && SUDO=sudo
         $SUDO dnf install -y nodejs npm git || true
       elif has pacman; then
-        SUDO=""; [ "$(id -u)" -ne 0 ] && has sudo && SUDO=sudo
         $SUDO pacman -Sy --noconfirm nodejs npm git || true
-      fi
-      ;;
-    windows-sh)
-      if has winget; then
-        has node || winget install -e --id OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements || true
-        has git || winget install -e --id Git.Git --accept-package-agreements --accept-source-agreements || true
       fi
       ;;
   esac
 }
 
-read_env() {
+read_env_key() {
   node - "$1" "$2" <<'NODE'
 const fs = require('fs');
 const [file, key] = process.argv.slice(2);
@@ -79,56 +84,144 @@ process.stdout.write(out);
 NODE
 }
 
+write_env_key() {
+  node - "$1" "$2" "$3" <<'NODE'
+const fs = require('fs');
+const [file, key, value] = process.argv.slice(2);
+let text = '';
+try { text = fs.readFileSync(file, 'utf8'); } catch {}
+const lines = text ? text.split(/\r?\n/) : [];
+let found = false;
+for (let i = 0; i < lines.length; i++) {
+  const raw = lines[i];
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) continue;
+  const left = trimmed.slice(0, trimmed.indexOf('=')).trim();
+  if (left === key) {
+    lines[i] = key + '=' + value;
+    found = true;
+  }
+}
+if (!found) lines.push(key + '=' + value);
+fs.writeFileSync(file, lines.join('\n').replace(/\n*$/, '\n'));
+NODE
+}
+
+prompt_env_value() {
+  key="$1"
+  label="$2"
+  current="$(read_env_key .env "$key")"
+  if [ "$YES" -eq 1 ] || [ ! -t 0 ]; then
+    [ -n "$current" ] || fail "$key is missing in .env"
+    return
+  fi
+  info ""
+  info "$label"
+  if [ -n "$current" ]; then
+    info "Current value is configured. Press Enter to keep it."
+  fi
+  printf '%s: ' "$key"
+  IFS= read -r value
+  if [ -n "$value" ]; then write_env_key .env "$key" "$value"; fi
+}
+
 validate_node() {
-  has node || fail "Node.js ${NODE_MIN}+ is required. Re-run after installing from https://nodejs.org."
+  has node || fail "Node.js ${NODE_MIN}+ is required."
   major="$(node -e "process.stdout.write(process.versions.node.split('.')[0])")"
   [ "$major" -ge "$NODE_MIN" ] || fail "Node.js ${NODE_MIN}+ is required; found $(node --version)."
   info "Node $(node --version) ready"
 }
 
+validate_cloud_config() {
+  url="$(read_env_key .env SUPABASE_URL)"
+  anon="$(read_env_key .env SUPABASE_ANON_KEY)"
+  case "$url" in https://*.supabase.co) : ;; *) fail "SUPABASE_URL must look like https://your-project-ref.supabase.co" ;; esac
+  [ "$(printf '%s' "$anon" | awk -F. '{print NF}')" -ge 3 ] || fail "SUPABASE_ANON_KEY must be JWT-like."
+  info "Supabase cloud sync config is present. Secrets were not printed."
+}
+
+install_global_command() {
+  os="$(platform)"
+  mkdir -p "$HOME/.isotope/logs"
+  printf '%s\n' "$(pwd)" > "$HOME/.isotope/project-path"
+  if [ "$os" = "termux" ]; then
+    dest="${PREFIX:-$HOME/.local}/bin/isotope"
+  else
+    mkdir -p "$HOME/.local/bin"
+    dest="$HOME/.local/bin/isotope"
+  fi
+  cp bin/isotope "$dest"
+  chmod +x "$dest"
+  info "Installed command: $dest"
+  case ":$PATH:" in
+    *":$(dirname "$dest"):"*) : ;;
+    *) warn "$(dirname "$dest") is not in PATH. Add it, or run: $dest start" ;;
+  esac
+  ISOTOPE_COMMAND="$dest"
+}
+
+maybe_setup_termux_widget() {
+  [ "$(platform)" = "termux" ] || return 0
+  if [ "$YES" -eq 1 ] || [ ! -t 0 ]; then
+    install_widgets="${INSTALL_TERMUX_WIDGETS:-yes}"
+  else
+    info ""
+    printf 'Install Termux Widget home-screen shortcuts? [Y/n]: '
+    IFS= read -r reply
+    case "$reply" in n|N|no|NO) install_widgets=no ;; *) install_widgets=yes ;; esac
+  fi
+  if [ "$install_widgets" = "yes" ]; then
+    bash setup-termux-widget.sh
+  else
+    info "Skipped Termux Widget shortcuts."
+  fi
+}
+
 info ""
-info "Isotope local app setup"
-info "This installs a local server. Supabase provides shared cloud sync."
+info "Isotope local-server setup"
+info "This is a downloadable local app. Supabase is used only for cloud sync/backend services."
 info "Working directory: $(pwd)"
 info ""
 
-try_install_node_git
+[ -f server.mjs ] || fail "Run setup.sh from the Isotope project directory."
+try_install_deps
 validate_node
-
-if has git; then info "Git ready"; else warn "Git not found. Setup can run, but update scripts need Git."; fi
+has npm && info "npm ready" || warn "npm not found. The app has no external runtime dependency, but npm install will be skipped."
+has git && info "Git ready" || warn "Git not found. isotope update needs Git."
 
 if [ ! -f .env ]; then
   [ -f .env.example ] || fail ".env.example is missing."
   cp .env.example .env
-  info "Created .env with the default Isotope cloud sync settings."
+  info "Created .env from .env.example."
 fi
 
-url="$(read_env .env SUPABASE_URL)"
-anon="$(read_env .env SUPABASE_ANON_KEY)"
-[ -n "$url" ] || fail "SUPABASE_URL is blank in .env"
-[ -n "$anon" ] || fail "SUPABASE_ANON_KEY is blank in .env"
-case "$url" in https://*.supabase.co) : ;; *) fail "SUPABASE_URL must be a Supabase project URL." ;; esac
-[ "$(printf '%s' "$anon" | awk -F. '{print NF}')" -ge 3 ] || fail "SUPABASE_ANON_KEY must be JWT-like."
-info "Cloud sync config ready"
+prompt_env_value SUPABASE_URL "Enter the Supabase project URL for cloud sync."
+prompt_env_value SUPABASE_ANON_KEY "Enter the Supabase anon key for browser auth/cloud sync."
+write_env_key .env ENABLE_ADMIN_MODE "$(read_env_key .env ENABLE_ADMIN_MODE || true)"
+validate_cloud_config
 
-if [ -f package.json ] && has npm; then
-  info "Installing runtime metadata with npm..."
+if has npm; then
+  info "Installing package metadata with npm install..."
   npm install
-else
-  warn "npm not found. The server has no external runtime dependency, but package metadata was not refreshed."
 fi
 
 node --check server.mjs >/dev/null
 info "Server syntax check passed"
 
+install_global_command
+maybe_setup_termux_widget
+
 info ""
 info "Setup complete."
-info "Local URL: http://localhost:${PORT_VALUE}"
-info "Stop the server with Ctrl+C."
+info "Local URL: http://127.0.0.1:${PORT_VALUE}"
+info "Commands you can now use from any directory:"
+info "  isotope start"
+info "  isotope update"
+info "  isotope doctor"
 info ""
 
 if [ "$NO_START" -eq 0 ]; then
-  PORT="$PORT_VALUE" node server.mjs
+  PORT="$PORT_VALUE" "$ISOTOPE_COMMAND" start
 else
-  info "Start later with: PORT=${PORT_VALUE} node server.mjs"
+  info "Start later with: isotope start"
 fi

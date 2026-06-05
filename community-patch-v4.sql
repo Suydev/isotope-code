@@ -2175,7 +2175,6 @@ CREATE TRIGGER on_auth_user_created
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES
   ('avatars',      'avatars',      true,  5242880,  ARRAY['image/png','image/jpeg','image/webp','image/gif']),
-  ('event-images', 'event-images', true, 10485760, ARRAY['image/png','image/jpeg','image/webp','image/gif']),
   ('user-content', 'user-content', false, 52428800, NULL),
   ('notes',        'notes',        false, 52428800, NULL)
 ON CONFLICT (id) DO UPDATE SET
@@ -2192,16 +2191,6 @@ DROP POLICY IF EXISTS "avatars_user_write" ON storage.objects;
 CREATE POLICY "avatars_user_write"
   ON storage.objects FOR INSERT
   WITH CHECK (bucket_id = 'avatars' AND auth.uid() IS NOT NULL);
-
-DROP POLICY IF EXISTS "event_images_public_read" ON storage.objects;
-CREATE POLICY "event_images_public_read"
-  ON storage.objects FOR SELECT
-  USING (bucket_id = 'event-images');
-
-DROP POLICY IF EXISTS "event_images_authenticated_write" ON storage.objects;
-CREATE POLICY "event_images_authenticated_write"
-  ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'event-images' AND auth.uid() IS NOT NULL);
 
 DROP POLICY IF EXISTS "private_content_owner_read" ON storage.objects;
 CREATE POLICY "private_content_owner_read"
@@ -2222,3 +2211,63 @@ CREATE POLICY "private_content_owner_write"
 DO $$ BEGIN
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.user_onboarding; EXCEPTION WHEN OTHERS THEN NULL; END;
 END $$;
+
+-- ============================================================================
+-- PATCH v10 — Remove Events and Store product surfaces
+-- ============================================================================
+-- Events and Store are no longer part of this installation.  This final block is
+-- intentionally destructive and idempotent: it removes the Supabase tables, views,
+-- RPCs, triggers, policies, and storage bucket used only by those pages.
+
+DROP POLICY IF EXISTS "event_images_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "event_images_authenticated_write" ON storage.objects;
+-- Delete the `event-images` bucket with the Supabase Storage API if it exists.
+-- Direct deletion from storage.objects is intentionally blocked by Supabase.
+
+DROP VIEW IF EXISTS public.community_events_with_counts CASCADE;
+
+DROP FUNCTION IF EXISTS public.purchase_store_item(uuid, uuid);
+DROP FUNCTION IF EXISTS public.join_community_event(uuid);
+DROP FUNCTION IF EXISTS public.leave_community_event(uuid);
+DROP FUNCTION IF EXISTS public.create_community_event(text, text, text, text, timestamptz, timestamptz, text, text, text[], integer, boolean, boolean);
+DROP FUNCTION IF EXISTS public.update_community_event(uuid, text, text, text, text, timestamptz, timestamptz, text, text, text[], integer, boolean, boolean);
+DROP FUNCTION IF EXISTS public.delete_community_event(uuid);
+DROP FUNCTION IF EXISTS public.get_event_attendees(uuid);
+DROP FUNCTION IF EXISTS public._evt_increment_reply_count() CASCADE;
+DROP FUNCTION IF EXISTS public._evt_update_analytics() CASCADE;
+DROP FUNCTION IF EXISTS public.rsvp_event(uuid, text);
+DROP FUNCTION IF EXISTS public.react_to_event(uuid, text);
+DROP FUNCTION IF EXISTS public.track_event_view(uuid);
+DROP FUNCTION IF EXISTS public.get_event_discovery();
+DROP FUNCTION IF EXISTS public.get_event_discovery(text);
+DROP FUNCTION IF EXISTS public.get_event_discovery(text, integer);
+DROP FUNCTION IF EXISTS public.get_event_discovery(text, integer, integer);
+DROP FUNCTION IF EXISTS public.get_event_full(uuid);
+DROP FUNCTION IF EXISTS public.get_event_leaderboard(text, uuid, integer);
+DROP FUNCTION IF EXISTS public.get_event_stats(uuid);
+DROP FUNCTION IF EXISTS public.upsert_event_rsvp(uuid, uuid, text);
+DROP FUNCTION IF EXISTS public.update_event_engagement_score(uuid);
+DROP FUNCTION IF EXISTS public.increment_event_resource_download(uuid, uuid);
+
+DROP TABLE IF EXISTS public.event_pinned_messages CASCADE;
+DROP TABLE IF EXISTS public.event_announcements CASCADE;
+DROP TABLE IF EXISTS public.event_reminders CASCADE;
+DROP TABLE IF EXISTS public.event_recordings CASCADE;
+DROP TABLE IF EXISTS public.event_feedback CASCADE;
+DROP TABLE IF EXISTS public.event_analytics CASCADE;
+DROP TABLE IF EXISTS public.event_presence CASCADE;
+DROP TABLE IF EXISTS public.event_roles CASCADE;
+DROP TABLE IF EXISTS public.event_resources CASCADE;
+DROP TABLE IF EXISTS public.event_reactions CASCADE;
+DROP TABLE IF EXISTS public.event_thread_replies CASCADE;
+DROP TABLE IF EXISTS public.event_threads CASCADE;
+DROP TABLE IF EXISTS public.event_messages CASCADE;
+DROP TABLE IF EXISTS public.event_rsvp CASCADE;
+DROP TABLE IF EXISTS public.event_achievements CASCADE;
+DROP TABLE IF EXISTS public.community_event_attendees CASCADE;
+DROP TABLE IF EXISTS public.community_events CASCADE;
+DROP TABLE IF EXISTS public.event_categories CASCADE;
+DROP TABLE IF EXISTS public.user_inventory CASCADE;
+DROP TABLE IF EXISTS public.store_items CASCADE;
+
+-- PATCH v10 COMPLETE: Events and Store removed from Supabase.

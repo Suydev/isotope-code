@@ -5,6 +5,36 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.1.0] — 2026-06-05 — Local server PWA and command system
+
+### Added
+- Added global `isotope` command wrappers for Bash and Windows with `start`, `stop`, `restart`, `update`, `status`, `doctor`, `open`, and `logs`.
+- Added managed local PID/log state under `~/.isotope`.
+- Added Termux Widget shortcut installer and Android home-screen shortcut documentation.
+- Added service worker app-shell/runtime caching, offline fallback page, local PWA registration, and offline/local-server status UI.
+
+### Changed
+- Reframed docs and architecture notes around the downloadable local-server model.
+- Documented Supabase as backend/cloud sync only, not static frontend hosting or a VPS replacement.
+- Reworked setup/update scripts to install the global command, preserve `.env`, and keep admin fields private.
+- `/api/version` now reports package version and the real local Git SHA when available.
+
+### Fixed
+- The update banner now opens a command dialog showing `isotope update`; it no longer stops or restarts the server from the browser.
+- `/api/restart` is now a legacy no-op response and cannot terminate the local process.
+- Update checks compare GitHub `main` with the local Git SHA so the banner disappears after a real update.
+
+## [3.0.0] — 2026-06-05 — Professional core app cleanup
+
+### Removed
+- Removed Events and Store from the served Community UI through deterministic serve-time bundle patches.
+- Disabled `/api/community-events`, `/api/events/*`, and `/__admin/events*` runtime surfaces.
+- Updated Supabase patches to drop Events and Store tables, views, RPCs, policies, and the `event-images` bucket.
+
+### Changed
+- Admin verification now checks the remaining core app surface instead of expecting removed Events/Store objects.
+- Public README and docs now describe the streamlined local study app with community groups, storage, leaderboards, and realtime sync.
+
 ## [2.9.0] — 2026-06-04 — Local software distribution release
 
 ### Added

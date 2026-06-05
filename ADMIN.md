@@ -74,8 +74,6 @@ Checks every required table exists with all expected columns.
 | `user_stats_summary` | user_id, total_study_seconds, streak_days, current_streak, … |
 | `daily_user_stats` | user_id, date, seconds_studied |
 | `study_sessions_log` | id, user_id, duration_minutes, ended_at |
-| `store_items` | id, name, price, currency, category, image, active |
-| `user_inventory` | id, user_id, item_id, equipped |
 | `groups` | id, name, slug, member_count, owner_id, is_public, max_members |
 | `group_members` | id, group_id, user_id, role, joined_at |
 | `group_chat_messages` | id, group_id, user_id, content, message_type, created_at |
@@ -86,8 +84,6 @@ Checks every required table exists with all expected columns.
 | `group_milestones` | id, group_id, milestone_type, earned_at |
 | `notifications` | id, user_id, type, title, body, read_at |
 | `user_presence` | user_id, status, last_seen |
-| `community_events` | id, title, event_type, host, start_time, image_gradient, image_url, attendee_count, updated_at |
-| `community_event_attendees` | event_id, user_id, joined_at |
 
 ### Category 2: RPC Functions (7 tests)
 
@@ -119,38 +115,27 @@ Verifies anon key cannot cause infinite recursion on:
 | `create_customer_portal_session` | Disabled — `{url:null, disabled:true}` |
 | `redeem_membership_code` | Self-hosted → always redeems as "success" |
 
-### Category 5: Server Health (7 tests)
+### Category 5: Server Health
 
 | Check | What is verified |
 |-------|-----------------|
 | `/__admin/patch UI` | HTTP 200 |
 | `/ (app root)` | HTTP 200 |
-| `/api/community-events` | HTTP 200 + event count |
 | `/api/health` | HTTP 200 |
-| `/__admin/events UI` | HTTP 200 |
 | `Supabase REST reachable` | HTTP < 500 |
 | `Supabase Auth reachable` | HTTP < 500 |
 
-### Category 6: Admin & Community Features (14 tests)
+### Category 6: Admin & Community Features
 
 | Check | What is verified |
 |-------|-----------------|
 | `Admin user` | Exists in `auth.users` with matching `ADMIN_EMAIL` |
 | `Admin row in public.users` | Username + plan_type in public table |
-| `community_events has data` | At least 1 event row |
-| `community_events RLS (anon can read)` | Anon key → HTTP 200, no recursion |
-| `join_community_event(p_event_id)` | RPC exists |
-| `leave_community_event(p_event_id)` | RPC exists |
 | `_is_group_member(gid,uid)` | SECURITY DEFINER helper exists |
 | `group_members table accessible` | HTTP 200 with service_role |
 | `user_presence (realtime)` | Table accessible |
-| `create_community_event RPC` | RPC exists (patch v7) |
-| `update_community_event RPC` | RPC exists — probe with nil UUID |
-| `delete_community_event RPC` | RPC exists |
-| `get_event_attendees RPC` | RPC exists |
-| `community_events (date freshness)` | Active events have future start dates |
 
-**Target score: 63/63. If tests fail, use `/__admin/patch` to apply missing SQL.**
+Events and Store checks are intentionally absent because those product surfaces were removed.
 
 ---
 
@@ -185,7 +170,7 @@ Serves the full contents of `community-patch-v4.sql` as a runnable SQL patch. Pr
 | v4 | `get_group_leaderboard`, `get_membership_snapshot`, `get_group_analytics_from_snapshots` RPCs |
 | v5 | `finish_session_sync` RPC — Focus session cloud sync to DB |
 | v6 | RLS recursion fix — drop legacy `gm_read_members` etc. policies |
-| v7 | `community_events` columns (`updated_at`, `image_url`, `creator_id`); 4 admin RPCs; stale date refresh |
+| v7 | Removed Events and Store cleanup retained as an idempotent compatibility patch |
 
 ### SQL endpoint (proxy)
 
@@ -243,24 +228,6 @@ Full CRUD management UI for community events — no SQL editor needed.
 | `is_active` | boolean | Only active events show to users (RLS filtered) |
 | `attendee_count` | integer | Auto-managed by `join/leave_community_event` RPCs |
 
-### Admin RPCs (service_role only)
-
-| RPC | Signature | Returns |
-|-----|-----------|---------|
-| `create_community_event(...)` | All event fields as params | `{ok: bool, id: uuid}` |
-| `update_community_event(p_id, ...)` | Any subset of fields (COALESCE) | `{ok: bool}` |
-| `delete_community_event(p_id)` | UUID | `{ok: bool, deleted: bool}` |
-| `get_event_attendees(p_event_id)` | UUID | `TABLE(user_id, username, name, joined_at)` |
-
-### User RPCs (authenticated)
-
-| RPC | What it does |
-|-----|-------------|
-| `join_community_event(p_event_id)` | Adds row to `community_event_attendees`, increments `attendee_count` |
-| `leave_community_event(p_event_id)` | Removes row, decrements `attendee_count` |
-
----
-
 ## 5. Storage Buckets
 
 Supabase storage buckets provisioned for this project:
@@ -270,7 +237,6 @@ Supabase storage buckets provisioned for this project:
 | `avatars` | **Public** | 5 MB | JPEG, PNG, WebP, GIF | User profile photos |
 | `user-content` | **Private** | 50 MB | JPEG, PNG, WebP, PDF, TXT | User study files (pre-existing) |
 | `notes` | **Private** | 10 MB | JPEG, PNG, PDF, TXT, JSON | User study notes |
-| `event-images` | **Public** | 5 MB | JPEG, PNG, WebP | Community event banners |
 
 ### Storage RLS policies
 
@@ -282,10 +248,6 @@ Supabase storage buckets provisioned for this project:
 **`notes` bucket:**
 - Authenticated users can read, write, update, delete their own folder only
 - No public access
-
-**`event-images` bucket:**
-- Anyone can read (public bucket)
-- Only `service_role` key can write (admin-only uploads)
 
 ### Avatar upload path convention
 ```
@@ -318,13 +280,11 @@ Rate limits:
 
 | Method | Endpoint | Auth | What it does |
 |--------|----------|------|-------------|
-| `GET` | `/api/health` | None | Returns `{ok:true, version, uptime}` |
-| `GET` | `/api/community-events` | None | Active events from Supabase (anon-readable) |
-| `POST` | `/api/events/:id/attend` | None | Calls `join_community_event` RPC |
-| `DELETE` | `/api/events/:id/leave` | None | Calls `leave_community_event` RPC |
-| `GET` | `/api/version` | None | Returns git SHA + version from VERSION file |
-| `POST` | `/api/restart` | None | Graceful restart (local process manager re-launches) |
+| `GET` | `/api/health` | None | Returns local server and Supabase health checks |
+| `GET` | `/api/version` | None | Returns package version, local Git SHA, and command metadata |
+| `POST` | `/api/restart` | None | Legacy no-op. Returns `isotope update` guidance and never stops the server |
 | `GET` | `/api/check-update` | None | Checks GitHub for newer commit SHA |
+| `GET` | `/api/community-events`, `/api/events*` | None | Removed-feature 404; Events has been removed |
 
 ---
 
@@ -433,8 +393,6 @@ On first start, the server automatically:
 - `public.user_stats_summary` — aggregated study stats
 - `public.daily_user_stats` — per-day study seconds
 - `public.study_sessions_log` — individual focus sessions
-- `public.store_items` / `public.user_inventory` — cosmetic shop
-
 ### Community tables (in `community-patch-v4.sql`)
 
 - `public.groups` + `public.group_members` — study groups
@@ -444,7 +402,6 @@ On first start, the server automatically:
 - `public.group_announcements` + `public.group_milestones` — group activity
 - `public.notifications` — user notification inbox
 - `public.user_presence` — realtime online status
-- `public.community_events` + `public.community_event_attendees` — public events
 
 ### Key architectural decisions
 

@@ -1,6 +1,6 @@
 {
-  "version": "2.9.0",
-  "sha": "v2.9.0",
-  "message": "release: v2.9.0 local software distribution",
-  "updated_at": "2026-06-04T16:04:13.263Z"
+  "version": "3.1.0",
+  "sha": "v3.1.0",
+  "message": "release: v3.1.0 local server pwa command system",
+  "updated_at": "2026-06-05T00:00:00.000Z"
 }
