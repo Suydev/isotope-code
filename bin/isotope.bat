@@ -8,7 +8,7 @@ set PORT_FILE=%ISO_HOME%\port
 set LOG_DIR=%ISO_HOME%\logs
 set SERVER_LOG=%LOG_DIR%\server.log
 set UPDATE_LOG=%LOG_DIR%\update.log
-set DEFAULT_PORT=5000
+set DEFAULT_PORT=3000
 
 if not exist "%ISO_HOME%" mkdir "%ISO_HOME%" >nul 2>nul
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>nul

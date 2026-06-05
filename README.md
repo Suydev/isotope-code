@@ -73,13 +73,13 @@ The command system stores state in `~/.isotope`:
 ## Run Manually
 
 ```bash
-PORT=5000 node server.mjs
+PORT=3000 node server.mjs
 ```
 
 Open:
 
 ```text
-http://127.0.0.1:5000
+http://127.0.0.1:3000
 ```
 
 ## Updating

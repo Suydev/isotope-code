@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set PORT_VALUE=5000
+set PORT_VALUE=3000
 set NO_START=0
 if not "%PORT%"=="" set PORT_VALUE=%PORT%
 if "%1"=="--no-start" set NO_START=1

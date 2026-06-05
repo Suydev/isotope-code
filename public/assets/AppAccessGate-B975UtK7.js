@@ -744,8 +744,33 @@ const B = new Set,
             A = E(m => m.isLoading),
             T = S(m => m.needsCloudBootstrap),
             v = S(m => m.bootstrapChecked);
+        const F = typeof window < "u" ? window.__ISO_BOOT_STATE__ : null,
+            Y = F && F.state,
+            V = F && F.onboarding,
+            G = V && V.completed === true,
+            U = V && V.completed === false;
         if (!a) return r.jsx(ae, {});
         if (!l) return r.jsx(ae, {});
+        if (Y === "authChecking" || Y === "cloudLoading") return r.jsx(ae, {});
+        if (Y === "readyLoggedOut") return r.jsx(z, {
+            to: "/auth",
+            replace: !0
+        });
+        if (Y === "syncFailed") return r.jsx(ne, {
+            eyebrow: "Cached offline mode",
+            title: "Cloud state is unavailable",
+            description: "Local server not running or Supabase cannot be reached. No trusted completed cloud snapshot is available on this device, so onboarding will not be shown until cloud state is verified.",
+            ctaLabel: "Retry from home",
+            ctaTo: "/"
+        });
+        if ((Y === "readyDashboard" || Y === "offlineCached" && G) && s === "private") return r.jsx(z, {
+            to: "/dashboard",
+            replace: !0
+        });
+        if ((Y === "readyNeedsOnboarding" || Y === "offlineCached" && U) && s !== "private") return r.jsx(z, {
+            to: "/onboarding",
+            replace: !0
+        });
         if (s === "private") {
             if (T) return r.jsx(z, {
                 to: "/dashboard",

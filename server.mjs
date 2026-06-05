@@ -399,6 +399,39 @@ function buildUsernameAuthScript() {
     var prof = d.profile || {};
     var completed = prof.isOnboarded === true || prof.onboarding_completed === true;
     try {
+      if (d.user_id) {
+        var onb = d.onboarding || {};
+        var onbCompleted = typeof onb.completed === 'boolean' ? onb.completed : completed;
+        var profileData = Object.assign({}, prof.profile_data || {}, prof, {
+          isOnboarded: onbCompleted,
+          onboarding_completed: onbCompleted
+        });
+        var downloadedAt = new Date().toISOString();
+        var snapshot = {
+          schema_version: 1,
+          user_id: d.user_id,
+          downloaded_at: downloadedAt,
+          source: 'supabase',
+          trusted: true,
+          onboarding: {
+            state: onbCompleted ? 'completed' : 'incomplete',
+            completed: onbCompleted,
+            completed_at: onb.completed_at || prof.onboardingCompletedAt || prof.onboarding_completed_at || null,
+            data: (onb.data && typeof onb.data === 'object') ? onb.data : ((profileData.onboarding && typeof profileData.onboarding === 'object') ? profileData.onboarding : {})
+          },
+          profile_data: profileData,
+          settings: (profileData.settings && typeof profileData.settings === 'object') ? profileData.settings : {},
+          tours: (profileData.tours && typeof profileData.tours === 'object') ? profileData.tours : {},
+          stats_summary: null,
+          daily_user_stats: [],
+          study_sessions_log: [],
+          warnings: {}
+        };
+        localStorage.setItem('isotope_cloud_snapshot_' + d.user_id, JSON.stringify(snapshot));
+        localStorage.setItem('isotope_last_cloud_snapshot_user', JSON.stringify({ user_id: d.user_id, downloaded_at: downloadedAt }));
+      }
+    } catch(e) {}
+    try {
       if (completed) {
         localStorage.setItem('isotope-onboarding', JSON.stringify({
           isOnboarded: true,
@@ -421,7 +454,7 @@ function buildUsernameAuthScript() {
         id:            d.user_id,
         username:      prof.username      || '',
         display_name:  prof.display_name  || prof.name || prof.username || '',
-        avatar_url:    prof.avatar_url    || null,
+        avatar_url:    prof.avatar_url    || prof.avatar || null,
         plan_type:     'ranker',
         billing_status:'active',
         coins:         Number(prof.coins) || 0,
@@ -1544,11 +1577,10 @@ const UPDATE_COMMAND_DIALOG_SCRIPT = `<script>
 })();
 </script>`;
 
-// ── Auth guard: redirect unauthenticated / non-onboarded users early ─────────
+// ── Auth guard: redirect unauthenticated users early ────────────────────────
 // Injected at </head> — runs synchronously BEFORE React loads to prevent any
-// flash of protected content. Source of truth: Supabase session in localStorage.
-// DB onboarding state is verified server-side by restore-and-launch.js;
-// this script provides a fast client-side pre-check for immediate UX.
+// flash of protected content. Onboarding is deliberately decided later by the
+// explicit boot state in restore-and-launch.js.
 function buildAuthGuardScript() {
   const supaRef = new URL(SUPA_URL).hostname.split('.')[0];
   return `<script>
@@ -1581,31 +1613,16 @@ function buildAuthGuardScript() {
 
   var session = getValidSession();
   if (!session) {
-    // No valid session — redirect immediately to onboarding (shows sign-in form)
-    window.location.replace('/onboarding');
+    // No valid session — redirect immediately to the sign-in/sign-up page.
+    window.location.replace('/auth');
     return;
   }
 
-  // ── Onboarding enforcement ────────────────────────────────────────────────────
-  // If the user has a session but hasn't finished onboarding, block dashboard access.
-  // restore-and-launch.js performs the authoritative DB check; this is a fast
-  // localStorage pre-check to prevent obvious URL-bypass attempts.
-  try {
-    var onbRaw = localStorage.getItem('isotope-onboarding');
-    if (onbRaw) {
-      var onb = JSON.parse(onbRaw);
-      // Support both flat and nested Zustand state shapes
-      var isOnboarded = onb && (
-        onb.isOnboarded === true ||
-        (onb.state && onb.state.isOnboarded === true)
-      );
-      // If explicitly false (not undefined/null — those mean "not yet loaded")
-      if (isOnboarded === false) {
-        window.location.replace('/onboarding');
-        return;
-      }
-    }
-  } catch(e) { /* ignore — localStorage unavailable or corrupted */ }
+  // Onboarding is intentionally not enforced here. This guard runs before
+  // restore-and-launch.js can verify Supabase or a trusted cloud snapshot, so
+  // localStorage would collapse UNKNOWN into INCOMPLETE and flash onboarding.
+  // The React route gate handles onboarding after window.__ISO_BOOT_STATE__
+  // resolves.
 })();
 </script>`;
 }
@@ -1892,6 +1909,83 @@ function getPatchedAppBundle() {
       'if (this.isTableMissingError(i, s)) {\n                this.markTableUnsupported(s);\n                return\n            }\n            throw i\n        }\n    }\n    async pushAllData',
       'Delete sync errors surface'
     );
+    appPatch(
+      'if (O(t)) throw t',
+      'throw t',
+      'Delta sync failures propagate'
+    );
+    appPatch(
+      '!o && O(f.error) && (o = f.error);',
+      '!o && (o = f.error || new Error("Batch upsert failed"));',
+      'Batch upsert failure captured'
+    );
+    appPatch(
+      'y.success ? i++ : (n++, !o && O(y.error) && (o = y.error))',
+      'y.success ? i++ : (n++, !o && (o = y.error || new Error("Row upsert failed")))',
+      'Adaptive row upsert failure captured'
+    );
+    appPatch(
+      'n++, !o && O(y) && (o = y)',
+      'n++, !o && (o = y)',
+      'Adaptive row exception captured'
+    );
+    appPatch(
+      'n += h.length, !o && O(f) && (o = f)',
+      'n += h.length, !o && (o = f)',
+      'Batch exception captured'
+    );
+    appPatch(
+      'if (n && (Ur.updateFromPayload(n, i.username || i.name, i.avatar), !n.startsWith("local-") && M())) {\n            const o = hi(r);\n            yi(n, i, s, o)\n        }',
+      'if (n && (Ur.updateFromPayload(n, i.username || i.name, i.avatar), !n.startsWith("local-") && M())) {\n            await va.pushProfile(n, i, s)\n        }',
+      'Profile updates wait for cloud persistence'
+    );
+
+    const pushProfileStart = '    async pushProfile(e, t, s) {';
+    const pushProfileEnd = '    async pushPublicProfileFields';
+    const pushProfileStartIdx = patched.indexOf(pushProfileStart);
+    const pushProfileEndIdx = pushProfileStartIdx >= 0 ? patched.indexOf(pushProfileEnd, pushProfileStartIdx) : -1;
+    if (pushProfileStartIdx >= 0 && pushProfileEndIdx > pushProfileStartIdx) {
+      const replacement = `    async pushProfile(e, t, s) {
+        if (!(!M() || !w) && !(!e || e.startsWith("local-"))) try {
+            const r = Ns(t),
+                {
+                    data: i,
+                    error: n
+                } = await w.auth.getSession();
+            if (n) throw n;
+            const o = i && i.session ? i.session : null;
+            if (!o || !o.access_token) throw new Error("Authentication required");
+            const c = await fetch("/__auth/profile", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer " + o.access_token
+                    },
+                    body: JSON.stringify({
+                        profile_data: r,
+                        display_name: r.display_name || r.name,
+                        username: r.username,
+                        bio: r.bio,
+                        avatar: r.avatar,
+                        avatar_url: r.avatar_url
+                    })
+                }),
+                d = await c.json().catch(() => ({}));
+            if (!c.ok || !d.ok) throw new Error(d.error || "Profile sync failed");
+            d.profile && await m.saveUserProfile(pe({ ...r,
+                ...d.profile
+            }))
+        } catch (r) {
+            O(r) && this.setDegradedMode(r, Z("Cloud profile sync"));
+            throw r
+        }
+    }
+`;
+      patched = patched.slice(0, pushProfileStartIdx) + replacement + patched.slice(pushProfileEndIdx);
+      console.log('[AppPatch] Profile sync routed through verified server endpoint');
+    } else {
+      console.warn('[AppPatch] pushProfile method not found');
+    }
 
     patchedAppBundle = Buffer.from(patched, 'utf8');
   } catch (e) { console.error('[AppPatch] Error:', e.message); patchedAppBundle = null; }
@@ -2118,6 +2212,82 @@ function getPatchedLeaderboardBundle() {
   return patchedLeaderboardBundle;
 }
 
+// ── Settings bundle patch: remove fake synced language and persist avatar clear
+const SETTINGS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'SettingsLayout-B4OgCkQ5.js');
+let patchedSettingsBundle = null;
+function getPatchedSettingsBundle() {
+  if (patchedSettingsBundle) return patchedSettingsBundle;
+  try {
+    let raw = fs.readFileSync(SETTINGS_BUNDLE_ABS, 'utf8');
+    let applied = 0;
+    const patch = (from, to, label) => {
+      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
+      else console.warn('[SettingsPatch] Not found:', label);
+    };
+    patch('avatar: void 0', 'avatar: null', 'avatar remove sends explicit null');
+    patch('label: "Synced manually"', 'label: "Synced"', 'synced label');
+    patch(
+      'description: "Local data and cloud data were synced successfully."',
+      'description: "Last cloud upload/download completed successfully."',
+      'synced description'
+    );
+    patch('label: "Local mode"', 'label: "Pending/offline"', 'degraded label');
+    patch('label: "Sync failed"', 'label: "Failed"', 'failed label');
+    patch('label: l ? "Ready to sync" : "Local only"', 'label: l ? "Pending" : "Local only"', 'default sync label');
+    patch(
+      'description: l ? "Manual sync is available when you press the sync button." : "Cloud sync is unavailable on the free plan."',
+      'description: l ? "No verified cloud sync has completed yet." : "Cloud sync is unavailable for this account."',
+      'default sync description'
+    );
+    console.log('[SettingsPatch] ' + applied + '/7 settings patches applied');
+    patchedSettingsBundle = Buffer.from(raw, 'utf8');
+  } catch (e) { console.error('[SettingsPatch] Error:', e.message); patchedSettingsBundle = null; }
+  return patchedSettingsBundle;
+}
+
+// ── Session sync bundle patch: no success without Supabase persistence
+const SESSION_SYNC_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'sessionSync-mloIEnTd.js');
+let patchedSessionSyncBundle = null;
+function getPatchedSessionSyncBundle() {
+  if (patchedSessionSyncBundle) return patchedSessionSyncBundle;
+  try {
+    let raw = fs.readFileSync(SESSION_SYNC_BUNDLE_ABS, 'utf8');
+    let applied = 0;
+    const patch = (from, to, label) => {
+      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
+      else console.warn('[SessionSyncPatch] Not found:', label);
+    };
+    patch(
+      'if(!f())return await r(e.id),{success:!0};',
+      'if(!f())return await q(e),{success:!1,error:"Cloud session sync unavailable; session remains pending"};',
+      'queue complete when cloud disabled'
+    );
+    patch(
+      'if(a)return P(a)?(await _(e.id),{success:!0}):',
+      'if(a)return P(a)?(await q(e),{success:!1,error:m(a,"Session sync failed")}):',
+      'premium/table errors do not report success'
+    );
+    patch(
+      'if(!f())return await r(e.sessionId),{success:!0};',
+      'if(!f()){const t={id:e.sessionId,action:"complete",durationMinutes:e.durationMinutes,groupId:e.groupId,sessionType:e.sessionType,notes:e.notes,endedAt:e.endedAt,timestamp:Date.now()};return await q(t),{success:!1,error:"Cloud session sync unavailable; session remains pending"}};',
+      'report complete queues when cloud disabled'
+    );
+    patch(
+      'if(!f())return await r(e),{success:!0};',
+      'if(!f()){const t={id:e,action:"delete",timestamp:Date.now()};return await q(t),{success:!1,error:"Cloud session delete unavailable; change remains pending"}};',
+      'delete queues when cloud disabled'
+    );
+    patch(
+      'if(!f())return await _(),{synced:0,failed:0};',
+      'if(!f()){const e=await h();return{synced:0,failed:e.length}};',
+      'pending sync reports failures when cloud disabled'
+    );
+    console.log('[SessionSyncPatch] ' + applied + '/5 session sync patches applied');
+    patchedSessionSyncBundle = Buffer.from(raw, 'utf8');
+  } catch (e) { console.error('[SessionSyncPatch] Error:', e.message); patchedSessionSyncBundle = null; }
+  return patchedSessionSyncBundle;
+}
+
 // ── Invites bundle patch ──────────────────────────────────────────────────────
 // The compiled bundle sends {token_input: "..."} to accept_invite and
 // get_invite_details, but the Supabase RPC functions use the parameter name
@@ -2143,7 +2313,7 @@ function getPatchedInvitesBundle() {
 // getPatchedInvitesBundle() — deferred to after server.listen()
 
 // ── Username-auth server helpers ──────────────────────────────────────────────
-function supaAdminReq(method, supaPath, bodyObj) {
+function supaAdminReq(method, supaPath, bodyObj, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const key = ADMIN_MODE_READY ? SUPA_SERVICE_KEY : SUPA_ANON_KEY;
     const supaHost = new URL(SUPA_URL).hostname;
@@ -2157,6 +2327,7 @@ function supaAdminReq(method, supaPath, bodyObj) {
         'Authorization': 'Bearer ' + key,
         'apikey':        key,
         ...(bodyBuf ? { 'Content-Length': String(bodyBuf.length) } : {}),
+        ...extraHeaders,
       },
     };
     const req = https.request(opts, (r) => {
@@ -2324,6 +2495,70 @@ async function supaRestAsUser(method, restPath, userJwt, bodyObj, extraHeaders =
   });
 }
 
+function parseAvatarDataUrl(value) {
+  const text = String(value || '');
+  const m = text.match(/^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/);
+  if (!m) return null;
+  const mime = m[1];
+  const data = Buffer.from(m[2], 'base64');
+  if (!data.length || data.length > 5 * 1024 * 1024) {
+    throw new Error('Avatar image must be smaller than 5 MB');
+  }
+  const ext = mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1];
+  return { mime, data, ext };
+}
+
+function supaStorageUploadAsUser(bucket, objectPath, buffer, mime, userJwt) {
+  return new Promise((resolve, reject) => {
+    const supaHost = new URL(SUPA_URL).hostname;
+    const encodedPath = String(objectPath || '')
+      .split('/')
+      .map((part) => encodeURIComponent(part))
+      .join('/');
+    const opts = {
+      hostname: supaHost,
+      path: `/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`,
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + userJwt,
+        'apikey': SUPA_ANON_KEY,
+        'Content-Type': mime || 'application/octet-stream',
+        'Content-Length': String(buffer.length),
+        'x-upsert': 'false',
+      },
+    };
+    const rq = https.request(opts, (r) => {
+      let d = '';
+      r.on('data', (c) => { d += c; });
+      r.on('end', () => {
+        let body = d;
+        try { body = JSON.parse(d); } catch {}
+        resolve({ status: r.statusCode, body });
+      });
+    });
+    rq.on('error', reject);
+    rq.setTimeout(15000, () => { rq.destroy(); reject(new Error('Avatar upload timed out')); });
+    rq.write(buffer);
+    rq.end();
+  });
+}
+
+async function uploadAvatarDataUrlForUser(userId, dataUrl, userJwt) {
+  const parsed = parseAvatarDataUrl(dataUrl);
+  if (!parsed) return null;
+  const objectPath = `${userId}/avatar-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${parsed.ext}`;
+  const uploaded = await supaStorageUploadAsUser('avatars', objectPath, parsed.data, parsed.mime, userJwt);
+  assertSupaOk(uploaded, 'Avatar storage upload');
+  const publicUrl = `${SUPA_URL}/storage/v1/object/public/avatars/${objectPath.split('/').map(encodeURIComponent).join('/')}`;
+  return {
+    bucket: 'avatars',
+    path: objectPath,
+    url: publicUrl,
+    mime: parsed.mime,
+    bytes: parsed.data.length,
+  };
+}
+
 async function fetchUserProfileBundle(userId, userJwt) {
   const [profRes, userRes, onboardingRes] = await Promise.all([
     supaRestAsUser('GET', `/rest/v1/user_profiles?user_id=eq.${encodeURIComponent(userId)}&select=profile_data,updated_at&limit=1`, userJwt),
@@ -2362,6 +2597,44 @@ async function fetchUserProfileBundle(userId, userJwt) {
       onboarding_completed: isOnboarded,
       onboarding_completed_at: onboardingData.completed_at || profileData.onboardingCompletedAt || null,
     },
+  };
+}
+
+async function fetchUserBootstrapBundle(userId, userJwt) {
+  const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+  const today = new Date();
+  const fromDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const [profileBundle, settingsRes, statsRes, dailyRes, sessionsRes] = await Promise.all([
+    fetchUserProfileBundle(userId, userJwt),
+    supaRestAsUser('GET', `/rest/v1/user_settings?user_id=eq.${encodeURIComponent(userId)}&select=settings,updated_at&limit=1`, userJwt)
+      .catch((e) => ({ status: 0, body: { error: e.message } })),
+    supaRestAsUser('GET', `/rest/v1/user_stats_summary?user_id=eq.${encodeURIComponent(userId)}&select=*&limit=1`, userJwt)
+      .catch((e) => ({ status: 0, body: { error: e.message } })),
+    supaRestAsUser('GET', `/rest/v1/daily_user_stats?user_id=eq.${encodeURIComponent(userId)}&date=gte.${fromDate}&select=date,seconds_studied&order=date.desc&limit=120`, userJwt)
+      .catch((e) => ({ status: 0, body: { error: e.message } })),
+    supaRestAsUser('GET', `/rest/v1/study_sessions_log?user_id=eq.${encodeURIComponent(userId)}&ended_at=gte.${encodeURIComponent(since)}&select=id,duration_minutes,ended_at,created_at&order=ended_at.desc&limit=250`, userJwt)
+      .catch((e) => ({ status: 0, body: { error: e.message } })),
+  ]);
+
+  const softRows = (res) => Array.isArray(res?.body) ? res.body : [];
+  return {
+    user_id: userId,
+    profile: profileBundle.profile,
+    profile_data: profileBundle.profileData,
+    user: profileBundle.userData,
+    onboarding: profileBundle.onboardingData,
+    settings: softRows(settingsRes)[0]?.settings || {},
+    settings_updated_at: softRows(settingsRes)[0]?.updated_at || null,
+    stats_summary: softRows(statsRes)[0] || null,
+    daily_user_stats: softRows(dailyRes),
+    study_sessions_log: softRows(sessionsRes),
+    fetched_at: new Date().toISOString(),
+    warnings: compactObject({
+      settings: settingsRes.status && settingsRes.status >= 400 ? errorMessageFromSupa(settingsRes, 'settings fetch failed') : undefined,
+      stats_summary: statsRes.status && statsRes.status >= 400 ? errorMessageFromSupa(statsRes, 'stats fetch failed') : undefined,
+      daily_user_stats: dailyRes.status && dailyRes.status >= 400 ? errorMessageFromSupa(dailyRes, 'daily stats fetch failed') : undefined,
+      study_sessions_log: sessionsRes.status && sessionsRes.status >= 400 ? errorMessageFromSupa(sessionsRes, 'session log fetch failed') : undefined,
+    }),
   };
 }
 
@@ -2934,6 +3207,39 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ── /__auth/bootstrap GET — authenticated login/session restore snapshot ──
+  if (req.method === 'GET' && req.url === '/__auth/bootstrap') {
+    (async () => {
+      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
+      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
+      if (!userJwt) {
+        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: 'Authentication required' }));
+        return;
+      }
+      const userId = getUserIdFromJwt(userJwt);
+      if (!userId) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid token' }));
+        return;
+      }
+      try {
+        const bundle = await fetchUserBootstrapBundle(userId, userJwt);
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: true, ...bundle }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: e.message || 'Bootstrap failed' }));
+      }
+    })().catch(e => {
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: e.message || 'Bootstrap failed' }));
+      }
+    });
+    return;
+  }
+
   // ── /__auth/profile GET — fetch user profile (cloud sync, fixes UserStore fetch error)
   // Returns profile_data from user_profiles merged with public.users columns.
   if (req.method === 'GET' && req.url === '/__auth/profile') {
@@ -2973,7 +3279,7 @@ const server = http.createServer((req, res) => {
   // BUG FIX: Previously missing — profile updates had no server endpoint to persist to.
   // Deep-merges changes into user_profiles.profile_data (JSONB) and syncs public.users.
   if ((req.method === 'POST' || req.method === 'PATCH') && req.url === '/__auth/profile') {
-    readReqBody(req).then(async (body) => {
+    readReqBody(req, 8 * 1024 * 1024).then(async (body) => {
       // 1. Extract user JWT from Authorization header
       const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
       const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
@@ -3002,6 +3308,17 @@ const server = http.createServer((req, res) => {
         const currentProfile = currentBundle.profileData || {};
         const now = new Date().toISOString();
         const merged = Object.assign({}, currentProfile);
+        const incomingAvatar = incoming.avatar !== undefined
+          ? incoming.avatar
+          : (incoming.avatar_url !== undefined
+              ? incoming.avatar_url
+              : (incoming.profile_data && typeof incoming.profile_data === 'object'
+                  ? (incoming.profile_data.avatar !== undefined ? incoming.profile_data.avatar : incoming.profile_data.avatar_url)
+                  : undefined));
+        const shouldClearAvatar = incomingAvatar === null || incomingAvatar === '';
+        const uploadedAvatar = typeof incomingAvatar === 'string' && incomingAvatar.startsWith('data:image/')
+          ? await uploadAvatarDataUrlForUser(userId, incomingAvatar, userJwt)
+          : null;
 
         if (incoming.profile_data && typeof incoming.profile_data === 'object') {
           Object.assign(merged, incoming.profile_data);
@@ -3010,7 +3327,7 @@ const server = http.createServer((req, res) => {
           if ([
             'id','user_id','email','access_token','refresh_token','session','password',
             'preferences','settings','tours','profile_data','display_name','username',
-            'name','bio','avatar_url','isOnboarded','onboarding_completed'
+            'name','bio','avatar','avatar_url','isOnboarded','onboarding_completed'
           ].includes(key)) continue;
           if (incoming[key] !== undefined) merged[key] = incoming[key];
         }
@@ -3018,7 +3335,22 @@ const server = http.createServer((req, res) => {
         if (incoming.name !== undefined && incoming.display_name === undefined) merged.display_name = String(incoming.name || '').trim();
         if (incoming.username !== undefined) merged.username = String(incoming.username || '').trim();
         if (incoming.bio !== undefined) merged.bio = String(incoming.bio || '').trim();
-        if (incoming.avatar_url !== undefined) merged.avatar_url = String(incoming.avatar_url || '').trim();
+        if (incoming.avatar !== undefined) merged.avatar = shouldClearAvatar ? null : String(incoming.avatar || '').trim();
+        if (incoming.avatar_url !== undefined) merged.avatar_url = shouldClearAvatar ? null : String(incoming.avatar_url || '').trim();
+        if (shouldClearAvatar) {
+          merged.avatar = null;
+          merged.avatar_url = null;
+          merged.avatar_path = null;
+          merged.avatar_bucket = null;
+          merged.avatar_uploaded_at = null;
+        }
+        if (uploadedAvatar) {
+          merged.avatar = uploadedAvatar.url;
+          merged.avatar_url = uploadedAvatar.url;
+          merged.avatar_path = uploadedAvatar.path;
+          merged.avatar_bucket = uploadedAvatar.bucket;
+          merged.avatar_uploaded_at = now;
+        }
         if (incoming.preferences !== undefined && typeof incoming.preferences === 'object') {
           merged.preferences = Object.assign({}, currentProfile.preferences || {}, incoming.preferences);
         }
@@ -3056,7 +3388,7 @@ const server = http.createServer((req, res) => {
         const usersUpdate = compactObject({
           username: incoming.username !== undefined ? String(incoming.username || '').trim() : undefined,
           name: incoming.display_name !== undefined ? String(incoming.display_name || '').trim() : (incoming.name !== undefined ? String(incoming.name || '').trim() : undefined),
-          avatar_url: incoming.avatar_url !== undefined ? String(incoming.avatar_url || '').trim() : undefined,
+          avatar_url: uploadedAvatar ? uploadedAvatar.url : (shouldClearAvatar ? null : (incoming.avatar_url !== undefined ? String(incoming.avatar_url || '').trim() : undefined)),
           updated_at: now,
         });
         if (Object.keys(usersUpdate).length > 1) {
@@ -3068,14 +3400,19 @@ const server = http.createServer((req, res) => {
 
         if (completed === true && (incoming.isOnboarded !== undefined || incoming.onboarding_completed !== undefined)) {
           const onboardingBody = {
+            user_id: userId,
             completed: true,
             completed_at: merged.onboardingCompletedAt || now,
             data: incoming.onboarding_data && typeof incoming.onboarding_data === 'object' ? incoming.onboarding_data : {},
             updated_at: now,
           };
           const onboardingUpdate = ADMIN_MODE_READY
-            ? await supaAdminReq('PATCH', `/rest/v1/user_onboarding?user_id=eq.${encodeURIComponent(userId)}`, onboardingBody)
-            : await supaRestAsUser('PATCH', `/rest/v1/user_onboarding?user_id=eq.${encodeURIComponent(userId)}`, onboardingBody, userJwt, { 'Prefer': 'return=representation' });
+            ? await supaAdminReq('POST', '/rest/v1/user_onboarding?on_conflict=user_id', onboardingBody, {
+                'Prefer': 'resolution=merge-duplicates,return=representation',
+              })
+            : await supaRestAsUser('POST', '/rest/v1/user_onboarding?on_conflict=user_id', onboardingBody, userJwt, {
+                'Prefer': 'resolution=merge-duplicates,return=representation',
+              });
           assertSupaOk(onboardingUpdate, 'Onboarding sync');
           const verify = await supaRestAsUser('GET', `/rest/v1/user_onboarding?user_id=eq.${encodeURIComponent(userId)}&select=completed,completed_at&limit=1`, userJwt);
           assertSupaOk(verify, 'Onboarding verification');
@@ -3085,7 +3422,7 @@ const server = http.createServer((req, res) => {
 
         const fresh = await fetchUserProfileBundle(userId, userJwt);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, user_id: userId, profile: fresh.profile, onboarding: fresh.onboardingData }));
+        res.end(JSON.stringify({ ok: true, user_id: userId, profile: fresh.profile, onboarding: fresh.onboardingData, avatar_storage: uploadedAvatar }));
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: e.message }));
@@ -3883,6 +4220,39 @@ function copySQL(){
         },
       ];
 
+      const manualProofChecks = [
+        {
+          name: 'ONBOARDING browser → DB row → cache clear → login restore',
+          ok: false,
+          detail: 'NOT PROVEN by server diagnostics. Run SYNC_PROOF_CHECKLIST.md and verify user_onboarding.completed=true.',
+        },
+        {
+          name: 'PROFILE/SETTINGS browser → DB row → cache clear → login restore',
+          ok: false,
+          detail: 'NOT PROVEN by server diagnostics. Verify user_profiles.profile_data before/after and reload restore.',
+        },
+        {
+          name: 'AVATAR browser upload → Storage object + profile row → reload restore',
+          ok: false,
+          detail: 'NOT PROVEN by server diagnostics. Verify avatars bucket object and user_profiles avatar path/url.',
+        },
+        {
+          name: 'TOUR browser skip/finish → profile tour row → cache clear no repeat',
+          ok: false,
+          detail: 'NOT PROVEN by server diagnostics. Verify user_profiles.profile_data.tours.community_group_v1=true.',
+        },
+        {
+          name: 'STUDY SESSION browser finish → session/stats tables → reload analytics/community',
+          ok: false,
+          detail: 'NOT PROVEN by server diagnostics. Verify study_sessions_log, daily_user_stats, user_stats_summary.',
+        },
+        {
+          name: 'SYNC STATUS success/failure/offline states',
+          ok: false,
+          detail: 'NOT PROVEN by server diagnostics. Force success, RLS/network failure, and offline browser mode.',
+        },
+      ];
+
       // ── Aggregate results ─────────────────────────────────────────────────
       const allTests = [
         ...tableChecks.map(c => c.ok),
@@ -3893,6 +4263,7 @@ function copySQL(){
         ...communityChecks.map(c => c.ok),
         ...storageChecks.map(c => c.ok),
         ...integrationChecks.map(c => c.ok),
+        ...manualProofChecks.map(c => c.ok),
       ];
       const nPass = allTests.filter(Boolean).length;
       const nFail = allTests.length - nPass;
@@ -3949,7 +4320,7 @@ tr:last-child td{border-bottom:none}
 <body><div class="wrap">
 <a class="refresh" href="javascript:location.reload()">↻ Auto-refreshes every 30s</a>
 <h1>🧪 Automated Test Suite</h1>
-<p class="sub">${SUPA_URL} &nbsp;·&nbsp; Ran ${allTests.length} tests in ${elapsed}ms &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/patch">Patch →</a> &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/roles">Roles →</a></p>
+<p class="sub">${SUPA_URL} &nbsp;·&nbsp; Ran ${allTests.length} checks in ${elapsed}ms &nbsp;·&nbsp; Server diagnostics are not browser sync proof &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/patch">Patch →</a> &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/roles">Roles →</a></p>
 
 <div class="summary">
   <div class="pill pill-n"><span class="num">${allTests.length}</span>total tests</div>
@@ -4022,6 +4393,14 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
   <table>
     <tr><th>Check</th><th>Status</th><th>Detail</th></tr>
     ${rows(integrationChecks)}
+  </table>
+</section>
+
+<section>
+  <div class="sec-hdr"><h3>🧾 Manual Browser Proof Required</h3><span class="sec-stat">${pct(manualProofChecks)} proven</span></div>
+  <table>
+    <tr><th>Proof Target</th><th>Status</th><th>Required Evidence</th></tr>
+    ${rows(manualProofChecks)}
   </table>
 </section>
 
@@ -4244,6 +4623,14 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
       const buf = getPatchedLeaderboardBundle();
       if (buf) { send(buf); return; }
     }
+    if (fp === SETTINGS_BUNDLE_ABS) {
+      const buf = getPatchedSettingsBundle();
+      if (buf) { send(buf); return; }
+    }
+    if (fp === SESSION_SYNC_BUNDLE_ABS) {
+      const buf = getPatchedSessionSyncBundle();
+      if (buf) { send(buf); return; }
+    }
     if (fp === INVITES_BUNDLE_ABS) {
       const buf = getPatchedInvitesBundle();
       if (buf) { send(buf); return; }
@@ -4326,6 +4713,8 @@ server.listen(port, '0.0.0.0', () => {
     getPatchedOnboardingBundle();
     getPatchedSingleGroupBundle();
     getPatchedLeaderboardBundle();
+    getPatchedSettingsBundle();
+    getPatchedSessionSyncBundle();
     getPatchedInvitesBundle();
     getPatchedCommunityBundle();
     getPatchedCommunityHubBundle();

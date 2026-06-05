@@ -327,7 +327,7 @@ This allows AI features to use server-configured API keys without them appearing
 | `ADMIN_SECRET` | Optional | _(empty)_ | Local admin unlock secret |
 | `GROQ_API_KEY` | Optional | _(none)_ | AI text features (Groq/LLaMA) |
 | `GEMINI_API_KEY` | Optional | _(none)_ | AI text features (Gemini) |
-| `PORT` | Auto | `5000` | HTTP server port (set by the local runtime) |
+| `PORT` | Auto | `3000` | HTTP server port (set by the local runtime) |
 
 ### Startup warnings
 

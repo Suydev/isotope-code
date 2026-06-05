@@ -4,7 +4,7 @@ set -euo pipefail
 NODE_MIN=18
 NO_START=0
 YES=0
-PORT_VALUE="${PORT:-5000}"
+PORT_VALUE="${PORT:-3000}"
 
 for arg in "$@"; do
   case "$arg" in

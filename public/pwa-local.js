@@ -7,7 +7,8 @@
     browserOnline: navigator.onLine,
     serverOnline: true,
     swVersion: '',
-    swSha: ''
+    swSha: '',
+    lastSnapshotAt: ''
   };
 
   function ensureStyles() {
@@ -28,8 +29,30 @@
     document.head.appendChild(style);
   }
 
+  function readLastSnapshotAt() {
+    var boot = window.__ISO_BOOT_STATE__ || {};
+    if (boot.snapshotDownloadedAt) return boot.snapshotDownloadedAt;
+    try {
+      var last = JSON.parse(localStorage.getItem('isotope_last_cloud_snapshot_user') || 'null');
+      if (last && last.downloaded_at) return last.downloaded_at;
+    } catch (e) {}
+    return '';
+  }
+
+  function formatSnapshotTime(value) {
+    if (!value) return 'unknown';
+    try {
+      var date = new Date(value);
+      if (Number.isNaN(date.getTime())) return 'unknown';
+      return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+    } catch (e) {
+      return 'unknown';
+    }
+  }
+
   function renderStatus() {
     ensureStyles();
+    state.lastSnapshotAt = readLastSnapshotAt();
     var el = document.getElementById(STATUS_ID);
     if (!el) {
       el = document.createElement('div');
@@ -40,10 +63,11 @@
     }
 
     var message = '';
+    var snapshotText = 'Last cloud snapshot: ' + formatSnapshotTime(state.lastSnapshotAt) + '. ';
     if (!state.browserOnline) {
-      message = '<strong>Offline cached mode.</strong> <span>Local server is not running. Cloud sync unavailable. Run isotope start.</span>';
+      message = '<strong>Cached offline mode.</strong> <span>' + snapshotText + 'Local server is not running. Cloud sync unavailable.</span>';
     } else if (!state.serverOnline) {
-      message = '<strong>Offline cached mode.</strong> <span>Local server is not running. Cloud sync unavailable. Run isotope start.</span>';
+      message = '<strong>Cached offline mode.</strong> <span>' + snapshotText + 'Local server is not running. Cloud sync unavailable.</span>';
     }
 
     if (!message) {
@@ -56,6 +80,7 @@
   }
 
   function publishStatus() {
+    state.lastSnapshotAt = readLastSnapshotAt();
     window.__isoLocalStatus = state;
     window.__isoLocalServerOffline = !state.serverOnline || !state.browserOnline;
     try {
@@ -63,7 +88,8 @@
         browserOnline: state.browserOnline,
         serverOnline: state.serverOnline,
         swVersion: state.swVersion,
-        swSha: state.swSha
+        swSha: state.swSha,
+        lastSnapshotAt: state.lastSnapshotAt
       }}));
     } catch (e) {}
   }
@@ -113,6 +139,9 @@
     state.browserOnline = false;
     state.serverOnline = false;
     publishStatus();
+    renderStatus();
+  });
+  window.addEventListener('isotope:boot-state', function () {
     renderStatus();
   });
 

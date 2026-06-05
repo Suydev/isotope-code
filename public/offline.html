@@ -25,6 +25,13 @@
       box-shadow: 0 24px 80px rgba(0,0,0,.38);
     }
     h1 { margin: 0 0 12px; font-size: 25px; letter-spacing: 0; }
+    .logo {
+      display: block;
+      width: 174px;
+      max-width: 70%;
+      height: auto;
+      margin: 0 0 22px;
+    }
     p { color: #d4d4d8; line-height: 1.55; margin: 10px 0; }
     code {
       display: inline-block;
@@ -38,9 +45,10 @@
 </head>
 <body>
   <main>
+    <img class="logo" src="/logo-full.svg" alt="IsotopeAI">
     <h1>Isotope is offline</h1>
     <p>The cached app shell was not available for this page. Start the local server and open the app once to refresh the offline cache.</p>
-    <p>Run <code>isotope start</code>, then open <code>http://127.0.0.1:5000</code>.</p>
+    <p>Run <code>isotope start</code>, then open <code>http://127.0.0.1:3000</code>.</p>
     <p>Cloud sync, community, auth, storage, and realtime features need the local server and Supabase connection.</p>
   </main>
 </body>
