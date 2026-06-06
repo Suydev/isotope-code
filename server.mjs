@@ -354,6 +354,104 @@ function buildUsernameAuthScript() {
 (function(){
   'use strict';
   var SUPA_REF = '${supaRef}';
+  var SUPA_URL_BASE = '${SUPA_URL}';
+  var SUPA_ANON = '${SUPA_ANON_KEY}';
+
+  // ── JWT deep-extractor ────────────────────────────────────────────────────
+  // Recursively scans any JSON value for a JWT-shaped string (eyJ…).
+  // Handles every known Supabase session storage format without fragile key paths.
+  function _deepFindJwt(obj) {
+    if (!obj) return null;
+    if (typeof obj === 'string') {
+      if (/^eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(obj)) return obj;
+      try { return _deepFindJwt(JSON.parse(obj)); } catch(e) { return null; }
+    }
+    if (typeof obj !== 'object') return null;
+    // Prefer access_token if present at this level (most common)
+    if (typeof obj.access_token === 'string' && obj.access_token.startsWith('eyJ')) return obj.access_token;
+    // Recurse: check all object values
+    var keys = Object.keys(obj);
+    for (var i = 0; i < keys.length; i++) {
+      var v = obj[keys[i]];
+      if (typeof v === 'string' && /^eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(v)) return v;
+      if (v && typeof v === 'object') {
+        var found = _deepFindJwt(v);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  // Also deep-scan for refresh_token (string that does NOT look like a JWT)
+  function _deepFindRefreshToken(obj) {
+    if (!obj) return null;
+    if (typeof obj !== 'object') return null;
+    if (typeof obj.refresh_token === 'string' && obj.refresh_token && !obj.refresh_token.startsWith('eyJ')) return obj.refresh_token;
+    if (typeof obj.refresh_token === 'string' && obj.refresh_token) return obj.refresh_token;
+    var keys = Object.keys(obj);
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i] === 'refresh_token' && typeof obj[keys[i]] === 'string' && obj[keys[i]]) return obj[keys[i]];
+      if (obj[keys[i]] && typeof obj[keys[i]] === 'object') {
+        var found = _deepFindRefreshToken(obj[keys[i]]);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  // ── localStorage write interceptor ────────────────────────────────────────
+  // Captures the JWT the moment Supabase (or any auth code) writes ANY session
+  // key to localStorage — regardless of key name, nesting depth, or format.
+  // This makes getValidJwt() immune to format changes in future Supabase releases.
+  (function() {
+    try {
+      var _orig = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value) {
+        _orig.call(this, key, value);
+        if (typeof key !== 'string' || typeof value !== 'string') return;
+        var isAuthKey = (key.startsWith('sb-') && key.endsWith('-auth-token'))
+                      || key === 'isotope-auth-token'
+                      || key === 'isotope-last-session-raw';
+        if (!isAuthKey) return;
+        try {
+          var parsed = JSON.parse(value);
+          var at = _deepFindJwt(parsed);
+          var rt = _deepFindRefreshToken(parsed);
+          if (at) {
+            _orig.call(this, 'isotope-last-jwt', at);
+            _orig.call(this, 'isotope-last-session-raw', value);
+            if (rt) _orig.call(this, 'isotope-last-rt', rt);
+          }
+        } catch(e) {}
+      };
+    } catch(e) {}
+  })();
+
+  // ── Trigger initial capture on page load ──────────────────────────────────
+  // In case the interceptor wasn't installed before the Supabase client wrote the session.
+  (function() {
+    try {
+      var keys = [];
+      for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+      keys.forEach(function(k) {
+        if (!k) return;
+        if ((k.startsWith('sb-') && k.endsWith('-auth-token')) || k === 'isotope-auth-token') {
+          var raw = localStorage.getItem(k);
+          if (!raw) return;
+          try {
+            var parsed = JSON.parse(raw);
+            var at = _deepFindJwt(parsed);
+            var rt = _deepFindRefreshToken(parsed);
+            if (at) {
+              localStorage.setItem('isotope-last-jwt', at);
+              localStorage.setItem('isotope-last-session-raw', raw);
+              if (rt) localStorage.setItem('isotope-last-rt', rt);
+            }
+          } catch(e) {}
+        }
+      });
+    } catch(e) {}
+  })();
 
   // Store session under BOTH keys so restore-and-launch.js and Supabase client both see it
   function saveSession(session) {
@@ -364,20 +462,9 @@ function buildUsernameAuthScript() {
   }
 
   function parseSessionToken(raw) {
-    try {
-      var p = JSON.parse(raw);
-      if (!p) return null;
-      // Handle all known Supabase JS v2 session storage formats:
-      // Format 1 (standard):   { access_token, refresh_token, user, ... }
-      // Format 2 (wrapped):    { session: { access_token, ... } }
-      // Format 3 (v2.60+):     { currentSession: { access_token, ... } }
-      // Format 4 (deep state): { state: { session: { access_token, ... } } }
-      return p.access_token ||
-        (p.session && p.session.access_token) ||
-        (p.currentSession && p.currentSession.access_token) ||
-        (p.state && p.state.session && p.state.session.access_token) ||
-        null;
-    } catch(e) { return null; }
+    // Use the deep scanner — handles all Supabase JS v2 formats without fragile key paths
+    try { return _deepFindJwt(typeof raw === 'string' ? JSON.parse(raw) : raw) || null; }
+    catch(e) { return null; }
   }
 
   function readStoredSession() {
@@ -397,16 +484,107 @@ function buildUsernameAuthScript() {
   }
 
   function currentJwt() {
-    // First try the fast path: parse token directly from best available raw value
+    // 1. Fastest path: pre-captured JWT written by the localStorage interceptor
+    var captured = localStorage.getItem('isotope-last-jwt');
+    if (captured && captured.startsWith('eyJ')) return captured;
+    // 2. Primary Supabase key (deep-scan handles all formats)
     var raw = SUPA_REF ? localStorage.getItem('sb-' + SUPA_REF + '-auth-token') : null;
-    if (!raw) raw = localStorage.getItem('isotope-auth-token');
-    if (!raw) {
-      for (var i = 0; i < localStorage.length; i++) {
-        var lk = localStorage.key(i);
-        if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) { raw = localStorage.getItem(lk); break; }
+    var at = raw ? parseSessionToken(raw) : null;
+    if (at) return at;
+    // 3. Our own saved key
+    raw = localStorage.getItem('isotope-auth-token');
+    at = raw ? parseSessionToken(raw) : null;
+    if (at) return at;
+    // 4. Scan ALL localStorage for any sb-*-auth-token key
+    for (var i = 0; i < localStorage.length; i++) {
+      var lk = localStorage.key(i);
+      if (!lk) continue;
+      if ((lk.startsWith('sb-') && lk.endsWith('-auth-token')) || lk === 'isotope-last-session-raw') {
+        raw = localStorage.getItem(lk);
+        at = raw ? parseSessionToken(raw) : null;
+        if (at) return at;
       }
     }
-    return raw ? parseSessionToken(raw) : null;
+    return null;
+  }
+
+  // ── JWT auto-refresh helpers ────────────────────────────────────────────────
+  // Extract refresh_token from any known session format using the deep scanner
+  function _getRefreshToken() {
+    // 1. Pre-captured refresh token from interceptor
+    var captured = localStorage.getItem('isotope-last-rt');
+    if (captured) return captured;
+    // 2. Scan known keys with deep extractor
+    var sources = [];
+    if (SUPA_REF) sources.push('sb-' + SUPA_REF + '-auth-token');
+    sources.push('isotope-auth-token', 'isotope-last-session-raw');
+    for (var i = 0; i < sources.length; i++) {
+      var raw = localStorage.getItem(sources[i]);
+      if (!raw) continue;
+      try {
+        var rt = _deepFindRefreshToken(JSON.parse(raw));
+        if (rt) return rt;
+      } catch(e) {}
+    }
+    // 3. Scan all localStorage
+    for (var j = 0; j < localStorage.length; j++) {
+      var lk = localStorage.key(j);
+      if (!lk || !(lk.startsWith('sb-') && lk.endsWith('-auth-token'))) continue;
+      var raw2 = localStorage.getItem(lk);
+      if (!raw2) continue;
+      try {
+        var rt2 = _deepFindRefreshToken(JSON.parse(raw2));
+        if (rt2) return rt2;
+      } catch(e) {}
+    }
+    return null;
+  }
+
+  // Call Supabase /auth/v1/token to exchange refresh_token for a new session.
+  // Saves and returns the new access_token, or null on failure.
+  async function _refreshSession(refreshToken) {
+    if (!refreshToken) return null;
+    try {
+      var r = await fetch(SUPA_URL_BASE + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPA_ANON },
+        body: JSON.stringify({ refresh_token: refreshToken })
+      });
+      var data = await r.json().catch(function() { return {}; });
+      if (r.ok && data.access_token) {
+        saveSession(data);
+        return data.access_token;
+      }
+    } catch(e) {}
+    return null;
+  }
+
+  // Returns a valid (non-expired) JWT.  Auto-refreshes if the stored token is
+  // expired or expiring within 120 seconds.  Falls back to the stored token if
+  // refresh fails (lets the server return a proper 401 rather than silently breaking).
+  async function getValidJwt() {
+    var at = currentJwt();
+    if (!at) return null;
+    // Decode payload to check expiry
+    var needsRefresh = false;
+    try {
+      var parts = at.split('.');
+      if (parts.length >= 2) {
+        var pad = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        while (pad.length % 4) pad += '=';
+        var payload = JSON.parse(atob(pad));
+        needsRefresh = !payload.exp || payload.exp < Math.floor(Date.now() / 1000) + 120;
+      }
+    } catch(e) {}
+    if (!needsRefresh) return at;
+    var fresh = await _refreshSession(_getRefreshToken());
+    return fresh || at; // Fall back to old token if refresh fails
+  }
+
+  // Force-refresh regardless of expiry (used after receiving a 401 response).
+  async function forceRefreshJwt() {
+    var fresh = await _refreshSession(_getRefreshToken());
+    return fresh || currentJwt();
   }
 
   function writeSyncMetadata(patch) {
@@ -457,10 +635,18 @@ function buildUsernameAuthScript() {
   }
 
   async function authedJson(url, options) {
-    var jwt = currentJwt();
-    if (!jwt) throw new Error('Authentication required');
+    var jwt = await getValidJwt();
+    if (!jwt) throw new Error('Authentication required — please log in');
     var headers = Object.assign({ 'Accept': 'application/json', 'Authorization': 'Bearer ' + jwt }, (options && options.headers) || {});
     var r = await fetch(url, Object.assign({}, options || {}, { headers: headers }));
+    // If 401, force-refresh the token and retry once before giving up
+    if (r.status === 401) {
+      var refreshed = await forceRefreshJwt();
+      if (refreshed && refreshed !== jwt) {
+        headers = Object.assign({ 'Accept': 'application/json', 'Authorization': 'Bearer ' + refreshed }, (options && options.headers) || {});
+        r = await fetch(url, Object.assign({}, options || {}, { headers: headers }));
+      }
+    }
     var d = await r.json().catch(function(){ return {}; });
     if (!r.ok || !d.ok) throw new Error(d.error || ('Request failed: ' + r.status));
     if (d.cloud_snapshot && d.user_id) cacheCloudSnapshot(d.cloud_snapshot, d.user_id);
@@ -642,13 +828,63 @@ function buildUsernameAuthScript() {
   // This fixes the "shows onboarding after login" bug by setting isOnboarded=true
   // for existing accounts, and syncs user data (username, avatar, coins) into
   // the isotope-user-sync key that the app reads on startup.
-  async function syncProfileAfterLogin(jwt) {
-    var r = await fetch('/__auth/bootstrap', {
-      headers: { 'Authorization': 'Bearer ' + jwt }
-    });
-    var d = await r.json().catch(function(){ return {}; });
-    if (!r.ok || !d || !d.ok || !d.profile) throw new Error(d.error || 'Profile download failed');
-    return applyProfileSnapshot(d);
+  async function syncProfileAfterLogin(jwtIn) {
+    // Use a fresh (auto-refreshed) token for the bootstrap call
+    var jwt = jwtIn;
+    try { jwt = (await getValidJwt()) || jwtIn; } catch(e) {}
+    try {
+      var r = await fetch('/__auth/bootstrap', {
+        headers: { 'Authorization': 'Bearer ' + jwt }
+      });
+      var d = await r.json().catch(function(){ return {}; });
+      if (r.ok && d && d.ok && d.profile) {
+        // Cache the bootstrap result — used as offline/restart fallback
+        try {
+          localStorage.setItem('isotope-bootstrap-cache', JSON.stringify({
+            ok: true, cached_at: Date.now(), user_id: d.user_id,
+            profile: d.profile, onboarding_completed: d.onboarding_completed
+          }));
+        } catch(e) {}
+        return applyProfileSnapshot(d);
+      }
+      // Server returned an error response — check what kind
+      if (r.status === 401 || r.status === 400) {
+        // Token truly invalid — try one token refresh then retry
+        var freshJwt = await forceRefreshJwt();
+        if (freshJwt && freshJwt !== jwt) {
+          var r2 = await fetch('/__auth/bootstrap', {
+            headers: { 'Authorization': 'Bearer ' + freshJwt }
+          });
+          var d2 = await r2.json().catch(function(){ return {}; });
+          if (r2.ok && d2 && d2.ok && d2.profile) {
+            try {
+              localStorage.setItem('isotope-bootstrap-cache', JSON.stringify({
+                ok: true, cached_at: Date.now(), user_id: d2.user_id,
+                profile: d2.profile, onboarding_completed: d2.onboarding_completed
+              }));
+            } catch(e) {}
+            return applyProfileSnapshot(d2);
+          }
+        }
+        throw new Error(d.error || 'Profile download failed');
+      }
+      // 5xx / network issue — use cached bootstrap if available
+      var cached = null;
+      try { cached = JSON.parse(localStorage.getItem('isotope-bootstrap-cache') || 'null'); } catch(e) {}
+      if (cached && cached.ok && cached.profile) {
+        // Cache is good — apply it (session stays valid, app works offline)
+        return applyProfileSnapshot(cached);
+      }
+      throw new Error(d.error || 'Profile download failed');
+    } catch(netErr) {
+      // Network completely unreachable (server restarting / offline PWA)
+      var offlineCache = null;
+      try { offlineCache = JSON.parse(localStorage.getItem('isotope-bootstrap-cache') || 'null'); } catch(e) {}
+      if (offlineCache && offlineCache.ok && offlineCache.profile) {
+        return applyProfileSnapshot(offlineCache);
+      }
+      throw netErr;
+    }
   }
 
   // Sign in an existing user (username + password)
@@ -3312,9 +3548,22 @@ async function applyBackupProfileToSupabase(userId, userJwt, parsedBackup) {
   if (!backup.profile || typeof backup.profile !== 'object') return { profile_applied: false };
   const currentBundle = await fetchUserProfileBundle(userId, userJwt).catch(() => ({ profileData: {}, onboardingData: null }));
   const now = new Date().toISOString();
+  // Smart onboarding detection: if the backup contains real user data (tasks, sessions, subjects)
+  // treat the account as onboarded regardless of the isOnboarded flag in the backup.
+  // This fixes the common case where the client-side export incorrectly records isOnboarded:false.
+  const backupCollections = parsedBackup?.data || parsedBackup?.backup_data || parsedBackup?.local_collections || {};
+  const hasRealData = (
+    (Array.isArray(backupCollections.tasks)    && backupCollections.tasks.length    > 0) ||
+    (Array.isArray(backupCollections.sessions) && backupCollections.sessions.length > 0) ||
+    (Array.isArray(backupCollections.subjects) && backupCollections.subjects.length > 0)
+  );
+  const inferredOnboarded = hasRealData || backup.profile.isOnboarded === true || backup.profile.onboarding_completed === true;
+
   const merged = stripPrivateSnapshotKeys({
     ...(currentBundle.profileData || {}),
     ...backup.profile,
+    isOnboarded: inferredOnboarded,
+    onboarding_completed: inferredOnboarded,
     settings: {
       ...((currentBundle.profileData || {}).settings || {}),
       ...(backup.profile.settings || {}),
@@ -5997,7 +6246,52 @@ server.listen(port, '0.0.0.0', () => {
 
   // Auto-run DML backfills on startup (safe REST-only operations, no DDL needed)
   runStartupBackfills().catch(() => {});
+  // Ensure Supabase Storage buckets exist (creates if missing, idempotent)
+  ensureStorageBuckets().catch(() => {});
 });
+
+// ── Storage bucket auto-setup (runs on every server start) ────────────────────
+// Creates the three required Storage buckets if they do not yet exist.
+// Uses the service-role key (ADMIN_MODE_READY required). Safe to run multiple
+// times — it only creates buckets that return 404.
+async function ensureStorageBuckets() {
+  if (!ADMIN_MODE_READY) return; // service key required to create buckets
+  const BUCKETS = [
+    { id: 'user-content', name: 'user-content', public: false, file_size_limit: 52428800 },
+    { id: 'avatars',      name: 'avatars',      public: true,  file_size_limit: 2097152  },
+    { id: 'notes',        name: 'notes',        public: false, file_size_limit: 10485760 },
+  ];
+  for (const bucket of BUCKETS) {
+    try {
+      const check = await supaAdminReq('GET', `/storage/v1/bucket/${bucket.id}`).catch(() => ({ status: 0 }));
+      if (check.status === 200) {
+        // Bucket exists — ensure public flag is correct
+        if (bucket.public !== check.body?.public) {
+          await supaAdminReq('PUT', `/storage/v1/bucket/${bucket.id}`, { public: bucket.public }).catch(() => {});
+        }
+        continue;
+      }
+      const create = await supaAdminReq('POST', '/storage/v1/bucket', {
+        id: bucket.id, name: bucket.name,
+        public: bucket.public,
+        file_size_limit: bucket.file_size_limit,
+        allowed_mime_types: bucket.id === 'avatars'
+          ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+          : null,
+      }).catch(() => ({ status: 0 }));
+      if (create.status === 200 || create.status === 201) {
+        console.log(`[Storage] Created bucket "${bucket.id}" (public=${bucket.public})`);
+      } else if (create.status === 409) {
+        // Already exists (race) — ignore
+      } else {
+        console.warn(`[Storage] Could not create bucket "${bucket.id}": HTTP ${create.status}`,
+          typeof create.body === 'object' ? JSON.stringify(create.body).slice(0, 120) : create.body);
+      }
+    } catch (e) {
+      console.warn(`[Storage] ensureStorageBuckets error for "${bucket.id}":`, e.message);
+    }
+  }
+}
 
 // ── Startup DML backfills (runs on every server start) ────────────────────────
 // These are DML-only (no DDL) so they work with just the service_role REST API.
