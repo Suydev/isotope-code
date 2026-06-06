@@ -2068,18 +2068,18 @@ function getPatchedAppBundle() {
     );
     appPatch(
       's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e), await this.pullCloudSnapshot(e, t)',
-      's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e), await this.pullCloudSnapshot(e, t), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn()) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("manual_full_sync") : Promise.resolve()))',
-      'Manual full sync uploads full JSON backup'
+      's && await this.pushProfile(e, s), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn()) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("manual_full_sync") : Promise.resolve())), await this.pullCloudSnapshot(e, !1); const r = window.__isoDownloadBackupJSON ? await window.__isoDownloadBackupJSON().catch(() => null) : null; r && await Xr(r, { mode: "merge" })',
+      'Manual full sync uses full Storage backup JSON'
     );
     appPatch(
       's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e)\n        })',
-      's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn()) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("upload_dirty_local") : Promise.resolve()))\n        })',
-      'Upload-only sync uploads full JSON backup'
+      's && await this.pushProfile(e, s), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn()) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("upload_dirty_local") : Promise.resolve()))\n        })',
+      'Upload-only sync uses full Storage backup JSON'
     );
     appPatch(
       'await this.pullCloudSnapshot(e, t)\n        })\n    }\n    async uploadDirtyLocal',
-      'await this.pullCloudSnapshot(e, t); const s = window.__isoDownloadBackupJSON ? await window.__isoDownloadBackupJSON().catch(() => null) : null; s && await Xr(s, { mode: "merge" })\n        })\n    }\n    async uploadDirtyLocal',
-      'Download cloud data imports full JSON backup'
+      'await this.pullCloudSnapshot(e, !1); const s = window.__isoDownloadBackupJSON ? await window.__isoDownloadBackupJSON().catch(() => null) : null; s && await Xr(s, { mode: "merge" })\n        })\n    }\n    async uploadDirtyLocal',
+      'Download cloud data imports full Storage backup JSON'
     );
 
     const pushProfileStart = '    async pushProfile(e, t, s) {';
@@ -2412,6 +2412,29 @@ function getPatchedSettingsBundle() {
   return patchedSettingsBundle;
 }
 
+// ── AppAccessGate bundle patch: empty devices automatically import cloud backup
+const APP_ACCESS_GATE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'AppAccessGate-B975UtK7.js');
+let patchedAppAccessGateBundle = null;
+function getPatchedAppAccessGateBundle() {
+  if (patchedAppAccessGateBundle) return patchedAppAccessGateBundle;
+  try {
+    let raw = fs.readFileSync(APP_ACCESS_GATE_BUNDLE_ABS, 'utf8');
+    let applied = 0;
+    const patch = (from, to, label) => {
+      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
+      else console.warn('[AppAccessGatePatch] Not found:', label);
+    };
+    patch(
+      'const ge = await (await ke()).canBootstrapFromCloud(R.userId, !0);\n                        I(ge)',
+      'const ge = await (await ke()).canBootstrapFromCloud(R.userId, !0);\n                        if (ge) { await S.getState().downloadCloudSnapshot(); I(!1) } else I(!1)',
+      'auto-import cloud backup on empty local workspace'
+    );
+    console.log('[AppAccessGatePatch] ' + applied + '/1 patches applied');
+    patchedAppAccessGateBundle = Buffer.from(raw, 'utf8');
+  } catch (e) { console.error('[AppAccessGatePatch] Error:', e.message); patchedAppAccessGateBundle = null; }
+  return patchedAppAccessGateBundle;
+}
+
 // ── Session sync bundle patch: no success without Supabase persistence
 const SESSION_SYNC_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'sessionSync-mloIEnTd.js');
 let patchedSessionSyncBundle = null;
@@ -2741,6 +2764,7 @@ function supaStorageUploadAsUser(bucket, objectPath, buffer, mime, userJwt, opti
   return supaStorageObjectReqAsUser('POST', bucket, objectPath, buffer, mime || 'application/octet-stream', userJwt, {
     upsert: options.upsert === true,
     timeoutMessage: options.timeoutMessage || 'Storage upload timed out',
+    timeoutMs: options.timeoutMs,
   });
 }
 
@@ -2825,6 +2849,8 @@ function normalizeOnboardingForSnapshot(onboarding, profileData = {}) {
 function normalizeCloudSnapshotShape(snapshot, userId) {
   if (!snapshot || typeof snapshot !== 'object' || snapshot.schema_version !== 1 || snapshot.user_id !== userId) return null;
   const profileData = snapshot.profile_data && typeof snapshot.profile_data === 'object' ? snapshot.profile_data : {};
+  const localBackup = normalizeLocalBackupPayload(snapshot.local_backup, snapshot.exported_at || snapshot.downloaded_at);
+  const backupData = normalizeLocalBackupData(snapshot.backup_data || snapshot.local_collections || localBackup?.data || {});
   const onboarding = normalizeOnboardingForSnapshot(snapshot.onboarding, profileData);
   return {
     ...snapshot,
@@ -2843,7 +2869,120 @@ function normalizeCloudSnapshotShape(snapshot, userId) {
     recent_sessions: Array.isArray(snapshot.recent_sessions) ? snapshot.recent_sessions : (Array.isArray(snapshot.study_sessions_log) ? snapshot.study_sessions_log : []),
     notifications_state: stripPrivateSnapshotKeys(snapshot.notifications_state && typeof snapshot.notifications_state === 'object' ? snapshot.notifications_state : {}),
     app_preferences: stripPrivateSnapshotKeys(snapshot.app_preferences && typeof snapshot.app_preferences === 'object' ? snapshot.app_preferences : {}),
+    local_backup: localBackup || buildLocalBackupFromData(backupData, snapshot.exported_at || snapshot.downloaded_at, snapshot.app_version),
+    backup_data: backupData,
+    local_collections: backupData,
+    collection_counts: localBackupCounts(localBackup || { data: backupData }),
   };
+}
+
+function normalizeLocalBackupArray(value) {
+  return Array.isArray(value) ? stripPrivateSnapshotKeys(value) : [];
+}
+
+function normalizeLocalBackupData(data = {}) {
+  const safe = data && typeof data === 'object' ? data : {};
+  return stripPrivateSnapshotKeys({
+    profile: safe.profile && typeof safe.profile === 'object' ? safe.profile : null,
+    timerState: safe.timerState && typeof safe.timerState === 'object' ? safe.timerState : null,
+    tasks: normalizeLocalBackupArray(safe.tasks),
+    sessions: normalizeLocalBackupArray(safe.sessions),
+    subjects: normalizeLocalBackupArray(safe.subjects),
+    habits: normalizeLocalBackupArray(safe.habits),
+    dailyLogs: normalizeLocalBackupArray(safe.dailyLogs),
+    tests: normalizeLocalBackupArray(safe.tests),
+    exams: normalizeLocalBackupArray(safe.exams),
+    mockTests: normalizeLocalBackupArray(safe.mockTests),
+  });
+}
+
+function buildLocalBackupFromData(data, exportedAt, appVersion) {
+  return stripPrivateSnapshotKeys({
+    version: 1,
+    source: 'isotopeai',
+    exportedAt: exportedAt || new Date().toISOString(),
+    appVersion: appVersion || ((typeof LOCAL_VERSION !== 'undefined' && LOCAL_VERSION.version) ? LOCAL_VERSION.version : 'unknown'),
+    data: normalizeLocalBackupData(data),
+  });
+}
+
+function normalizeLocalBackupPayload(payload, exportedAt) {
+  if (!payload || typeof payload !== 'object') return null;
+  if ((payload.source === 'isotopeai' || payload.source === 'isotope-study') && payload.version === 1 && payload.data) {
+    return buildLocalBackupFromData(payload.data, payload.exportedAt || exportedAt, payload.appVersion);
+  }
+  return null;
+}
+
+function localBackupCounts(localBackup) {
+  const data = normalizeLocalBackupData(localBackup?.data || {});
+  return {
+    profile: data.profile ? 1 : 0,
+    timerState: data.timerState ? 1 : 0,
+    tasks: data.tasks.length,
+    sessions: data.sessions.length,
+    subjects: data.subjects.length,
+    habits: data.habits.length,
+    dailyLogs: data.dailyLogs.length,
+    tests: data.tests.length,
+    exams: data.exams.length,
+    mockTests: data.mockTests.length,
+  };
+}
+
+function localBackupFromParsedPayload(parsedBackup, userId) {
+  const direct = normalizeLocalBackupPayload(parsedBackup);
+  if (direct) return direct;
+  if (parsedBackup?.schema_version === 1) {
+    const nested = normalizeLocalBackupPayload(parsedBackup.local_backup, parsedBackup.exported_at || parsedBackup.downloaded_at);
+    if (nested) return nested;
+    return buildLocalBackupFromData({
+      ...(parsedBackup.backup_data || parsedBackup.local_collections || {}),
+      profile: parsedBackup.profile_data || parsedBackup.profile || null,
+    }, parsedBackup.exported_at || parsedBackup.downloaded_at, parsedBackup.app_version);
+  }
+  return null;
+}
+
+function buildCloudSnapshotFromBackupPayload(userId, parsedBackup, bundle = {}, source = 'manual_export') {
+  const localBackup = localBackupFromParsedPayload(parsedBackup, userId);
+  const localData = normalizeLocalBackupData(localBackup?.data || {});
+  const backupProfile = localData.profile && typeof localData.profile === 'object' ? localData.profile : {};
+  const snapshot = buildCanonicalCloudSnapshot(userId, {
+    ...(bundle || {}),
+    profile: {
+      ...((bundle || {}).profile || {}),
+      ...backupProfile,
+    },
+    profile_data: {
+      ...((bundle || {}).profile_data || {}),
+      ...backupProfile,
+    },
+    settings: {
+      ...(((bundle || {}).settings) || {}),
+      ...(backupProfile.settings && typeof backupProfile.settings === 'object' ? backupProfile.settings : {}),
+    },
+    onboarding: (bundle || {}).onboarding || normalizeOnboardingForSnapshot(null, backupProfile),
+  }, source);
+  return normalizeCloudSnapshotShape({
+    ...snapshot,
+    source,
+    local_backup: localBackup,
+    backup_data: localData,
+    local_collections: localData,
+    collection_counts: localBackupCounts(localBackup),
+  }, userId);
+}
+
+function backupJsonFromCloudSnapshot(snapshot, userId) {
+  const cloud = normalizeCloudSnapshotShape(snapshot, userId);
+  if (!cloud) return null;
+  const localBackup = localBackupFromParsedPayload(cloud, userId)
+    || buildLocalBackupFromData({
+      ...(cloud.backup_data || cloud.local_collections || {}),
+      profile: cloud.profile_data || null,
+    }, cloud.exported_at || cloud.downloaded_at, cloud.app_version);
+  return JSON.stringify(localBackup, null, 2);
 }
 
 function buildCanonicalCloudSnapshot(userId, bundle, source = 'supabase') {
@@ -3809,8 +3948,22 @@ const server = http.createServer((req, res) => {
         const downloaded = await supaStorageDownloadAsUser('user-content', objectPath, userJwt);
         const missingDetail = Buffer.isBuffer(downloaded.body) ? downloaded.body.toString('utf8') : String(downloaded.body || '');
         if (downloaded.status === 404 || (downloaded.status === 400 && /not found|does not exist|no such/i.test(missingDetail))) {
-          res.writeHead(404, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-          res.end(JSON.stringify({ ok: false, error: 'No cloud backup export exists yet' }));
+          const cloudSnapshot = await downloadCloudSnapshotForUser(userId, userJwt).catch(() => null);
+          const backupJson = cloudSnapshot ? backupJsonFromCloudSnapshot(cloudSnapshot, userId) : null;
+          if (!backupJson) {
+            res.writeHead(404, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+            res.end(JSON.stringify({ ok: false, error: 'No cloud backup export exists yet' }));
+            return;
+          }
+          parseBackupJsonPayload(backupJson);
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+          res.end(JSON.stringify({
+            ok: true,
+            user_id: userId,
+            backup_json: backupJson,
+            backup_storage: { bucket: 'user-content', path: `${userId}/cloud-snapshot/latest.json`, source: 'cloud_snapshot_fallback' },
+            cloud_snapshot: cloudSnapshot,
+          }));
           return;
         }
         assertSupaOk(downloaded, 'Cloud backup download');
@@ -3849,11 +4002,14 @@ const server = http.createServer((req, res) => {
       }
       try {
         const backupJson = typeof body?.backup_json === 'string' ? body.backup_json : JSON.stringify(body?.backup_json || body || {});
-        parseBackupJsonPayload(backupJson);
+        const parsed = parseBackupJsonPayload(backupJson).parsed;
         const rawUpload = await uploadRawUserBackupJson(userId, userJwt, backupJson, 'exports');
-        const refreshed = await refreshCloudSnapshotForUser(userId, userJwt, 'manual_export');
+        const applied = await applyBackupProfileToSupabase(userId, userJwt, parsed);
+        const dbBundle = await fetchUserBootstrapBundle(userId, userJwt).catch(() => ({ user_id: userId, warnings: { backup_snapshot: 'DB bundle unavailable while saving backup export' } }));
+        const backupSnapshot = buildCloudSnapshotFromBackupPayload(userId, parsed, dbBundle, 'manual_export');
+        const refreshed = await uploadCloudSnapshotForUser(userId, userJwt, backupSnapshot, { history: false });
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: true, user_id: userId, export_storage: rawUpload, cloud_snapshot: refreshed.snapshot, snapshot_storage: refreshed.storage }));
+        res.end(JSON.stringify({ ok: true, user_id: userId, export_storage: rawUpload, applied, cloud_snapshot: refreshed.snapshot, snapshot_storage: refreshed.storage }));
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ ok: false, error: e.message || 'Backup upload failed' }));
@@ -3888,15 +4044,17 @@ const server = http.createServer((req, res) => {
         const parsed = parseBackupJsonPayload(backupJson).parsed;
         const importUpload = await uploadRawUserBackupJson(userId, userJwt, backupJson, 'imports');
         const applied = await applyBackupProfileToSupabase(userId, userJwt, parsed);
-        const refreshed = await refreshCloudSnapshotForUser(userId, userJwt, 'manual_import');
+        const dbBundle = await fetchUserBootstrapBundle(userId, userJwt).catch(() => ({ user_id: userId, warnings: { backup_snapshot: 'DB bundle unavailable while saving backup import' } }));
+        const backupSnapshot = buildCloudSnapshotFromBackupPayload(userId, parsed, dbBundle, 'manual_import');
+        const refreshed = await uploadCloudSnapshotForUser(userId, userJwt, backupSnapshot, { history: false });
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({
           ok: true,
           user_id: userId,
           import_storage: importUpload,
           applied,
-          unsupported_collections: ['tasks', 'subjects', 'focus_sessions', 'habits', 'exams', 'daily_logs', 'tests', 'mock_tests'],
-          unsupported_reason: 'Compiled import restores these collections locally; no canonical Supabase table mapping exists in community-patch-v4.sql for server-side import.',
+          storage_backed_collections: ['tasks', 'sessions', 'subjects', 'habits', 'dailyLogs', 'tests', 'exams', 'mockTests'],
+          storage_backed_reason: 'These collections are preserved in user-content backup JSON and restored by the compiled browser importer.',
           cloud_snapshot: refreshed.snapshot,
           snapshot_storage: refreshed.storage,
         }));
@@ -5317,6 +5475,10 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
       const buf = getPatchedSettingsBundle();
       if (buf) { send(buf); return; }
     }
+    if (fp === APP_ACCESS_GATE_BUNDLE_ABS) {
+      const buf = getPatchedAppAccessGateBundle();
+      if (buf) { send(buf); return; }
+    }
     if (fp === SESSION_SYNC_BUNDLE_ABS) {
       const buf = getPatchedSessionSyncBundle();
       if (buf) { send(buf); return; }
@@ -5404,6 +5566,7 @@ server.listen(port, '0.0.0.0', () => {
     getPatchedSingleGroupBundle();
     getPatchedLeaderboardBundle();
     getPatchedSettingsBundle();
+    getPatchedAppAccessGateBundle();
     getPatchedSessionSyncBundle();
     getPatchedInvitesBundle();
     getPatchedCommunityBundle();

@@ -1,6 +1,6 @@
 {
-  "version": "3.1.1",
-  "sha": "v3.1.1",
-  "message": "release: v3.1.1 real cloud backup pipeline",
+  "version": "3.1.2",
+  "sha": "v3.1.2",
+  "message": "release: v3.1.2 storage-backed backup restore",
   "updated_at": "2026-06-06T00:00:00.000Z"
 }

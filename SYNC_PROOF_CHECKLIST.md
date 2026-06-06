@@ -159,6 +159,22 @@ Download/inspect `latest.json`. Expected shape:
   "profile_data": {},
   "onboarding": {},
   "settings": {},
+  "local_backup": {
+    "version": 1,
+    "source": "isotopeai",
+    "data": {
+      "tasks": [],
+      "sessions": [],
+      "subjects": [],
+      "habits": [],
+      "dailyLogs": [],
+      "tests": [],
+      "exams": [],
+      "mockTests": []
+    }
+  },
+  "backup_data": {},
+  "collection_counts": {},
   "stats_summary": null,
   "daily_stats": [],
   "recent_sessions": []
@@ -173,7 +189,7 @@ Browser action:
 Settings -> Data Export -> Import JSON backup.
 
 Cloud download action:
-Settings -> Data & Privacy -> Cloud Sync when the device needs cloud bootstrap. If `user-content/<USER_ID>/exports/latest.json` exists, the app downloads that full browser backup JSON and imports it through the same compiled importer used by manual file import.
+Login on an empty/cache-cleared authenticated device, or Settings -> Data & Privacy -> Cloud Sync. The app downloads `user-content/<USER_ID>/exports/latest.json` and imports it through the same compiled importer used by manual file import. If `exports/latest.json` is missing, `/__auth/backup/latest` reconstructs the same backup JSON from `cloud-snapshot/latest.json.local_backup`.
 
 Storage after:
 `user-content/<USER_ID>/imports/<timestamp>.json`, `user-content/<USER_ID>/imports/latest.json`, and `cloud-snapshot/latest.json` update.
@@ -181,11 +197,11 @@ Storage after:
 DB after:
 If the backup contains profile/onboarding fields, `user_profiles.profile_data` and/or `user_onboarding` reflect supported fields.
 
-Important limitation:
-Server-side import currently applies profile/settings/onboarding fields and stores the raw import in Storage. The compiled local import still restores local collections (`tasks`, `subjects`, `focus_sessions`, `habits`, `exams`, `daily_logs`, `tests`, `mock_tests`) locally. These collection imports are `NOT FIXED` for server-side Supabase merge until a canonical table mapping exists in `community-patch-v4.sql`.
+Important mapping:
+Local collections (`tasks`, `subjects`, `sessions`, `habits`, `dailyLogs`, `tests`, `exams`, `mockTests`) are Storage-backed through the full backup JSON, not separate Supabase rows. `community-patch-v4.sql` does not define those collection tables, so 404s for `tasks`, `subjects`, `focus_sessions`, `habits`, `exams`, `daily_logs`, or `tests` are not an acceptable sync proof path. The proof is `user-content/<USER_ID>/exports/latest.json` plus automatic import into IndexedDB/local stores after cache clear.
 
 Cache-clear restore:
-Supported profile/settings/onboarding fields restore from Supabase after cache clear/login.
+Supported profile/settings/onboarding fields restore from Supabase DB, and local collections restore from the Storage backup JSON after cache clear/login.
 
 Result: `PROVEN` / `NOT FIXED`
 
