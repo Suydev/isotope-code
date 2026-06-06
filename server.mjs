@@ -416,6 +416,28 @@ function buildUsernameAuthScript() {
     } catch(e) {}
   }
 
+  // Append one event to the rolling sync history (max 25 entries).
+  // entry: { op, status, error?, bytes?, mode?, source? }
+  function writeSyncHistory(entry) {
+    try {
+      var history = [];
+      try { history = JSON.parse(localStorage.getItem('isotope_sync_history') || '[]') || []; } catch(e) {}
+      if (!Array.isArray(history)) history = [];
+      history.unshift(Object.assign({ at: new Date().toISOString() }, entry || {}));
+      if (history.length > 25) history = history.slice(0, 25);
+      localStorage.setItem('isotope_sync_history', JSON.stringify(history));
+    } catch(e) {}
+    // Refresh the live panel if it's mounted
+    try { if (window.__isoRefreshHistoryPanel) window.__isoRefreshHistoryPanel(); } catch(e) {}
+  }
+
+  window.__isoGetSyncHistory = function() {
+    try { return JSON.parse(localStorage.getItem('isotope_sync_history') || '[]') || []; } catch(e) { return []; }
+  };
+  window.__isoGetSyncMetadata = function() {
+    try { return JSON.parse(localStorage.getItem('isotope_sync_metadata') || '{}') || {}; } catch(e) { return {}; }
+  };
+
   function cacheCloudSnapshot(snapshot, userId) {
     try {
       if (!snapshot || !userId || snapshot.user_id !== userId) return false;
@@ -446,21 +468,27 @@ function buildUsernameAuthScript() {
   }
 
   window.__isoRefreshCloudSnapshot = async function(source) {
+    var _src = source || 'manual_sync';
+    writeSyncHistory({ op: 'snapshot', status: 'syncing', source: _src });
     try {
       writeSyncMetadata({ last_sync_status: 'syncing', last_error: null });
       var d = await authedJson('/__auth/snapshot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: source || 'manual_sync' })
+        body: JSON.stringify({ source: _src })
       });
+      writeSyncHistory({ op: 'snapshot', status: 'ok', source: _src });
       return { ok: true, snapshot_storage: d.snapshot_storage || null };
     } catch(e) {
       writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Cloud snapshot upload failed' });
+      writeSyncHistory({ op: 'snapshot', status: 'failed', error: e.message || 'Cloud snapshot upload failed', source: _src });
       throw e;
     }
   };
 
   window.__isoUploadBackupJSON = async function(backupJson) {
+    var _bytes = String(backupJson || '').length;
+    writeSyncHistory({ op: 'upload', status: 'syncing', bytes: _bytes });
     try {
       writeSyncMetadata({ last_sync_status: 'syncing', last_error: null });
       var d = await authedJson('/__auth/backup', {
@@ -468,29 +496,42 @@ function buildUsernameAuthScript() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ backup_json: String(backupJson || '') })
       });
+      writeSyncHistory({ op: 'upload', status: 'ok', bytes: _bytes });
       return { ok: true, export_storage: d.export_storage || null, snapshot_storage: d.snapshot_storage || null };
     } catch(e) {
       writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup upload failed' });
+      writeSyncHistory({ op: 'upload', status: 'failed', error: e.message || 'Backup upload failed', bytes: _bytes });
       throw e;
     }
   };
 
   window.__isoDownloadBackupJSON = async function() {
-    var d = await authedJson('/__auth/backup/latest', { method: 'GET' });
-    return d.backup_json || null;
+    writeSyncHistory({ op: 'download', status: 'syncing' });
+    try {
+      var d = await authedJson('/__auth/backup/latest', { method: 'GET' });
+      writeSyncHistory({ op: 'download', status: 'ok' });
+      return d.backup_json || null;
+    } catch(e) {
+      writeSyncHistory({ op: 'download', status: 'failed', error: e.message || 'Download failed' });
+      throw e;
+    }
   };
 
   window.__isoImportBackupJSON = async function(backupJson, mode) {
+    var _mode = mode || 'merge';
+    writeSyncHistory({ op: 'import', status: 'syncing', mode: _mode });
     try {
       writeSyncMetadata({ last_sync_status: 'syncing', last_error: null });
       var d = await authedJson('/__auth/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ backup_json: String(backupJson || ''), mode: mode || 'merge' })
+        body: JSON.stringify({ backup_json: String(backupJson || ''), mode: _mode })
       });
+      writeSyncHistory({ op: 'import', status: 'ok', mode: _mode });
       return { ok: true, import_storage: d.import_storage || null, applied: d.applied || {}, unsupported_collections: d.unsupported_collections || [] };
     } catch(e) {
       writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup import failed' });
+      writeSyncHistory({ op: 'import', status: 'failed', error: e.message || 'Backup import failed', mode: _mode });
       throw e;
     }
   };
@@ -731,6 +772,113 @@ function buildUsernameAuthScript() {
       setTimeout(function(){ _gObs.disconnect(); }, 6000);
     });
   }
+
+  // ── Sync History Panel ────────────────────────────────────────────────────
+  // Injects a live "Sync History" card into the Settings Sync & Backup section.
+  // Reads from isotope_sync_history / isotope_sync_metadata in localStorage.
+  (function() {
+    var _panel = null;
+    function relTime(iso) {
+      if (!iso) return '';
+      var d = Date.now() - new Date(iso).getTime();
+      if (d < 0) return 'just now';
+      if (d < 60000) return Math.round(d / 1000) + 's ago';
+      if (d < 3600000) return Math.round(d / 60000) + 'm ago';
+      if (d < 86400000) return Math.round(d / 3600000) + 'h ago';
+      return new Date(iso).toLocaleDateString();
+    }
+    function getSyncHistory() {
+      try { return JSON.parse(localStorage.getItem('isotope_sync_history') || '[]') || []; } catch(e) { return []; }
+    }
+    function getSyncMeta() {
+      try { return JSON.parse(localStorage.getItem('isotope_sync_metadata') || '{}') || {}; } catch(e) { return {}; }
+    }
+    function renderPanel(el) {
+      var history = getSyncHistory();
+      var meta = getSyncMeta();
+      var opLabel = { upload: 'Upload', snapshot: 'Snapshot', import: 'Import', download: 'Download' };
+      var metaHtml = '';
+      if (meta.last_sync_status) {
+        var sc = meta.last_sync_status;
+        var scColor = sc === 'synced' ? '#86efac' : sc === 'failed' ? '#fca5a5' : '#93c5fd';
+        metaHtml = '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:10px;font-family:monospace;color:#555">' +
+          'Status: <span style="color:' + scColor + '">' + sc + '</span>' +
+          (meta.last_snapshot_at ? '&nbsp;·&nbsp;Last snapshot: <span style="color:#93c5fd">' + relTime(meta.last_snapshot_at) + '</span>' : '') +
+          (meta.last_error ? '&nbsp;·&nbsp;<span style="color:#fca5a5">Error: ' + String(meta.last_error).slice(0, 70) + '</span>' : '') +
+          '</div>';
+      }
+      var items = history.slice(0, 15).map(function(e) {
+        var icon = e.status === 'ok' ? '✓' : e.status === 'failed' ? '✗' : '↻';
+        var color = e.status === 'ok' ? '#86efac' : e.status === 'failed' ? '#fca5a5' : '#93c5fd';
+        var label = opLabel[e.op] || e.op || 'Sync';
+        var detail = e.error ? String(e.error).slice(0, 55)
+          : (e.bytes ? Math.round(e.bytes / 1024) + ' KB' : (e.mode || e.source || ''));
+        return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;' +
+          'border-bottom:1px solid rgba(255,255,255,.04);font-size:11px">' +
+          '<span style="color:' + color + ';font-weight:700;font-size:13px;min-width:14px">' + icon + '</span>' +
+          '<span style="color:#aaa;flex:0 0 72px">' + label + '</span>' +
+          '<span style="color:#555;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' +
+            'font-family:monospace;font-size:10px">' + detail + '</span>' +
+          '<span style="color:#3f3f46;font-size:10px;white-space:nowrap;margin-left:6px">' + relTime(e.at) + '</span>' +
+          '</div>';
+      }).join('');
+      if (!items) items = '<div style="color:#444;text-align:center;padding:10px 0;font-size:11px">' +
+        'No sync events yet — press Cloud Sync to record the first event</div>';
+      el.innerHTML =
+        '<div style="margin-top:18px;padding:14px 16px;background:#0d0d0d;border:1px solid #222;border-radius:10px">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">' +
+            '<span style="font-size:11px;font-weight:700;color:#777;text-transform:uppercase;letter-spacing:.6px">Sync History</span>' +
+            '<span style="font-size:10px;color:#3f3f46">' + history.length + ' event' + (history.length === 1 ? '' : 's') + '</span>' +
+          '</div>' +
+          metaHtml + items +
+        '</div>';
+    }
+    function injectOrRefresh() {
+      // Find the Sync & Backup card dynamically (works across SPA route changes)
+      if (!document.body) return;
+      var target = null;
+      var cards = document.querySelectorAll('section,div');
+      for (var i = 0; i < cards.length; i++) {
+        var el = cards[i];
+        var txt = el.innerText || el.textContent || '';
+        if ((txt.indexOf('Cloud Sync') >= 0 || txt.indexOf('Sync & Backup') >= 0) &&
+            txt.length < 4000 && el.children.length > 0 &&
+            !el.querySelector('[data-iso-history]')) {
+          target = el;
+          break;
+        }
+      }
+      if (target && !target.querySelector('[data-iso-history]')) {
+        _panel = document.createElement('div');
+        _panel.setAttribute('data-iso-history', '1');
+        target.appendChild(_panel);
+      }
+      if (_panel && _panel.isConnected) {
+        renderPanel(_panel);
+      } else if (_panel && !_panel.isConnected) {
+        _panel = null;
+      }
+    }
+    window.__isoRefreshHistoryPanel = function() { try { injectOrRefresh(); } catch(e) {} };
+    // Hook SPA navigation
+    try {
+      var _origPush = history.pushState;
+      history.pushState = function() { _origPush.apply(this, arguments); setTimeout(injectOrRefresh, 400); };
+      window.addEventListener('popstate', function() { setTimeout(injectOrRefresh, 400); });
+    } catch(e) {}
+    // Run on DOMContentLoaded + polling
+    function start() {
+      injectOrRefresh();
+      setInterval(injectOrRefresh, 3000);
+      if (window.MutationObserver) {
+        var obs = new MutationObserver(function() { try { injectOrRefresh(); } catch(e) {} });
+        obs.observe(document.body, { childList: true, subtree: true });
+        setTimeout(function() { obs.disconnect(); }, 30000);
+      }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+    else start();
+  })();
 })();
 </script>`;
 }
@@ -4989,6 +5137,54 @@ function copySQL(){
         })(),
       ]);
 
+      // ── CATEGORY 5b: Auth Pipeline Smoke Tests ────────────────────────────
+      // These probe each /__auth/* endpoint WITHOUT a token and verify they
+      // return 401 (auth guard active) and NOT 200 (bypass) or 500 (crash).
+      const authPipelineChecks = await Promise.all([
+        (async () => {
+          const r = await localReq('GET', '/__auth/bootstrap');
+          const ok = r.status === 401;
+          return { name:'/__auth/bootstrap (no token → 401)', ok, detail: ok ? 'Auth guard active' : `Unexpected HTTP ${r.status} — expected 401` };
+        })(),
+        (async () => {
+          const r = await localReq('POST', '/__auth/backup', { backup_json: '{}' });
+          const ok = r.status === 401;
+          return { name:'/__auth/backup (no token → 401)', ok, detail: ok ? 'Auth guard active' : `Unexpected HTTP ${r.status} — expected 401` };
+        })(),
+        (async () => {
+          const r = await localReq('GET', '/__auth/backup/latest');
+          const ok = r.status === 401;
+          return { name:'/__auth/backup/latest (no token → 401)', ok, detail: ok ? 'Auth guard active' : `Unexpected HTTP ${r.status} — expected 401` };
+        })(),
+        (async () => {
+          const r = await localReq('POST', '/__auth/profile', { profile_data: {} });
+          const ok = r.status === 401;
+          return { name:'/__auth/profile (no token → 401)', ok, detail: ok ? 'Auth guard active' : `Unexpected HTTP ${r.status} — expected 401` };
+        })(),
+        (async () => {
+          const r = await localReq('POST', '/__auth/snapshot', { source: 'smoke_test' });
+          const ok = r.status === 401;
+          return { name:'/__auth/snapshot (no token → 401)', ok, detail: ok ? 'Auth guard active' : `Unexpected HTTP ${r.status} — expected 401` };
+        })(),
+        (async () => {
+          const r = await localReq('POST', '/__auth/import', { backup_json: '{}', mode: 'merge' });
+          const ok = r.status === 401;
+          return { name:'/__auth/import (no token → 401)', ok, detail: ok ? 'Auth guard active' : `Unexpected HTTP ${r.status} — expected 401` };
+        })(),
+        (async () => {
+          // /api/version must return 200 with local_server:true
+          const r = await localReq('GET', '/api/version');
+          const ok = r.status === 200 && r.body?.local_server === true;
+          return { name:'/api/version health-check (200 + local_server:true)', ok, detail: ok ? `v${r.body.version}` : `HTTP ${r.status} body=${JSON.stringify(r.body).slice(0,60)}` };
+        })(),
+        (async () => {
+          // /__auth/login with wrong creds must return 400/401, not 500
+          const r = await localReq('POST', '/__auth/login', { username: 'smoke_test_bad_user', password: 'bad_pass_smoke' });
+          const ok = r.status === 400 || r.status === 401 || r.status === 403;
+          return { name:'/__auth/login bad creds (4xx, not 500)', ok, detail: ok ? `HTTP ${r.status} — error returned cleanly` : `HTTP ${r.status} — may be crashing` };
+        })(),
+      ]);
+
       // ── CATEGORY 6: Admin, community, and realtime functional tests ────────
       const communityChecks = await Promise.all([
         // Admin user exists in auth.users
@@ -5160,6 +5356,7 @@ function copySQL(){
         ...rlsChecks.map(c => c.ok),
         ...interceptorTests.map(c => c.ok),
         ...serverChecks.map(c => c.ok),
+        ...authPipelineChecks.map(c => c.ok),
         ...communityChecks.map(c => c.ok),
         ...storageChecks.map(c => c.ok),
         ...integrationChecks.map(c => c.ok),
@@ -5273,6 +5470,14 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
 </section>
 
 <section>
+  <div class="sec-hdr"><h3>🔒 Auth Pipeline Smoke Tests</h3><span class="sec-stat">${pct(authPipelineChecks)} passing — unauthenticated probes</span></div>
+  <table>
+    <tr><th>Endpoint</th><th>Status</th><th>Detail</th></tr>
+    ${rows(authPipelineChecks)}
+  </table>
+</section>
+
+<section>
   <div class="sec-hdr"><h3>👑 Admin &amp; Community Features</h3><span class="sec-stat">${pct(communityChecks)} passing</span></div>
   <table>
     <tr><th>Check</th><th>Status</th><th>Detail</th></tr>
@@ -5304,7 +5509,171 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
   </table>
 </section>
 
-</div></body></html>`;
+<section id="iso-browser-diag">
+  <div class="sec-hdr"><h3>🌐 Live Browser Diagnostics</h3><span class="sec-stat" id="iso-diag-stat">reading localStorage…</span></div>
+  <div id="iso-diag-content" style="color:#555;font-size:11px;padding:8px 0">Open this page while logged into the app to see live session + sync data.</div>
+</section>
+
+</div>
+<script>
+(function() {
+  function relTime(iso) {
+    if (!iso) return 'never';
+    var d = Date.now() - new Date(iso).getTime();
+    if (d < 0) return 'just now';
+    if (d < 60000) return Math.round(d/1000) + 's ago';
+    if (d < 3600000) return Math.round(d/60000) + 'm ago';
+    if (d < 86400000) return Math.round(d/3600000) + 'h ago';
+    return new Date(iso).toLocaleDateString();
+  }
+  function parseToken(raw) {
+    try {
+      var p = JSON.parse(raw);
+      return p.access_token || (p.session && p.session.access_token) ||
+        (p.currentSession && p.currentSession.access_token) ||
+        (p.state && p.state.session && p.state.session.access_token) || null;
+    } catch(e) { return null; }
+  }
+  function decodeJwtPayload(jwt) {
+    try {
+      var parts = jwt.split('.');
+      if (parts.length < 2) return null;
+      var pad = parts[1].replace(/-/g,'+').replace(/_/g,'/');
+      while (pad.length % 4) pad += '=';
+      return JSON.parse(atob(pad));
+    } catch(e) { return null; }
+  }
+  function row(label, value, color) {
+    return '<tr><td class="mono">' + label + '</td><td class="note" style="color:' + (color||'#aaa') + ';max-width:none;white-space:normal">' + value + '</td></tr>';
+  }
+  function run() {
+    var content = document.getElementById('iso-diag-content');
+    var stat = document.getElementById('iso-diag-stat');
+    if (!content || !stat) return;
+
+    // 1. Find session token
+    var rawToken = null;
+    var tokenKey = null;
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
+        rawToken = localStorage.getItem(k); tokenKey = k; break;
+      }
+    }
+    if (!rawToken) { rawToken = localStorage.getItem('isotope-auth-token'); tokenKey = 'isotope-auth-token'; }
+
+    var jwt = rawToken ? parseToken(rawToken) : null;
+    var payload = jwt ? decodeJwtPayload(jwt) : null;
+    var expiry = payload && payload.exp ? new Date(payload.exp * 1000) : null;
+    var expired = expiry ? expiry < new Date() : null;
+    var sessionFormat = null;
+    if (rawToken) {
+      try {
+        var p = JSON.parse(rawToken);
+        sessionFormat = p.access_token ? 'format-1 (standard)' :
+          p.session ? 'format-2 (wrapped session)' :
+          p.currentSession ? 'format-3 (currentSession — Supabase v2.60+)' :
+          p.state ? 'format-4 (deep state)' : 'unknown';
+      } catch(e) {}
+    }
+
+    // 2. Sync metadata + history
+    var meta = {};
+    var history = [];
+    try { meta = JSON.parse(localStorage.getItem('isotope_sync_metadata') || '{}') || {}; } catch(e) {}
+    try { history = JSON.parse(localStorage.getItem('isotope_sync_history') || '[]') || []; } catch(e) {}
+
+    // 3. Render session section
+    var sessionRows = jwt ? [
+      row('Session key', tokenKey || '—', '#93c5fd'),
+      row('Session format', sessionFormat || 'unknown', '#93c5fd'),
+      row('User ID (sub)', (payload && payload.sub) || '—', '#a78bfa'),
+      row('Email', (payload && payload.email) || '—', '#a78bfa'),
+      row('Token expires', expiry ? expiry.toISOString() + ' (' + relTime(expiry.toISOString()) + ')' : '—',
+          expired ? '#fca5a5' : '#86efac'),
+      row('JWT valid', expired === false ? 'Yes — not expired' : expired === true ? 'EXPIRED — auto-refresh should fix' : 'Unknown', expired ? '#fca5a5' : '#86efac'),
+    ] : [row('Session', 'No session found in localStorage — not logged in or using a private window', '#fca5a5')];
+
+    // 4. Render sync metadata
+    var sc = meta.last_sync_status || '—';
+    var scColor = sc === 'synced' ? '#86efac' : sc === 'failed' ? '#fca5a5' : '#93c5fd';
+    var metaRows = [
+      row('Last sync status', sc, scColor),
+      row('Last snapshot at', meta.last_snapshot_at ? meta.last_snapshot_at + ' (' + relTime(meta.last_snapshot_at) + ')' : '—', '#93c5fd'),
+      row('Last error', meta.last_error || 'none', meta.last_error ? '#fca5a5' : '#555'),
+    ];
+
+    // 5. Render sync history table
+    var histRows = history.slice(0, 15).map(function(e) {
+      var icon = e.status === 'ok' ? '✓' : e.status === 'failed' ? '✗' : '↻';
+      var color = e.status === 'ok' ? '#86efac' : e.status === 'failed' ? '#fca5a5' : '#93c5fd';
+      var opLabel = ({upload:'Upload',snapshot:'Snapshot',import:'Import',download:'Download'})[e.op] || e.op;
+      var detail = e.error ? String(e.error).slice(0,80) : (e.bytes ? Math.round(e.bytes/1024)+'KB' : (e.mode||e.source||''));
+      return '<tr><td class="mono"><span style="color:'+color+'">'+icon+'</span> '+opLabel+'</td>' +
+        '<td class="note" style="color:'+color+'">'+e.status+'</td>' +
+        '<td class="note" style="max-width:none">'+detail+'</td>' +
+        '<td class="note">'+relTime(e.at)+'</td></tr>';
+    }).join('') || '<tr><td colspan="4" style="color:#444;text-align:center">No sync events — run Cloud Sync first</td></tr>';
+
+    // 6. Test auth now button
+    var testBtn = '<button onclick="testAuth()" style="background:#7c3aed;color:#fff;border:0;border-radius:6px;' +
+      'padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;margin-top:10px">▶ Test Cloud Sync Auth Now</button>' +
+      '<span id="auth-test-result" style="margin-left:10px;font-size:11px"></span>';
+
+    stat.textContent = (jwt ? '✓ Session found' : '✗ No session') + ' · ' + history.length + ' sync events';
+
+    content.innerHTML =
+      '<h4 style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Session</h4>' +
+      '<table style="margin-bottom:16px"><tbody>' + sessionRows.join('') + '</tbody></table>' +
+      '<h4 style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Sync Metadata</h4>' +
+      '<table style="margin-bottom:16px"><tbody>' + metaRows.join('') + '</tbody></table>' +
+      '<h4 style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Sync History (' + history.length + ' events)</h4>' +
+      '<table><thead><tr><th>Operation</th><th>Status</th><th>Detail</th><th>When</th></tr></thead><tbody>' + histRows + '</tbody></table>' +
+      testBtn;
+  }
+
+  window.testAuth = function() {
+    var result = document.getElementById('auth-test-result');
+    result.textContent = '⟳ testing…';
+    result.style.color = '#93c5fd';
+    fetch('/__auth/bootstrap', {
+      headers: { 'Authorization': 'Bearer ' + (function() {
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
+            try {
+              var p = JSON.parse(localStorage.getItem(k));
+              return p.access_token || (p.currentSession && p.currentSession.access_token) || '';
+            } catch(e) {}
+          }
+        }
+        try { var p = JSON.parse(localStorage.getItem('isotope-auth-token')||'{}');
+          return p.access_token||(p.currentSession&&p.currentSession.access_token)||''; } catch(e) {}
+        return '';
+      })() }
+    }).then(function(r) {
+      return r.json().then(function(d) {
+        if (r.ok && d.ok) {
+          result.textContent = '✓ Auth OK — user ' + (d.profile && d.profile.username || d.user_id || 'unknown');
+          result.style.color = '#86efac';
+        } else {
+          result.textContent = '✗ ' + r.status + ': ' + (d.error || 'failed');
+          result.style.color = '#fca5a5';
+        }
+      });
+    }).catch(function(e) {
+      result.textContent = '✗ Network error: ' + e.message;
+      result.style.color = '#fca5a5';
+    });
+  };
+
+  // Run on load and every 5s
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+  setInterval(run, 5000);
+})();
+</script>
+</body></html>`;
 
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
       res.end(html);
