@@ -52,6 +52,9 @@ desktop.ini
 logs/
 *.log
 
+# Local user backup exports (contain personal app data)
+isotope-backup-*.json
+
 # Temporary files
 tmp/
 temp/

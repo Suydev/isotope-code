@@ -363,6 +363,108 @@ function buildUsernameAuthScript() {
     localStorage.setItem('isotope-auth-token', s);               // restore-and-launch.js legacy key
   }
 
+  function readStoredSession() {
+    var raw = localStorage.getItem('isotope-auth-token');
+    if (!raw) {
+      for (var i = 0; i < localStorage.length; i++) {
+        var lk = localStorage.key(i);
+        if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) { raw = localStorage.getItem(lk); break; }
+      }
+    }
+    try { return raw ? JSON.parse(raw) : null; } catch(e) { return null; }
+  }
+
+  function currentJwt() {
+    var sess = readStoredSession();
+    return sess && (sess.access_token || (sess.session && sess.session.access_token)) || null;
+  }
+
+  function writeSyncMetadata(patch) {
+    try {
+      var cur = JSON.parse(localStorage.getItem('isotope_sync_metadata') || '{}') || {};
+      localStorage.setItem('isotope_sync_metadata', JSON.stringify(Object.assign({}, cur, patch || {})));
+    } catch(e) {}
+  }
+
+  function cacheCloudSnapshot(snapshot, userId) {
+    try {
+      if (!snapshot || !userId || snapshot.user_id !== userId) return false;
+      snapshot.trusted = true;
+      snapshot.source = snapshot.source || 'supabase';
+      snapshot.downloaded_at = snapshot.downloaded_at || snapshot.exported_at || new Date().toISOString();
+      localStorage.setItem('isotope_cloud_snapshot_' + userId, JSON.stringify(snapshot));
+      localStorage.setItem('isotope_last_cloud_snapshot_user', JSON.stringify({ user_id: userId, downloaded_at: snapshot.downloaded_at }));
+      writeSyncMetadata({
+        last_sync_status: 'synced',
+        last_snapshot_at: snapshot.exported_at || snapshot.downloaded_at,
+        pending_count: 0,
+        last_error: null
+      });
+      return true;
+    } catch(e) { return false; }
+  }
+
+  async function authedJson(url, options) {
+    var jwt = currentJwt();
+    if (!jwt) throw new Error('Authentication required');
+    var headers = Object.assign({ 'Accept': 'application/json', 'Authorization': 'Bearer ' + jwt }, (options && options.headers) || {});
+    var r = await fetch(url, Object.assign({}, options || {}, { headers: headers }));
+    var d = await r.json().catch(function(){ return {}; });
+    if (!r.ok || !d.ok) throw new Error(d.error || ('Request failed: ' + r.status));
+    if (d.cloud_snapshot && d.user_id) cacheCloudSnapshot(d.cloud_snapshot, d.user_id);
+    return d;
+  }
+
+  window.__isoRefreshCloudSnapshot = async function(source) {
+    try {
+      writeSyncMetadata({ last_sync_status: 'syncing', last_error: null });
+      var d = await authedJson('/__auth/snapshot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source: source || 'manual_sync' })
+      });
+      return { ok: true, snapshot_storage: d.snapshot_storage || null };
+    } catch(e) {
+      writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Cloud snapshot upload failed' });
+      throw e;
+    }
+  };
+
+  window.__isoUploadBackupJSON = async function(backupJson) {
+    try {
+      writeSyncMetadata({ last_sync_status: 'syncing', last_error: null });
+      var d = await authedJson('/__auth/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backup_json: String(backupJson || '') })
+      });
+      return { ok: true, export_storage: d.export_storage || null, snapshot_storage: d.snapshot_storage || null };
+    } catch(e) {
+      writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup upload failed' });
+      throw e;
+    }
+  };
+
+  window.__isoDownloadBackupJSON = async function() {
+    var d = await authedJson('/__auth/backup/latest', { method: 'GET' });
+    return d.backup_json || null;
+  };
+
+  window.__isoImportBackupJSON = async function(backupJson, mode) {
+    try {
+      writeSyncMetadata({ last_sync_status: 'syncing', last_error: null });
+      var d = await authedJson('/__auth/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ backup_json: String(backupJson || ''), mode: mode || 'merge' })
+      });
+      return { ok: true, import_storage: d.import_storage || null, applied: d.applied || {}, unsupported_collections: d.unsupported_collections || [] };
+    } catch(e) {
+      writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup import failed' });
+      throw e;
+    }
+  };
+
   // Sign up a new user (username + password, no email)
   window.__isoUp = async function(username, password) {
     try {
@@ -406,11 +508,12 @@ function buildUsernameAuthScript() {
           isOnboarded: onbCompleted,
           onboarding_completed: onbCompleted
         });
-        var downloadedAt = new Date().toISOString();
-        var snapshot = {
+        var downloadedAt = (d.cloud_snapshot && (d.cloud_snapshot.downloaded_at || d.cloud_snapshot.exported_at)) || new Date().toISOString();
+        var snapshot = (d.cloud_snapshot && d.cloud_snapshot.user_id === d.user_id) ? d.cloud_snapshot : {
           schema_version: 1,
           user_id: d.user_id,
           downloaded_at: downloadedAt,
+          exported_at: downloadedAt,
           source: 'supabase',
           trusted: true,
           onboarding: {
@@ -427,8 +530,7 @@ function buildUsernameAuthScript() {
           study_sessions_log: [],
           warnings: {}
         };
-        localStorage.setItem('isotope_cloud_snapshot_' + d.user_id, JSON.stringify(snapshot));
-        localStorage.setItem('isotope_last_cloud_snapshot_user', JSON.stringify({ user_id: d.user_id, downloaded_at: downloadedAt }));
+        cacheCloudSnapshot(snapshot, d.user_id);
       }
     } catch(e) {}
     try {
@@ -465,12 +567,12 @@ function buildUsernameAuthScript() {
     return { onboarding_completed: completed, profile: prof };
   }
 
-  // Cloud sync: fetch profile from Supabase and populate localStorage.
+  // Cloud sync: fetch the DB bundle plus real Storage snapshot and populate local cache.
   // This fixes the "shows onboarding after login" bug by setting isOnboarded=true
   // for existing accounts, and syncs user data (username, avatar, coins) into
   // the isotope-user-sync key that the app reads on startup.
   async function syncProfileAfterLogin(jwt) {
-    var r = await fetch('/__auth/profile', {
+    var r = await fetch('/__auth/bootstrap', {
       headers: { 'Authorization': 'Bearer ' + jwt }
     });
     var d = await r.json().catch(function(){ return {}; });
@@ -1231,6 +1333,25 @@ const PREMIUM_SCRIPT = `<script>
         });
       })
       .then(function(d) {
+        return _orig.call(window, '/__auth/snapshot', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + jwt,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ source: 'finish_session' })
+        }).then(function(snapResp) {
+          return snapResp.json().catch(function(){ return {}; }).then(function(snap) {
+            if (!snapResp.ok || !snap.ok) throw new Error(snap.error || 'Cloud snapshot upload failed after session sync');
+            d = d || {};
+            d.cloud_snapshot = snap.cloud_snapshot || null;
+            d.snapshot_storage = snap.snapshot_storage || null;
+            return d;
+          });
+        });
+      })
+      .then(function(d) {
         resolve(new Response(JSON.stringify(d || {}), {
           status: 200, headers: { 'Content-Type': 'application/json' }
         }));
@@ -1603,10 +1724,11 @@ function buildAuthGuardScript() {
              || localStorage.getItem('isotope-auth-token');
       if (!raw) return null;
       var sess = JSON.parse(raw);
-      var token = sess && (sess.access_token || (sess.session && sess.session.access_token));
+      var token = sess && (sess.access_token || (sess.session && sess.session.access_token) || (sess.currentSession && sess.currentSession.access_token));
       if (!token) return null;
-      var exp = sess.expires_at || (sess.session && sess.session.expires_at);
-      if (exp && (Number(exp) * 1000) < Date.now()) return null; // expired
+      var exp = sess.expires_at || (sess.session && sess.session.expires_at) || (sess.currentSession && sess.currentSession.expires_at);
+      var refresh = sess.refresh_token || (sess.session && sess.session.refresh_token) || (sess.currentSession && sess.currentSession.refresh_token);
+      if (exp && (Number(exp) * 1000) < Date.now() && !refresh) return null; // expired and not refreshable
       return sess;
     } catch(e) { return null; }
   }
@@ -1875,6 +1997,11 @@ function getPatchedAppBundle() {
       'Temporary local auth fallback disabled'
     );
     appPatch(
+      'autoRefreshToken: !1,',
+      'autoRefreshToken: !0,',
+      'Supabase session auto-refresh enabled'
+    );
+    appPatch(
       'async restoreLocalWorkspaceSession() {',
       'async restoreLocalWorkspaceSession() { return null;',
       'Local workspace session restore disabled'
@@ -1938,6 +2065,21 @@ function getPatchedAppBundle() {
       'if (n && (Ur.updateFromPayload(n, i.username || i.name, i.avatar), !n.startsWith("local-") && M())) {\n            const o = hi(r);\n            yi(n, i, s, o)\n        }',
       'if (n && (Ur.updateFromPayload(n, i.username || i.name, i.avatar), !n.startsWith("local-") && M())) {\n            await va.pushProfile(n, i, s)\n        }',
       'Profile updates wait for cloud persistence'
+    );
+    appPatch(
+      's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e), await this.pullCloudSnapshot(e, t)',
+      's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e), await this.pullCloudSnapshot(e, t), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn()) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("manual_full_sync") : Promise.resolve()))',
+      'Manual full sync uploads full JSON backup'
+    );
+    appPatch(
+      's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e)\n        })',
+      's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn()) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("upload_dirty_local") : Promise.resolve()))\n        })',
+      'Upload-only sync uploads full JSON backup'
+    );
+    appPatch(
+      'await this.pullCloudSnapshot(e, t)\n        })\n    }\n    async uploadDirtyLocal',
+      'await this.pullCloudSnapshot(e, t); const s = window.__isoDownloadBackupJSON ? await window.__isoDownloadBackupJSON().catch(() => null) : null; s && await Xr(s, { mode: "merge" })\n        })\n    }\n    async uploadDirtyLocal',
+      'Download cloud data imports full JSON backup'
     );
 
     const pushProfileStart = '    async pushProfile(e, t, s) {';
@@ -2225,11 +2367,16 @@ function getPatchedSettingsBundle() {
       else console.warn('[SettingsPatch] Not found:', label);
     };
     patch('avatar: void 0', 'avatar: null', 'avatar remove sends explicit null');
-    patch('label: "Synced manually"', 'label: "Synced"', 'synced label');
+    patch(
+      '} = ae(), l = f(), [z, N] = ne.useState(!1);',
+      '} = ae(), l = f(), __isoMeta = (() => { try { return JSON.parse(localStorage.getItem("isotope_sync_metadata") || "{}") || {} } catch { return {} } })(), __isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !!__isoMeta.last_snapshot_at && !__isoMeta.last_error, [z, N] = ne.useState(!1);',
+      'sync status reads snapshot metadata'
+    );
+    patch('label: "Synced manually"', 'label: __isoSnapshotOk ? "Synced" : "Pending"', 'synced label requires snapshot');
     patch(
       'description: "Local data and cloud data were synced successfully."',
-      'description: "Last cloud upload/download completed successfully."',
-      'synced description'
+      'description: __isoSnapshotOk ? "Last cloud upload/download completed successfully." : "Waiting for verified cloud snapshot upload."',
+      'synced description requires snapshot'
     );
     patch('label: "Local mode"', 'label: "Pending/offline"', 'degraded label');
     patch('label: "Sync failed"', 'label: "Failed"', 'failed label');
@@ -2239,7 +2386,27 @@ function getPatchedSettingsBundle() {
       'description: l ? "No verified cloud sync has completed yet." : "Cloud sync is unavailable for this account."',
       'default sync description'
     );
-    console.log('[SettingsPatch] ' + applied + '/7 settings patches applied');
+    patch(
+      'children: "Manual cloud backup only. Nothing syncs until you press the button."',
+      'children: "Cloud sync writes verified Supabase rows and a Storage snapshot."',
+      'sync backup copy'
+    );
+    patch(
+      'children: "Download or sync your premium cloud backup on demand"',
+      'children: "Sync DB data and the user-content cloud snapshot"',
+      'cloud sync copy'
+    );
+    patch(
+      'u.href = C, u.download = `isotope-backup-${E}.json`, u.click(), window.URL.revokeObjectURL(C), b("JSON backup exported successfully.")',
+      'u.href = C, u.download = `isotope-backup-${E}.json`, u.click(), window.URL.revokeObjectURL(C), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(w) : Promise.resolve()), b("JSON backup exported and uploaded to cloud.")',
+      'manual export uploads cloud backup'
+    );
+    patch(
+      '}), await Xs(), b("Backup imported successfully. Newer local entries were preserved.")',
+      '}), await Xs(), await (window.__isoImportBackupJSON ? window.__isoImportBackupJSON(C, "merge") : Promise.resolve()), b("Backup imported locally and uploaded to cloud.")',
+      'manual import writes supported cloud fields'
+    );
+    console.log('[SettingsPatch] ' + applied + '/12 settings patches applied');
     patchedSettingsBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[SettingsPatch] Error:', e.message); patchedSettingsBundle = null; }
   return patchedSettingsBundle;
@@ -2508,55 +2675,396 @@ function parseAvatarDataUrl(value) {
   return { mime, data, ext };
 }
 
-function supaStorageUploadAsUser(bucket, objectPath, buffer, mime, userJwt) {
+function encodeStorageObjectPath(objectPath) {
+  return String(objectPath || '')
+    .split('/')
+    .map((part) => encodeURIComponent(part))
+    .join('/');
+}
+
+function storageObjectPublicUrl(bucket, objectPath) {
+  return `${SUPA_URL}/storage/v1/object/public/${encodeURIComponent(bucket)}/${encodeStorageObjectPath(objectPath)}`;
+}
+
+function supaStorageObjectReqAsUser(method, bucket, objectPath, body, contentType, userJwt, options = {}) {
   return new Promise((resolve, reject) => {
+    if (!userJwt) {
+      reject(new Error('Authenticated Storage access requires a user session'));
+      return;
+    }
     const supaHost = new URL(SUPA_URL).hostname;
-    const encodedPath = String(objectPath || '')
-      .split('/')
-      .map((part) => encodeURIComponent(part))
-      .join('/');
+    const bodyBuf = Buffer.isBuffer(body)
+      ? body
+      : (typeof body === 'string'
+          ? Buffer.from(body, 'utf8')
+          : (body ? Buffer.from(JSON.stringify(body), 'utf8') : null));
+    const encodedPath = encodeStorageObjectPath(objectPath);
+    const storagePath = options.bucketOnly
+      ? `/storage/v1/object/${encodeURIComponent(bucket)}`
+      : `/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`;
     const opts = {
       hostname: supaHost,
-      path: `/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`,
-      method: 'POST',
+      path: storagePath,
+      method: String(method || 'GET').toUpperCase(),
       headers: {
         'Authorization': 'Bearer ' + userJwt,
         'apikey': SUPA_ANON_KEY,
-        'Content-Type': mime || 'application/octet-stream',
-        'Content-Length': String(buffer.length),
-        'x-upsert': 'false',
+        'Accept': options.raw ? '*/*' : 'application/json',
+        ...(contentType ? { 'Content-Type': contentType } : {}),
+        ...(bodyBuf ? { 'Content-Length': String(bodyBuf.length) } : {}),
+        ...(options.upsert !== undefined ? { 'x-upsert': options.upsert ? 'true' : 'false' } : {}),
       },
     };
     const rq = https.request(opts, (r) => {
-      let d = '';
-      r.on('data', (c) => { d += c; });
+      const chunks = [];
+      r.on('data', (c) => { chunks.push(Buffer.from(c)); });
       r.on('end', () => {
-        let body = d;
-        try { body = JSON.parse(d); } catch {}
-        resolve({ status: r.statusCode, body });
+        const data = Buffer.concat(chunks);
+        if (options.raw) {
+          resolve({ status: r.statusCode, body: data });
+          return;
+        }
+        const text = data.toString('utf8');
+        let parsed = text;
+        try { parsed = text ? JSON.parse(text) : null; } catch {}
+        resolve({ status: r.statusCode, body: parsed });
       });
     });
     rq.on('error', reject);
-    rq.setTimeout(15000, () => { rq.destroy(); reject(new Error('Avatar upload timed out')); });
-    rq.write(buffer);
+    rq.setTimeout(options.timeoutMs || 20000, () => { rq.destroy(); reject(new Error(options.timeoutMessage || 'Supabase Storage request timed out')); });
+    if (bodyBuf) rq.write(bodyBuf);
     rq.end();
   });
 }
 
-async function uploadAvatarDataUrlForUser(userId, dataUrl, userJwt) {
+function supaStorageUploadAsUser(bucket, objectPath, buffer, mime, userJwt, options = {}) {
+  return supaStorageObjectReqAsUser('POST', bucket, objectPath, buffer, mime || 'application/octet-stream', userJwt, {
+    upsert: options.upsert === true,
+    timeoutMessage: options.timeoutMessage || 'Storage upload timed out',
+  });
+}
+
+function supaStorageDownloadAsUser(bucket, objectPath, userJwt) {
+  return supaStorageObjectReqAsUser('GET', bucket, objectPath, null, null, userJwt, {
+    raw: true,
+    timeoutMessage: 'Storage download timed out',
+  });
+}
+
+function supaStorageRemoveAsUser(bucket, objectPaths, userJwt) {
+  const paths = Array.isArray(objectPaths) ? objectPaths.filter(Boolean) : [objectPaths].filter(Boolean);
+  if (paths.length === 0) return Promise.resolve({ status: 200, body: [] });
+  return supaStorageObjectReqAsUser('DELETE', bucket, '', { prefixes: paths }, 'application/json', userJwt, {
+    bucketOnly: true,
+    timeoutMessage: 'Storage delete timed out',
+  });
+}
+
+function isStorageAlreadyExists(res) {
+  const text = typeof res?.body === 'string' ? res.body : JSON.stringify(res?.body || {});
+  return (res?.status === 400 || res?.status === 409)
+    && /already exists|resource exists|duplicate/i.test(text);
+}
+
+function isOwnedStoragePath(userId, objectPath) {
+  return !!userId && typeof objectPath === 'string' && objectPath.startsWith(`${userId}/`);
+}
+
+async function uploadAvatarDataUrlForUser(userId, dataUrl, userJwt, previousPath = null) {
   const parsed = parseAvatarDataUrl(dataUrl);
   if (!parsed) return null;
-  const objectPath = `${userId}/avatar-${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${parsed.ext}`;
-  const uploaded = await supaStorageUploadAsUser('avatars', objectPath, parsed.data, parsed.mime, userJwt);
-  assertSupaOk(uploaded, 'Avatar storage upload');
-  const publicUrl = `${SUPA_URL}/storage/v1/object/public/avatars/${objectPath.split('/').map(encodeURIComponent).join('/')}`;
+  const hash = crypto.createHash('sha256').update(parsed.data).digest('hex');
+  const objectPath = `${userId}/avatar-${hash}.${parsed.ext}`;
+  const uploaded = await supaStorageUploadAsUser('avatars', objectPath, parsed.data, parsed.mime, userJwt, { upsert: false, timeoutMessage: 'Avatar upload timed out' });
+  if (!isStorageAlreadyExists(uploaded)) assertSupaOk(uploaded, 'Avatar storage upload');
+  const publicUrl = storageObjectPublicUrl('avatars', objectPath);
+  let old_avatar_removed = false;
+  if (previousPath && previousPath !== objectPath && isOwnedStoragePath(userId, previousPath)) {
+    const removed = await supaStorageRemoveAsUser('avatars', previousPath, userJwt);
+    if (removed.status >= 200 && removed.status < 300) old_avatar_removed = true;
+    else if (removed.status !== 404) assertSupaOk(removed, 'Old avatar cleanup');
+  }
   return {
     bucket: 'avatars',
     path: objectPath,
     url: publicUrl,
     mime: parsed.mime,
     bytes: parsed.data.length,
+    sha256: hash,
+    deduped: isStorageAlreadyExists(uploaded),
+    old_avatar_removed,
   };
+}
+
+function stripPrivateSnapshotKeys(value) {
+  const blocked = /(^|_)(password|access_token|refresh_token|service_role|service_role_key|admin_secret|supabase_access_token|github_pat|gemini_api_key|groq_api_key|cookie|authorization|jwt|secret|token)($|_)/i;
+  if (Array.isArray(value)) return value.map(stripPrivateSnapshotKeys);
+  if (!value || typeof value !== 'object') return value;
+  const out = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (blocked.test(key)) continue;
+    out[key] = stripPrivateSnapshotKeys(val);
+  }
+  return out;
+}
+
+function normalizeOnboardingForSnapshot(onboarding, profileData = {}) {
+  const completed = typeof onboarding?.completed === 'boolean'
+    ? onboarding.completed
+    : (profileData.isOnboarded === true || profileData.onboarding_completed === true);
+  return {
+    state: completed ? 'completed' : 'incomplete',
+    completed,
+    completed_at: onboarding?.completed_at || profileData.onboardingCompletedAt || profileData.onboarding_completed_at || null,
+    data: (onboarding?.data && typeof onboarding.data === 'object')
+      ? stripPrivateSnapshotKeys(onboarding.data)
+      : (profileData.onboarding && typeof profileData.onboarding === 'object' ? stripPrivateSnapshotKeys(profileData.onboarding) : {}),
+  };
+}
+
+function normalizeCloudSnapshotShape(snapshot, userId) {
+  if (!snapshot || typeof snapshot !== 'object' || snapshot.schema_version !== 1 || snapshot.user_id !== userId) return null;
+  const profileData = snapshot.profile_data && typeof snapshot.profile_data === 'object' ? snapshot.profile_data : {};
+  const onboarding = normalizeOnboardingForSnapshot(snapshot.onboarding, profileData);
+  return {
+    ...snapshot,
+    source: snapshot.source || 'supabase',
+    trusted: true,
+    downloaded_at: snapshot.downloaded_at || snapshot.exported_at || new Date().toISOString(),
+    exported_at: snapshot.exported_at || snapshot.downloaded_at || new Date().toISOString(),
+    onboarding,
+    profile_data: stripPrivateSnapshotKeys(profileData),
+    settings: stripPrivateSnapshotKeys(snapshot.settings && typeof snapshot.settings === 'object' ? snapshot.settings : {}),
+    tours: stripPrivateSnapshotKeys(snapshot.tours && typeof snapshot.tours === 'object' ? snapshot.tours : {}),
+    stats_summary: snapshot.stats_summary || null,
+    daily_user_stats: Array.isArray(snapshot.daily_user_stats) ? snapshot.daily_user_stats : (Array.isArray(snapshot.daily_stats) ? snapshot.daily_stats : []),
+    daily_stats: Array.isArray(snapshot.daily_stats) ? snapshot.daily_stats : (Array.isArray(snapshot.daily_user_stats) ? snapshot.daily_user_stats : []),
+    study_sessions_log: Array.isArray(snapshot.study_sessions_log) ? snapshot.study_sessions_log : (Array.isArray(snapshot.recent_sessions) ? snapshot.recent_sessions : []),
+    recent_sessions: Array.isArray(snapshot.recent_sessions) ? snapshot.recent_sessions : (Array.isArray(snapshot.study_sessions_log) ? snapshot.study_sessions_log : []),
+    notifications_state: stripPrivateSnapshotKeys(snapshot.notifications_state && typeof snapshot.notifications_state === 'object' ? snapshot.notifications_state : {}),
+    app_preferences: stripPrivateSnapshotKeys(snapshot.app_preferences && typeof snapshot.app_preferences === 'object' ? snapshot.app_preferences : {}),
+  };
+}
+
+function buildCanonicalCloudSnapshot(userId, bundle, source = 'supabase') {
+  const now = new Date().toISOString();
+  const profileData = stripPrivateSnapshotKeys({
+    ...(bundle?.profile_data && typeof bundle.profile_data === 'object' ? bundle.profile_data : {}),
+    ...(bundle?.profile && typeof bundle.profile === 'object' ? bundle.profile : {}),
+  });
+  const settings = stripPrivateSnapshotKeys({
+    ...(profileData.settings && typeof profileData.settings === 'object' ? profileData.settings : {}),
+    ...(bundle?.settings && typeof bundle.settings === 'object' ? bundle.settings : {}),
+  });
+  const onboarding = normalizeOnboardingForSnapshot(bundle?.onboarding, profileData);
+  profileData.isOnboarded = onboarding.completed === true;
+  profileData.onboarding_completed = onboarding.completed === true;
+  if (onboarding.completed_at) {
+    profileData.onboardingCompletedAt = profileData.onboardingCompletedAt || onboarding.completed_at;
+    profileData.onboarding_completed_at = profileData.onboarding_completed_at || onboarding.completed_at;
+  }
+  const dailyRows = Array.isArray(bundle?.daily_user_stats) ? bundle.daily_user_stats : [];
+  const sessionRows = Array.isArray(bundle?.study_sessions_log) ? bundle.study_sessions_log : [];
+  return {
+    schema_version: 1,
+    user_id: userId,
+    exported_at: now,
+    downloaded_at: now,
+    source,
+    trusted: true,
+    app_version: (typeof LOCAL_VERSION !== 'undefined' && LOCAL_VERSION.version) ? LOCAL_VERSION.version : 'unknown',
+    profile_data: profileData,
+    onboarding,
+    settings,
+    tours: stripPrivateSnapshotKeys(profileData.tours && typeof profileData.tours === 'object' ? profileData.tours : {}),
+    stats_summary: bundle?.stats_summary || null,
+    daily_stats: dailyRows,
+    daily_user_stats: dailyRows,
+    recent_sessions: sessionRows,
+    study_sessions_log: sessionRows,
+    notifications_state: {},
+    app_preferences: {},
+    warnings: stripPrivateSnapshotKeys(bundle?.warnings || {}),
+  };
+}
+
+function mergeBootstrapBundleWithCloudSnapshot(bundle, cloudSnapshot) {
+  const userId = bundle?.user_id;
+  const cloud = normalizeCloudSnapshotShape(cloudSnapshot, userId);
+  if (!cloud) return { ...bundle, cloud_snapshot: null, cloud_snapshot_meta: null };
+  const profileData = {
+    ...(cloud.profile_data || {}),
+    ...(bundle.profile_data || {}),
+    ...(bundle.profile || {}),
+  };
+  const settings = {
+    ...(cloud.settings || {}),
+    ...(profileData.settings && typeof profileData.settings === 'object' ? profileData.settings : {}),
+    ...(bundle.settings || {}),
+  };
+  const dbOnboarding = normalizeOnboardingForSnapshot(bundle.onboarding, profileData);
+  profileData.isOnboarded = dbOnboarding.completed === true;
+  profileData.onboarding_completed = dbOnboarding.completed === true;
+  if (dbOnboarding.completed_at) {
+    profileData.onboardingCompletedAt = profileData.onboardingCompletedAt || dbOnboarding.completed_at;
+    profileData.onboarding_completed_at = profileData.onboarding_completed_at || dbOnboarding.completed_at;
+  }
+  const merged = {
+    ...bundle,
+    profile_data: profileData,
+    profile: {
+      ...(bundle.profile || {}),
+      ...profileData,
+    },
+    settings,
+    onboarding: {
+      ...(bundle.onboarding || {}),
+      completed: dbOnboarding.completed,
+      completed_at: dbOnboarding.completed_at,
+      data: dbOnboarding.data,
+    },
+    stats_summary: bundle.stats_summary || cloud.stats_summary || null,
+    daily_user_stats: Array.isArray(bundle.daily_user_stats) && bundle.daily_user_stats.length ? bundle.daily_user_stats : cloud.daily_user_stats,
+    study_sessions_log: Array.isArray(bundle.study_sessions_log) && bundle.study_sessions_log.length ? bundle.study_sessions_log : cloud.study_sessions_log,
+  };
+  const canonical = buildCanonicalCloudSnapshot(userId, merged, 'supabase');
+  canonical.downloaded_at = cloud.downloaded_at || canonical.downloaded_at;
+  canonical.exported_at = cloud.exported_at || canonical.exported_at;
+  return {
+    ...merged,
+    cloud_snapshot: canonical,
+    cloud_snapshot_meta: {
+      bucket: 'user-content',
+      latest_path: `${userId}/cloud-snapshot/latest.json`,
+      downloaded_at: canonical.downloaded_at,
+      exported_at: canonical.exported_at,
+      source: 'user-content',
+    },
+  };
+}
+
+async function downloadCloudSnapshotForUser(userId, userJwt) {
+  const objectPath = `${userId}/cloud-snapshot/latest.json`;
+  const downloaded = await supaStorageDownloadAsUser('user-content', objectPath, userJwt);
+  if (downloaded.status === 404) return null;
+  if (downloaded.status === 400) {
+    const detail = Buffer.isBuffer(downloaded.body) ? downloaded.body.toString('utf8') : String(downloaded.body || '');
+    if (/not found|does not exist|no such/i.test(detail)) return null;
+  }
+  assertSupaOk(downloaded, 'Cloud snapshot download');
+  const text = Buffer.isBuffer(downloaded.body) ? downloaded.body.toString('utf8') : String(downloaded.body || '');
+  if (!text.trim()) return null;
+  let parsed;
+  try { parsed = JSON.parse(text); } catch (e) { throw new Error('Cloud snapshot JSON is invalid'); }
+  return normalizeCloudSnapshotShape(parsed, userId);
+}
+
+async function uploadCloudSnapshotForUser(userId, userJwt, snapshot, options = {}) {
+  const canonical = normalizeCloudSnapshotShape(snapshot, userId) || buildCanonicalCloudSnapshot(userId, snapshot, options.source || 'supabase');
+  const latestPath = `${userId}/cloud-snapshot/latest.json`;
+  const stamped = (canonical.exported_at || new Date().toISOString()).replace(/[:.]/g, '-');
+  const historyPath = `${userId}/cloud-snapshot/history/${stamped}.json`;
+  const json = JSON.stringify(canonical, null, 2);
+  const latest = await supaStorageUploadAsUser('user-content', latestPath, Buffer.from(json, 'utf8'), 'application/json', userJwt, { upsert: true, timeoutMessage: 'Cloud snapshot upload timed out' });
+  assertSupaOk(latest, 'Cloud snapshot latest upload');
+  let history = null;
+  if (options.history !== false) {
+    history = await supaStorageUploadAsUser('user-content', historyPath, Buffer.from(json, 'utf8'), 'application/json', userJwt, { upsert: false, timeoutMessage: 'Cloud snapshot history upload timed out' });
+    if (!isStorageAlreadyExists(history)) assertSupaOk(history, 'Cloud snapshot history upload');
+  }
+  return {
+    snapshot: canonical,
+    storage: {
+      bucket: 'user-content',
+      latest_path: latestPath,
+      history_path: options.history === false ? null : historyPath,
+      latest_status: latest.status,
+      history_status: history ? history.status : null,
+      uploaded_at: canonical.exported_at,
+    },
+  };
+}
+
+async function refreshCloudSnapshotForUser(userId, userJwt, source = 'supabase') {
+  const bundle = await fetchUserBootstrapBundle(userId, userJwt);
+  const snapshot = buildCanonicalCloudSnapshot(userId, bundle, source);
+  return uploadCloudSnapshotForUser(userId, userJwt, snapshot, { history: true });
+}
+
+function parseBackupJsonPayload(rawJson) {
+  const parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
+  if (!parsed || typeof parsed !== 'object') throw new Error('Backup JSON must be an object');
+  if (parsed.schema_version === 1 && parsed.user_id) return { kind: 'cloud_snapshot', parsed };
+  if (!((parsed.source === 'isotopeai' || parsed.source === 'isotope-study') && parsed.version === 1 && parsed.data)) {
+    throw new Error('This file is not a valid Isotope backup.');
+  }
+  return { kind: 'local_backup_v1', parsed };
+}
+
+async function uploadRawUserBackupJson(userId, userJwt, rawJson, folder) {
+  const parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
+  const sanitized = stripPrivateSnapshotKeys(parsed);
+  const now = new Date().toISOString();
+  const objectPath = `${userId}/${folder}/${now.replace(/[:.]/g, '-')}.json`;
+  const latestPath = `${userId}/${folder}/latest.json`;
+  const json = JSON.stringify(sanitized, null, 2);
+  const uploaded = await supaStorageUploadAsUser('user-content', objectPath, Buffer.from(json, 'utf8'), 'application/json', userJwt, { upsert: false, timeoutMessage: 'Backup JSON upload timed out' });
+  if (!isStorageAlreadyExists(uploaded)) assertSupaOk(uploaded, 'Backup JSON upload');
+  const latest = await supaStorageUploadAsUser('user-content', latestPath, Buffer.from(json, 'utf8'), 'application/json', userJwt, { upsert: true, timeoutMessage: 'Backup latest JSON upload timed out' });
+  assertSupaOk(latest, 'Backup latest JSON upload');
+  return { bucket: 'user-content', path: objectPath, latest_path: latestPath, uploaded_at: now };
+}
+
+async function applyBackupProfileToSupabase(userId, userJwt, parsedBackup) {
+  const backup = parsedBackup?.schema_version === 1
+    ? { profile: parsedBackup.profile_data || {}, onboarding: parsedBackup.onboarding || null, settings: parsedBackup.settings || {} }
+    : { profile: parsedBackup?.data?.profile || {}, onboarding: null, settings: parsedBackup?.data?.profile?.settings || {} };
+  if (!backup.profile || typeof backup.profile !== 'object') return { profile_applied: false };
+  const currentBundle = await fetchUserProfileBundle(userId, userJwt).catch(() => ({ profileData: {}, onboardingData: null }));
+  const now = new Date().toISOString();
+  const merged = stripPrivateSnapshotKeys({
+    ...(currentBundle.profileData || {}),
+    ...backup.profile,
+    settings: {
+      ...((currentBundle.profileData || {}).settings || {}),
+      ...(backup.profile.settings || {}),
+      ...(backup.settings || {}),
+    },
+    last_imported_at: now,
+  });
+  const ensureProfile = await supaRestAsUser('POST', '/rest/v1/user_profiles?on_conflict=user_id', {
+    user_id: userId,
+    profile_data: {},
+    updated_at: now,
+  }, userJwt, { 'Prefer': 'resolution=ignore-duplicates,return=minimal' });
+  assertSupaOk(ensureProfile, 'Imported profile row ensure');
+  const profilePatch = await supaRestAsUser('PATCH', `/rest/v1/user_profiles?user_id=eq.${encodeURIComponent(userId)}`, {
+    profile_data: merged,
+    updated_at: now,
+  }, userJwt, { 'Prefer': 'return=minimal' });
+  assertSupaOk(profilePatch, 'Imported profile sync');
+  const onboarding = normalizeOnboardingForSnapshot(backup.onboarding, merged);
+  if (onboarding.completed === true || merged.isOnboarded === true || merged.onboarding_completed === true) {
+    const onboardingPatch = await supaRestAsUser('POST', '/rest/v1/user_onboarding?on_conflict=user_id', {
+      user_id: userId,
+      completed: true,
+      completed_at: onboarding.completed_at || now,
+      data: onboarding.data || {},
+      updated_at: now,
+    }, userJwt, { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
+    assertSupaOk(onboardingPatch, 'Imported onboarding sync');
+  }
+  const usersUpdate = compactObject({
+    username: merged.username ? String(merged.username) : undefined,
+    name: merged.display_name || merged.name ? String(merged.display_name || merged.name) : undefined,
+    avatar_url: merged.avatar_url || merged.avatar ? String(merged.avatar_url || merged.avatar) : undefined,
+    updated_at: now,
+  });
+  if (Object.keys(usersUpdate).length > 1) {
+    const userPatch = await supaRestAsUser('PATCH', `/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, usersUpdate, userJwt, { 'Prefer': 'return=minimal' });
+    assertSupaOk(userPatch, 'Imported public profile sync');
+  }
+  return { profile_applied: true };
 }
 
 async function fetchUserProfileBundle(userId, userJwt) {
@@ -2622,6 +3130,7 @@ async function fetchUserBootstrapBundle(userId, userJwt) {
     profile: profileBundle.profile,
     profile_data: profileBundle.profileData,
     user: profileBundle.userData,
+    profile_updated_at: profileBundle.profileUpdatedAt,
     onboarding: profileBundle.onboardingData,
     settings: softRows(settingsRes)[0]?.settings || {},
     settings_updated_at: softRows(settingsRes)[0]?.updated_at || null,
@@ -3224,7 +3733,12 @@ const server = http.createServer((req, res) => {
         return;
       }
       try {
-        const bundle = await fetchUserBootstrapBundle(userId, userJwt);
+        const dbBundle = await fetchUserBootstrapBundle(userId, userJwt);
+        const cloudSnapshot = await downloadCloudSnapshotForUser(userId, userJwt).catch((e) => {
+          dbBundle.warnings = compactObject({ ...(dbBundle.warnings || {}), cloud_snapshot: e.message || 'cloud snapshot download failed' });
+          return null;
+        });
+        const bundle = mergeBootstrapBundleWithCloudSnapshot(dbBundle, cloudSnapshot);
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ ok: true, ...bundle }));
       } catch (e) {
@@ -3235,6 +3749,165 @@ const server = http.createServer((req, res) => {
       if (!res.headersSent) {
         res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ ok: false, error: e.message || 'Bootstrap failed' }));
+      }
+    });
+    return;
+  }
+
+  // ── /__auth/snapshot POST — refresh canonical cloud snapshot in Storage ───
+  if (req.method === 'POST' && req.url === '/__auth/snapshot') {
+    readReqBody(req, 512 * 1024).then(async (body) => {
+      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
+      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
+      if (!userJwt) {
+        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: 'Authentication required' }));
+        return;
+      }
+      const userId = getUserIdFromJwt(userJwt);
+      if (!userId) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid token' }));
+        return;
+      }
+      try {
+        const source = body && typeof body.source === 'string' ? body.source : 'supabase';
+        const refreshed = await refreshCloudSnapshotForUser(userId, userJwt, source);
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: true, user_id: userId, cloud_snapshot: refreshed.snapshot, snapshot_storage: refreshed.storage }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: e.message || 'Cloud snapshot upload failed' }));
+      }
+    }).catch(e => {
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: e.message || 'Cloud snapshot upload failed' }));
+      }
+    });
+    return;
+  }
+
+  // ── /__auth/backup/latest GET — download latest full browser backup ───────
+  if (req.method === 'GET' && req.url === '/__auth/backup/latest') {
+    (async () => {
+      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
+      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
+      if (!userJwt) {
+        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: 'Authentication required' }));
+        return;
+      }
+      const userId = getUserIdFromJwt(userJwt);
+      if (!userId) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid token' }));
+        return;
+      }
+      try {
+        const objectPath = `${userId}/exports/latest.json`;
+        const downloaded = await supaStorageDownloadAsUser('user-content', objectPath, userJwt);
+        const missingDetail = Buffer.isBuffer(downloaded.body) ? downloaded.body.toString('utf8') : String(downloaded.body || '');
+        if (downloaded.status === 404 || (downloaded.status === 400 && /not found|does not exist|no such/i.test(missingDetail))) {
+          res.writeHead(404, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+          res.end(JSON.stringify({ ok: false, error: 'No cloud backup export exists yet' }));
+          return;
+        }
+        assertSupaOk(downloaded, 'Cloud backup download');
+        const backupJson = Buffer.isBuffer(downloaded.body) ? downloaded.body.toString('utf8') : String(downloaded.body || '');
+        parseBackupJsonPayload(backupJson);
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: true, user_id: userId, backup_json: backupJson, backup_storage: { bucket: 'user-content', path: objectPath } }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: e.message || 'Cloud backup download failed' }));
+      }
+    })().catch(e => {
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: e.message || 'Cloud backup download failed' }));
+      }
+    });
+    return;
+  }
+
+  // ── /__auth/backup POST — store manual export and refresh latest snapshot ──
+  if (req.method === 'POST' && req.url === '/__auth/backup') {
+    readReqBody(req, 12 * 1024 * 1024).then(async (body) => {
+      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
+      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
+      if (!userJwt) {
+        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: 'Authentication required' }));
+        return;
+      }
+      const userId = getUserIdFromJwt(userJwt);
+      if (!userId) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid token' }));
+        return;
+      }
+      try {
+        const backupJson = typeof body?.backup_json === 'string' ? body.backup_json : JSON.stringify(body?.backup_json || body || {});
+        parseBackupJsonPayload(backupJson);
+        const rawUpload = await uploadRawUserBackupJson(userId, userJwt, backupJson, 'exports');
+        const refreshed = await refreshCloudSnapshotForUser(userId, userJwt, 'manual_export');
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: true, user_id: userId, export_storage: rawUpload, cloud_snapshot: refreshed.snapshot, snapshot_storage: refreshed.storage }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: e.message || 'Backup upload failed' }));
+      }
+    }).catch(e => {
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: e.message || 'Backup upload failed' }));
+      }
+    });
+    return;
+  }
+
+  // ── /__auth/import POST — store import, apply supported cloud fields ───────
+  if (req.method === 'POST' && req.url === '/__auth/import') {
+    readReqBody(req, 12 * 1024 * 1024).then(async (body) => {
+      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
+      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
+      if (!userJwt) {
+        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: 'Authentication required' }));
+        return;
+      }
+      const userId = getUserIdFromJwt(userJwt);
+      if (!userId) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid token' }));
+        return;
+      }
+      try {
+        const backupJson = typeof body?.backup_json === 'string' ? body.backup_json : JSON.stringify(body?.backup_json || {});
+        const parsed = parseBackupJsonPayload(backupJson).parsed;
+        const importUpload = await uploadRawUserBackupJson(userId, userJwt, backupJson, 'imports');
+        const applied = await applyBackupProfileToSupabase(userId, userJwt, parsed);
+        const refreshed = await refreshCloudSnapshotForUser(userId, userJwt, 'manual_import');
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({
+          ok: true,
+          user_id: userId,
+          import_storage: importUpload,
+          applied,
+          unsupported_collections: ['tasks', 'subjects', 'focus_sessions', 'habits', 'exams', 'daily_logs', 'tests', 'mock_tests'],
+          unsupported_reason: 'Compiled import restores these collections locally; no canonical Supabase table mapping exists in community-patch-v4.sql for server-side import.',
+          cloud_snapshot: refreshed.snapshot,
+          snapshot_storage: refreshed.storage,
+        }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: e.message || 'Backup import failed' }));
+      }
+    }).catch(e => {
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, error: e.message || 'Backup import failed' }));
       }
     });
     return;
@@ -3317,8 +3990,9 @@ const server = http.createServer((req, res) => {
                   : undefined));
         const shouldClearAvatar = incomingAvatar === null || incomingAvatar === '';
         const uploadedAvatar = typeof incomingAvatar === 'string' && incomingAvatar.startsWith('data:image/')
-          ? await uploadAvatarDataUrlForUser(userId, incomingAvatar, userJwt)
+          ? await uploadAvatarDataUrlForUser(userId, incomingAvatar, userJwt, currentProfile.avatar_path || currentProfile.avatarPath || null)
           : null;
+        let removedAvatar = null;
 
         if (incoming.profile_data && typeof incoming.profile_data === 'object') {
           Object.assign(merged, incoming.profile_data);
@@ -3338,6 +4012,12 @@ const server = http.createServer((req, res) => {
         if (incoming.avatar !== undefined) merged.avatar = shouldClearAvatar ? null : String(incoming.avatar || '').trim();
         if (incoming.avatar_url !== undefined) merged.avatar_url = shouldClearAvatar ? null : String(incoming.avatar_url || '').trim();
         if (shouldClearAvatar) {
+          const previousPath = currentProfile.avatar_path || currentProfile.avatarPath || null;
+          if (previousPath && isOwnedStoragePath(userId, previousPath)) {
+            const removed = await supaStorageRemoveAsUser('avatars', previousPath, userJwt);
+            assertSupaOk(removed, 'Avatar storage remove');
+            removedAvatar = { bucket: 'avatars', path: previousPath, status: removed.status };
+          }
           merged.avatar = null;
           merged.avatar_url = null;
           merged.avatar_path = null;
@@ -3421,8 +4101,18 @@ const server = http.createServer((req, res) => {
         }
 
         const fresh = await fetchUserProfileBundle(userId, userJwt);
+        const refreshedSnapshot = await refreshCloudSnapshotForUser(userId, userJwt, incoming.isOnboarded !== undefined || incoming.onboarding_completed !== undefined ? 'onboarding_save' : 'profile_save');
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, user_id: userId, profile: fresh.profile, onboarding: fresh.onboardingData, avatar_storage: uploadedAvatar }));
+        res.end(JSON.stringify({
+          ok: true,
+          user_id: userId,
+          profile: fresh.profile,
+          onboarding: fresh.onboardingData,
+          avatar_storage: uploadedAvatar,
+          removed_avatar_storage: removedAvatar,
+          cloud_snapshot: refreshedSnapshot.snapshot,
+          snapshot_storage: refreshedSnapshot.storage,
+        }));
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: e.message }));

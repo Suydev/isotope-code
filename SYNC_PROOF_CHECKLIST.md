@@ -2,17 +2,15 @@
 
 Rule: mark a feature `PROVEN` only after this chain passes:
 
-Browser user action -> real Supabase row/storage change -> browser storage/cache cleared -> login again -> data restored from Supabase.
+Browser user action -> real Supabase row/storage object changes -> browser storage/cache cleared -> login again -> data restored from Supabase.
 
-Do not use `/__admin/verify`, UI toasts, localStorage, Zustand, optimistic state, or server self-reports as proof.
+Do not use `/__admin/verify`, UI toasts, localStorage, IndexedDB, browser cache, optimistic state, or server self-reports as proof.
 
-## Prep
+Use a disposable authenticated test account and record its Supabase Auth user id as `<USER_ID>`.
 
-Use a disposable test account and record its Supabase Auth user id as `<USER_ID>`.
+## Cache Clear
 
-Before each test, capture the exact Supabase row before the browser action, then capture it again after the action. If the row did not change, mark `NOT FIXED`.
-
-Cache-clear step in browser devtools console:
+Run this between the "after" inspection and login-restore step:
 
 ```js
 localStorage.clear();
@@ -23,36 +21,12 @@ caches?.keys?.().then(keys => keys.forEach(key => caches.delete(key)));
 
 Then reload `http://127.0.0.1:3000`, log in again, and verify the UI restored from Supabase.
 
-## 1. Onboarding
+## 1. Profile And Settings
 
 Browser action:
-Create/login the test user, complete onboarding in the app.
+Change display name, username, bio, academic field, appearance/preference field, or another visible Settings/Profile field.
 
-Supabase before:
-
-```sql
-select user_id, completed, completed_at, data, updated_at
-from public.user_onboarding
-where user_id = '<USER_ID>';
-```
-
-Expected before:
-New account row exists with `completed = false`, or no row before first onboarding boot and a row created before completion.
-
-Supabase after:
-Same query must show `completed = true` and non-null `completed_at`.
-
-Cache-clear restore:
-Clear browser storage/cache, reload, login again. Expected result: dashboard opens directly; onboarding does not appear.
-
-Result: `PROVEN` / `NOT FIXED`
-
-## 2. Profile And Settings
-
-Browser action:
-Change display name, username, bio, theme, goal, or another visible setting.
-
-Supabase before/after:
+Before and after:
 
 ```sql
 select user_id, profile_data, updated_at
@@ -60,20 +34,29 @@ from public.user_profiles
 where user_id = '<USER_ID>';
 ```
 
+Cloud snapshot object:
+
+```sql
+select bucket_id, name, owner, created_at, updated_at, metadata
+from storage.objects
+where bucket_id = 'user-content'
+  and name = '<USER_ID>/cloud-snapshot/latest.json';
+```
+
 Expected after:
-`profile_data` contains the changed field and `updated_at` changes.
+`profile_data` contains the changed field, `updated_at` changes, and `user-content/<USER_ID>/cloud-snapshot/latest.json` exists or has a newer `updated_at`.
 
 Cache-clear restore:
-Clear browser storage/cache, reload, login again. Expected result: the same profile/settings values appear.
+After clearing browser storage/cache and logging in again, the same profile/settings values appear.
 
 Result: `PROVEN` / `NOT FIXED`
 
-## 3. Avatar / Storage
+## 2. Avatar Upload, Restore, Dedupe
 
 Browser action:
 Upload a profile image from Settings.
 
-Supabase row after:
+Profile row after:
 
 ```sql
 select user_id, profile_data, updated_at
@@ -90,46 +73,128 @@ Storage after:
 select bucket_id, name, owner, created_at, updated_at
 from storage.objects
 where bucket_id = 'avatars'
-  and name like '<USER_ID>/%'
-order by created_at desc
-limit 5;
+  and name like '<USER_ID>/avatar-%'
+order by created_at desc;
 ```
 
 Expected storage:
-At least one object exists in bucket `avatars` for `<USER_ID>`.
+The object path is deterministic: `avatars/<USER_ID>/avatar-<sha256>.<ext>`.
+
+Duplicate proof:
+Upload the exact same image again. Expected result: no new second object for the same image hash.
+
+Snapshot proof:
+
+```sql
+select bucket_id, name, updated_at
+from storage.objects
+where bucket_id = 'user-content'
+  and name = '<USER_ID>/cloud-snapshot/latest.json';
+```
 
 Cache-clear restore:
-Clear browser storage/cache, reload, login again. Expected result: avatar loads from Supabase URL, not a `blob:` URL or data URL.
+Clear browser storage/cache, reload, login again. Expected result: avatar loads from the Supabase URL, not a `blob:` URL or data URL.
+
+Remove proof:
+Click Remove. Expected result: `profile_data.avatar*` fields are null and the prior owned avatar object is deleted or no longer referenced. Cache-clear login restores fallback avatar.
 
 Result: `PROVEN` / `NOT FIXED`
 
-## 4. Product Tour
+## 3. Onboarding
 
 Browser action:
-Open `/community/group/jee`, finish or skip the `community_group_v1` tour.
+Create/login the test user and complete onboarding in the app.
 
-Supabase before/after:
+Before and after:
 
 ```sql
-select user_id, profile_data #> '{tours}' as tours, updated_at
-from public.user_profiles
+select user_id, completed, completed_at, data, updated_at
+from public.user_onboarding
 where user_id = '<USER_ID>';
 ```
 
 Expected after:
-`profile_data.tours.community_group_v1 = true`.
+`completed = true`, `completed_at` is non-null, and `user-content/<USER_ID>/cloud-snapshot/latest.json` exists or updates.
 
 Cache-clear restore:
-Clear browser storage/cache, reload, login again, open `/community/group/jee`. Expected result: tour does not appear.
+Clear browser storage/cache, reload, login again. Expected result: dashboard opens directly; onboarding does not appear or flash.
 
 Result: `PROVEN` / `NOT FIXED`
 
-## 5. Study Session And Stats
+## 4. Manual Export / Cloud Snapshot
+
+Browser action:
+Settings -> Data Export -> Export JSON backup.
+
+Sync button action:
+Settings -> Data & Privacy -> Sync & Backup -> Cloud Sync. This must also generate the same full browser backup JSON internally and upload it; it should not only refresh a DB-shaped snapshot.
+
+Storage after:
+
+```sql
+select bucket_id, name, created_at, updated_at
+from storage.objects
+where bucket_id = 'user-content'
+  and name like '<USER_ID>/%'
+order by created_at desc
+limit 20;
+```
+
+Expected after:
+These paths exist after Export, and `exports/latest.json` also updates after Cloud Sync:
+
+```text
+<USER_ID>/exports/<timestamp>.json
+<USER_ID>/exports/latest.json
+<USER_ID>/cloud-snapshot/latest.json
+```
+
+Download/inspect `latest.json`. Expected shape:
+
+```json
+{
+  "schema_version": 1,
+  "user_id": "<USER_ID>",
+  "source": "manual_export",
+  "profile_data": {},
+  "onboarding": {},
+  "settings": {},
+  "stats_summary": null,
+  "daily_stats": [],
+  "recent_sessions": []
+}
+```
+
+Result: `PROVEN` / `NOT FIXED`
+
+## 5. Manual Import
+
+Browser action:
+Settings -> Data Export -> Import JSON backup.
+
+Cloud download action:
+Settings -> Data & Privacy -> Cloud Sync when the device needs cloud bootstrap. If `user-content/<USER_ID>/exports/latest.json` exists, the app downloads that full browser backup JSON and imports it through the same compiled importer used by manual file import.
+
+Storage after:
+`user-content/<USER_ID>/imports/<timestamp>.json`, `user-content/<USER_ID>/imports/latest.json`, and `cloud-snapshot/latest.json` update.
+
+DB after:
+If the backup contains profile/onboarding fields, `user_profiles.profile_data` and/or `user_onboarding` reflect supported fields.
+
+Important limitation:
+Server-side import currently applies profile/settings/onboarding fields and stores the raw import in Storage. The compiled local import still restores local collections (`tasks`, `subjects`, `focus_sessions`, `habits`, `exams`, `daily_logs`, `tests`, `mock_tests`) locally. These collection imports are `NOT FIXED` for server-side Supabase merge until a canonical table mapping exists in `community-patch-v4.sql`.
+
+Cache-clear restore:
+Supported profile/settings/onboarding fields restore from Supabase after cache clear/login.
+
+Result: `PROVEN` / `NOT FIXED`
+
+## 6. Study Session And Stats
 
 Browser action:
 Complete a focus session.
 
-Supabase after:
+Tables after:
 
 ```sql
 select id, user_id, duration_minutes, ended_at, created_at
@@ -140,7 +205,7 @@ limit 5;
 ```
 
 ```sql
-select user_id, date, seconds_studied, sessions_count, updated_at
+select user_id, date, seconds_studied, updated_at
 from public.daily_user_stats
 where user_id = '<USER_ID>'
 order by date desc
@@ -153,34 +218,91 @@ from public.user_stats_summary
 where user_id = '<USER_ID>';
 ```
 
-Expected after:
-New `study_sessions_log` row exists, `daily_user_stats.seconds_studied` increased, and `user_stats_summary` totals/session counters increased.
+Snapshot after:
+`user-content/<USER_ID>/cloud-snapshot/latest.json` updates after the RPC succeeds.
 
 Cache-clear restore:
-Clear browser storage/cache, reload, login again. Expected result: Analytics still shows the session/time; Community/member/leaderboard/group stats show the same data source, not zero.
+Clear browser storage/cache, reload, login again. Expected result: Analytics still shows the session/time; Community/member/leaderboard/group stats show the same Supabase-backed data, not fake zero.
 
 Result: `PROVEN` / `NOT FIXED`
 
-## 6. Sync Status
+## 7. Product Tour
+
+Browser action:
+Open a group page with the tour and finish/skip `community_group_v1`.
+
+Before and after:
+
+```sql
+select user_id, profile_data #> '{tours}' as tours, updated_at
+from public.user_profiles
+where user_id = '<USER_ID>';
+```
+
+Expected after:
+`profile_data.tours.community_group_v1 = true` and `cloud-snapshot/latest.json` updates.
+
+Cache-clear restore:
+Clear browser storage/cache, reload, login again, open the same group page. Expected result: tour does not appear.
+
+Result: `PROVEN` / `NOT FIXED`
+
+## 8. Sync Status
 
 Success proof:
-Perform a profile/settings save that changes `user_profiles.profile_data`. UI may show `Synced` only after the Supabase row changed.
+Perform a profile/settings save. UI may show `Synced` only after:
+
+```sql
+select updated_at
+from storage.objects
+where bucket_id = 'user-content'
+  and name = '<USER_ID>/cloud-snapshot/latest.json';
+```
+
+shows the snapshot write succeeded.
 
 Failure proof:
-Temporarily cause a real Supabase failure without weakening RLS, such as using a user that lacks a write policy for the target row or disconnecting network during save. Expected UI: `Failed`, `Pending`, or `Pending/offline`; never `Synced`.
+Cause a real Supabase/Storage failure without weakening RLS. Expected UI: `Failed`, `Pending`, or offline state; never `Synced`.
 
 Offline proof:
 Stop the local server or disconnect network after the cached shell is available. Expected UI: offline/pending status, no fake synced state.
 
 Result: `PROVEN` / `NOT FIXED`
 
-## 7. Offline / PWA
+## 9. RLS / Storage Policies
+
+Apply `community-patch-v4.sql`, then verify:
+
+```sql
+select policyname, cmd, roles, qual, with_check
+from pg_policies
+where schemaname = 'storage'
+  and tablename = 'objects'
+  and policyname in (
+    'avatars_public_read',
+    'avatars_user_insert_own',
+    'avatars_user_update_own',
+    'avatars_user_delete_own',
+    'private_content_owner_read',
+    'private_content_owner_insert',
+    'private_content_owner_update',
+    'private_content_owner_delete'
+  )
+order by policyname;
+```
+
+Expected:
+Authenticated users can insert/update/delete only paths whose first folder is their own `auth.uid()`. Avatars remain public-read only by policy intent; `user-content` and `notes` are owner-only.
+
+Result: `PROVEN` / `NOT FIXED`
+
+## 10. Offline / PWA
 
 Browser action:
 Load the app once with the server running, then stop the server and reopen the cached app.
 
 Expected result:
-Cached shell may open, but it must show offline/local-server-unavailable. No aggressive reload loop, forced onboarding, fake update banner, or fake synced state.
+Cached shell may open, but it must show offline/local-server-unavailable. No aggressive reload loop, forced onboarding on unknown cloud state, fake update banner, or fake synced state.
 
 Endpoints to verify while server is running:
 
@@ -193,51 +315,23 @@ http://127.0.0.1:3000/offline.html
 
 Result: `PROVEN` / `NOT FIXED`
 
-## 8. Update Banner
+## 11. Login Persistence
 
 Browser action:
-Open app with server running and current local version.
+Log in, open dashboard, then restart the local server:
+
+```bash
+isotope restart
+```
 
 Expected result:
-`/api/check-update` returns `hasUpdate=false` when current; banner hidden; stale localStorage update flags removed/ignored; no reload loop.
+Reload `http://127.0.0.1:5000` or the current local port. The app should use the persisted Supabase session/refresh token, run cloud bootstrap, and route to dashboard/onboarding according to the real `user_onboarding` row. It must not show the login page just because the local server restarted.
 
-Server checks:
-
-```text
-http://127.0.0.1:3000/api/version
-http://127.0.0.1:3000/api/check-update
-```
+If the access token is expired but a refresh token exists, the early auth guard must allow the app to refresh it. If there is no refresh token or the Supabase session is revoked, login is expected.
 
 Result: `PROVEN` / `NOT FIXED`
 
-## 9. Termux Command / Widget
-
-Phone action:
-Run:
-
-```bash
-isotope doctor
-isotope start
-isotope open
-isotope status
-```
-
-Expected result:
-Default URL is `http://127.0.0.1:3000`; `start` waits for `/api/version`; `open` refuses to open if `/api/version` is down; `doctor` warns about stale aliases.
-
-Widget action:
-Install widgets with:
-
-```bash
-bash setup-termux-widget.sh
-```
-
-Expected result:
-`~/.shortcuts/isotope-*` scripts call an absolute isotope command path or project fallback, not a stale shell alias.
-
-Result: `PROVEN` / `NOT FIXED`
-
-## 10. Admin Diagnostics
+## 12. Admin Diagnostics
 
 Browser action:
 Open:
@@ -247,6 +341,4 @@ http://127.0.0.1:3000/__admin/verify
 ```
 
 Expected result:
-Diagnostics may pass server/schema checks, but the manual browser proof matrix remains `NOT PROVEN` until this checklist is completed.
-
-Result: `/__admin/verify` alone is never proof.
+Diagnostics may pass server/schema checks, but the manual browser proof matrix above remains `NOT FIXED` until each browser action -> Supabase -> cache-clear -> login restore test passes.

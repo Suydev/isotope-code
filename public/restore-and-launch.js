@@ -165,6 +165,9 @@ function parseSession(raw) {
     if (p && p.session && p.session.access_token && p.session.user && p.session.user.id) {
       return { access_token: p.session.access_token, user: p.session.user, expires_at: p.session.expires_at };
     }
+    if (p && p.currentSession && p.currentSession.access_token && p.currentSession.user && p.currentSession.user.id) {
+      return { access_token: p.currentSession.access_token, user: p.currentSession.user, expires_at: p.currentSession.expires_at };
+    }
   } catch (_) {}
   return null;
 }
@@ -362,10 +365,15 @@ function writeCloudSnapshotFromParts(parts) {
     mergedProfile.onboarding_completed_at = mergedProfile.onboarding_completed_at || onboarding.completed_at;
   }
 
+  const serverCloudSnapshot = isObject(parts.cloud_snapshot) && parts.cloud_snapshot.user_id === parts.user_id
+    ? parts.cloud_snapshot
+    : null;
   const snapshot = {
+    ...(serverCloudSnapshot || {}),
     schema_version: 1,
     user_id: parts.user_id,
-    downloaded_at: parts.fetched_at || parts.downloaded_at || new Date().toISOString(),
+    downloaded_at: parts.fetched_at || parts.downloaded_at || serverCloudSnapshot?.downloaded_at || serverCloudSnapshot?.exported_at || new Date().toISOString(),
+    exported_at: serverCloudSnapshot?.exported_at || parts.fetched_at || parts.downloaded_at || new Date().toISOString(),
     source: 'supabase',
     trusted: true,
     onboarding,
@@ -512,6 +520,7 @@ function applyBootstrapSnapshot(snapshot) {
     profile_data: mergedProfile,
     onboarding: snapshot.onboarding,
     settings: snapshot.settings || {},
+    cloud_snapshot: snapshot.cloud_snapshot || null,
     stats_summary: snapshot.stats_summary || null,
     daily_user_stats: snapshot.daily_user_stats || [],
     study_sessions_log: snapshot.study_sessions_log || [],
