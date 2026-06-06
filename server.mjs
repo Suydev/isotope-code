@@ -363,20 +363,50 @@ function buildUsernameAuthScript() {
     localStorage.setItem('isotope-auth-token', s);               // restore-and-launch.js legacy key
   }
 
+  function parseSessionToken(raw) {
+    try {
+      var p = JSON.parse(raw);
+      if (!p) return null;
+      // Handle all known Supabase JS v2 session storage formats:
+      // Format 1 (standard):   { access_token, refresh_token, user, ... }
+      // Format 2 (wrapped):    { session: { access_token, ... } }
+      // Format 3 (v2.60+):     { currentSession: { access_token, ... } }
+      // Format 4 (deep state): { state: { session: { access_token, ... } } }
+      return p.access_token ||
+        (p.session && p.session.access_token) ||
+        (p.currentSession && p.currentSession.access_token) ||
+        (p.state && p.state.session && p.state.session.access_token) ||
+        null;
+    } catch(e) { return null; }
+  }
+
   function readStoredSession() {
-    var raw = localStorage.getItem('isotope-auth-token');
+    // Priority 1: Supabase-managed key (auto-refreshed by Supabase JS client)
+    var raw = SUPA_REF ? localStorage.getItem('sb-' + SUPA_REF + '-auth-token') : null;
+    // Priority 2: our legacy key (written by __isoLogin, may be stale after token refresh)
+    if (!raw) raw = localStorage.getItem('isotope-auth-token');
+    // Priority 3: scan all sb-*-auth-token keys as fallback
     if (!raw) {
       for (var i = 0; i < localStorage.length; i++) {
         var lk = localStorage.key(i);
         if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) { raw = localStorage.getItem(lk); break; }
       }
     }
-    try { return raw ? JSON.parse(raw) : null; } catch(e) { return null; }
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch(e) { return null; }
   }
 
   function currentJwt() {
-    var sess = readStoredSession();
-    return sess && (sess.access_token || (sess.session && sess.session.access_token)) || null;
+    // First try the fast path: parse token directly from best available raw value
+    var raw = SUPA_REF ? localStorage.getItem('sb-' + SUPA_REF + '-auth-token') : null;
+    if (!raw) raw = localStorage.getItem('isotope-auth-token');
+    if (!raw) {
+      for (var i = 0; i < localStorage.length; i++) {
+        var lk = localStorage.key(i);
+        if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) { raw = localStorage.getItem(lk); break; }
+      }
+    }
+    return raw ? parseSessionToken(raw) : null;
   }
 
   function writeSyncMetadata(patch) {
@@ -602,15 +632,7 @@ function buildUsernameAuthScript() {
 
   window.__isoCompleteOnboarding = async function(profilePatch) {
     try {
-      var raw = localStorage.getItem('isotope-auth-token');
-      if (!raw) {
-        for (var i = 0; i < localStorage.length; i++) {
-          var lk = localStorage.key(i);
-          if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) { raw = localStorage.getItem(lk); break; }
-        }
-      }
-      var sess = raw ? JSON.parse(raw) : null;
-      var jwt = sess && (sess.access_token || (sess.session && sess.session.access_token));
+      var jwt = currentJwt();
       if (!jwt) throw new Error('Authentication required');
       var body = Object.assign({}, profilePatch || {}, { isOnboarded: true, onboarding_completed: true });
       var r = await fetch('/__auth/profile', {
@@ -637,15 +659,7 @@ function buildUsernameAuthScript() {
       localStorage.setItem('isotope-user-tours', JSON.stringify(tours));
     } catch(e) {}
     try {
-      var raw = localStorage.getItem('isotope-auth-token');
-      if (!raw) {
-        for (var i = 0; i < localStorage.length; i++) {
-          var lk = localStorage.key(i);
-          if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) { raw = localStorage.getItem(lk); break; }
-        }
-      }
-      var sess = raw ? JSON.parse(raw) : null;
-      var jwt = sess && (sess.access_token || (sess.session && sess.session.access_token));
+      var jwt = currentJwt();
       if (!jwt) return { ok: false, err: 'Authentication required' };
       var patch = {}; patch[k] = seen === true; patch.community_group_v1 = seen === true;
       var r = await fetch('/__auth/profile', {
@@ -679,18 +693,7 @@ function buildUsernameAuthScript() {
   // fetch it from the DB so returning users are never trapped in onboarding.
   (function restoreOnboardingFromDB() {
     try {
-      var raw = localStorage.getItem('isotope-auth-token');
-      if (!raw) {
-        for (var i = 0; i < localStorage.length; i++) {
-          var lk = localStorage.key(i);
-          if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) {
-            raw = localStorage.getItem(lk); break;
-          }
-        }
-      }
-      if (!raw) return;
-      var sess = JSON.parse(raw);
-      var jwt = sess && (sess.access_token || (sess.session && sess.session.access_token));
+      var jwt = currentJwt();
       if (!jwt) return;
       // Check if onboarding is already marked
       try {
@@ -3928,19 +3931,28 @@ const server = http.createServer((req, res) => {
   }
 
   // ── /__auth/backup/latest GET — download latest full browser backup ───────
+  // Auth: Bearer token verified via Supabase /auth/v1/user.
   if (req.method === 'GET' && req.url === '/__auth/backup/latest') {
     (async () => {
       const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
       const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
       if (!userJwt) {
         res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: 'Authentication required' }));
+        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
         return;
       }
-      const userId = getUserIdFromJwt(userJwt);
+      let verifiedUser;
+      try {
+        verifiedUser = await verifySupabaseAccessToken(userJwt);
+      } catch {
+        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
+        return;
+      }
+      const userId = verifiedUser?.id || getUserIdFromJwt(userJwt);
       if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: 'Invalid token' }));
+        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
         return;
       }
       try {
@@ -3952,13 +3964,13 @@ const server = http.createServer((req, res) => {
           const backupJson = cloudSnapshot ? backupJsonFromCloudSnapshot(cloudSnapshot, userId) : null;
           if (!backupJson) {
             res.writeHead(404, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-            res.end(JSON.stringify({ ok: false, error: 'No cloud backup export exists yet' }));
+            res.end(JSON.stringify({ ok: false, success: false, stage: 'storage_upload', error: 'No cloud backup export exists yet' }));
             return;
           }
           parseBackupJsonPayload(backupJson);
           res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
           res.end(JSON.stringify({
-            ok: true,
+            ok: true, success: true,
             user_id: userId,
             backup_json: backupJson,
             backup_storage: { bucket: 'user-content', path: `${userId}/cloud-snapshot/latest.json`, source: 'cloud_snapshot_fallback' },
@@ -3970,54 +3982,94 @@ const server = http.createServer((req, res) => {
         const backupJson = Buffer.isBuffer(downloaded.body) ? downloaded.body.toString('utf8') : String(downloaded.body || '');
         parseBackupJsonPayload(backupJson);
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: true, user_id: userId, backup_json: backupJson, backup_storage: { bucket: 'user-content', path: objectPath } }));
+        res.end(JSON.stringify({ ok: true, success: true, user_id: userId, backup_json: backupJson, backup_storage: { bucket: 'user-content', path: objectPath } }));
       } catch (e) {
-        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: e.message || 'Cloud backup download failed' }));
+        const isStoragePermission = /permission|policy|not authorized|403|forbidden/i.test(e.message || '');
+        const statusCode = isStoragePermission ? 403 : 500;
+        res.writeHead(statusCode, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, success: false, stage: 'storage_upload', error: e.message || 'Cloud backup download failed' }));
       }
     })().catch(e => {
       if (!res.headersSent) {
         res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: e.message || 'Cloud backup download failed' }));
+        res.end(JSON.stringify({ ok: false, success: false, stage: 'storage_upload', error: e.message || 'Cloud backup download failed' }));
       }
     });
     return;
   }
 
   // ── /__auth/backup POST — store manual export and refresh latest snapshot ──
+  // Auth: Bearer token verified via Supabase /auth/v1/user (not just JWT decode).
+  // Returns success:true + uploaded:true on success; stage-tagged errors on failure.
   if (req.method === 'POST' && req.url === '/__auth/backup') {
     readReqBody(req, 12 * 1024 * 1024).then(async (body) => {
+      // 1. Extract Bearer token
       const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
       const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
       if (!userJwt) {
         res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: 'Authentication required' }));
+        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
         return;
       }
-      const userId = getUserIdFromJwt(userJwt);
+
+      // 2. Verify token via Supabase auth.getUser (real server-side verification)
+      let verifiedUser;
+      try {
+        verifiedUser = await verifySupabaseAccessToken(userJwt);
+      } catch {
+        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
+        return;
+      }
+      const userId = verifiedUser?.id || getUserIdFromJwt(userJwt);
       if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: 'Invalid token' }));
+        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
         return;
       }
+
+      // 3. Build and upload snapshot using user-scoped JWT (anon key + Bearer token = user-scoped client)
+      let stage = 'db_read';
       try {
         const backupJson = typeof body?.backup_json === 'string' ? body.backup_json : JSON.stringify(body?.backup_json || body || {});
+        stage = 'snapshot_build';
         const parsed = parseBackupJsonPayload(backupJson).parsed;
+        stage = 'storage_upload';
         const rawUpload = await uploadRawUserBackupJson(userId, userJwt, backupJson, 'exports');
+        stage = 'db_read';
         const applied = await applyBackupProfileToSupabase(userId, userJwt, parsed);
-        const dbBundle = await fetchUserBootstrapBundle(userId, userJwt).catch(() => ({ user_id: userId, warnings: { backup_snapshot: 'DB bundle unavailable while saving backup export' } }));
+        const dbBundle = await fetchUserBootstrapBundle(userId, userJwt).catch(() => ({ user_id: userId, warnings: { backup_snapshot: 'DB bundle unavailable' } }));
+        stage = 'snapshot_build';
         const backupSnapshot = buildCloudSnapshotFromBackupPayload(userId, parsed, dbBundle, 'manual_export');
+        stage = 'storage_upload';
         const refreshed = await uploadCloudSnapshotForUser(userId, userJwt, backupSnapshot, { history: false });
+        const snapshotPath = `${userId}/cloud-snapshot/latest.json`;
+        const syncedAt = new Date().toISOString();
+        stage = 'metadata_update';
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: true, user_id: userId, export_storage: rawUpload, applied, cloud_snapshot: refreshed.snapshot, snapshot_storage: refreshed.storage }));
+        res.end(JSON.stringify({
+          ok: true,
+          success: true,
+          uploaded: true,
+          bucket: 'user-content',
+          path: snapshotPath,
+          synced_at: syncedAt,
+          user_id: userId,
+          export_storage: rawUpload,
+          applied,
+          cloud_snapshot: refreshed.snapshot,
+          snapshot_storage: refreshed.storage,
+        }));
       } catch (e) {
-        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: e.message || 'Backup upload failed' }));
+        const isStoragePermission = /permission|policy|not authorized|403|forbidden/i.test(e.message || '');
+        const statusCode = isStoragePermission ? 403 : 500;
+        res.writeHead(statusCode, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ ok: false, success: false, stage, error: e.message || 'Cloud backup failed' }));
       }
     }).catch(e => {
       if (!res.headersSent) {
         res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: e.message || 'Backup upload failed' }));
+        res.end(JSON.stringify({ ok: false, success: false, stage: 'storage_upload', error: e.message || 'Cloud backup failed' }));
       }
     });
     return;
