@@ -2365,3 +2365,58 @@ DO $$ BEGIN
 END $$;
 
 -- PATCH v11 COMPLETE: user_tours table added.
+
+-- ============================================================================
+-- PATCH v12: Supabase Storage buckets + RLS policies
+-- ============================================================================
+-- Creates the three storage buckets IsotopeAI requires and sets per-user
+-- RLS policies so authenticated users can only read/write their own objects.
+-- Safe to re-run: all statements are fully idempotent.
+-- ============================================================================
+
+-- ── Create buckets (Storage API creates these via server; SQL ensures they exist) ─
+-- The server's ensureStorageBuckets() function creates them via the REST API.
+-- These INSERT statements are a belt-and-suspenders fallback.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES
+  ('user-content', 'user-content', false, 52428800, NULL),
+  ('avatars',      'avatars',      true,  2097152,  ARRAY['image/jpeg','image/png','image/webp','image/gif']),
+  ('notes',        'notes',        false, 10485760, NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- ── RLS on storage.objects ────────────────────────────────────────────────────
+-- user-content: authenticated users manage their own objects (path: {user_id}/...)
+DO $$ BEGIN
+  DROP POLICY IF EXISTS "user-content: users manage own objects" ON storage.objects;
+  CREATE POLICY "user-content: users manage own objects"
+    ON storage.objects FOR ALL TO authenticated
+    USING  (bucket_id = 'user-content' AND auth.uid()::text = split_part(name, '/', 1))
+    WITH CHECK (bucket_id = 'user-content' AND auth.uid()::text = split_part(name, '/', 1));
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+-- notes: authenticated users manage their own objects
+DO $$ BEGIN
+  DROP POLICY IF EXISTS "notes: users manage own objects" ON storage.objects;
+  CREATE POLICY "notes: users manage own objects"
+    ON storage.objects FOR ALL TO authenticated
+    USING  (bucket_id = 'notes' AND auth.uid()::text = split_part(name, '/', 1))
+    WITH CHECK (bucket_id = 'notes' AND auth.uid()::text = split_part(name, '/', 1));
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+-- avatars: public read, authenticated users manage their own
+DO $$ BEGIN
+  DROP POLICY IF EXISTS "avatars: public read" ON storage.objects;
+  CREATE POLICY "avatars: public read"
+    ON storage.objects FOR SELECT TO public
+    USING (bucket_id = 'avatars');
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+DO $$ BEGIN
+  DROP POLICY IF EXISTS "avatars: users manage own" ON storage.objects;
+  CREATE POLICY "avatars: users manage own"
+    ON storage.objects FOR ALL TO authenticated
+    USING  (bucket_id = 'avatars' AND auth.uid()::text = split_part(name, '/', 1))
+    WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = split_part(name, '/', 1));
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+-- PATCH v12 COMPLETE: storage buckets and RLS policies added.
