@@ -1,58 +1,92 @@
-<div align="center">
+<p align="center">
+  <img src="./logo.svg" alt="IsotopeAI Logo" width="120" />
+</p>
 
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="96" height="96">
-  <circle cx="12" cy="12" r="1" />
-  <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z" />
-  <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z" />
-</svg>
+<h1 align="center">IsotopeAI</h1>
 
-# [![IsotopeAI](https://i.ibb.co/WSrcM6R/desktop-2.png)](https://suydev.github.io/isotope-code/)
+<p align="center">
+  A self-hosted, local-first student productivity app with cloud sync via Supabase.
+</p>
 
-**A self-hosted, local-first student productivity app with cloud sync via Supabase.**
+<p align="center">
+  <a href="./CHANGELOG.md">
+    <img alt="Version" src="https://img.shields.io/badge/version-3.1.2-8b5cf6?style=flat-square">
+  </a>
+  <a href="https://nodejs.org">
+    <img alt="Node" src="https://img.shields.io/badge/node-18%2B-339933?style=flat-square&logo=node.js">
+  </a>
+  <a href="./setup.sh">
+    <img alt="Platform" src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Android-lightgrey?style=flat-square">
+  </a>
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
+</p>
 
-[![Version](https://img.shields.io/badge/version-3.1.2-8b5cf6?style=flat-square)](./CHANGELOG.md)
-[![Node](https://img.shields.io/badge/node-18%2B-339933?style=flat-square&logo=node.js)](https://nodejs.org)
-[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Android-lightgrey?style=flat-square)](./setup.sh)
-[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](./LICENSE)
-
-[Quick Start](#-quick-start) · [Commands](#-commands) · [Cloud Sync](#-cloud-sync--backup) · [Admin Mode](#-admin-mode) · [Troubleshooting](#-troubleshooting) · [Changelog](./CHANGELOG.md)
-
-</div>
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> ·
+  <a href="#-commands">Commands</a> ·
+  <a href="#-cloud-sync--backup">Cloud Sync</a> ·
+  <a href="#-supabase-setup">Supabase Setup</a> ·
+  <a href="#-termux-widget">Termux Widget</a> ·
+  <a href="#-troubleshooting">Troubleshooting</a>
+</p>
 
 ---
 
 ## Overview
 
-IsotopeAI runs entirely on your own device. You start a local Node.js server, open the app in any browser, and your data stays on your machine. Supabase provides auth, cloud backup, community features, and real-time sync — but only as a backend bridge, not a host.
+IsotopeAI is a downloadable, self-hosted local-server app.
 
-```
-Your Browser ──► localhost:3000 (Node server) ──► Supabase (auth + DB + storage)
+You run the app on your own device, open it in a browser, and optionally connect it to Supabase for account sync, cloud backup, storage, community data, and realtime features.
+
+Supabase is the backend/cloud layer only. It is not the public website host and it is not a VPS replacement.
+
+```text
+Browser / PWA
+    ↓
+127.0.0.1:3000
+    ↓
+Local Node.js server
+    ↓
+Supabase Auth + Database + Storage + Realtime
 ```
 
-No central server. No vendor lock-in. Full data portability via JSON export/import.
+Normal users only need:
+
+```env
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+```
+
+Admin/service-role keys are optional owner-only fields and must never be required for normal users.
 
 ---
 
 ## ✨ Features
 
-| Category | Capability |
+| Area | Features |
 |---|---|
-| **Study** | Focus timer, sessions log, daily stats, streaks |
-| **Planner** | Subjects, tasks, habits, exam calendar |
-| **Analytics** | Weekly/monthly breakdowns, subject heatmaps, AI summaries |
-| **Community** | Groups, group chat, challenges, leaderboard |
-| **AI** | Study assistant, weekly summary, AI analysis cards |
-| **Cloud** | Per-user cloud snapshot backup · restore across devices |
-| **Offline** | Full PWA — works from cache when server is off |
-| **CLI** | `isotope start/stop/restart/update/doctor/logs` from any directory |
+| Study | Focus timer, session log, daily stats, streaks |
+| Planner | Subjects, tasks, habits, exam calendar |
+| Analytics | Study breakdowns, subject insights, progress views |
+| Community | Groups, chat, challenges, leaderboard |
+| AI | Study assistant, summaries, analysis cards |
+| Cloud | Supabase-backed snapshot backup and restore |
+| Offline | PWA shell works from cache when server is off |
+| CLI | `isotope start`, `update`, `doctor`, `logs` |
+| Android | Termux Widget shortcuts for start/update/open |
 
 ---
 
 ## ⚡ Quick Start
 
-> **Requirements:** Node.js 18+, Git, a Supabase project (free tier works).
+Requirements:
 
-### Linux / macOS / Termux (Android)
+- Node.js 18+
+- Git
+- Supabase project
+- Supabase URL + anon key
+
+### Linux / macOS / Termux
 
 ```bash
 git clone https://github.com/Suydev/isotope-code.git
@@ -77,42 +111,52 @@ cd isotope-code
 ```
 
 Setup will:
-1. Check Node, npm, and Git
-2. Create `.env` from `.env.example` (prompts for your Supabase URL + anon key)
-3. Run `npm install`
-4. Install the global `isotope` command
-5. Start the server
 
-Open **http://127.0.0.1:3000** in your browser.
+1. Check Node, npm, and Git.
+2. Create `.env` from `.env.example`.
+3. Ask for your Supabase URL and anon key.
+4. Run `npm install`.
+5. Install the global `isotope` command.
+6. Start the local server.
+
+Open:
+
+```text
+http://127.0.0.1:3000
+```
 
 ---
 
 ## 🔧 Commands
 
-After setup, these work from **any directory**:
+After setup, these work from any directory:
 
 ```bash
 isotope start      # Start the local server
 isotope stop       # Stop the server
 isotope restart    # Restart the server
-isotope update     # Pull latest + npm install + restart
-isotope status     # Show whether the server is running
+isotope update     # Pull latest + install deps + restart
+isotope status     # Show server state
 isotope doctor     # Check Node, Git, PATH, Supabase health
-isotope open       # Health-check server then open browser
-isotope logs       # Tail the server log
+isotope open       # Health-check server, then open browser
+isotope logs       # Tail server logs
 ```
 
-State is stored in `~/.isotope/`:
+State is stored in:
+
+```text
+~/.isotope/
+```
 
 | File | Purpose |
 |---|---|
-| `~/.isotope/project-path` | Path to the cloned repo |
-| `~/.isotope/isotope.pid` | PID of the running server |
-| `~/.isotope/port` | Port the server is listening on |
-| `~/.isotope/logs/server.log` | Server output log |
-| `~/.isotope/logs/update.log` | Update output log |
+| `project-path` | Path to cloned repo |
+| `isotope.pid` | Running server PID |
+| `port` | Active server port |
+| `logs/server.log` | Server output |
+| `logs/update.log` | Update output |
 
-### Run manually
+### Manual start
 
 ```bash
 PORT=3000 node server.mjs
@@ -122,25 +166,77 @@ PORT=3000 node server.mjs
 
 ## ☁️ Cloud Sync & Backup
 
-IsotopeAI v3.1 ships a full cloud backup pipeline backed by Supabase Storage.
+Cloud sync is account-based and Supabase-backed.
 
-### How it works
+The app must not treat browser cache, localStorage, IndexedDB, or Zustand persistence as cloud truth. Those are only local cache, offline queue, or last-known snapshots.
 
+Real sync means:
+
+```text
+browser action
+→ Supabase DB/storage change
+→ browser cache cleared
+→ login again
+→ data restored from Supabase
 ```
-Browser ──► POST /__auth/backup ──► server.mjs
-                                        │
-                              verifySupabaseAccessToken()
-                                        │
-                              buildCloudSnapshot()
-                                        │
-                    Supabase Storage: user-content/{uid}/cloud-snapshot/latest.json
+
+### Backup flow
+
+```text
+Browser
+  ↓
+POST /__auth/backup
+  ↓
+server.mjs verifies Supabase access token
+  ↓
+buildCloudSnapshot()
+  ↓
+Supabase Storage
+  ↓
+user-content/{user_id}/cloud-snapshot/latest.json
 ```
 
-1. The app calls `POST /__auth/backup` with a `Bearer` token in the `Authorization` header.
-2. The server verifies the token by calling Supabase `/auth/v1/user` — no service-role key needed.
-3. A safe snapshot is built (profile, onboarding, settings, stats — **no passwords or tokens**).
-4. The snapshot is uploaded to `user-content/{user_id}/cloud-snapshot/latest.json`.
-5. An optional timestamped copy is saved under `history/`.
+The browser sends the current Supabase access token:
+
+```http
+Authorization: Bearer <supabase_access_token>
+```
+
+The server verifies the token and uses a user-scoped Supabase client. Normal users do not need a service-role key.
+
+### Snapshot path
+
+Latest snapshot:
+
+```text
+user-content/{user_id}/cloud-snapshot/latest.json
+```
+
+History snapshots:
+
+```text
+user-content/{user_id}/cloud-snapshot/history/{timestamp}.json
+```
+
+### Snapshot may include
+
+- profile data
+- settings
+- onboarding state
+- product tour state
+- study summary
+- recent stats/session metadata
+- sync metadata
+
+### Snapshot must never include
+
+- passwords
+- auth tokens
+- refresh tokens
+- cookies
+- service-role keys
+- GitHub tokens
+- `.env` secrets
 
 ### Success response
 
@@ -158,77 +254,110 @@ Browser ──► POST /__auth/backup ──► server.mjs
 
 | Stage | HTTP | Meaning |
 |---|---|---|
-| `auth` | 401 | No session / expired token |
-| `db_read` | 500 | Could not read user data |
-| `snapshot_build` | 500 | Could not assemble snapshot |
-| `storage_upload` | 403/500 | Storage permission denied or upload failed |
-| `metadata_update` | 500 | Snapshot saved but metadata write failed |
+| `auth` | 401 | No valid Supabase session |
+| `db_read` | 500 | User data read failed |
+| `snapshot_build` | 500 | Snapshot build failed |
+| `storage_upload` | 403/500 | Storage upload failed |
+| `metadata_update` | 500 | Metadata write failed |
 
-### Storage RLS policies
-
-The `user-content` bucket requires these Supabase Storage RLS policies (all included in `community-patch-v4.sql`):
-
-```sql
--- SELECT (read own folder)
-CREATE POLICY "private_content_owner_read" ON storage.objects
-  FOR SELECT TO authenticated
-  USING (bucket_id IN ('user-content','notes') AND auth.uid()::text = (storage.foldername(name))[1]);
-
--- INSERT (upload to own folder)
-CREATE POLICY "private_content_owner_insert" ON storage.objects
-  FOR INSERT TO authenticated
-  WITH CHECK (bucket_id IN ('user-content','notes') AND auth.uid()::text = (storage.foldername(name))[1]);
-
--- UPDATE (overwrite own files — needed for upsert)
-CREATE POLICY "private_content_owner_update" ON storage.objects
-  FOR UPDATE TO authenticated
-  USING (bucket_id IN ('user-content','notes') AND auth.uid()::text = (storage.foldername(name))[1]);
-
--- DELETE (remove own files)
-CREATE POLICY "private_content_owner_delete" ON storage.objects
-  FOR DELETE TO authenticated
-  USING (bucket_id IN ('user-content','notes') AND auth.uid()::text = (storage.foldername(name))[1]);
-```
+The UI may show **Synced** only after the Supabase upload succeeds.
 
 ---
 
 ## 🗄️ Supabase Setup
 
-Apply the schema patches in this order:
+Run the SQL patch in Supabase SQL Editor:
 
-```bash
-# 1. Core schema + community tables + storage policies
-#    Run in Supabase SQL Editor
+```text
 community-patch-v4.sql
-
-# 2. Event/store cleanup (if upgrading from v2.x)
-events-expansion.sql
 ```
 
-What the patches create:
+The patch creates or repairs:
 
-- All public tables (`users`, `user_profiles`, `user_onboarding`, `user_tours`, `study_sessions_log`, `daily_user_stats`, `user_stats_summary`, `groups`, `group_members`, `group_chat_messages`, …)
-- Row-Level Security policies for every table
-- Storage buckets: `avatars`, `user-content`, `notes`
-- Storage RLS for all three buckets
-- Realtime publication for key tables
-- Triggers (`handle_new_user`, backfill seeds)
+- `public.users`
+- `user_profiles`
+- `user_onboarding`
+- `user_tours`
+- `study_sessions_log`
+- `daily_user_stats`
+- `user_stats_summary`
+- community/group tables
+- RLS policies
+- storage buckets
+- storage policies
+- auth bootstrap triggers
+- realtime publication
+
+Expected buckets:
+
+| Bucket | Purpose |
+|---|---|
+| `avatars` | Profile images |
+| `user-content` | Cloud snapshots and user files |
+| `notes` | Notes/documents |
+
+### Storage path rule
+
+Authenticated users should only access their own folder:
+
+```text
+{user_id}/...
+```
+
+For example:
+
+```text
+avatars/{user_id}/avatar.png
+user-content/{user_id}/cloud-snapshot/latest.json
+notes/{user_id}/...
+```
+
+### Storage RLS policies
+
+```sql
+CREATE POLICY "private_content_owner_read" ON storage.objects
+  FOR SELECT TO authenticated
+  USING (
+    bucket_id IN ('user-content','notes')
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "private_content_owner_insert" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id IN ('user-content','notes')
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "private_content_owner_update" ON storage.objects
+  FOR UPDATE TO authenticated
+  USING (
+    bucket_id IN ('user-content','notes')
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "private_content_owner_delete" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (
+    bucket_id IN ('user-content','notes')
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+```
+
+Avatar policies should allow authenticated users to upload/update their own avatar path. Public avatar reads are acceptable only if intentionally configured.
 
 ---
 
 ## 🔑 Environment Variables
 
-Create `.env` from `.env.example`:
+Create `.env` from `.env.example`.
 
 ```env
-# Required — your Supabase project config (safe to commit if anon key)
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 
-# Optional — port (default 3000)
 PORT=3000
 
-# Admin mode — leave blank for normal users
 ENABLE_ADMIN_MODE=false
 SUPABASE_SERVICE_ROLE_KEY=
 ADMIN_SECRET=
@@ -238,42 +367,97 @@ SUPABASE_ACCESS_TOKEN=
 GITHUB_PAT=
 ```
 
-> **Never commit** service-role keys, admin secrets, GitHub PATs, or AI API keys.
+Normal users need only:
+
+```env
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+```
+
+Never commit:
+
+- `.env`
+- service-role keys
+- admin secrets
+- GitHub PATs
+- API keys
+- auth tokens
+- cookies
 
 ---
 
-## 📱 Termux Widget (Android)
+## 📱 Termux Widget
 
-Control IsotopeAI from your Android home screen:
+Android users can control IsotopeAI from the home screen using Termux:Widget.
 
 ```bash
 bash setup-termux-widget.sh
 ```
 
-Installs shortcuts for `start`, `stop`, `restart`, `update`, `open`, `doctor`, `status`, and `logs`. Shortcuts embed the absolute Termux binary path so they work from the home screen even when Android strips the interactive `PATH`.
+This installs shortcuts for:
 
-See [TERMUX_WIDGET.md](TERMUX_WIDGET.md) for details.
+- start
+- stop
+- restart
+- update
+- open
+- doctor
+- status
+- logs
+
+Shortcut files are created in:
+
+```text
+~/.shortcuts/
+```
+
+They call the absolute Termux command path, so they do not depend on fragile shell aliases.
+
+Example:
+
+```bash
+/data/data/com.termux/files/usr/bin/isotope start
+```
+
+See:
+
+```text
+TERMUX_WIDGET.md
+```
 
 ---
 
 ## 🌐 Offline / PWA Behavior
 
-After the app loads once with the server running, a service worker caches the shell and core assets.
+After the app loads once with the local server running, the service worker caches the app shell.
 
-**When the server is off:**
-- The PWA shell may still open (from cache)
-- All local API routes (`/__auth/*`, `/api/*`) will fail
-- Supabase auth, DB, storage, and community sync do not work
-- A visible offline/server-unavailable indicator is shown
-- The app **does not fake** online or cloud features
+When the local server is off:
 
-**PWA reload guard:** Service worker `activated` events trigger at most **one** automatic page reload per browser session — preventing infinite refresh loops on cache transitions.
+- the cached app shell may still open
+- local API routes fail
+- Supabase cloud sync is unavailable
+- update checks are suppressed
+- onboarding must not be forced only because the server is offline
+- the app must show offline/server-unavailable state
+
+Offline cache is not proof that the local server is running.
+
+Correct offline behavior:
+
+```text
+Server off
+→ cached PWA opens
+→ offline mode shown
+→ no fake synced state
+→ no update loop
+→ no forced onboarding
+```
 
 ---
 
 ## 🔒 Admin Mode
 
-Admin mode is private and optional. Normal users never need it.
+Admin mode is optional and private. Normal users do not need it.
 
 Enable in `.env`:
 
@@ -284,37 +468,43 @@ ADMIN_SECRET=your-local-secret
 ADMIN_EMAIL=your@email.com
 ```
 
-Admin panel: `http://localhost:3000/__admin/verify`
+Admin diagnostics:
 
-Admin capabilities: user role management, DML patches, Supabase diagnostics, force-patch compiled bundles.
+```text
+http://127.0.0.1:3000/__admin/verify
+```
+
+Admin mode may run diagnostics and repair tasks. It must never be required for normal cloud sync.
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 isotope-code/
-├── server.mjs                 # Local app server — API bridge, auth, backup, admin
+├── server.mjs
 ├── public/
-│   ├── assets/                # Built React bundles (do not edit directly)
-│   ├── sw.js                  # Service worker
-│   ├── pwa-local.js           # PWA lifecycle manager
-│   ├── restore-and-launch.js  # Session restore + bootstrap on load
-│   └── update-checker.js      # In-app update banner logic
+│   ├── assets/
+│   ├── sw.js
+│   ├── pwa-local.js
+│   ├── restore-and-launch.js
+│   └── update-checker.js
 ├── bin/
-│   ├── isotope                # Linux/macOS/Termux global command
-│   └── isotope.bat            # Windows global command
-├── community-patch-v4.sql     # Full Supabase schema + community + storage policies
-├── events-expansion.sql       # Cleanup patch for removed Events/Store objects
-├── isotope-schema.sql         # Legacy v2 base schema (for reference)
-├── setup.sh                   # Linux/macOS/Android setup
-├── setup.bat                  # Windows setup
-├── install.ps1                # PowerShell setup
-├── setup-termux-widget.sh     # Android Termux Widget shortcut installer
-├── update.sh / update.bat     # Compatibility update entrypoints
-├── .env.example               # Config template (anon key only — safe to commit)
-├── CHANGELOG.md               # Version history
-└── AGENTS.md                  # Agent/AI contribution rules
+│   ├── isotope
+│   └── isotope.bat
+├── community-patch-v4.sql
+├── events-expansion.sql
+├── isotope-schema.sql
+├── setup.sh
+├── setup.bat
+├── install.ps1
+├── setup-termux-widget.sh
+├── update.sh
+├── update.bat
+├── CHANGELOG.md
+├── AGENTS.md
+├── TERMUX_WIDGET.md
+└── logo.svg
 ```
 
 ---
@@ -326,79 +516,217 @@ isotope update
 ```
 
 The updater:
-1. Stashes any local uncommitted changes
-2. `git fetch` + fast-forward merge (safe only)
-3. Runs `npm install` if `package.json` changed
-4. Restarts the managed server if it was running
-5. Writes the new version to `~/.isotope/version`
 
-The in-app update banner shows a command prompt — it does not stop the server automatically.
+1. Saves local uncommitted changes with a stash.
+2. Fetches the latest GitHub state.
+3. Updates the working tree safely.
+4. Runs `npm install` when needed.
+5. Restarts the managed server if it was running.
+6. Writes logs to `~/.isotope/logs/update.log`.
+
+The in-app update banner shows the update command. It does not stop the server directly.
+
+---
+
+## 🧪 Sync Proof Checklist
+
+Cloud sync is not considered working until this matrix passes.
+
+### Profile/settings
+
+```text
+edit profile/settings
+→ user_profiles.profile_data changes
+→ clear browser storage
+→ login again
+→ values restore from Supabase
+```
+
+### Avatar
+
+```text
+upload avatar
+→ avatars bucket object exists
+→ user_profiles stores avatar path/url
+→ clear browser storage
+→ login again
+→ avatar restores from Supabase
+```
+
+### Onboarding
+
+```text
+complete onboarding
+→ user_onboarding.completed = true
+→ clear browser storage
+→ login again
+→ dashboard opens directly
+```
+
+### Backup snapshot
+
+```text
+run cloud backup
+→ user-content/{user_id}/cloud-snapshot/latest.json exists
+→ clear browser storage
+→ login again
+→ data restores from Supabase/snapshot
+```
+
+### Study stats
+
+```text
+complete focus session
+→ study_sessions_log row exists
+→ daily_user_stats updates
+→ user_stats_summary updates
+→ clear browser storage
+→ login again
+→ analytics/community restore same data
+```
+
+### Offline
+
+```text
+stop server
+→ open cached app
+→ no reload loop
+→ no fake synced state
+→ no forced onboarding
+```
 
 ---
 
 ## 🛠️ Troubleshooting
 
 ```bash
-isotope doctor    # Check Node version, Git, PATH, Supabase health, update status
-isotope status    # Is the server running? What port?
-isotope logs      # Tail the server log
+isotope doctor
+isotope status
+isotope logs
 ```
 
-**Global command missing after update?**
+### Global command missing
 
 ```bash
-bash setup.sh --no-start    # Linux/macOS/Termux
-setup.bat --no-start        # Windows
+bash setup.sh --no-start
 ```
 
-**Port already in use?**
+### Port already in use
 
 ```bash
 isotope stop
 PORT=3001 isotope start
 ```
 
-**Cloud sync shows "Authentication required"?**
+### Setup says `.env.example` is missing
 
-- Make sure you are logged in to the app (not just the Supabase dashboard)
-- Check that `SUPABASE_URL` and `SUPABASE_ANON_KEY` in `.env` match your project
-- Run `isotope doctor` — it checks Supabase REST, Auth, and Storage connectivity
+Create `.env` manually:
 
-**Storage upload blocked (403)?**
+```env
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+PORT=3000
+ENABLE_ADMIN_MODE=false
+SUPABASE_SERVICE_ROLE_KEY=
+ADMIN_SECRET=
+```
 
-Apply the latest `community-patch-v4.sql` in your Supabase SQL Editor. This adds the required `INSERT`, `UPDATE`, and `DELETE` policies for the `user-content` bucket.
+Then run:
+
+```bash
+bash setup.sh
+```
+
+### Cloud sync says “Authentication required”
+
+Check:
+
+- you are logged into the app
+- `.env` has the correct `SUPABASE_URL`
+- `.env` has the correct `SUPABASE_ANON_KEY`
+- the frontend sends `Authorization: Bearer <access_token>` to `/__auth/backup`
+- the local server verifies the token
+- the `user-content` bucket policies are applied
+
+### Cloud sync says “Storage permission denied”
+
+Apply the latest SQL patch:
+
+```text
+community-patch-v4.sql
+```
+
+Then retry backup from:
+
+```text
+Settings → Data & Privacy → Cloud Sync
+```
+
+### Offline app opens but server is down
+
+Run:
+
+```bash
+isotope start
+```
+
+Then open:
+
+```text
+http://127.0.0.1:3000
+```
+
+### Old Termux alias breaks command
+
+Check:
+
+```bash
+grep -R "Isotope-Reload-Fix\|alias isotope\|start.sh" ~/.bashrc ~/.profile ~/.zshrc 2>/dev/null
+```
+
+Remove stale aliases, then reinstall:
+
+```bash
+bash setup.sh --no-start
+bash setup-termux-widget.sh
+```
 
 ---
 
 ## 📋 Changelog
 
-See [CHANGELOG.md](./CHANGELOG.md) for the full version history.
+See [CHANGELOG.md](./CHANGELOG.md).
 
 Highlights:
-- **v3.1.2** — Storage-backed backup restore, `/__auth/backup` auth hardening
-- **v3.1.1** — Real cloud backup pipeline (upload + download + import)
-- **v3.1.0** — Local server PWA command system, Termux CLI, update checker
+
+- **v3.1.2** — Storage-backed backup restore and `/__auth/backup` auth hardening
+- **v3.1.1** — Real cloud backup pipeline
+- **v3.1.0** — Local server PWA command system and Termux CLI
 - **v2.9.0** — Local software distribution baseline
 
 ---
 
 ## 🤝 Contributing
 
-Issues and pull requests are welcome. Before submitting:
+Before contributing:
 
-1. Read [AGENTS.md](./AGENTS.md) — important rules for AI-assisted contributions
-2. Do not edit compiled files in `public/assets/` directly — use serve-time patches in `server.mjs`
-3. Do not modify Supabase schema, RLS policies, or auth architecture without updating the relevant `.sql` files
-4. Run `isotope doctor` after any `server.mjs` change to confirm startup is clean
+1. Read [AGENTS.md](./AGENTS.md).
+2. Do not commit `.env` or secrets.
+3. Do not weaken RLS policies to make UI pass.
+4. Do not fake sync success.
+5. Do not treat browser cache as cloud truth.
+6. Update SQL files when schema or RLS changes.
+7. Run `isotope doctor` after server changes.
+8. Prove sync with browser action → Supabase row/storage → cache clear → login restore.
 
 ---
 
 ## 📄 License
 
-MIT — see [LICENSE](./LICENSE) for details.
+MIT. Add a `LICENSE` file before final public release if it is not already present.
 
 ---
 
-<div align="center">
-Built by <a href="https://github.com/Suydev">Suydev</a>
-</div>
+<p align="center">
+  Built by <a href="https://github.com/Suydev">Suydev</a>
+</p>
