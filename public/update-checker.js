@@ -36,14 +36,16 @@
     var s = document.createElement('style');
     s.id = '__iso_update_styles__';
     s.textContent = [
-      '#' + BANNER_ID + '{position:fixed;top:0;left:0;right:0;z-index:99999;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 20px;background:#18181b;border-bottom:1px solid rgba(245,158,11,.35);box-shadow:0 2px 24px rgba(0,0,0,.45);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px;color:#e4e4e7;transform:translateY(-100%);opacity:0;transition:transform .3s ease,opacity .25s ease}',
+      '#' + BANNER_ID + '{position:fixed;top:0;left:0;right:0;z-index:99999;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 20px;background:#18181b;border-bottom:1px solid #3f3f46;animation:iso-slide-down .3s cubic-bezier(.16,1,.3,1);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;transform:translateY(-100%);opacity:0;transition:transform .3s,opacity .3s}',
+      '@keyframes iso-slide-down{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}',
       '#' + BANNER_ID + '.iso-banner-visible{transform:translateY(0);opacity:1}',
       '#' + BANNER_ID + ' .iso-dot{width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;box-shadow:0 0 8px rgba(245,158,11,.8)}',
-      '#' + BANNER_ID + ' .iso-tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#f59e0b;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);border-radius:4px;padding:2px 7px;flex-shrink:0}',
+      '#' + BANNER_ID + ' .iso-tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#f59e0b;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);border-radius:3px;padding:2px 6px;flex-shrink:0}',
       '#' + BANNER_ID + ' .iso-msg{flex:1;color:#a1a1aa;line-height:1.4}',
       '#' + BANNER_ID + ' .iso-msg strong{color:#e4e4e7;font-weight:600}',
       '#' + BANNER_ID + ' .iso-sha{font-family:Consolas,"SFMono-Regular",monospace;font-size:11px;color:#71717a;margin-left:6px}',
-      '#' + BANNER_ID + ' .iso-btn-command{padding:6px 14px;border-radius:7px;border:none;cursor:pointer;background:#f59e0b;color:#1c1917;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0}',
+      '#' + BANNER_ID + ' .iso-btn-command{padding:6px 14px;border-radius:7px;border:none;cursor:pointer;background:#f59e0b;color:#1c1917;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0;transition:background .2s}',
+      '#' + BANNER_ID + ' .iso-btn-command:hover{background:#fbbf24}',
       '#' + BANNER_ID + ' .iso-btn-dismiss{background:none;border:none;cursor:pointer;padding:4px 6px;color:#71717a;font-size:18px;line-height:1;flex-shrink:0;border-radius:4px}',
       '#' + BANNER_ID + ' .iso-btn-dismiss:hover{color:#d4d4d8;background:rgba(255,255,255,.06)}'
     ].join('');
@@ -94,13 +96,13 @@
       '<label>Run this command</label><pre><code>isotope update</code></pre>' +
       '<p class="iso-update-hint">' + escHtml(platformHint()) + '</p>' +
       '<p class="iso-update-hint">After update, run <code>isotope start</code> if the server did not restart automatically.</p>' +
-      '<div class="iso-update-actions"><button class="iso-copy" type="button">Copy command</button><button class="iso-later" type="button">Later</button><a class="iso-docs" href="https://github.com/Suydev/isotope-code/blob/main/README.md#updating" target="_blank" rel="noreferrer">Open docs / troubleshooting</a></div>' +
+      '<div class="iso-update-actions"><button class="iso-copy" type="button">Copy command</button><button class="iso-later" type="button">Later</button><a class="iso-docs" href="https://github.com/Suydev/isotope-code" target="_blank" rel="noopener">Docs</a></div>' +
       '</section>';
     var css = document.getElementById('__iso_update_modal_css__');
     if (!css) {
       css = document.createElement('style');
       css.id = '__iso_update_modal_css__';
-      css.textContent = '#__iso_update_modal__{position:fixed;inset:0;z-index:2147483647;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f4f4f5}#__iso_update_modal__ .iso-update-backdrop{position:absolute;inset:0;background:rgba(9,9,11,.72);backdrop-filter:blur(5px)}#__iso_update_modal__ .iso-update-dialog{position:relative;margin:72px auto 0;width:min(520px,calc(100vw - 28px));background:#18181b;border:1px solid rgba(245,158,11,.32);border-radius:8px;box-shadow:0 24px 80px rgba(0,0,0,.45);padding:22px}#__iso_update_modal__ h2{margin:0 32px 10px 0;font-size:22px;letter-spacing:0;color:#fff}#__iso_update_modal__ p{margin:10px 0;color:#d4d4d8;font-size:14px;line-height:1.5}#__iso_update_modal__ label{display:block;margin-top:16px;margin-bottom:6px;color:#a1a1aa;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}#__iso_update_modal__ pre{margin:0;background:#09090b;border:1px solid #3f3f46;border-radius:7px;padding:14px;overflow:auto}#__iso_update_modal__ code{font-family:Consolas,"SFMono-Regular",monospace;color:#fbbf24;font-size:14px}#__iso_update_modal__ .iso-update-hint{font-size:13px;color:#a1a1aa}#__iso_update_modal__ .iso-update-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}#__iso_update_modal__ button,#__iso_update_modal__ .iso-docs{border-radius:7px;padding:9px 13px;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer}#__iso_update_modal__ .iso-copy{border:0;background:#f59e0b;color:#18181b}#__iso_update_modal__ .iso-later{border:1px solid #3f3f46;background:#27272a;color:#f4f4f5}#__iso_update_modal__ .iso-docs{border:1px solid #52525b;color:#e4e4e7;background:transparent}#__iso_update_modal__ .iso-update-x{position:absolute;right:14px;top:12px;border:0;background:transparent;color:#a1a1aa;padding:6px 9px;font-size:16px}';
+      css.textContent = '#__iso_update_modal__{position:fixed;inset:0;z-index:2147483647;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f4f4f5;display:flex;align-items:center;justify-content:center}#__iso_update_modal__ .iso-update-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:-1}#__iso_update_modal__ .iso-update-dialog{background:#18181b;border:1px solid #3f3f46;border-radius:12px;padding:28px;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)}#__iso_update_modal__ h2{margin:0 0 12px;font-size:18px;font-weight:700;color:#f4f4f5}#__iso_update_modal__ p{margin:12px 0;font-size:13px;line-height:1.6;color:#a1a1aa}#__iso_update_modal__ label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;color:#71717a;margin:16px 0 8px}#__iso_update_modal__ pre{background:#27272a;border:1px solid #3f3f46;border-radius:8px;padding:12px;overflow-x:auto;margin:8px 0}#__iso_update_modal__ code{font-family:Consolas,"SFMono-Regular",monospace;font-size:12px;color:#e4e4e7}#__iso_update_modal__ .iso-update-hint{font-size:12px;color:#71717a}#__iso_update_modal__ .iso-update-actions{display:flex;gap:8px;margin-top:24px}#__iso_update_modal__ .iso-copy,#__iso_update_modal__ .iso-later,#__iso_update_modal__ .iso-docs{padding:8px 16px;border-radius:7px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;text-decoration:none;display:inline-block;text-align:center}#__iso_update_modal__ .iso-copy{background:#f59e0b;color:#1c1917}#__iso_update_modal__ .iso-copy:hover{background:#fbbf24}#__iso_update_modal__ .iso-later{background:transparent;border:1px solid #3f3f46;color:#a1a1aa}#__iso_update_modal__ .iso-later:hover{background:rgba(255,255,255,.06)}#__iso_update_modal__ .iso-docs{background:transparent;border:1px solid #3f3f46;color:#a1a1aa;flex-shrink:0}#__iso_update_modal__ .iso-docs:hover{background:rgba(255,255,255,.06)}#__iso_update_modal__ .iso-update-x{position:absolute;top:12px;right:12px;background:none;border:none;font-size:24px;color:#71717a;cursor:pointer;padding:4px;line-height:1}#__iso_update_modal__ .iso-update-x:hover{color:#d4d4d8}';
       document.head.appendChild(css);
     }
     document.body.appendChild(wrap);
@@ -126,15 +128,15 @@
     b.innerHTML = [
       '<div class="iso-dot"></div>',
       '<span class="iso-tag">Update</span>',
-      '<div class="iso-msg"><strong>' + escHtml(shortMsg) + '</strong>',
-      shortSha ? '<span class="iso-sha">#' + escHtml(shortSha) + '</span>' : '',
+      '<div class="iso-msg"><strong>' + escHtml(shortMsg) + '</strong>' +
+      (shortSha ? '<span class="iso-sha">#' + escHtml(shortSha) + '</span>' : '') +
       '</div>',
       '<button class="iso-btn-command" type="button">Update command</button>',
       '<button class="iso-btn-dismiss" type="button" aria-label="Dismiss">x</button>'
     ].join('');
     b.querySelector('.iso-btn-command').addEventListener('click', showDialog);
     b.querySelector('.iso-btn-dismiss').addEventListener('click', function () {
-      try { localStorage.setItem(DISMISS_KEY, shortSha); } catch (e) {}
+      try { localStorage.setItem(DISMISS_KEY, sha); } catch (e) {}
       b.classList.remove('iso-banner-visible');
       setTimeout(function () { if (b.parentNode) b.remove(); }, 300);
     });
@@ -200,12 +202,15 @@
         }
         var dismissed = '';
         try { dismissed = localStorage.getItem(DISMISS_KEY) || ''; } catch (e) {}
-        if (dismissed && data.latest.indexOf(dismissed) === 0) return;
+        if (dismissed && dismissed === data.latest) return;
         var existing = document.getElementById(BANNER_ID);
         if (existing && existing.dataset.sha === data.latest) return;
         buildBanner(data.latest, data.message || '');
       })
-      .catch(function () { hideBanner(); });
+      .catch(function (err) {
+        console.warn('[IsotopeUpdateChecker] Error:', err.message);
+        hideBanner();
+      });
   }
 
   function startPolling() {
@@ -239,6 +244,9 @@
   });
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden && navigator.onLine) runCheck();
+  });
+  window.addEventListener('beforeunload', function () {
+    clearInterval(timer);
   });
 
   function init() {

@@ -5,8 +5,8 @@
 const APP_VERSION = '__ISOTOPE_APP_VERSION__';
 const APP_SHA = '__ISOTOPE_APP_SHA__';
 const CACHE_PREFIX = 'isotope-local';
-const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA;
-const RUNTIME_CACHE = CACHE_PREFIX + '-runtime-' + APP_VERSION + '-' + APP_SHA;
+const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
+const RUNTIME_CACHE = CACHE_PREFIX + '-runtime-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
 
 const SHELL_URLS = [
   '/',
@@ -108,7 +108,11 @@ self.addEventListener('activate', (event) => {
     await self.clients.claim();
     const clients = await self.clients.matchAll({ type: 'window' });
     for (const client of clients) {
-      client.postMessage({ type: 'ISOTOPE_SW_READY', version: APP_VERSION, sha: APP_SHA });
+      try {
+        client.postMessage({ type: 'ISOTOPE_SW_READY', version: APP_VERSION, sha: APP_SHA });
+      } catch (e) {
+        // Client may be detached or unreachable; silently continue
+      }
     }
   })());
 });
