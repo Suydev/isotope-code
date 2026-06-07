@@ -1499,6 +1499,167 @@ function buildUsernameAuthScript() {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();
   })();
+
+  // ── Cloud Sync Engine: Auto-sync, startup sync, speed detection ───────────
+  // All functions here are inside the outer sync IIFE and share its scope:
+  // authedJson, writeSyncHistory, writeSyncMetadata, readSyncMetadata, etc.
+  (function() {
+
+    // ── Internet speed probe ──────────────────────────────────────────────────
+    // Fires a timed GET /api/health to estimate effective bandwidth.
+    // Result cached for 2 minutes so rapid calls don't re-probe.
+    var _speedCache = null;
+    async function measureNetSpeed() {
+      if (!navigator.onLine) return { bps: 0, label: 'offline', measuredAt: Date.now() };
+      if (_speedCache && Date.now() - _speedCache.measuredAt < 120000) return _speedCache;
+      try {
+        var start = Date.now();
+        var r = await fetch('/api/health?_=' + Date.now(), { cache: 'no-store' });
+        var buf = await r.arrayBuffer();
+        var ms = Date.now() - start || 1;
+        var bps = buf.byteLength / ms * 1000; // bytes/s
+        var label = bps > 80000 ? 'fast' : bps > 15000 ? 'medium' : 'slow';
+        _speedCache = { bps: Math.round(bps), label: label, ms: ms, measuredAt: Date.now() };
+        localStorage.setItem('isotope_net_speed', JSON.stringify(_speedCache));
+        return _speedCache;
+      } catch(e) {
+        _speedCache = { bps: 0, label: 'unknown', measuredAt: Date.now() };
+        return _speedCache;
+      }
+    }
+    window.__isoMeasureNetSpeed = measureNetSpeed;
+
+    // Pick timeout (ms) based on connection speed label.
+    function syncTimeout(speed) {
+      if (!speed) return 90000;
+      return speed.label === 'slow' ? 150000 : speed.label === 'medium' ? 100000 : 70000;
+    }
+
+    // ── Core auto-sync call ───────────────────────────────────────────────────
+    // Tries full bidirectional sync (if build/apply fns registered via App bundle
+    // patches) or falls back to a lightweight server-side DB→Storage snapshot.
+    window.__isoAutoSync = async function(source) {
+      var _src = source || 'auto_sync';
+      if (!navigator.onLine) {
+        writeSyncHistory({ op: 'auto_sync', status: 'skipped', source: _src, detail: 'offline' });
+        return { ok: false, skipped: true, reason: 'offline' };
+      }
+      var jwt = null;
+      try { jwt = await getValidJwt(); } catch(e) {}
+      if (!jwt) return { ok: false, skipped: true, reason: 'no_session' };
+
+      var speed = null;
+      try { speed = await measureNetSpeed(); } catch(e) {}
+      var tms = syncTimeout(speed);
+
+      try {
+        var buildFn = window.__isoBuildBackup || null;
+        var applyFn = window.__isoApplyBackup || null;
+
+        if (typeof window.__isoRunManualCloudSync === 'function' && buildFn && applyFn) {
+          // Full bidirectional sync (all local data + profile)
+          var result = await window.__isoRunManualCloudSync(buildFn, applyFn, _src);
+          writeSyncHistory({ op: 'auto_sync', status: 'ok', source: _src,
+            uploaded: result && result.uploaded, downloaded: result && result.downloaded,
+            bytes: result && result.bytes || 0, speed: speed && speed.label });
+          return result;
+        } else {
+          // Fallback: lightweight DB→Storage snapshot (no local collection data needed)
+          var d = await authedJson('/__auth/snapshot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source: _src }),
+            timeoutMs: tms
+          });
+          var snapshotAt = (d.cloud_snapshot && (d.cloud_snapshot.exported_at || d.cloud_snapshot.downloaded_at)) || new Date().toISOString();
+          writeSyncMetadata({ last_sync_status: 'synced', last_snapshot_at: snapshotAt, pending_count: 0, last_error: null });
+          writeSyncHistory({ op: 'auto_sync', status: 'ok', source: _src + '_snapshot_fallback', speed: speed && speed.label });
+          return { ok: true, snapshot: true };
+        }
+      } catch(e) {
+        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Auto-sync failed' });
+        writeSyncHistory({ op: 'auto_sync', status: 'failed', source: _src, error: e.message || 'Auto-sync failed' });
+        return { ok: false, error: e.message };
+      }
+    };
+
+    // ── Startup sync ──────────────────────────────────────────────────────────
+    // Runs once per 5-minute window on page load: downloads cloud if newer,
+    // then uploads merged local state. Debounced so tab-switches don't re-fire.
+    window.__isoStartupSync = async function() {
+      var _src = 'startup_sync';
+      if (!navigator.onLine) return { ok: false, reason: 'offline' };
+      var jwt = null;
+      try { jwt = await getValidJwt(); } catch(e) {}
+      if (!jwt) return { ok: false, reason: 'no_session' };
+      try {
+        var meta = readSyncMetadata();
+        var lastStartup = meta.last_startup_sync_at ? new Date(meta.last_startup_sync_at).getTime() : 0;
+        if (Date.now() - lastStartup < 5 * 60 * 1000) return { ok: true, skipped: true, reason: 'debounced' };
+        writeSyncMetadata({ last_startup_sync_at: new Date().toISOString() });
+      } catch(e) {}
+      try {
+        var r = await window.__isoAutoSync(_src);
+        writeSyncHistory({ op: 'startup_sync', status: r && r.ok !== false ? 'ok' : 'skipped', source: _src, detail: r && r.reason || null });
+        return r;
+      } catch(e) {
+        writeSyncHistory({ op: 'startup_sync', status: 'failed', source: _src, error: e.message });
+        return { ok: false, error: e.message };
+      }
+    };
+
+    // ── 30-minute recurring timer ─────────────────────────────────────────────
+    var _autoSyncTimer = null;
+    var AUTO_SYNC_INTERVAL = 30 * 60 * 1000; // 30 minutes
+
+    function startAutoSyncTimer() {
+      if (_autoSyncTimer) clearInterval(_autoSyncTimer);
+      _autoSyncTimer = setInterval(function() {
+        window.__isoAutoSync('auto_30min').catch(function() {});
+      }, AUTO_SYNC_INTERVAL);
+    }
+
+    // ── Visibility-change sync ────────────────────────────────────────────────
+    // Re-syncs when user returns to the tab after ≥5 minutes away.
+    var _lastVisibleAt = Date.now();
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        var away = Date.now() - _lastVisibleAt;
+        if (away >= 5 * 60 * 1000) {
+          setTimeout(function() {
+            window.__isoAutoSync('visibility_sync').catch(function() {});
+          }, 2000);
+        }
+      } else {
+        _lastVisibleAt = Date.now();
+      }
+    });
+
+    // ── Online-event sync ─────────────────────────────────────────────────────
+    window.addEventListener('online', function() {
+      setTimeout(function() {
+        window.__isoAutoSync('online_sync').catch(function() {});
+      }, 3000);
+    });
+
+    // ── Bootstrap ────────────────────────────────────────────────────────────
+    // On DOMContentLoaded: start the 30-min timer + do a startup sync after
+    // 5 s (gives the app time to fully initialise, load IndexedDB, etc.).
+    function bootAutoSync() {
+      startAutoSyncTimer();
+      // Measure speed in the background immediately — result cached for later.
+      setTimeout(function() { measureNetSpeed().catch(function(){}); }, 500);
+      // Startup sync: wait 5 s so the app is fully initialised first.
+      setTimeout(function() {
+        window.__isoStartupSync().catch(function() {});
+      }, 5000);
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootAutoSync);
+    else bootAutoSync();
+
+  })();
+
 })();
 </script>`;
 }
@@ -2875,12 +3036,12 @@ function getPatchedAppBundle() {
     );
     appPatch(
       's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e), await this.pullCloudSnapshot(e, t)',
-      's && await this.pushProfile(e, s), await (window.__isoRunManualCloudSync ? window.__isoRunManualCloudSync(async () => await Dn(), async r => await Xr(r, { mode: "merge" }), "manual_full_sync") : (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "manual_full_sync" }) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("manual_full_sync") : Promise.resolve())))',
+      '(window.__isoBuildBackup = async () => await Dn(), window.__isoApplyBackup = async r => await Xr(r, { mode: "merge" })), s && await this.pushProfile(e, s), await (window.__isoRunManualCloudSync ? window.__isoRunManualCloudSync(window.__isoBuildBackup, window.__isoApplyBackup, "manual_full_sync") : (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "manual_full_sync" }) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("manual_full_sync") : Promise.resolve())))',
       'Manual full sync uses full Storage backup JSON'
     );
     appPatch(
       's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e)\n        })',
-      's && await this.pushProfile(e, s), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "upload_dirty_local" }) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("upload_dirty_local") : Promise.resolve()))\n        })',
+      '(window.__isoBuildBackup = window.__isoBuildBackup || async () => await Dn(), window.__isoApplyBackup = window.__isoApplyBackup || async r => await Xr(r, { mode: "merge" })), s && await this.pushProfile(e, s), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "upload_dirty_local" }) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("upload_dirty_local") : Promise.resolve()))\n        })',
       'Upload-only sync uses full Storage backup JSON'
     );
     appPatch(
@@ -3088,7 +3249,15 @@ function getPatchedAuthBundle() {
     // Landing panel version badge: update stale hardcoded version string.
     p('children: "IsotopeAI v2.0"', 'children: "IsotopeAI v3.1"');
 
-    console.log('[AuthPatch] ' + applied + '/6 patches applied to Auth bundle');
+    // BUG-003: Add autocomplete="current-password" to the password input
+    // to silence browser accessibility warnings on every page load.
+    // The Auth bundle uses space-separated JSX-style props.
+    p(
+      'type: "password",\n                        placeholder: "Enter your password"',
+      'type: "password",\n                        autoComplete: "current-password",\n                        placeholder: "Enter your password"'
+    );
+
+    console.log('[AuthPatch] ' + applied + '/7 patches applied to Auth bundle');
     patchedAuthBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[AuthPatch] Error:', e.message); patchedAuthBundle = null; }
   return patchedAuthBundle;
@@ -4417,15 +4586,22 @@ function readLocalVersionInfo() {
     if (vdata.updated_at) info.updated_at = String(vdata.updated_at);
     info.source = 'VERSION';
   } catch {}
-  try {
-    const gitSha = execSync('git rev-parse HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
-    if (/^[0-9a-f]{40}$/i.test(gitSha)) {
-      info.sha = gitSha;
-      info.source = 'git';
-    }
-    const msg = execSync('git log -1 --pretty=%s', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
-    if (msg) info.message = msg;
-  } catch {}
+  // Skip git SHA detection in Replit / cloud environments — the workspace git
+  // points to the Replit-internal repo, not the upstream isotope-code repo,
+  // so the SHA never matches upstream and always triggers a false-positive
+  // update banner. Fall back to the VERSION file SHA instead.
+  const isReplit = !!(process.env.REPL_ID || process.env.REPLIT_SLUG || process.env.REPLIT_DEPLOYMENT);
+  if (!isReplit && !process.env.DISABLE_UPDATE_CHECK) {
+    try {
+      const gitSha = execSync('git rev-parse HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+      if (/^[0-9a-f]{40}$/i.test(gitSha)) {
+        info.sha = gitSha;
+        info.source = 'git';
+      }
+      const msg = execSync('git log -1 --pretty=%s', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+      if (msg) info.message = msg;
+    } catch {}
+  }
   return info;
 }
 
@@ -4629,12 +4805,15 @@ async function handleAiRoute(req, res, pathname) {
 
   const yepHeaders = { 'x-api-key': YEPAPI_KEY, 'Content-Type': 'application/json' };
 
-  // GET /__ai/status — health check
-  if (req.method === 'GET' && pathname === '/__ai/status') {
+  // GET /__ai/status | /__ai/balance — health check (both paths accepted)
+  if (req.method === 'GET' && (pathname === '/__ai/status' || pathname === '/__ai/balance')) {
     try {
       const r = await fetch(`${YEPAPI_BASE}/v1/account/balance`, { headers: yepHeaders });
-      const d = await r.json();
-      return sendJson(r.ok ? 200 : 502, { ok: r.ok, yepapi: d });
+      const text = await r.text();
+      // YepAPI balance endpoint may return empty body on 404 — parse defensively
+      let d;
+      try { d = text ? JSON.parse(text) : {}; } catch { d = { raw: text }; }
+      return sendJson(r.ok ? 200 : 502, { ok: r.ok, status: r.status, yepapi: d });
     } catch (e) {
       return sendJson(502, { ok: false, error: e.message });
     }
@@ -4999,7 +5178,7 @@ const server = http.createServer((req, res) => {
           supabase_storage: { ok: buckets.status > 0 && buckets.status < 500, status: buckets.status },
         },
         config: {
-          aiKeys: { gemini: !!GEMINI_API_KEY, groq: !!GROQ_API_KEY },
+          aiKeys: { gemini: !!GEMINI_API_KEY, groq: !!GROQ_API_KEY, yepapi: !!YEPAPI_KEY },
           supabaseProxy: ADMIN_MODE_READY,
         },
       }));
