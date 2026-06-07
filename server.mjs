@@ -4628,6 +4628,12 @@ let _ghCache = null;
 let _ghCacheTs = 0;
 const GH_TTL = 10 * 60 * 1000;
 
+// ── Performance caches ────────────────────────────────────────────────────────
+let _healthCache = null;    // last successful health payload
+let _healthCacheAt = 0;
+const HEALTH_CACHE_TTL = 15_000; // 15 s — reduces 200-600 ms Supabase round-trips to <1 ms
+const _gzipCache = new Map(); // abs file path → pre-gzip'd Buffer (populated at startup)
+
 function fetchLatestCommit() {
   return new Promise(function (resolve, reject) {
     const opts = {
@@ -4991,7 +4997,7 @@ const server = http.createServer((req, res) => {
   }
 
   // ── Internal API routes ─────────────────────────────────────────────────────
-  if (req.method === 'GET' && req.url === '/api/ai-config') {
+  if (req.method === 'GET' && adminPath === '/api/ai-config') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ gemini: !!GEMINI_API_KEY, groq: !!GROQ_API_KEY }));
     return;
@@ -5020,7 +5026,15 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
-  if (req.method === 'GET' && req.url === '/api/health') {
+  // Use adminPath (query-stripped) so /api/health?_=<timestamp> speed-probe calls
+  // also reach this handler instead of falling through to the 404 fence.
+  if (req.method === 'GET' && adminPath === '/api/health') {
+    const now = Date.now();
+    if (_healthCache && (now - _healthCacheAt) < HEALTH_CACHE_TTL) {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Health-Cached': '1' });
+      res.end(JSON.stringify(_healthCache));
+      return;
+    }
     (async () => {
       const [rest, auth, buckets] = await Promise.all([
         supaRestReq('GET', '/rest/v1/', null).catch(e => ({ status: 0, body: { error: e.message } })),
@@ -5030,8 +5044,7 @@ const server = http.createServer((req, res) => {
       const ok = rest.status > 0 && rest.status < 500
               && auth.status > 0 && auth.status < 500
               && buckets.status > 0 && buckets.status < 500;
-      res.writeHead(ok ? 200 : 503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      res.end(JSON.stringify({
+      const payload = {
         status: ok ? 'ok' : 'degraded',
         checks: {
           supabase_rest: { ok: rest.status > 0 && rest.status < 500, status: rest.status },
@@ -5042,7 +5055,10 @@ const server = http.createServer((req, res) => {
           aiKeys: { gemini: !!GEMINI_API_KEY, groq: !!GROQ_API_KEY },
           supabaseProxy: ADMIN_MODE_READY,
         },
-      }));
+      };
+      if (ok) { _healthCache = payload; _healthCacheAt = Date.now(); }
+      res.writeHead(ok ? 200 : 503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify(payload));
     })().catch(e => {
       res.writeHead(503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       res.end(JSON.stringify({ status: 'degraded', error: e.message }));
@@ -5051,7 +5067,7 @@ const server = http.createServer((req, res) => {
   }
 
   // ── /api/version — returns deployed commit SHA ───────────────────────────────
-  if (req.method === 'GET' && req.url === '/api/version') {
+  if (req.method === 'GET' && adminPath === '/api/version') {
     LOCAL_VERSION = readLocalVersionInfo();
     DEPLOYED_SHA = LOCAL_VERSION.sha || DEPLOYED_SHA;
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -5071,7 +5087,7 @@ const server = http.createServer((req, res) => {
   }
 
   // ── /api/check-update — compares deployed SHA with latest GitHub commit ──────
-  if (req.method === 'GET' && req.url === '/api/check-update') {
+  if (req.method === 'GET' && adminPath === '/api/check-update') {
     const now = Date.now();
     if (_ghCache && (now - _ghCacheTs) < GH_TTL) {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -6926,11 +6942,18 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
                                    'public, max-age=3600';
       res.setHeader('Cache-Control', cc);
       if (acceptsGzip && gzippable && buf.length > 1024) {
-        zlib.gzip(buf, { level: 6 }, (err, gz) => {
-          if (err) { res.writeHead(200, { 'Content-Type': contentType }); res.end(buf); return; }
+        const cached = _gzipCache.get(fp);
+        if (cached) {
           res.writeHead(200, { 'Content-Type': contentType, 'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding' });
-          res.end(gz);
-        });
+          res.end(cached);
+        } else {
+          zlib.gzip(buf, { level: 6 }, (err, gz) => {
+            if (err) { res.writeHead(200, { 'Content-Type': contentType }); res.end(buf); return; }
+            if (isHashedAsset || isSwFile) _gzipCache.set(fp, gz); // cache immutable + sw files
+            res.writeHead(200, { 'Content-Type': contentType, 'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding' });
+            res.end(gz);
+          });
+        }
       } else {
         res.writeHead(200, { 'Content-Type': contentType });
         res.end(buf);
@@ -7080,6 +7103,32 @@ server.listen(port, '0.0.0.0', () => {
     getPatchedCommunityBundle();
     getPatchedCommunityHubBundle();
     getPatchedPWAManagerBundle();
+
+    // Pre-gzip all patched bundles so first client request is instant.
+    // Each bundle is already in memory; gzip runs once in the background.
+    const toPreGzip = [
+      [APP_BUNDLE_ABS,             getPatchedAppBundle()],
+      [AUTH_BUNDLE_ABS,            getPatchedAuthBundle()],
+      [FOCUS_BUNDLE_ABS,           getPatchedFocusBundle()],
+      [ONBOARDING_BUNDLE_ABS,      getPatchedOnboardingBundle()],
+      [SINGLE_GROUP_BUNDLE_ABS,    getPatchedSingleGroupBundle()],
+      [LEADERBOARD_BUNDLE_ABS,     getPatchedLeaderboardBundle()],
+      [SETTINGS_BUNDLE_ABS,        getPatchedSettingsBundle()],
+      [APP_ACCESS_GATE_BUNDLE_ABS, getPatchedAppAccessGateBundle()],
+      [SESSION_SYNC_BUNDLE_ABS,    getPatchedSessionSyncBundle()],
+      [INVITES_BUNDLE_ABS,         getPatchedInvitesBundle()],
+    ];
+    let i = 0;
+    const preGzipNext = () => {
+      if (i >= toPreGzip.length) return;
+      const [fp, buf] = toPreGzip[i++];
+      if (!buf) { preGzipNext(); return; }
+      zlib.gzip(buf, { level: 6 }, (err, gz) => {
+        if (!err) _gzipCache.set(fp, gz);
+        preGzipNext(); // sequential to avoid CPU spike on startup
+      });
+    };
+    preGzipNext();
   });
 
   // Auto-run DML backfills on startup (safe REST-only operations, no DDL needed)
