@@ -1,0 +1,104 @@
+name: 🗄️ SQL Schema Validation
+
+on:
+  push:
+    paths:
+      - '*.sql'
+  pull_request:
+    paths:
+      - '*.sql'
+
+jobs:
+  validate:
+    name: Validate SQL files
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: isotope_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 📊 Schema file stats
+        run: |
+          for f in isotope-complete.sql community-patch-v4.sql performance-patch.sql; do
+            if [ -f "$f" ]; then
+              echo "=== $f ==="
+              echo "  Size: $(wc -c < $f) bytes"
+              echo "  Lines: $(wc -l < $f)"
+              echo "  CREATE TABLE: $(grep -c 'CREATE TABLE' $f || echo 0)"
+              echo "  CREATE FUNCTION: $(grep -c 'CREATE.*FUNCTION' $f || echo 0)"
+              echo "  CREATE POLICY: $(grep -c 'CREATE POLICY' $f || echo 0)"
+              echo "  CREATE INDEX: $(grep -c 'CREATE.*INDEX' $f || echo 0)"
+            fi
+          done
+
+      - name: 🔍 Check for dangerous patterns
+        run: |
+          echo "Checking for DROP without IF EXISTS..."
+          if grep -nE '^\s*DROP (TABLE|FUNCTION|POLICY|INDEX|TRIGGER)\s' isotope-complete.sql | grep -v 'IF EXISTS'; then
+            echo "⚠️ Found DROP without IF EXISTS — these may fail on fresh installs"
+          else
+            echo "✅ All DROPs use IF EXISTS"
+          fi
+
+          echo "Checking for SECURITY DEFINER functions..."
+          SEC_DEF=$(grep -c 'SECURITY DEFINER' isotope-complete.sql || echo 0)
+          echo "  $SEC_DEF SECURITY DEFINER functions (expected: all functions)"
+
+          echo "Checking for missing GRANT statements..."
+          FUNCTIONS=$(grep -c 'CREATE OR REPLACE FUNCTION' isotope-complete.sql || echo 0)
+          GRANTS=$(grep -c 'GRANT EXECUTE' isotope-complete.sql || echo 0)
+          echo "  Functions: $FUNCTIONS | GRANTs: $GRANTS"
+
+      - name: 🗄️ Test isotope-complete.sql against PostgreSQL
+        env:
+          PGPASSWORD: testpass
+        run: |
+          # Create auth schema (Supabase compatibility shim)
+          psql -h localhost -U postgres -d isotope_test -c "
+            CREATE SCHEMA IF NOT EXISTS auth;
+            CREATE TABLE IF NOT EXISTS auth.users (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              email text,
+              raw_user_meta_data jsonb DEFAULT '{}'
+            );
+            CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid; \$\$;
+            CREATE SCHEMA IF NOT EXISTS storage;
+            CREATE TABLE IF NOT EXISTS storage.buckets (id text PRIMARY KEY, name text, public boolean DEFAULT false, file_size_limit bigint, allowed_mime_types text[]);
+            CREATE TABLE IF NOT EXISTS storage.objects (id uuid PRIMARY KEY, bucket_id text, name text, owner uuid);
+          " && echo "✅ Auth schema shim created"
+
+          # Strip Supabase-specific statements that won't work locally
+          grep -v 'supabase_realtime\|ALTER PUBLICATION\|storage\.foldername\|CREATE EVENT TRIGGER\|DROP EVENT TRIGGER' isotope-complete.sql > /tmp/schema_test.sql
+
+          # Run the schema
+          psql -h localhost -U postgres -d isotope_test -f /tmp/schema_test.sql 2>&1 | tail -30
+          echo "Exit code: $?"
+
+          # Count created objects
+          echo ""
+          echo "=== Created objects ==="
+          psql -h localhost -U postgres -d isotope_test -c "
+            SELECT schemaname, count(*) as tables
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+            GROUP BY schemaname;
+          "
+          psql -h localhost -U postgres -d isotope_test -c "
+            SELECT count(*) as rls_policies
+            FROM pg_policies
+            WHERE schemaname = 'public';
+          "
