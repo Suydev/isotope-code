@@ -5,6 +5,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.3.3] — 2026-06-07 — Admin role check bug fixed; 8 undocumented DB functions added to schema
+
+### Fixed
+- **`user_roles.is_active` does not exist — admin auth always failed silently** — `isSupabaseAdminUser()` in `server.mjs` filtered `user_roles` with `&is_active=eq.true`. The live `user_roles` table has no `is_active` column (`id, user_id, role, granted_by, granted_at` only), so Supabase returned a 400 and every role-based admin check returned `false`. Any admin user whose email was not in `ADMIN_EMAILS` could never unlock `/__admin/*`. Removed the non-existent filter — the query now reads `?select=role&user_id=eq.{id}&limit=10`.
+- **8 live-DB functions missing from `isotope-complete.sql`** — Full pg_proc audit found 8 functions present in the live Supabase DB that were never documented in the master schema file. A fresh install using only `isotope-complete.sql` would be missing critical triggers. All 8 added as §18 (fully idempotent with `CREATE OR REPLACE` + `DROP TRIGGER IF EXISTS`):
+  - `handle_new_user_profile()` + `trg_handle_new_user_profile` (AFTER INSERT on auth.users)
+  - `rls_auto_enable()` + event trigger (auto-enables RLS on every new public table)
+  - `set_group_slug_from_name()` + `trg_set_group_slug` (BEFORE INSERT on groups)
+  - `sync_group_visibility()` + `trg_sync_group_visibility` (BEFORE INSERT/UPDATE on groups)
+  - `sync_group_member_count()` + `trg_sync_member_count` (AFTER INSERT/DELETE on group_members)
+  - `create_community_group(...)` — RPC for atomic group creation with owner seeding
+  - `check_user_role(uuid, text)` — boolean role membership check
+  - `get_my_role()` — returns highest-priority role for calling user
+- **Missing GRANTs for `create_community_group`, `check_user_role`, `get_my_role`** — All three functions had no `GRANT EXECUTE TO authenticated`. Applied to live DB and added to §18 grants block in `isotope-complete.sql`.
+
+### Audit (v3.3.3 — 2026-06-07)
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | `user_roles.is_active` filter removed from `isSupabaseAdminUser()` | ✅ server.mjs line 265 |
+| 2 | 8 undocumented functions added to `isotope-complete.sql` §18 | ✅ with triggers + grants |
+| 3 | `create_community_group` GRANT authenticated applied to live DB | ✅ |
+| 4 | `check_user_role` + `get_my_role` GRANTs applied to live DB | ✅ |
+| 5 | Store + Events features confirmed removed — RPCs not added to schema | ✅ |
+
+---
+
 ## [3.3.2] — 2026-06-07 — user_tours table added; /__admin/schema fixed; schema gap audit
 
 ### Fixed
