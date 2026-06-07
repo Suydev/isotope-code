@@ -27,6 +27,7 @@
   <a href="#-cloud-sync--backup">Cloud Sync</a> ·
   <a href="#-supabase-setup">Supabase Setup</a> ·
   <a href="#-termux-widget">Termux Widget</a> ·
+  <a href="#-bug-fixes">Bug Fixes</a> ·
   <a href="#-troubleshooting">Troubleshooting</a>
 </p>
 
@@ -427,6 +428,61 @@ TERMUX_WIDGET.md
 
 ---
 
+## 🐛 Bug Fixes (v3.1.2-patch)
+
+This branch includes critical bug fixes for PWA service worker, update checker, and offline mode stability:
+
+### Fixed Issues
+
+| Bug | File | Impact | Fix |
+|---|---|---|---|
+| **Cache SHA not truncated** | `public/sw.js` | Cache reuse failure on version updates | SHA truncated to 12 characters for consistent cache naming |
+| **Update timer leak** | `public/update-checker.js` | Memory leak in long-running sessions | Timer cleared on `beforeunload` event |
+| **Dismissal logic flaw** | `public/update-checker.js` | False positive update dismissals | Changed from prefix match to exact SHA comparison |
+| **Silent update errors** | `public/update-checker.js` | No visibility into update check failures | Added console.warn logging for debugging |
+| **Missing reload guard** | `public/pwa-local.js` | Multiple rapid reloads on SW activation | Added one-shot reload guard flag |
+| **Client detach crash** | `public/sw.js` | Uncaught exception when clients detach | Wrapped client message send in try-catch |
+| **HTML escaping issue** | `public/update-checker.js` | Potential HTML injection in banner | Fixed ternary conditional for safe HTML generation |
+
+### Branch Information
+
+- **Branch**: `fix/bug-fixes`
+- **Commits**:
+  1. `657a902` — Fix SW cache SHA truncation + client detach safety
+  2. `a848d3a` — Fix update dismissal logic + error logging + timer cleanup
+  3. `8b407ea` — Add SW reload guard + improve client message handling
+
+### Testing Recommendations
+
+```bash
+# Test update dismissal
+1. Trigger update check
+2. Dismiss update
+3. Verify same version doesn't show again
+
+# Test offline behavior
+1. Stop local server
+2. Open app from cache
+3. Verify no reload loop
+4. Verify no forced onboarding
+5. Restart server
+
+# Test memory leaks
+1. Open browser DevTools → Memory
+2. Take heap snapshot before update checks
+3. Tabs switching / page refreshes
+4. Take heap snapshot after
+5. Verify no growth in timer references
+
+# Test cache consistency
+1. Update app version
+2. Check browser DevTools → Application → Cache
+3. Verify cache name includes truncated SHA
+4. No duplicate cache entries from old SHA format
+```
+
+---
+
 ## 🌐 Offline / PWA Behavior
 
 After the app loads once with the local server running, the service worker caches the app shell.
@@ -637,7 +693,7 @@ Then run:
 bash setup.sh
 ```
 
-### Cloud sync says “Authentication required”
+### Cloud sync says "Authentication required"
 
 Check:
 
@@ -648,7 +704,7 @@ Check:
 - the local server verifies the token
 - the `user-content` bucket policies are applied
 
-### Cloud sync says “Storage permission denied”
+### Cloud sync says "Storage permission denied"
 
 Apply the latest SQL patch:
 
@@ -699,6 +755,7 @@ See [CHANGELOG.md](./CHANGELOG.md).
 
 Highlights:
 
+- **v3.1.2-patch** — Critical PWA stability fixes (cache SHA, timer leaks, update logic)
 - **v3.1.2** — Storage-backed backup restore and `/__auth/backup` auth hardening
 - **v3.1.1** — Real cloud backup pipeline
 - **v3.1.0** — Local server PWA command system and Termux CLI
