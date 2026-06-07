@@ -4578,6 +4578,7 @@ function readLocalVersionInfo() {
   try {
     const vf = path.join(__dirname, 'VERSION');
     const vdata = JSON.parse(fs.readFileSync(vf, 'utf8'));
+    if (vdata.version) info.version = String(vdata.version); // VERSION overrides package.json
     if (vdata.sha) info.sha = String(vdata.sha);
     if (vdata.message) info.message = String(vdata.message);
     if (vdata.updated_at) info.updated_at = String(vdata.updated_at);
