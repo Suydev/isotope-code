@@ -5581,11 +5581,11 @@ function showMsg(type, msg) {
   // ── /__admin/schema — serve the v2 schema SQL for copy-paste into Supabase ─
   if (req.method === 'GET' && req.url === '/__admin/schema') {
     try {
-      const sqlPath = path.join(__dirname, 'isotope-schema.sql');
+      const sqlPath = path.join(__dirname, 'isotope-complete.sql');
       const sql = fs.readFileSync(sqlPath, 'utf8');
       res.writeHead(200, {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="isotope-schema-v2.sql"',
+        'Content-Disposition': 'attachment; filename="isotope-complete.sql"',
         'Cache-Control': 'no-store',
       });
       res.end(sql);
