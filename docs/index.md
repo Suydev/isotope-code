@@ -63,7 +63,7 @@ SUPABASE_ANON_KEY=your-anon-key
 | Planner | Subjects, tasks, habits, exam calendar |
 | Analytics | Study breakdowns, subject insights, progress views |
 | Community | Groups, chat, challenges, leaderboard |
-| AI | Study assistant, summaries, analysis cards |
+| AI | Optional — configure via Gemini or Groq API key |
 | Cloud Sync | Supabase-backed snapshot backup and restore |
 | Offline | PWA shell works from cache when server is off |
 | CLI | `isotope start`, `update`, `doctor`, `logs` |
