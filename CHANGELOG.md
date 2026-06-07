@@ -5,7 +5,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [3.3.0] — 2026-06-07 — Live DB RLS patch, GitHub Pages docs link, login error improvements
+## [3.3.1] — 2026-06-07 — Master schema SQL + missing tables applied to live DB
+
+  ### Fixed
+  - **CRITICAL: `user_inventory`, `store_items`, `community_events`, `community_event_attendees` tables missing from live DB** — Zero-trust audit found the frontend calls 5× `user_inventory` and 2× `store_items` but neither table existed. Root cause: `events-expansion.sql` (a teardown script) includes `DROP TABLE IF EXISTS public.user_inventory CASCADE` and `DROP TABLE IF EXISTS public.store_items CASCADE`. All 4 missing tables have been created in the live Supabase DB via the Management API with full column definitions, indexes, and RLS policies.
+  - **`performance-patch.sql` §2 `idx_inventory_user` crashes if `user_inventory` was dropped** — The index creation was not guarded. Wrapped in `DO $ BEGIN IF EXISTS (table check) THEN CREATE INDEX …; END IF; END $;`. Also guarded the §5 `inventory_own` RLS policy recreation the same way.
+
+  ### Added
+  - **`isotope-complete.sql`** — New single-file authoritative schema covering all 23 tables, all indexes, all RLS policies (with `(SELECT auth.uid())` optimisation), all RPCs (18 functions), triggers (`handle_new_user`, `sync_user_onboarding_from_profile`, `cleanup_old_notifications`), storage buckets, Realtime publication, and default community event seed data. Fully idempotent. Run this once on a fresh Supabase project, then `performance-patch.sql` for the §6 leaderboard policies.
+
+  ### Audit (v3.3.1 — 2026-06-07)
+
+  | # | Check | Result |
+  |---|-------|--------|
+  | 1 | `user_inventory` created in live DB | ✅ HTTP 201 via Management API |
+  | 2 | `store_items` created in live DB | ✅ HTTP 201 via Management API |
+  | 3 | `community_events` created in live DB | ✅ HTTP 201 via Management API |
+  | 4 | `community_event_attendees` created in live DB | ✅ HTTP 201 via Management API |
+  | 5 | RLS policies for all 4 tables | ✅ Applied in same batch |
+  | 6 | `performance-patch.sql` index guard | ✅ user_inventory index wrapped in existence check |
+  | 7 | `isotope-complete.sql` pushed to GitHub | ✅ New file, 23 tables, 18 RPCs |
+
+  ---
+
+  ## [3.3.0] — 2026-06-07 — Live DB RLS patch, GitHub Pages docs link, login error improvements
 
 ### Fixed
 - **§5+§6 RLS policies applied to live Supabase DB** — `performance-patch.sql` §5 (own-row `(SELECT auth.uid())` optimisation) and §6 (leaderboard `stats_select_all`, `daily_select_all`, `users_select_display` public-read policies) were not applied to the live database. Applied all 6 batches via the Supabase Management API. Leaderboard queries now work correctly for authenticated users and all RLS policies use the single-evaluation `(SELECT auth.uid())` pattern.
