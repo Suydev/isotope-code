@@ -168,9 +168,6 @@ const ADMIN_EMAILS   = Array.from(new Set(
 const ADMIN_COOKIE_SECRET = ADMIN_SECRET || SUPA_SERVICE_KEY;
 const ADMIN_MODE_READY  = ENABLE_ADMIN_MODE && !!SUPA_SERVICE_KEY && !!ADMIN_COOKIE_SECRET;
 
-// ── YepAPI (AI/YouTube study assistant) — optional, set YEPAPI_KEY in .env ──
-const YEPAPI_KEY = process.env.YEPAPI_KEY || '';
-const YEPAPI_BASE = 'https://api.yepapi.com';
 
 function isAdminAuthed(req) {
   if (!ADMIN_MODE_READY) return false;
@@ -3041,7 +3038,7 @@ function getPatchedAppBundle() {
     );
     appPatch(
       's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e)\n        })',
-      '(window.__isoBuildBackup = window.__isoBuildBackup || async () => await Dn(), window.__isoApplyBackup = window.__isoApplyBackup || async r => await Xr(r, { mode: "merge" })), s && await this.pushProfile(e, s), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "upload_dirty_local" }) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("upload_dirty_local") : Promise.resolve()))\n        })',
+      '(window.__isoBuildBackup = window.__isoBuildBackup || (async () => await Dn()), window.__isoApplyBackup = window.__isoApplyBackup || (async r => await Xr(r, { mode: "merge" }))), s && await this.pushProfile(e, s), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "upload_dirty_local" }) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("upload_dirty_local") : Promise.resolve()))\n        })',
       'Upload-only sync uses full Storage backup JSON'
     );
     appPatch(
@@ -4789,133 +4786,6 @@ function browserProofHtml({ runId, token, session }) {
 })();</script></body></html>`;
 }
 
-// ── YepAPI AI route handler ──────────────────────────────────────────────────
-// Exposes /__ai/* endpoints powered by YepAPI (yepapi.com).
-// All routes require a valid YEPAPI_KEY env var; return 503 if missing.
-async function handleAiRoute(req, res, pathname) {
-  const sendJson = (code, obj) => {
-    const body = JSON.stringify(obj);
-    res.writeHead(code, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-    res.end(body);
-  };
-
-  if (!YEPAPI_KEY) {
-    return sendJson(503, { ok: false, error: 'YEPAPI_KEY not configured. Add it to .env to enable AI features.' });
-  }
-
-  const yepHeaders = { 'x-api-key': YEPAPI_KEY, 'Content-Type': 'application/json' };
-
-  // GET /__ai/status | /__ai/balance — health check (both paths accepted)
-  if (req.method === 'GET' && (pathname === '/__ai/status' || pathname === '/__ai/balance')) {
-    try {
-      const r = await fetch(`${YEPAPI_BASE}/v1/account/balance`, { headers: yepHeaders });
-      const text = await r.text();
-      // YepAPI balance endpoint may return empty body on 404 — parse defensively
-      let d;
-      try { d = text ? JSON.parse(text) : {}; } catch { d = { raw: text }; }
-      return sendJson(r.ok ? 200 : 502, { ok: r.ok, status: r.status, yepapi: d });
-    } catch (e) {
-      return sendJson(502, { ok: false, error: e.message });
-    }
-  }
-
-  // POST /__ai/chat — AI study assistant (GPT-4o-mini by default)
-  if (req.method === 'POST' && pathname === '/__ai/chat') {
-    let body;
-    try { body = JSON.parse(await readRequestText(req)); } catch { return sendJson(400, { ok: false, error: 'Invalid JSON' }); }
-    const { messages, model = 'gpt-4o-mini', system } = body;
-    if (!Array.isArray(messages) || messages.length === 0) return sendJson(400, { ok: false, error: '`messages` array is required' });
-    const fullMessages = system ? [{ role: 'system', content: system }, ...messages] : messages;
-    try {
-      const r = await fetch(`${YEPAPI_BASE}/v1/ai/chat`, {
-        method: 'POST', headers: yepHeaders,
-        body: JSON.stringify({ model, messages: fullMessages })
-      });
-      const d = await r.json();
-      return sendJson(r.ok ? 200 : 502, d);
-    } catch (e) {
-      return sendJson(502, { ok: false, error: e.message });
-    }
-  }
-
-  // POST /__ai/youtube — search YouTube for study videos
-  if (req.method === 'POST' && pathname === '/__ai/youtube') {
-    let body;
-    try { body = JSON.parse(await readRequestText(req)); } catch { return sendJson(400, { ok: false, error: 'Invalid JSON' }); }
-    const { query, limit = 10 } = body;
-    if (!query) return sendJson(400, { ok: false, error: '`query` is required' });
-    try {
-      const r = await fetch(`${YEPAPI_BASE}/v1/youtube/search`, {
-        method: 'POST', headers: yepHeaders,
-        body: JSON.stringify({ query, limit })
-      });
-      const d = await r.json();
-      return sendJson(r.ok ? 200 : 502, d);
-    } catch (e) {
-      return sendJson(502, { ok: false, error: e.message });
-    }
-  }
-
-  // POST /__ai/transcript — get YouTube video transcript
-  if (req.method === 'POST' && pathname === '/__ai/transcript') {
-    let body;
-    try { body = JSON.parse(await readRequestText(req)); } catch { return sendJson(400, { ok: false, error: 'Invalid JSON' }); }
-    const { videoId, url } = body;
-    const vid = videoId || (url ? (url.match(/[?&]v=([^&]+)/)||[])[1] || (url.match(/youtu\.be\/([^?]+)/)||[])[1] : null);
-    if (!vid) return sendJson(400, { ok: false, error: '`videoId` or `url` is required' });
-    try {
-      const r = await fetch(`${YEPAPI_BASE}/v1/youtube/transcript`, {
-        method: 'POST', headers: yepHeaders,
-        body: JSON.stringify({ videoId: vid })
-      });
-      const d = await r.json();
-      return sendJson(r.ok ? 200 : 502, d);
-    } catch (e) {
-      return sendJson(502, { ok: false, error: e.message });
-    }
-  }
-
-  // POST /__ai/summarize — scrape any URL and summarise with AI
-  if (req.method === 'POST' && pathname === '/__ai/summarize') {
-    let body;
-    try { body = JSON.parse(await readRequestText(req)); } catch { return sendJson(400, { ok: false, error: 'Invalid JSON' }); }
-    const { url, prompt = 'Summarise this page in 3-5 bullet points for a student preparing for a competitive exam.' } = body;
-    if (!url) return sendJson(400, { ok: false, error: '`url` is required' });
-    try {
-      // Step 1: scrape
-      const scrapeRes = await fetch(`${YEPAPI_BASE}/v1/scrape`, {
-        method: 'POST', headers: yepHeaders,
-        body: JSON.stringify({ url, format: 'markdown' })
-      });
-      const scrapeData = await scrapeRes.json();
-      if (!scrapeRes.ok) return sendJson(502, { ok: false, error: 'Scrape failed', detail: scrapeData });
-      const pageContent = (scrapeData.data?.content || '').slice(0, 8000);
-      // Step 2: summarise
-      const aiRes = await fetch(`${YEPAPI_BASE}/v1/ai/chat`, {
-        method: 'POST', headers: yepHeaders,
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: 'You are a helpful study assistant for competitive exam students.' },
-            { role: 'user', content: `${prompt}\n\nPage content:\n${pageContent}` }
-          ]
-        })
-      });
-      const aiData = await aiRes.json();
-      return sendJson(aiRes.ok ? 200 : 502, {
-        ok: aiRes.ok,
-        url,
-        summary: aiData.data?.message?.content || null,
-        costUsd: aiData.data?.costUsd,
-      });
-    } catch (e) {
-      return sendJson(502, { ok: false, error: e.message });
-    }
-  }
-
-  return sendJson(404, { ok: false, error: `Unknown AI route: ${pathname}` });
-}
-
 const server = http.createServer((req, res) => {
   // ── CORS preflight ──────────────────────────────────────────────────────────
   if (req.method === 'OPTIONS') {
@@ -4931,15 +4801,6 @@ const server = http.createServer((req, res) => {
   // ── Route: path extraction ──────────────────────────────────────────────────
   let adminPath = '';
   try { adminPath = new URL('http://x' + req.url).pathname; } catch { adminPath = req.url.split('?')[0]; }
-
-  // ── AI routes (YepAPI-powered) ───────────────────────────────────────────────
-  if (adminPath.startsWith('/__ai/') || adminPath === '/__ai') {
-    handleAiRoute(req, res, adminPath).catch((e) => {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: false, error: e.message || 'Internal error' }));
-    });
-    return;
-  }
 
   // ── Admin route auth guard ──────────────────────────────────────────────────
   // Admin routes are disabled unless owner/admin mode is explicitly enabled.
@@ -5178,7 +5039,7 @@ const server = http.createServer((req, res) => {
           supabase_storage: { ok: buckets.status > 0 && buckets.status < 500, status: buckets.status },
         },
         config: {
-          aiKeys: { gemini: !!GEMINI_API_KEY, groq: !!GROQ_API_KEY, yepapi: !!YEPAPI_KEY },
+          aiKeys: { gemini: !!GEMINI_API_KEY, groq: !!GROQ_API_KEY },
           supabaseProxy: ADMIN_MODE_READY,
         },
       }));
@@ -7008,12 +6869,31 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
     return;
   }
 
+  // API and AI paths that were not matched by a named handler → 404 JSON.
+  // Without this, they fall through to the SPA and return HTTP 200 HTML, which
+  // confuses API clients and hides broken route assumptions.
+  if (urlPath.startsWith('/api/') || urlPath === '/api' || urlPath.startsWith('/__ai')) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: 'Not found', path: urlPath }));
+    return;
+  }
+
+  // Block sensitive public files that expose backup schema or dead integrations.
+  const _blockedFiles = new Set(['backup.json', 'firebase-messaging-sw.js']);
+  if (_blockedFiles.has(path.basename(urlPath))) {
+    res.writeHead(404); res.end('Not found'); return;
+  }
+
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, apikey, x-client-info');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   // BUG FIX: allow IndexedDB and storage APIs inside cross-origin iframes.
   // Without this, some sandboxed iframe environments block IndexedDB writes,
   // causing [kvStore] Shadow backup write failed errors in the browser console.
@@ -7040,7 +6920,8 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
     const gzippable = /\.(js|mjs|css|svg|json)$/.test(ext);
 
     function send(buf) {
-      const cc = ext === '.html' ? 'no-cache' :
+      const isSwFile = (basename === 'sw.js' || basename === 'pwa-local.js');
+      const cc = (ext === '.html' || isSwFile) ? 'no-cache' :
                  isHashedAsset   ? 'public, max-age=31536000, immutable' :
                                    'public, max-age=3600';
       res.setHeader('Cache-Control', cc);
