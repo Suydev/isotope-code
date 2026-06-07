@@ -5,6 +5,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.2.0] — 2026-06-07 — Leaderboard RLS fix and SQL index correction
+
+### Fixed
+- **Leaderboard returns 0 rows (critical)** — The §5 RLS hardening added "own row only" policies to `user_stats_summary`, `daily_user_stats`, and `users`. The leaderboard interceptor used the ANON key (no `auth.uid()`) so every query returned 0 rows and the leaderboard appeared empty for all users. Fixed by:
+  - `performance-patch.sql §6`: added `stats_select_all` (FOR SELECT, authenticated users only), `daily_select_all` (FOR SELECT, authenticated users only), and `users_select_display` (FOR SELECT, all — name/avatar are public display data) policies.
+  - `server.mjs` `_handleLeaderboard`: all 5 REST queries (global `user_stats_summary`, daily `daily_user_stats`, group members, group `user_stats_summary`, `users` batch-fetch) now pass `_lbJwt || ANON` as the Bearer token instead of bare ANON. Users who are not logged in cannot see the leaderboard; logged-in users see full rankings.
+- **Broken SQL index column** (`performance-patch.sql §4`) — `idx_daily_user_date_minutes` was created with `INCLUDE (study_minutes)` but the column is named `seconds_studied`. The index creation silently failed on every fresh install. Corrected to `INCLUDE (seconds_studied)`.
+
+### Changed
+- `VERSION` bumped to `3.2.0`.
+- `package.json` version bumped to `3.2.0`.
+- `README.md` version badge updated to `3.2.0`.
+
+---
+
 ## [3.1.3] — 2026-06-07 — Performance hardening and professional release
 
 ### Added

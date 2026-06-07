@@ -1765,6 +1765,12 @@ const PREMIUM_SCRIPT = `<script>
       var isGroup   = url.indexOf('get-group-leaderboard') !== -1;
       var isGroupAn = url.indexOf('get-group-analytics')   !== -1;
       var sortCol   = period === 'monthly' ? 'monthly_hours' : 'weekly_hours';
+      // BUG FIX: Use user JWT for leaderboard REST queries so the
+      // stats_select_all / daily_select_all / users_select_display RLS policies
+      // (added in performance-patch.sql §6) allow reading across all users.
+      // Using ANON key alone gives auth.uid()=NULL which returns 0 rows.
+      // getJwt() is a function declaration so it is hoisted within this scope.
+      var _lbJwt    = getJwt();
 
       // ── Helper: get current user ID from localStorage ─────────────────────
       function getUid() {
@@ -1807,7 +1813,7 @@ const PREMIUM_SCRIPT = `<script>
       function fetchUsers(ids) {
         if (!ids || !ids.length) return Promise.resolve({});
         return _orig.call(window, SUPA + '/rest/v1/users?id=in.(' + ids.join(',') + ')&select=id,username,name,avatar_url', {
-          headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + ANON, 'Accept': 'application/json' }
+          headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + (_lbJwt || ANON), 'Accept': 'application/json' }
         })
         .then(function(r) { return r.ok ? r.json() : []; })
         .then(function(ud) {
@@ -1929,7 +1935,7 @@ const PREMIUM_SCRIPT = `<script>
         var dQs = 'select=user_id,seconds_studied&date=eq.' + today
                 + '&order=seconds_studied.desc.nullslast&limit=' + limitN;
         _orig.call(window, SUPA + '/rest/v1/daily_user_stats?' + dQs, {
-          headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + ANON, 'Accept': 'application/json' }
+          headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + (_lbJwt || ANON), 'Accept': 'application/json' }
         })
         .then(function(r) { return r.ok ? r.json() : []; })
         .then(function(rows) {
@@ -1958,7 +1964,7 @@ const PREMIUM_SCRIPT = `<script>
       // ── Group leaderboard: filter user_stats_summary to group members ─────
       if (isGroup && groupId) {
         _orig.call(window, SUPA + '/rest/v1/group_members?group_id=eq.' + encodeURIComponent(groupId) + '&select=user_id&limit=200', {
-          headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + ANON }
+          headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + (_lbJwt || ANON) }
         })
         .then(function(r) { return r.ok ? r.json() : []; })
         .then(function(members) {
@@ -1968,7 +1974,7 @@ const PREMIUM_SCRIPT = `<script>
                    + '&user_id=in.(' + memberIds.join(',') + ')'
                    + '&order=' + sortCol + '.desc.nullslast&limit=' + limitN;
           return _orig.call(window, SUPA + '/rest/v1/user_stats_summary?' + gSQs, {
-            headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + ANON, 'Accept': 'application/json' }
+            headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + (_lbJwt || ANON), 'Accept': 'application/json' }
           })
           .then(function(r) { return r.ok ? r.json() : []; })
           .then(function(rows) {
@@ -2002,7 +2008,7 @@ const PREMIUM_SCRIPT = `<script>
       var qs = 'select=user_id,total_hours,weekly_hours,monthly_hours,total_sessions,current_streak,last_session_at'
              + '&order=' + sortCol + '.desc.nullslast&limit=' + limitN;
       _orig.call(window, SUPA + '/rest/v1/user_stats_summary?' + qs, {
-        headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + ANON, 'Accept': 'application/json' }
+        headers: { 'apikey': ANON, 'Authorization': 'Bearer ' + (_lbJwt || ANON), 'Accept': 'application/json' }
       })
       .then(function(r) { return r.ok ? r.json() : []; })
       .then(function(rows) {

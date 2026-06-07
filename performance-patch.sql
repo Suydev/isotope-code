@@ -68,7 +68,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user_started
 
 CREATE INDEX IF NOT EXISTS idx_daily_user_date_minutes
   ON public.daily_user_stats (user_id, date DESC)
-  INCLUDE (study_minutes);
+  INCLUDE (seconds_studied);
 
 -- ── 5. RLS auth.uid() → (SELECT auth.uid()) — Supabase Advisor fix ────────
 --
@@ -275,6 +275,36 @@ DROP POLICY IF EXISTS gmile_read ON public.group_milestones;
 CREATE POLICY gmile_read ON public.group_milestones
   FOR SELECT
   USING (group_id = ANY (public.get_my_group_ids()));
+
+-- ── 6. Leaderboard public-read policies ──────────────────────────────────────
+-- The §5 stats_own / daily_own policies restrict all access (SELECT + writes) to
+-- own-row only.  This is correct for writes, but the global and daily leaderboard
+-- need to read stats for ALL users, not just the current user.
+-- Separate FOR SELECT policies allow any authenticated request to read all rows
+-- while the FOR ALL policies above still guard INSERT/UPDATE/DELETE to own rows.
+-- Multiple permissive policies combine with OR, so:
+--   SELECT visible when:  (user_id = auth.uid())  OR  (auth.uid() IS NOT NULL)
+--                        = any authenticated row    (correct for leaderboard)
+--   INSERT/UPDATE/DELETE: still guarded by WITH CHECK (user_id = auth.uid())
+
+DROP POLICY IF EXISTS stats_select_all ON public.user_stats_summary;
+CREATE POLICY stats_select_all ON public.user_stats_summary
+  FOR SELECT
+  USING ((SELECT auth.uid()) IS NOT NULL);
+
+DROP POLICY IF EXISTS daily_select_all ON public.daily_user_stats;
+CREATE POLICY daily_select_all ON public.daily_user_stats
+  FOR SELECT
+  USING ((SELECT auth.uid()) IS NOT NULL);
+
+-- Allow reading basic display info (username, name, avatar_url) for leaderboard.
+-- User emails, passwords, and other sensitive fields are NOT in the users table
+-- (those live in auth.users which is always restricted).  This public-read policy
+-- only exposes the public-facing display fields the leaderboard already shows.
+DROP POLICY IF EXISTS users_select_display ON public.users;
+CREATE POLICY users_select_display ON public.users
+  FOR SELECT
+  USING (TRUE);
 
 -- ── Done ──────────────────────────────────────────────────────────────────
 -- Verification:
