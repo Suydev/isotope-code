@@ -9,6 +9,9 @@ description: A downloadable, local-first student productivity app with cloud syn
 
 Run the app on your own device and open it in any browser. Supabase provides auth, database, storage, and realtime sync — no VPS required.
 
+> 📖 **Documentation:** [suydev.github.io/isotope-code](https://suydev.github.io/isotope-code/)
+> 💾 **Repository:** [github.com/Suydev/isotope-code](https://github.com/Suydev/isotope-code)
+
 ---
 
 ## Quick Start
@@ -102,7 +105,7 @@ Browser action
 Run the SQL patches in the Supabase SQL Editor:
 
 1. `community-patch-v4.sql` — full schema, RLS, storage buckets
-2. `performance-patch.sql` — covering indexes and RLS performance hardening
+2. `performance-patch.sql` — covering indexes and RLS performance hardening (§5 own-row + §6 leaderboard policies)
 
 ---
 
@@ -134,6 +137,45 @@ Expected buckets:
 
 ---
 
+## Changelog
+
+### v3.3.0 — 2026-06-07
+
+- **§5+§6 RLS policies applied to live DB** — Own-row RLS optimisation (§5) and leaderboard public-read policies (§6) from `performance-patch.sql` are now applied to the live Supabase project. Leaderboard queries work correctly for authenticated users.
+- **GitHub Pages docs link** — A "📖 Docs" badge floats in the bottom-right corner of every app page (including the login screen) linking to this documentation site.
+- **Improved login error messages** — Login failures now distinguish between invalid credentials, unconfirmed email, and other Supabase auth errors instead of showing a generic message.
+- **README updated** — Logo links to GitHub Pages, version badge updated to 3.3.0, Docs badge and link added.
+
+### v3.2.0 — 2026-06-07
+
+- Leaderboard RLS fix — users now see real rankings
+- SQL index column correction (`seconds_studied`)
+- `_handleLeaderboard` passes user JWT for authenticated queries
+
+### v3.1.3
+
+- Supabase RLS performance hardening
+- PWA polling fix
+- `.env.example`, `update.bat`, professional release
+
+### v3.1.2-patch
+
+- Critical PWA stability fixes (cache SHA, timer leaks, update logic)
+
+### v3.1.2
+
+- Storage-backed backup restore and `/__auth/backup` auth hardening
+
+### v3.1.1
+
+- Real cloud backup pipeline
+
+### v3.1.0
+
+- Local server PWA command system and Termux CLI
+
+---
+
 ## Links
 
 - [GitHub Repository](https://github.com/Suydev/isotope-code)
@@ -150,4 +192,4 @@ MIT. See [LICENSE](https://github.com/Suydev/isotope-code/blob/main/LICENSE).
 
 ---
 
-*Built by [Suydev](https://github.com/Suydev) — v3.2.0*
+*Built by [Suydev](https://github.com/Suydev) — v3.3.0 — [📖 Docs](https://suydev.github.io/isotope-code/)*

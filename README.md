@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="./logo.svg" alt="IsotopeAI Logo" width="120" />
+  <a href="https://suydev.github.io/isotope-code/">
+    <img src="./logo.svg" alt="IsotopeAI Logo" width="120" />
+  </a>
 </p>
 
 <h1 align="center">IsotopeAI</h1>
@@ -10,7 +12,7 @@
 
 <p align="center">
   <a href="./CHANGELOG.md">
-    <img alt="Version" src="https://img.shields.io/badge/version-3.2.0-8b5cf6?style=flat-square">
+    <img alt="Version" src="https://img.shields.io/badge/version-3.3.0-8b5cf6?style=flat-square">
   </a>
   <a href="https://nodejs.org">
     <img alt="Node" src="https://img.shields.io/badge/node-18%2B-339933?style=flat-square&logo=node.js">
@@ -19,6 +21,9 @@
     <img alt="Platform" src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Android-lightgrey?style=flat-square">
   </a>
   <img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
+  <a href="https://suydev.github.io/isotope-code/">
+    <img alt="Docs" src="https://img.shields.io/badge/docs-GitHub%20Pages-8b5cf6?style=flat-square&logo=github">
+  </a>
 </p>
 
 <p align="center">
@@ -28,7 +33,8 @@
   <a href="#-supabase-setup">Supabase Setup</a> ·
   <a href="#-termux-widget">Termux Widget</a> ·
   <a href="#-bug-fixes">Bug Fixes</a> ·
-  <a href="#-troubleshooting">Troubleshooting</a>
+  <a href="#-troubleshooting">Troubleshooting</a> ·
+  <a href="https://suydev.github.io/isotope-code/">📖 Docs</a>
 </p>
 
 ---
@@ -755,6 +761,7 @@ See [CHANGELOG.md](./CHANGELOG.md).
 
 Highlights:
 
+- **v3.3.0** — §5+§6 RLS policies applied to live DB, GitHub Pages docs link in login screen, improved login error messages
 - **v3.2.0** — Leaderboard RLS fix (users now see real rankings), SQL index column correction (`seconds_studied`)
 - **v3.1.3** — Supabase RLS performance hardening, PWA polling fix, `.env.example`, `update.bat`, professional release
 - **v3.1.2-patch** — Critical PWA stability fixes (cache SHA, timer leaks, update logic)
@@ -787,5 +794,6 @@ MIT. Add a `LICENSE` file before final public release if it is not already prese
 ---
 
 <p align="center">
-  Built by <a href="https://github.com/Suydev">Suydev</a>
+  Built by <a href="https://github.com/Suydev">Suydev</a> ·
+  <a href="https://suydev.github.io/isotope-code/">📖 Documentation</a>
 </p>
