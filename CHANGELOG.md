@@ -5,6 +5,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.3.2] — 2026-06-07 — user_tours table added; /__admin/schema fixed; schema gap audit
+
+### Fixed
+- **`user_tours` table missing from `isotope-complete.sql` and live DB** — Parallel subagent audit found `community-patch-v4.sql` §v11 (lines 2327–2367) defines `public.user_tours` (persistent tour/guide state: which onboarding walks a user completed or dismissed) but it was never included in the master schema file. Table created in live DB via Management API (HTTP 201). Added to `isotope-complete.sql` as §13b with full DDL, RLS policy (`user_tours_own`), auto-update trigger, and Realtime publication.
+- **`/__admin/schema` served missing `isotope-schema.sql` file** — Route handler at `server.mjs:5584` referenced `isotope-schema.sql` (an old/nonexistent file), causing the download button in the admin panel to return HTTP 500. Fixed to serve `isotope-complete.sql` (the current authoritative master schema) with a matching `Content-Disposition` filename.
+
+### Audit (v3.3.2 — 2026-06-07)
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | `user_tours` created in live DB | ✅ HTTP 201 via Management API |
+| 2 | `user_tours` added to `isotope-complete.sql` §13b | ✅ DDL + RLS + trigger + realtime |
+| 3 | `/__admin/schema` now serves correct file | ✅ `isotope-complete.sql` (was broken `isotope-schema.sql`) |
+| 4 | All 24 tables now in master schema | ✅ isotope-complete.sql updated |
+| 5 | All changes pushed to GitHub | ✅ |
+
+---
+
 ## [3.3.1] — 2026-06-07 — Master schema SQL + missing tables applied to live DB
 
   ### Fixed
