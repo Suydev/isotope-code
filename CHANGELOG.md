@@ -5,17 +5,54 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [3.3.4] — 2026-06-07 — Critical bug fixes; YepAPI removed; security hardened
+## [3.3.5] — 2026-06-07 — Performance: speed probe fixed, health cache, pre-gzip bundles, 14 DB indexes
 
 ### Fixed
-- **SyntaxError in Upload-only sync patch** — `|| async ()` is invalid JS (malformed arrow function parameter list). Fixed to `(async () => ...)` wrapper so the upload-dirty-local sync path no longer crashes the App bundle in some browsers.
-- **YepAPI removed entirely** — `/__ai/*` endpoints, `YEPAPI_KEY`, `YEPAPI_BASE` constants, and the full `handleAiRoute()` function have been deleted. The server is now fully self-contained with zero external AI API dependencies.
-- **Unknown `/api/*` routes returned HTTP 200 with SPA HTML** — API paths that don't match any handler now return `{"ok":false,"error":"Not found"}` with HTTP 404, as expected by API clients and monitoring tools.
-- **Security headers missing from all responses** — Added `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `X-XSS-Protection: 1; mode=block`, and `Referrer-Policy: strict-origin-when-cross-origin` to every HTTP response.
-- **CORS `Access-Control-Allow-Methods` was incomplete** — Now includes `PATCH` and `DELETE` (both are used by Supabase REST proxy routes).
-- **Service worker files cached for 1 hour** — `sw.js` and `pwa-local.js` now get `Cache-Control: no-cache` so the browser always checks for updates, preventing users getting stuck on a stale service worker.
-- **`/__auth/backup` POST silently failed without auth** — Now correctly returns HTTP 401 JSON for unauthenticated backup upload requests.
-- **`backup.json` and `firebase-messaging-sw.js` served publicly** — `backup.json` exposed the full backup data schema; `firebase-messaging-sw.js` is a vestigial Firebase Cloud Messaging file with no active Firebase integration. Both now return HTTP 404.
+- **CRITICAL: `/api/health?_=<timestamp>` speed probe returned HTTP 404** — The network speed probe fired by the app at every session used a cache-busting query-string (`?_=Date.now()`). The API health handler matched `req.url === '/api/health'` (exact string), so any request with a query string silently fell through to the `/api/*` 404 fence added in v3.3.4. The speed probe received `{"ok":false,"error":"Not found"}` (34 B) instead of the ~230 B health payload, making the sync timeout calculator classify every user as "slow" (150 s timeout). Fixed: all `/api/*` route handlers now match `adminPath` (the URL parsed without query string) instead of the raw `req.url`.
+- **Same query-string fallthrough for `/api/version`, `/api/check-update`, `/api/ai-config`** — All four API route handlers were patched from `req.url ===` to `adminPath ===`.
+
+### Performance
+- **Health endpoint caching (15 s TTL)** — `/api/health` previously made 3 concurrent Supabase HTTP round-trips on every call (REST, Auth, Storage), taking 200–600 ms. Results are now cached for 15 seconds; subsequent calls return in <1 ms. The cache is only populated on a successful `ok` response so degraded states still probe live.
+- **Pre-gzip bundle cache** — 10 major JS bundles (App, Auth, Focus, Onboarding, SingleGroup, Leaderboard, Settings, AppAccessGate, SessionSync, Invites) are gzip-compressed once at server startup and stored in memory (`_gzipCache`). All subsequent requests for these assets skip the per-request `zlib.gzip()` call and serve the cached compressed buffer instantly. For all other hashed immutable assets and SW files, the first gzip result is also cached.
+- **14 missing database indexes added** (`performance-indexes.sql`) — Static schema analysis found 14 unindexed foreign-key and date-ordering columns:
+  - `community_events(creator_id)`, `community_events(host_user_id)` — FK columns never indexed
+  - `community_events(created_at)`, `community_events(updated_at)` — date ordering
+  - `user_tours(user_id)` — FK for guided-tour lookups per user
+  - `user_tours(created_at)`, `user_tours(updated_at)` — date ordering
+  - `user_roles(granted_by)` — FK for admin audit queries
+  - `group_invites(created_at)` — expiry + ordering queries
+  - `group_challenges(created_at)` — ordering
+  - `groups(created_at)`, `groups(updated_at)` — ordering
+  - `users(updated_at)` — profile sync delta queries
+  - Apply via: `Supabase Dashboard → SQL Editor → run performance-indexes.sql`
+
+### Added
+- **`performance-indexes.sql`** — New file containing all 14 `CREATE INDEX IF NOT EXISTS` statements. Idempotent and safe to run multiple times. Referenced from admin panel setup guide.
+
+### Audit (v3.3.5 — 2026-06-07)
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | `/api/health?_=timestamp` speed probe now returns 200 JSON | ✅ fixed (`adminPath` match) |
+| 2 | `/api/version`, `/api/check-update`, `/api/ai-config` same fix | ✅ all 4 handlers patched |
+| 3 | Health endpoint cached at 15 s TTL | ✅ <1 ms on cache hit |
+| 4 | 10 bundles pre-gzip'd at startup | ✅ `_gzipCache` Map |
+| 5 | 14 missing indexes documented in `performance-indexes.sql` | ✅ new file |
+| 6 | All changes pushed to GitHub | ✅ |
+
+---
+
+## [3.3.4] — 2026-06-07 — YepAPI removed; security headers; syntax fix; API 404s; SW cache
+
+### Fixed
+- **`SyntaxError: Malformed arrow function`** — `|| async () =>` in Upload-only sync patch was invalid syntax; changed to `|| (async () => ...)`.
+- **YepAPI removed entirely** — `handleAiRoute()` and all `/__ai/*` dispatch deleted; those routes return `{"ok":false,"error":"Not found"}`.
+- **Unknown `/api/*` routes returned HTTP 200 with SPA HTML** — Now returns `{"ok":false,"error":"Not found"}` with HTTP 404.
+- **Security headers missing** — Added `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `X-XSS-Protection`, `Referrer-Policy`.
+- **`Access-Control-Allow-Methods` missing `PATCH` and `DELETE`** — Fixed.
+- **`sw.js` and `pwa-local.js` cached for 1 hour** — Now served with `Cache-Control: no-cache`.
+- **`/__auth/backup` POST returned empty body without auth** — Now returns HTTP 401 JSON.
+- **`backup.json` and `firebase-messaging-sw.js` served publicly** — Both blocked with HTTP 404.
 
 ---
 
@@ -516,4 +553,3 @@ First production-stable release. Every feature from the original IsotopeAI is co
 - Demo mode disabled; plan type forced to `ranker`
 - `restore-and-launch.js` — session detection + onboarding routing
 - Base schema: 16 tables + 5 RPCs
-
