@@ -1,9 +1,9 @@
 -- ============================================================================
 -- IsotopeAI — Performance Patch
 -- ============================================================================
--- Run this in the Supabase SQL Editor (or via psql) after isotope-schema.sql.
+-- Run this in the Supabase SQL Editor (or via psql) after isotope-complete.sql
+-- (or after community-patch-v4.sql on existing installs).
 -- Safe to re-run: all DDL uses IF NOT EXISTS / CREATE OR REPLACE.
--- Apply this patch after isotope-schema.sql for best results.
 -- ============================================================================
 
 -- ── 1. Covering index for the RLS membership subquery ─────────────────────
@@ -35,8 +35,17 @@ CREATE INDEX IF NOT EXISTS idx_gchall_created_by
 CREATE INDEX IF NOT EXISTS idx_gcpart_challenge_user
   ON public.group_challenge_participants (challenge_id, user_id);
 
-CREATE INDEX IF NOT EXISTS idx_inventory_user
-  ON public.user_inventory (user_id);
+-- user_inventory index — guarded in case the table was previously dropped
+-- (events-expansion.sql drops it; isotope-complete.sql re-creates it).
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'user_inventory'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_inventory_user ON public.user_inventory (user_id);
+  END IF;
+END $$;
 
 -- ── 3. Security-definer helper for group membership ───────────────────────
 --
@@ -129,12 +138,22 @@ CREATE POLICY sessions_own ON public.study_sessions_log
   WITH CHECK (user_id = (SELECT auth.uid()));
 
 -- ─── public.user_inventory ────────────────────────────────────────────────
+-- Guarded: table may not exist if events-expansion.sql was run without
+-- isotope-complete.sql re-creating it first.
 
-DROP POLICY IF EXISTS inventory_own ON public.user_inventory;
-CREATE POLICY inventory_own ON public.user_inventory
-  FOR ALL
-  USING (user_id = (SELECT auth.uid()))
-  WITH CHECK (user_id = (SELECT auth.uid()));
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'user_inventory'
+  ) THEN
+    DROP POLICY IF EXISTS inventory_own ON public.user_inventory;
+    CREATE POLICY inventory_own ON public.user_inventory
+      FOR ALL
+      USING (user_id = (SELECT auth.uid()))
+      WITH CHECK (user_id = (SELECT auth.uid()));
+  END IF;
+END $$;
 
 -- ─── public.notifications ─────────────────────────────────────────────────
 
