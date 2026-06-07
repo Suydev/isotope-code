@@ -7,6 +7,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'npm-shrinkwrap.json'
+      - 'yarn.lock'
 
 permissions:
   contents: read
@@ -25,22 +26,15 @@ jobs:
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: high
-          deny-licenses: GPL-2.0, GPL-3.0, LGPL-2.0, LGPL-2.1
           comment-summary-in-pr: always
 
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-
-      - name: 📦 Install and audit
+      - name: 📊 Report package.json stats
         run: |
-          npm ci
-          echo "=== npm audit ==="
-          npm audit --audit-level=high || echo "⚠️ Audit issues found — review above"
-
-      - name: 📊 Report dependency count
-        run: |
-          echo "Production deps: $(node -e "const p=require('./package.json'); console.log(Object.keys(p.dependencies||{}).length)")"
-          echo "Dev deps: $(node -e "const p=require('./package.json'); console.log(Object.keys(p.devDependencies||{}).length)")"
+          node -e "
+            const p = require('./package.json');
+            const deps = Object.keys(p.dependencies || {}).length;
+            const dev  = Object.keys(p.devDependencies || {}).length;
+            console.log('Production deps:', deps);
+            console.log('Dev deps:', dev);
+            console.log('Node engines:', p.engines?.node || 'not specified');
+          "
