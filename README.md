@@ -14,7 +14,7 @@
     <img alt="GitHub Stars" src="https://img.shields.io/github/stars/Suydev/isotope-code?style=flat-square&color=8b5cf6&logo=github">
   </a>
   <a href="./CHANGELOG.md">
-    <img alt="Version" src="https://img.shields.io/badge/version-3.3.4-8b5cf6?style=flat-square">
+    <img alt="Version" src="https://img.shields.io/badge/version-3.3.5-8b5cf6?style=flat-square">
   </a>
   <a href="https://nodejs.org">
     <img alt="Node" src="https://img.shields.io/badge/node-18%2B-339933?style=flat-square&logo=node.js&logoColor=white">
@@ -363,7 +363,6 @@ See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
 | Version | Highlights |
 |---|---|
-| **v3.3.4** | Critical bug fixes: syntax error in sync patch, YepAPI removed, security headers, API 404s, SW cache |
 | **v3.3.3** | Admin role auth bug fix (`user_roles.is_active`), 8 undocumented DB functions added to master schema |
 | **v3.3.2** | `user_tours` table, `/__admin/schema` endpoint fixed |
 | **v3.3.1** | `isotope-complete.sql` master schema, 4 missing tables applied |
@@ -417,4 +416,3 @@ If IsotopeAI is useful, **please star this repo** — it helps other students di
   &nbsp;
   <a href="https://github.com/Suydev/isotope-code/fork"><img alt="Forks" src="https://img.shields.io/github/forks/Suydev/isotope-code?style=social"></a>
 </p>
-
