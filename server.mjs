@@ -2576,6 +2576,11 @@ button[title="Remove Background"] {
 }
 </style>`;
 
+// ── Docs link badge — always-visible link to GitHub Pages documentation ───────
+// Floats in the bottom-right corner; appears on the login page and throughout
+// the app so first-time users can find setup instructions without searching.
+const DOCS_LINK_HTML = `<a href="https://suydev.github.io/isotope-code/" target="_blank" rel="noopener noreferrer" id="iso-docs-badge" title="IsotopeAI documentation" style="position:fixed;bottom:14px;right:18px;z-index:9998;background:rgba(10,10,20,0.82);border:1px solid rgba(124,58,237,0.38);border-radius:999px;padding:6px 14px;font-size:11px;font-family:system-ui,-apple-system,sans-serif;color:#a78bfa;text-decoration:none;backdrop-filter:blur(6px);letter-spacing:0.02em;pointer-events:auto;user-select:none" onmouseover="this.style.background='rgba(124,58,237,0.22)';this.style.borderColor='rgba(124,58,237,0.7)'" onmouseout="this.style.background='rgba(10,10,20,0.82)';this.style.borderColor='rgba(124,58,237,0.38)'">📖 Docs</a>`;
+
 function injectScripts(html) {
   // Injection order (all into </head> so they run before React):
   //  1. ORIGIN_SCRIPT   — sets window.__ISO_ORIGIN__, __ISO_SUPA_URL__, __ISO_ANON__
@@ -2586,11 +2591,11 @@ function injectScripts(html) {
   //  6. FEATURE_REMOVAL_STYLE — hide removed features (background upload buttons)
   //  7. KEY_SCRIPT      — AI API keys
   //  8. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
-  // UPDATE_COMMAND_DIALOG_SCRIPT goes before </body> (needs document.body).
+  // UPDATE_COMMAND_DIALOG_SCRIPT + DOCS_LINK_HTML go before </body> (need document.body).
   let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + RELOAD_GUARD_SCRIPT + FEATURE_REMOVAL_STYLE + '</head>');
   if (KEY_SCRIPT) out = out.replace('</head>', KEY_SCRIPT + '</head>');
   out = out.replace('</head>', USERNAME_AUTH_SCRIPT + '</head>');
-  out = out.replace('</body>', UPDATE_COMMAND_DIALOG_SCRIPT + '</body>');
+  out = out.replace('</body>', DOCS_LINK_HTML + UPDATE_COMMAND_DIALOG_SCRIPT + '</body>');
   return out;
 }
 function injectKeys(htmlBuffer) {
@@ -6586,8 +6591,14 @@ ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4
           signin = await supaPasswordSignIn(raw, password);
         }
         if (!signin || !signin.body || !signin.body.access_token) {
+          const supaMsg = (signin && signin.body && (signin.body.error_description || signin.body.message || signin.body.error)) || '';
+          const hint = supaMsg.toLowerCase().includes('email not confirmed')
+            ? 'Your email address is not confirmed. Check your inbox for a confirmation link.'
+            : supaMsg.toLowerCase().includes('invalid login') || supaMsg.toLowerCase().includes('invalid credentials') || supaMsg.toLowerCase().includes('email or password')
+              ? 'Invalid email or password. Make sure you are using the email and password you registered with on Supabase.'
+              : 'Invalid email or password';
           res.writeHead(401, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Invalid email or password' }));
+          res.end(JSON.stringify({ error: hint }));
           return;
         }
         const session = signin.body;
