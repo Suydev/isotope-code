@@ -982,20 +982,79 @@ function buildUsernameAuthScript() {
         backupJson = String(backupJson || '');
         bytes = backupJson.length;
         hash = await hashText(backupJson);
+
+        // ── SMART SYNC: compare timestamps before deciding direction ──────────
+        // If the cloud snapshot is newer than our last local sync, download and
+        // apply it FIRST so we don't overwrite remote changes with stale local data.
+        var meta = readSyncMetadata();
+        var localTs = meta.last_snapshot_at ? new Date(meta.last_snapshot_at).getTime() : 0;
+        var cloudIsNewer = false;
+        var cloudData = null;
+        try {
+          cloudData = await authedJson('/__auth/backup/latest', { method: 'GET', timeoutMs: 18000 });
+          var cloudAt = cloudData && cloudData.cloud_snapshot &&
+            (cloudData.cloud_snapshot.exported_at || cloudData.cloud_snapshot.downloaded_at || cloudData.cloud_snapshot.uploaded_at);
+          var cloudTs = cloudAt ? new Date(cloudAt).getTime() : 0;
+          // 10-second tolerance to avoid flip-flopping on clock skew
+          cloudIsNewer = cloudTs > 0 && localTs > 0 ? (cloudTs - localTs > 10000) : false;
+          if (!localTs && cloudTs > 0) cloudIsNewer = true; // first sync: always download first
+        } catch(fetchErr) {
+          console.warn('[SmartSync] Could not fetch cloud metadata (non-fatal):', fetchErr && fetchErr.message);
+        }
+
+        if (cloudIsNewer && cloudData && cloudData.backup_json) {
+          // Cloud is ahead — import cloud data first, then upload merged local state
+          var cloudHash = await hashText(cloudData.backup_json);
+          if (cloudHash !== hash && meta.last_imported_hash !== cloudHash) {
+            await yieldToBrowser();
+            if (typeof applyBackup === 'function') await applyBackup(cloudData.backup_json);
+            writeSyncMetadata({ last_imported_hash: cloudHash, last_imported_bytes: cloudData.backup_json.length });
+            imported = true;
+            downloaded = true;
+            writeSyncHistory({ op: 'smart_download', status: 'ok', source: _src, bytes: cloudData.backup_json.length, hash: cloudHash });
+            // Rebuild local backup after applying cloud data so we upload the merged state
+            try {
+              if (typeof buildBackup === 'function') {
+                backupJson = String(await buildBackup() || '');
+                bytes = backupJson.length;
+                hash = await hashText(backupJson);
+              }
+            } catch(rebuildErr) { /* use original backup if rebuild fails */ }
+          }
+        }
+        // ── End smart sync ────────────────────────────────────────────────────
+
         var uploadResult = await uploadBackupPayload(backupJson, { hash: hash, force: false, timeoutMs: 65000 });
         uploaded = !uploadResult.skipped;
         uploadSkipped = uploadResult.skipped === true;
-        var meta = readSyncMetadata();
-        if (!uploaded && meta.last_downloaded_hash !== hash) {
-          var downloadResult = await downloadBackupPayload({ timeoutMs: 45000 });
-          downloaded = !!downloadResult.backup_json;
-          if (downloadResult.backup_json && downloadResult.hash !== hash && meta.last_imported_hash !== downloadResult.hash) {
-            await yieldToBrowser();
-            if (typeof applyBackup === 'function') await applyBackup(downloadResult.backup_json);
-            writeSyncMetadata({ last_imported_hash: downloadResult.hash, last_imported_bytes: downloadResult.bytes || 0 });
-            imported = true;
+
+        // If upload was skipped (unchanged) and we haven't pulled cloud yet, check for changes
+        if (!uploaded && !downloaded) {
+          var latestMeta = readSyncMetadata();
+          if (cloudData && cloudData.backup_json) {
+            var cHash = await hashText(cloudData.backup_json);
+            if (cHash !== hash && latestMeta.last_imported_hash !== cHash) {
+              await yieldToBrowser();
+              if (typeof applyBackup === 'function') await applyBackup(cloudData.backup_json);
+              writeSyncMetadata({ last_imported_hash: cHash, last_imported_bytes: cloudData.backup_json.length });
+              imported = true;
+              downloaded = true;
+            }
+          } else if (!cloudData) {
+            // Fallback: fetch fresh if we didn't get it above
+            try {
+              var downloadResult = await downloadBackupPayload({ timeoutMs: 45000 });
+              downloaded = !!downloadResult.backup_json;
+              if (downloadResult.backup_json && downloadResult.hash !== hash && latestMeta.last_imported_hash !== downloadResult.hash) {
+                await yieldToBrowser();
+                if (typeof applyBackup === 'function') await applyBackup(downloadResult.backup_json);
+                writeSyncMetadata({ last_imported_hash: downloadResult.hash, last_imported_bytes: downloadResult.bytes || 0 });
+                imported = true;
+              }
+            } catch(dlErr) { /* non-fatal */ }
           }
         }
+
         writeSyncMetadata({ last_sync_status: 'synced', last_error: null, pending_count: 0, last_snapshot_at: readSyncMetadata().last_snapshot_at || new Date().toISOString() });
         writeSyncHistory({ op: 'manual_sync', status: 'ok', source: _src, bytes: bytes, hash: hash, uploaded: uploaded, upload_skipped: uploadSkipped, downloaded: downloaded, imported: imported });
         return { ok: true, uploaded: uploaded, upload_skipped: uploadSkipped, downloaded: downloaded, imported: imported, hash: hash, bytes: bytes };
@@ -1209,10 +1268,22 @@ function buildUsernameAuthScript() {
       var data = await r.json();
       if (!r.ok) return {ok: false, err: data.error || 'Login failed'};
       saveSession(data.session);
-      // Sync profile from DB: sets isOnboarded=true so existing accounts skip onboarding
       var jwt = data.session && data.session.access_token;
-      var snap = jwt ? await syncProfileAfterLogin(jwt) : null;
-      return {ok: true, onboarding_completed: snap ? snap.onboarding_completed === true : data.onboarding_completed === true};
+      // Track onboarding from the login response first
+      var onboarding_completed = data.onboarding_completed === true;
+      // Profile sync is BEST-EFFORT — network failure must NOT prevent login.
+      // The double-login bug was caused by syncProfileAfterLogin throwing and
+      // being caught by the outer catch, making __isoLogin return {ok:false}.
+      if (jwt) {
+        try {
+          var snap = await syncProfileAfterLogin(jwt);
+          if (snap) onboarding_completed = snap.onboarding_completed === true;
+        } catch(syncErr) {
+          console.warn('[Auth] Profile sync after login failed (non-fatal):', syncErr && syncErr.message);
+          // Still succeed — the session is valid, the app will retry sync later.
+        }
+      }
+      return {ok: true, onboarding_completed: onboarding_completed};
     } catch(e) {
       return {ok: false, err: e.message || 'Network error'};
     }
@@ -1412,14 +1483,14 @@ function buildUsernameAuthScript() {
       history.pushState = function() { _origPush.apply(this, arguments); setTimeout(injectOrRefresh, 400); };
       window.addEventListener('popstate', function() { setTimeout(injectOrRefresh, 400); });
     } catch(e) {}
-    // Run on DOMContentLoaded + polling
+    // Run on DOMContentLoaded — event-driven only (no setInterval DOM polling)
     function start() {
       injectOrRefresh();
-      setInterval(injectOrRefresh, 3000);
       if (window.MutationObserver) {
         var obs = new MutationObserver(function() { try { injectOrRefresh(); } catch(e) {} });
         obs.observe(document.body, { childList: true, subtree: true });
-        setTimeout(function() { obs.disconnect(); }, 30000);
+        // Stay active for 3 minutes to handle slow SPA navigations
+        setTimeout(function() { obs.disconnect(); }, 180000);
       }
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
@@ -2488,6 +2559,17 @@ const RELOAD_GUARD_SCRIPT = `<script>
 })();
 </script>`;
 
+// ── Feature removal: hide background upload buttons injected via CSS ──────────
+// The Focus page has "Custom Background URL" and "Remove Background" icon buttons
+// in the top-right header that expose a now-removed storage upload feature.
+// Hiding via CSS is simpler and safer than patching the minified bundle.
+const FEATURE_REMOVAL_STYLE = `<style>
+button[title="Custom Background URL"],
+button[title="Remove Background"] {
+  display: none !important;
+}
+</style>`;
+
 function injectScripts(html) {
   // Injection order (all into </head> so they run before React):
   //  1. ORIGIN_SCRIPT   — sets window.__ISO_ORIGIN__, __ISO_SUPA_URL__, __ISO_ANON__
@@ -2495,10 +2577,11 @@ function injectScripts(html) {
   //  3. AUTH_GUARD_SCRIPT — immediate redirect if no valid session (must be early)
   //  4. PREMIUM_SCRIPT  — fetch interceptor + profile upgrade (only runs if authed)
   //  5. RELOAD_GUARD_SCRIPT — one-shot SW reload guard
-  //  6. KEY_SCRIPT      — AI API keys
-  //  7. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
+  //  6. FEATURE_REMOVAL_STYLE — hide removed features (background upload buttons)
+  //  7. KEY_SCRIPT      — AI API keys
+  //  8. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
   // UPDATE_COMMAND_DIALOG_SCRIPT goes before </body> (needs document.body).
-  let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + RELOAD_GUARD_SCRIPT + '</head>');
+  let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + RELOAD_GUARD_SCRIPT + FEATURE_REMOVAL_STYLE + '</head>');
   if (KEY_SCRIPT) out = out.replace('</head>', KEY_SCRIPT + '</head>');
   out = out.replace('</head>', USERNAME_AUTH_SCRIPT + '</head>');
   out = out.replace('</body>', UPDATE_COMMAND_DIALOG_SCRIPT + '</body>');
