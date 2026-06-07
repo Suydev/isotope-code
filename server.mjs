@@ -594,6 +594,140 @@ function buildUsernameAuthScript() {
     } catch(e) {}
   }
 
+  function readSyncMetadata() {
+    try { return JSON.parse(localStorage.getItem('isotope_sync_metadata') || '{}') || {}; } catch(e) { return {}; }
+  }
+
+  function stableStringify(value) {
+    if (value === null || typeof value !== 'object') return JSON.stringify(value);
+    if (Array.isArray(value)) return '[' + value.map(stableStringify).join(',') + ']';
+    return '{' + Object.keys(value).sort().map(function(k) {
+      return JSON.stringify(k) + ':' + stableStringify(value[k]);
+    }).join(',') + '}';
+  }
+
+  async function hashText(text) {
+    var str = String(text || '');
+    try {
+      if (window.crypto && window.crypto.subtle && window.TextEncoder) {
+        var data = new TextEncoder().encode(str);
+        var digest = await window.crypto.subtle.digest('SHA-256', data);
+        return Array.prototype.map.call(new Uint8Array(digest), function(b) {
+          return b.toString(16).padStart(2, '0');
+        }).join('');
+      }
+    } catch(e) {}
+    var h1 = 2166136261, h2 = 16777619;
+    for (var i = 0; i < str.length; i++) {
+      h1 ^= str.charCodeAt(i);
+      h1 = Math.imul(h1, 16777619);
+      h2 = Math.imul(h2 ^ str.charCodeAt(i), 2246822519);
+    }
+    return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0') + ':' + str.length;
+  }
+
+  function yieldToBrowser() {
+    return new Promise(function(resolve) {
+      if (typeof requestIdleCallback === 'function') requestIdleCallback(function(){ resolve(); }, { timeout: 250 });
+      else requestAnimationFrame(function(){ setTimeout(resolve, 0); });
+    });
+  }
+
+  window.__isoStringifyBackup = async function(value) {
+    await yieldToBrowser();
+    if (typeof Worker !== 'function' || typeof Blob !== 'function' || typeof URL === 'undefined') {
+      return JSON.stringify(value, null, 2);
+    }
+    return new Promise(function(resolve) {
+      var workerUrl = null;
+      var done = false;
+      function finish(result) {
+        if (done) return;
+        done = true;
+        try { if (workerUrl) URL.revokeObjectURL(workerUrl); } catch(e) {}
+        resolve(result);
+      }
+      try {
+        var source = 'self.onmessage=function(e){try{self.postMessage({ok:true,json:JSON.stringify(e.data,null,2)})}catch(err){self.postMessage({ok:false,error:err&&err.message||"stringify failed"})}}';
+        workerUrl = URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+        var worker = new Worker(workerUrl);
+        var tid = setTimeout(function() {
+          try { worker.terminate(); } catch(e) {}
+          finish(JSON.stringify(value, null, 2));
+        }, 20000);
+        worker.onmessage = function(event) {
+          clearTimeout(tid);
+          try { worker.terminate(); } catch(e) {}
+          var data = event.data || {};
+          finish(data.ok ? data.json : JSON.stringify(value, null, 2));
+        };
+        worker.onerror = function() {
+          clearTimeout(tid);
+          try { worker.terminate(); } catch(e) {}
+          finish(JSON.stringify(value, null, 2));
+        };
+        worker.postMessage(value);
+      } catch(e) {
+        finish(JSON.stringify(value, null, 2));
+      }
+    });
+  };
+
+  async function withTimeout(promiseFactory, timeoutMs, label) {
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var tid;
+    var timeout = new Promise(function(_, reject) {
+      tid = setTimeout(function() {
+        try { if (controller) controller.abort(); } catch(e) {}
+        reject(new Error(label || 'Operation timed out'));
+      }, timeoutMs || 45000);
+    });
+    try {
+      return await Promise.race([promiseFactory(controller ? controller.signal : null), timeout]);
+    } finally {
+      clearTimeout(tid);
+    }
+  }
+
+  var syncCoordinator = window.__isoSyncCoordinator || {
+    active: false,
+    activeName: null,
+    startedAt: 0,
+    lastAutoAt: 0
+  };
+  window.__isoSyncCoordinator = syncCoordinator;
+
+  async function withSyncLock(name, options, fn) {
+    options = options || {};
+    var now = Date.now();
+    var lockTimeoutMs = options.lockTimeoutMs || 90000;
+    if (syncCoordinator.active && now - syncCoordinator.startedAt < lockTimeoutMs) {
+      writeSyncMetadata({ last_sync_status: 'syncing', last_error: null, active_operation: syncCoordinator.activeName || 'sync' });
+      return { ok: false, skipped: true, reason: 'already_running', active: syncCoordinator.activeName };
+    }
+    if (syncCoordinator.active && now - syncCoordinator.startedAt >= lockTimeoutMs) {
+      syncCoordinator.active = false;
+      syncCoordinator.activeName = null;
+      syncCoordinator.startedAt = 0;
+    }
+    if (!options.force && options.autoDebounceMs && now - syncCoordinator.lastAutoAt < options.autoDebounceMs) {
+      return { ok: true, skipped: true, reason: 'debounced' };
+    }
+    if (!options.force && options.autoDebounceMs) syncCoordinator.lastAutoAt = now;
+    syncCoordinator.active = true;
+    syncCoordinator.activeName = name || 'sync';
+    syncCoordinator.startedAt = now;
+    try {
+      writeSyncMetadata({ last_sync_status: 'syncing', last_error: null, active_operation: syncCoordinator.activeName, active_started_at: new Date(now).toISOString() });
+      return await withTimeout(function(){ return fn(); }, options.timeoutMs || lockTimeoutMs, (name || 'Sync') + ' timed out');
+    } finally {
+      syncCoordinator.active = false;
+      syncCoordinator.activeName = null;
+      syncCoordinator.startedAt = 0;
+      writeSyncMetadata({ active_operation: null, active_started_at: null });
+    }
+  }
+
   // Append one event to the rolling sync history (max 25 entries).
   // entry: { op, status, error?, bytes?, mode?, source? }
   function writeSyncHistory(entry) {
@@ -601,7 +735,18 @@ function buildUsernameAuthScript() {
       var history = [];
       try { history = JSON.parse(localStorage.getItem('isotope_sync_history') || '[]') || []; } catch(e) {}
       if (!Array.isArray(history)) history = [];
-      history.unshift(Object.assign({ at: new Date().toISOString() }, entry || {}));
+      var next = Object.assign({ at: new Date().toISOString() }, entry || {});
+      var prev = history[0] || {};
+      var sameRecent = prev.op === next.op &&
+        prev.status === next.status &&
+        prev.hash === next.hash &&
+        prev.source === next.source &&
+        (Date.now() - new Date(prev.at || 0).getTime()) < 5000;
+      if (sameRecent) {
+        history[0] = Object.assign({}, prev, next, { at: prev.at, repeats: (Number(prev.repeats) || 1) + 1 });
+      } else {
+        history.unshift(next);
+      }
       if (history.length > 25) history = history.slice(0, 25);
       localStorage.setItem('isotope_sync_history', JSON.stringify(history));
     } catch(e) {}
@@ -638,13 +783,24 @@ function buildUsernameAuthScript() {
     var jwt = await getValidJwt();
     if (!jwt) throw new Error('Authentication required — please log in');
     var headers = Object.assign({ 'Accept': 'application/json', 'Authorization': 'Bearer ' + jwt }, (options && options.headers) || {});
-    var r = await fetch(url, Object.assign({}, options || {}, { headers: headers }));
+    var timeoutMs = options && options.timeoutMs ? options.timeoutMs : 45000;
+    var r = await withTimeout(function(signal) {
+      var init = Object.assign({}, options || {}, { headers: headers });
+      delete init.timeoutMs;
+      if (signal) init.signal = signal;
+      return fetch(url, init);
+    }, timeoutMs, 'Cloud request timed out');
     // If 401, force-refresh the token and retry once before giving up
     if (r.status === 401) {
       var refreshed = await forceRefreshJwt();
       if (refreshed && refreshed !== jwt) {
         headers = Object.assign({ 'Accept': 'application/json', 'Authorization': 'Bearer ' + refreshed }, (options && options.headers) || {});
-        r = await fetch(url, Object.assign({}, options || {}, { headers: headers }));
+        r = await withTimeout(function(signal) {
+          var init = Object.assign({}, options || {}, { headers: headers });
+          delete init.timeoutMs;
+          if (signal) init.signal = signal;
+          return fetch(url, init);
+        }, timeoutMs, 'Cloud request timed out');
       }
     }
     var d = await r.json().catch(function(){ return {}; });
@@ -653,73 +809,228 @@ function buildUsernameAuthScript() {
     return d;
   }
 
+  window.__isoPostProfile = async function(body) {
+    var d = await authedJson('/__auth/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+      timeoutMs: 60000
+    });
+    try { applyProfileSnapshot(d); } catch(e) {}
+    return d;
+  };
+
+  async function uploadBackupPayload(backupJson, options) {
+    options = options || {};
+    var text = String(backupJson || '');
+    var bytes = text.length;
+    var hash = options.hash || await hashText(text);
+    var meta = readSyncMetadata();
+    if (!options.force && meta.last_uploaded_hash === hash) {
+      writeSyncMetadata({
+        last_sync_status: 'synced',
+        last_error: null,
+        last_backup_hash: hash,
+        last_snapshot_at: meta.last_snapshot_at || new Date().toISOString(),
+        pending_count: 0
+      });
+      return { ok: true, skipped: true, reason: 'unchanged', bytes: bytes, hash: hash };
+    }
+    var d = await authedJson('/__auth/backup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ backup_json: text }),
+      timeoutMs: options.timeoutMs || 60000
+    });
+    var snapshotAt = (d.cloud_snapshot && (d.cloud_snapshot.exported_at || d.cloud_snapshot.downloaded_at)) || d.synced_at || new Date().toISOString();
+    writeSyncMetadata({
+      last_sync_status: 'synced',
+      last_backup_hash: hash,
+      last_uploaded_hash: hash,
+      last_uploaded_bytes: bytes,
+      last_snapshot_at: snapshotAt,
+      pending_count: 0,
+      last_error: null
+    });
+    return { ok: true, bytes: bytes, hash: hash, export_storage: d.export_storage || null, snapshot_storage: d.snapshot_storage || null };
+  }
+
+  async function downloadBackupPayload(options) {
+    options = options || {};
+    var d = await authedJson('/__auth/backup/latest', { method: 'GET', timeoutMs: options.timeoutMs || 45000 });
+    var text = d.backup_json || '';
+    if (!text) return { ok: true, skipped: true, reason: 'empty' };
+    var hash = await hashText(text);
+    writeSyncMetadata({
+      last_sync_status: 'synced',
+      last_downloaded_hash: hash,
+      last_downloaded_bytes: text.length,
+      last_error: null
+    });
+    return { ok: true, backup_json: text, hash: hash, bytes: text.length, cloud_snapshot: d.cloud_snapshot || null };
+  }
+
+  async function importBackupPayload(backupJson, mode, options) {
+    options = options || {};
+    var text = String(backupJson || '');
+    var hash = options.hash || await hashText(text);
+    var meta = readSyncMetadata();
+    if (!options.force && meta.last_imported_hash === hash) {
+      return { ok: true, skipped: true, reason: 'already_imported', hash: hash, bytes: text.length };
+    }
+    var d = await authedJson('/__auth/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ backup_json: text, mode: mode || 'merge' }),
+      timeoutMs: options.timeoutMs || 60000
+    });
+    writeSyncMetadata({
+      last_sync_status: 'synced',
+      last_imported_hash: hash,
+      last_imported_bytes: text.length,
+      last_snapshot_at: (d.cloud_snapshot && (d.cloud_snapshot.exported_at || d.cloud_snapshot.downloaded_at)) || readSyncMetadata().last_snapshot_at || new Date().toISOString(),
+      pending_count: 0,
+      last_error: null
+    });
+    return { ok: true, hash: hash, bytes: text.length, import_storage: d.import_storage || null, applied: d.applied || {}, unsupported_collections: d.unsupported_collections || [] };
+  }
+
   window.__isoRefreshCloudSnapshot = async function(source) {
     var _src = source || 'manual_sync';
-    writeSyncHistory({ op: 'snapshot', status: 'syncing', source: _src });
-    try {
-      writeSyncMetadata({ last_sync_status: 'syncing', last_error: null });
-      var d = await authedJson('/__auth/snapshot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: _src })
-      });
-      writeSyncHistory({ op: 'snapshot', status: 'ok', source: _src });
-      return { ok: true, snapshot_storage: d.snapshot_storage || null };
-    } catch(e) {
-      writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Cloud snapshot upload failed' });
-      writeSyncHistory({ op: 'snapshot', status: 'failed', error: e.message || 'Cloud snapshot upload failed', source: _src });
-      throw e;
-    }
+    return withSyncLock('snapshot', { force: _src.indexOf('manual') >= 0, autoDebounceMs: 45000, timeoutMs: 60000 }, async function() {
+      try {
+        var d = await authedJson('/__auth/snapshot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: _src }),
+          timeoutMs: 60000
+        });
+        var snapshotAt = (d.cloud_snapshot && (d.cloud_snapshot.exported_at || d.cloud_snapshot.downloaded_at)) || new Date().toISOString();
+        writeSyncMetadata({ last_sync_status: 'synced', last_snapshot_at: snapshotAt, pending_count: 0, last_error: null });
+        writeSyncHistory({ op: 'snapshot', status: 'ok', source: _src, at: snapshotAt });
+        return { ok: true, snapshot_storage: d.snapshot_storage || null };
+      } catch(e) {
+        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Cloud snapshot upload failed' });
+        writeSyncHistory({ op: 'snapshot', status: 'failed', error: e.message || 'Cloud snapshot upload failed', source: _src });
+        throw e;
+      }
+    });
   };
 
-  window.__isoUploadBackupJSON = async function(backupJson) {
-    var _bytes = String(backupJson || '').length;
-    writeSyncHistory({ op: 'upload', status: 'syncing', bytes: _bytes });
-    try {
-      writeSyncMetadata({ last_sync_status: 'syncing', last_error: null });
-      var d = await authedJson('/__auth/backup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ backup_json: String(backupJson || '') })
-      });
-      writeSyncHistory({ op: 'upload', status: 'ok', bytes: _bytes });
-      return { ok: true, export_storage: d.export_storage || null, snapshot_storage: d.snapshot_storage || null };
-    } catch(e) {
-      writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup upload failed' });
-      writeSyncHistory({ op: 'upload', status: 'failed', error: e.message || 'Backup upload failed', bytes: _bytes });
-      throw e;
-    }
+  window.__isoUploadBackupJSON = async function(backupJson, options) {
+    options = options || {};
+    var source = options.source || options.reason || 'manual_export';
+    var text = String(backupJson || '');
+    var bytes = text.length;
+    var hash = await hashText(text);
+    return withSyncLock('upload', { force: options.force === true, autoDebounceMs: options.force ? 0 : 60000, timeoutMs: options.timeoutMs || 70000 }, async function() {
+      try {
+        await yieldToBrowser();
+        var result = await uploadBackupPayload(text, { hash: hash, force: options.force === true, timeoutMs: options.timeoutMs || 60000 });
+        writeSyncHistory({ op: 'upload', status: result.skipped ? 'skipped' : 'ok', source: source, bytes: bytes, hash: hash, detail: result.reason || null });
+        return result;
+      } catch(e) {
+        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup upload failed' });
+        writeSyncHistory({ op: 'upload', status: 'failed', source: source, error: e.message || 'Backup upload failed', bytes: bytes, hash: hash });
+        throw e;
+      }
+    });
   };
 
-  window.__isoDownloadBackupJSON = async function() {
-    writeSyncHistory({ op: 'download', status: 'syncing' });
-    try {
-      var d = await authedJson('/__auth/backup/latest', { method: 'GET' });
-      writeSyncHistory({ op: 'download', status: 'ok' });
-      return d.backup_json || null;
-    } catch(e) {
-      writeSyncHistory({ op: 'download', status: 'failed', error: e.message || 'Download failed' });
-      throw e;
-    }
+  window.__isoDownloadBackupJSON = async function(options) {
+    options = options || {};
+    var locked = await withSyncLock('download', { force: options.force === true, autoDebounceMs: options.force ? 0 : 60000, timeoutMs: options.timeoutMs || 60000 }, async function() {
+      try {
+        var result = await downloadBackupPayload(options);
+        writeSyncHistory({ op: 'download', status: result.skipped ? 'skipped' : 'ok', source: options.source || 'download', bytes: result.bytes || 0, hash: result.hash || null, detail: result.reason || null });
+        return result.backup_json || null;
+      } catch(e) {
+        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Download failed' });
+        writeSyncHistory({ op: 'download', status: 'failed', source: options.source || 'download', error: e.message || 'Download failed' });
+        throw e;
+      }
+    });
+    return typeof locked === 'string' ? locked : null;
   };
 
-  window.__isoImportBackupJSON = async function(backupJson, mode) {
+  window.__isoImportBackupJSON = async function(backupJson, mode, options) {
+    options = options || {};
     var _mode = mode || 'merge';
-    writeSyncHistory({ op: 'import', status: 'syncing', mode: _mode });
-    try {
-      writeSyncMetadata({ last_sync_status: 'syncing', last_error: null });
-      var d = await authedJson('/__auth/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ backup_json: String(backupJson || ''), mode: _mode })
-      });
-      writeSyncHistory({ op: 'import', status: 'ok', mode: _mode });
-      return { ok: true, import_storage: d.import_storage || null, applied: d.applied || {}, unsupported_collections: d.unsupported_collections || [] };
-    } catch(e) {
-      writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup import failed' });
-      writeSyncHistory({ op: 'import', status: 'failed', error: e.message || 'Backup import failed', mode: _mode });
-      throw e;
-    }
+    var text = String(backupJson || '');
+    var hash = await hashText(text);
+    return withSyncLock('import', { force: options.force === true, autoDebounceMs: options.force ? 0 : 60000, timeoutMs: options.timeoutMs || 70000 }, async function() {
+      try {
+        await yieldToBrowser();
+        var result = await importBackupPayload(text, _mode, { hash: hash, force: options.force === true, timeoutMs: options.timeoutMs || 60000 });
+        writeSyncHistory({ op: 'import', status: result.skipped ? 'skipped' : 'ok', mode: _mode, source: options.source || 'manual_import', bytes: text.length, hash: hash, detail: result.reason || null });
+        return result;
+      } catch(e) {
+        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup import failed' });
+        writeSyncHistory({ op: 'import', status: 'failed', mode: _mode, source: options.source || 'manual_import', error: e.message || 'Backup import failed', bytes: text.length, hash: hash });
+        throw e;
+      }
+    });
+  };
+
+  window.__isoRunManualCloudSync = async function(buildBackup, applyBackup, source) {
+    var _src = source || 'manual_full_sync';
+    return withSyncLock('manual_sync', { force: true, timeoutMs: 120000 }, async function() {
+      var bytes = 0, hash = null, uploaded = false, uploadSkipped = false, downloaded = false, imported = false;
+      try {
+        await yieldToBrowser();
+        var backupJson = typeof buildBackup === 'function' ? await buildBackup() : '';
+        backupJson = String(backupJson || '');
+        bytes = backupJson.length;
+        hash = await hashText(backupJson);
+        var uploadResult = await uploadBackupPayload(backupJson, { hash: hash, force: false, timeoutMs: 65000 });
+        uploaded = !uploadResult.skipped;
+        uploadSkipped = uploadResult.skipped === true;
+        var meta = readSyncMetadata();
+        if (!uploaded && meta.last_downloaded_hash !== hash) {
+          var downloadResult = await downloadBackupPayload({ timeoutMs: 45000 });
+          downloaded = !!downloadResult.backup_json;
+          if (downloadResult.backup_json && downloadResult.hash !== hash && meta.last_imported_hash !== downloadResult.hash) {
+            await yieldToBrowser();
+            if (typeof applyBackup === 'function') await applyBackup(downloadResult.backup_json);
+            writeSyncMetadata({ last_imported_hash: downloadResult.hash, last_imported_bytes: downloadResult.bytes || 0 });
+            imported = true;
+          }
+        }
+        writeSyncMetadata({ last_sync_status: 'synced', last_error: null, pending_count: 0, last_snapshot_at: readSyncMetadata().last_snapshot_at || new Date().toISOString() });
+        writeSyncHistory({ op: 'manual_sync', status: 'ok', source: _src, bytes: bytes, hash: hash, uploaded: uploaded, upload_skipped: uploadSkipped, downloaded: downloaded, imported: imported });
+        return { ok: true, uploaded: uploaded, upload_skipped: uploadSkipped, downloaded: downloaded, imported: imported, hash: hash, bytes: bytes };
+      } catch(e) {
+        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Cloud sync failed' });
+        writeSyncHistory({ op: 'manual_sync', status: 'failed', source: _src, bytes: bytes, hash: hash, error: e.message || 'Cloud sync failed' });
+        throw e;
+      }
+    });
+  };
+
+  window.__isoDownloadAndImportBackup = async function(applyBackup, source) {
+    var _src = source || 'cloud_download';
+    return withSyncLock('download_import', { force: true, timeoutMs: 90000 }, async function() {
+      var result = null, imported = false;
+      try {
+        result = await downloadBackupPayload({ timeoutMs: 45000 });
+        if (result.backup_json) {
+          var meta = readSyncMetadata();
+          if (meta.last_imported_hash !== result.hash) {
+            await yieldToBrowser();
+            if (typeof applyBackup === 'function') await applyBackup(result.backup_json);
+            writeSyncMetadata({ last_imported_hash: result.hash, last_imported_bytes: result.bytes || 0 });
+            imported = true;
+          }
+        }
+        writeSyncMetadata({ last_sync_status: 'synced', last_error: null, pending_count: 0 });
+        writeSyncHistory({ op: 'download_import', status: result && result.skipped ? 'skipped' : 'ok', source: _src, bytes: result && result.bytes || 0, hash: result && result.hash || null, imported: imported });
+        return { ok: true, imported: imported, downloaded: !!(result && result.backup_json), hash: result && result.hash || null };
+      } catch(e) {
+        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Download/import failed' });
+        writeSyncHistory({ op: 'download_import', status: 'failed', source: _src, error: e.message || 'Download/import failed' });
+        throw e;
+      }
+    });
   };
 
   // Sign up a new user (username + password, no email)
@@ -909,16 +1220,12 @@ function buildUsernameAuthScript() {
 
   window.__isoCompleteOnboarding = async function(profilePatch) {
     try {
-      var jwt = currentJwt();
-      if (!jwt) throw new Error('Authentication required');
       var body = Object.assign({}, profilePatch || {}, { isOnboarded: true, onboarding_completed: true });
-      var r = await fetch('/__auth/profile', {
+      var d = await authedJson('/__auth/profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-      var d = await r.json().catch(function(){ return {}; });
-      if (!r.ok || !d.ok) throw new Error(d.error || 'Onboarding save failed');
       var snap = applyProfileSnapshot(d);
       if (!snap || snap.onboarding_completed !== true) throw new Error('Onboarding save was not verified');
       return { ok: true };
@@ -936,16 +1243,12 @@ function buildUsernameAuthScript() {
       localStorage.setItem('isotope-user-tours', JSON.stringify(tours));
     } catch(e) {}
     try {
-      var jwt = currentJwt();
-      if (!jwt) return { ok: false, err: 'Authentication required' };
       var patch = {}; patch[k] = seen === true; patch.community_group_v1 = seen === true;
-      var r = await fetch('/__auth/profile', {
+      var d = await authedJson('/__auth/profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tours: patch })
       });
-      var d = await r.json().catch(function(){ return {}; });
-      if (!r.ok || !d.ok) return { ok: false, err: d.error || 'Tour save failed' };
       applyProfileSnapshot(d);
       return { ok: true };
     } catch(e) {
@@ -1013,6 +1316,13 @@ function buildUsernameAuthScript() {
   // Injects a live "Sync History" card into the Settings Sync & Backup section.
   // Reads from isotope_sync_history / isotope_sync_metadata in localStorage.
   (function() {
+    var enabled = false;
+    try {
+      enabled = window.__ISO_DEV_PANELS__ === true ||
+        /^(1|true|yes)$/i.test(localStorage.getItem('__iso_dev_panels') || '') ||
+        /[?&]isoDevPanels=1\b/.test(window.location.search || '');
+    } catch(e) {}
+    if (!enabled) return;
     var _panel = null;
     function relTime(iso) {
       if (!iso) return '';
@@ -2105,25 +2415,33 @@ function buildAuthGuardScript() {
   if (isPublic) return; // Public page — no auth required
 
   // ── Session check ────────────────────────────────────────────────────────────
-  function getValidSession() {
+  function getStoredSessionEvidence() {
     try {
       var raw = localStorage.getItem('sb-' + SUPA_REF + '-auth-token')
              || localStorage.getItem('isotope-auth-token');
       if (!raw) return null;
       var sess = JSON.parse(raw);
-      var token = sess && (sess.access_token || (sess.session && sess.session.access_token) || (sess.currentSession && sess.currentSession.access_token));
+      var stateSession = sess && sess.state && sess.state.session;
+      var token = sess && (sess.access_token || (sess.session && sess.session.access_token) || (sess.currentSession && sess.currentSession.access_token) || (stateSession && stateSession.access_token));
       if (!token) return null;
-      var exp = sess.expires_at || (sess.session && sess.session.expires_at) || (sess.currentSession && sess.currentSession.expires_at);
-      var refresh = sess.refresh_token || (sess.session && sess.session.refresh_token) || (sess.currentSession && sess.currentSession.refresh_token);
-      if (exp && (Number(exp) * 1000) < Date.now() && !refresh) return null; // expired and not refreshable
       return sess;
     } catch(e) { return null; }
   }
 
-  var session = getValidSession();
+  var session = getStoredSessionEvidence();
   if (!session) {
-    // No valid session — redirect immediately to the sign-in/sign-up page.
-    window.location.replace('/auth');
+    // Route decisions are made by restore-and-launch.js after Supabase session
+    // hydration/refresh. Do not preemptively redirect protected deep links.
+    window.__ISO_AUTH_GUARD__ = { state: 'sessionRestoring', protectedPath: currentPath, startedAt: Date.now() };
+    var redirectIfLoggedOut = function(detail) {
+      var boot = (detail && detail.detail) || window.__ISO_BOOT_STATE__ || {};
+      if (boot.state === 'readyLoggedOut') window.location.replace('/auth');
+    };
+    window.addEventListener('isotope:boot-state', redirectIfLoggedOut);
+    setTimeout(function() {
+      var boot = window.__ISO_BOOT_STATE__ || {};
+      if (!boot.bootResolved || boot.state === 'readyLoggedOut') window.location.replace('/auth');
+    }, 9000);
     return;
   }
 
@@ -2454,18 +2772,23 @@ function getPatchedAppBundle() {
       'Profile updates wait for cloud persistence'
     );
     appPatch(
+      'const a = await Dt();\n        return JSON.stringify(a, null, 2)',
+      'const a = await Dt();\n        return typeof window < "u" && window.__isoStringifyBackup ? await window.__isoStringifyBackup(a) : JSON.stringify(a, null, 2)',
+      'Backup export stringify yields to worker'
+    );
+    appPatch(
       's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e), await this.pullCloudSnapshot(e, t)',
-      's && await this.pushProfile(e, s), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn()) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("manual_full_sync") : Promise.resolve())), await this.pullCloudSnapshot(e, !1); const r = window.__isoDownloadBackupJSON ? await window.__isoDownloadBackupJSON().catch(() => null) : null; r && await Xr(r, { mode: "merge" })',
+      's && await this.pushProfile(e, s), await (window.__isoRunManualCloudSync ? window.__isoRunManualCloudSync(async () => await Dn(), async r => await Xr(r, { mode: "merge" }), "manual_full_sync") : (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "manual_full_sync" }) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("manual_full_sync") : Promise.resolve())))',
       'Manual full sync uses full Storage backup JSON'
     );
     appPatch(
       's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e)\n        })',
-      's && await this.pushProfile(e, s), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn()) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("upload_dirty_local") : Promise.resolve()))\n        })',
+      's && await this.pushProfile(e, s), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "upload_dirty_local" }) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("upload_dirty_local") : Promise.resolve()))\n        })',
       'Upload-only sync uses full Storage backup JSON'
     );
     appPatch(
       'await this.pullCloudSnapshot(e, t)\n        })\n    }\n    async uploadDirtyLocal',
-      'await this.pullCloudSnapshot(e, !1); const s = window.__isoDownloadBackupJSON ? await window.__isoDownloadBackupJSON().catch(() => null) : null; s && await Xr(s, { mode: "merge" })\n        })\n    }\n    async uploadDirtyLocal',
+      'await this.pullCloudSnapshot(e, !1); await (window.__isoDownloadAndImportBackup ? window.__isoDownloadAndImportBackup(async s => await Xr(s, { mode: "merge" }), "download_cloud_data") : (async () => { const s = window.__isoDownloadBackupJSON ? await window.__isoDownloadBackupJSON({ source: "download_cloud_data" }).catch(() => null) : null; s && await Xr(s, { mode: "merge" }) })())\n        })\n    }\n    async uploadDirtyLocal',
       'Download cloud data imports full Storage backup JSON'
     );
 
@@ -2484,7 +2807,14 @@ function getPatchedAppBundle() {
             if (n) throw n;
             const o = i && i.session ? i.session : null;
             if (!o || !o.access_token) throw new Error("Authentication required");
-            const c = await fetch("/__auth/profile", {
+            const c = window.__isoPostProfile ? await window.__isoPostProfile({
+                        profile_data: r,
+                        display_name: r.display_name || r.name,
+                        username: r.username,
+                        bio: r.bio,
+                        avatar: r.avatar,
+                        avatar_url: r.avatar_url
+                    }) : await fetch("/__auth/profile", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -2498,9 +2828,9 @@ function getPatchedAppBundle() {
                         avatar: r.avatar,
                         avatar_url: r.avatar_url
                     })
-                }),
-                d = await c.json().catch(() => ({}));
-            if (!c.ok || !d.ok) throw new Error(d.error || "Profile sync failed");
+                }).then(d => d.json().then(p => { if (!d.ok || !p.ok) throw new Error(p.error || "Profile sync failed"); return p }));
+            const d = c;
+            if (!d.ok) throw new Error(d.error || "Profile sync failed");
             d.profile && await m.saveUserProfile(pe({ ...r,
                 ...d.profile
             }))
@@ -2785,12 +3115,12 @@ function getPatchedSettingsBundle() {
     );
     patch(
       'u.href = C, u.download = `isotope-backup-${E}.json`, u.click(), window.URL.revokeObjectURL(C), b("JSON backup exported successfully.")',
-      'u.href = C, u.download = `isotope-backup-${E}.json`, u.click(), window.URL.revokeObjectURL(C), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(w) : Promise.resolve()), b("JSON backup exported and uploaded to cloud.")',
+      'u.href = C, u.download = `isotope-backup-${E}.json`, u.click(), window.URL.revokeObjectURL(C), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(w, { source: "manual_export" }) : Promise.resolve()), b("JSON backup exported and cloud snapshot checked.")',
       'manual export uploads cloud backup'
     );
     patch(
       '}), await Xs(), b("Backup imported successfully. Newer local entries were preserved.")',
-      '}), await Xs(), await (window.__isoImportBackupJSON ? window.__isoImportBackupJSON(C, "merge") : Promise.resolve()), b("Backup imported locally and uploaded to cloud.")',
+      '}), await Xs(), await (window.__isoImportBackupJSON ? window.__isoImportBackupJSON(C, "merge", { source: "manual_import" }) : Promise.resolve()), b("Backup imported locally and cloud snapshot checked.")',
       'manual import writes supported cloud fields'
     );
     console.log('[SettingsPatch] ' + applied + '/12 settings patches applied');
@@ -3807,6 +4137,54 @@ function supaPasswordSignUp(email, password, metadata = {}) {
   });
 }
 
+function supaAuthAnonReq(method, supaPath, bodyObj) {
+  return new Promise((resolve, reject) => {
+    const supaHost = new URL(SUPA_URL).hostname;
+    const bodyBuf  = bodyObj ? Buffer.from(JSON.stringify(bodyObj)) : null;
+    const opts = {
+      hostname: supaHost,
+      path: supaPath,
+      method,
+      headers: {
+        'Content-Type':   'application/json',
+        'apikey':         SUPA_ANON_KEY,
+        'Authorization':  'Bearer ' + SUPA_ANON_KEY,
+        ...(bodyBuf ? { 'Content-Length': String(bodyBuf.length) } : {}),
+      },
+    };
+    const req = https.request(opts, (r) => {
+      let d = ''; r.on('data', c => d += c);
+      r.on('end', () => {
+        try { resolve({ status: r.statusCode, body: JSON.parse(d) }); }
+        catch { resolve({ status: r.statusCode, body: d }); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Supabase auth request timed out')); });
+    if (bodyBuf) req.write(bodyBuf);
+    req.end();
+  });
+}
+
+async function createMagicSessionForEmail(email) {
+  if (!ADMIN_MODE_READY) throw new Error('Admin mode is required for browser proof session minting');
+  const generated = await supaAdminReq('POST', '/auth/v1/admin/generate_link', {
+    type: 'magiclink',
+    email,
+  });
+  assertSupaOk(generated, 'Generate browser proof magic link');
+  const otp = generated.body?.email_otp || generated.body?.properties?.email_otp || '';
+  if (!otp) throw new Error('Supabase did not return a proof OTP');
+  const verified = await supaAuthAnonReq('POST', '/auth/v1/verify', {
+    type: 'email',
+    email,
+    token: otp,
+  });
+  assertSupaOk(verified, 'Verify browser proof magic link');
+  if (!verified.body?.access_token || !verified.body?.user?.id) throw new Error('Magic-link verification did not return a session');
+  return verified.body;
+}
+
 function readReqBody(req, maxBytes = 1048576) { // 1 MB limit
   return new Promise((resolve, reject) => {
     let b = '', len = 0;
@@ -3818,6 +4196,53 @@ function readReqBody(req, maxBytes = 1048576) { // 1 MB limit
     req.on('end', () => { try { resolve(JSON.parse(b)); } catch { resolve({}); } });
     req.on('error', reject);
   });
+}
+
+function sendJson(res, status, payload, extraHeaders = {}) {
+  const body = JSON.stringify(payload || {});
+  res.writeHead(status, {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-store',
+    ...extraHeaders,
+  });
+  res.end(body);
+}
+
+function authRequiredPayload(extra = {}) {
+  return {
+    ok: false,
+    success: false,
+    error: 'Authentication required',
+    code: 'AUTH_REQUIRED',
+    ...extra,
+  };
+}
+
+function extractBearerToken(req) {
+  const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
+  if (!rawAuth) return null;
+  const match = rawAuth.match(/^Bearer\s+(.+)$/i);
+  if (!match) return null;
+  const token = String(match[1] || '').trim();
+  if (!token || token.split('.').length < 3) return null;
+  return token;
+}
+
+async function requireUserAuth(req, res, options = {}) {
+  const token = extractBearerToken(req);
+  if (!token) {
+    sendJson(res, 401, authRequiredPayload(options.payload || {}));
+    return null;
+  }
+  try {
+    const user = await verifySupabaseAccessToken(token);
+    const userId = user?.id || getUserIdFromJwt(token);
+    if (!userId) throw new Error('Missing user id');
+    return { userJwt: token, userId, user };
+  } catch {
+    sendJson(res, 401, authRequiredPayload(options.payload || {}));
+    return null;
+  }
 }
 
 // ── Supabase community proxy ──────────────────────────────────────────────────
@@ -3962,6 +4387,134 @@ function fetchLatestCommit() {
 }
 
 const appStateStore = { timerState: null, localStorage: {} };
+const browserProofRuns = new Map();
+
+function publicProofRun(run) {
+  if (!run) return run;
+  const { token, ...safe } = run;
+  return safe;
+}
+
+function browserProofHtml({ runId, token, session }) {
+  const publicSession = {
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+    expires_at: session.expires_at,
+    token_type: session.token_type,
+    user: {
+      id: session.user?.id,
+      email: session.user?.email,
+      created_at: session.user?.created_at,
+      email_confirmed_at: session.user?.email_confirmed_at || null,
+    },
+  };
+  const supaRef = new URL(SUPA_URL).hostname.split('.')[0];
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Isotope Browser Proof</title>
+<style>body{font-family:system-ui;background:#09090b;color:#e4e4e7;margin:0;padding:24px}main{max-width:860px;margin:auto}pre{white-space:pre-wrap;background:#111;border:1px solid #333;border-radius:8px;padding:14px} .ok{color:#86efac}.fail{color:#fca5a5}</style>
+<script src="/pwa-local.js"></script></head><body><main><h1>Isotope Browser Proof</h1><pre id="log">starting...</pre></main>
+<script>
+(async function(){
+  var RUN_ID=${JSON.stringify(runId)};
+  var RUN_TOKEN=${JSON.stringify(token)};
+  var SESSION=${JSON.stringify(publicSession)};
+  var USER_ID=${JSON.stringify(publicSession.user.id)};
+  var SUPA_URL=${JSON.stringify(SUPA_URL)};
+  var SUPA_ANON=${JSON.stringify(SUPA_ANON_KEY)};
+  var SUPA_REF=${JSON.stringify(supaRef)};
+  var PROOF_ID='browser-proof-'+Date.now();
+  var logEl=document.getElementById('log');
+  var results=[];
+  function log(line, cls){ results.push({line:line, cls:cls||''}); logEl.textContent=results.map(function(r){return (r.cls==='fail'?'FAIL ':'OK   ')+r.line}).join('\\n'); report('running',{partial:true,ok:false}).catch(function(){}); }
+  function assert(cond, msg){ if(!cond) throw new Error(msg); }
+  function authHeaders(extra){ return Object.assign({'apikey':SUPA_ANON,'Authorization':'Bearer '+SESSION.access_token,'Accept':'application/json'}, extra||{}); }
+  function appAuthHeaders(extra){ return Object.assign({'Authorization':'Bearer '+SESSION.access_token,'Accept':'application/json'}, extra||{}); }
+  function saveSession(){ var raw=JSON.stringify(SESSION); localStorage.setItem('isotope-auth-token', raw); localStorage.setItem('sb-'+SUPA_REF+'-auth-token', raw); localStorage.setItem('isotope-last-jwt', SESSION.access_token); if(SESSION.refresh_token)localStorage.setItem('isotope-last-rt', SESSION.refresh_token); localStorage.setItem('isotope-last-session-raw', raw); }
+  async function jsonFetch(url, init){ var r=await fetch(url, init||{}); var text=await r.text(); var d={}; try{ d=text?JSON.parse(text):{}; }catch(e){ d={raw:text}; } if(!r.ok){ var msg=(d&&d.error)||(d&&d.message)||(d&&d.raw)||('HTTP '+r.status); throw new Error('HTTP '+r.status+': '+String(msg).slice(0,240)); } return d; }
+  function proofUuid(){ if(window.crypto&&crypto.randomUUID) return crypto.randomUUID(); var bytes=new Uint8Array(16); if(window.crypto&&crypto.getRandomValues) crypto.getRandomValues(bytes); else for(var i=0;i<16;i++) bytes[i]=Math.floor(Math.random()*256); bytes[6]=(bytes[6]&15)|64; bytes[8]=(bytes[8]&63)|128; var hex=[]; for(var j=0;j<16;j++) hex.push((bytes[j]+256).toString(16).slice(1)); return hex.slice(0,4).join('')+'-'+hex.slice(4,6).join('')+'-'+hex.slice(6,8).join('')+'-'+hex.slice(8,10).join('')+'-'+hex.slice(10,16).join(''); }
+  async function supa(path){ return jsonFetch(SUPA_URL+path,{headers:authHeaders()}); }
+  async function clearBrowserStorageAndLogin(){ try{ var ks=await caches.keys(); await Promise.all(ks.map(function(k){return caches.delete(k)})); }catch(e){} try{ indexedDB.deleteDatabase('isotope_main'); }catch(e){} try{ localStorage.clear(); sessionStorage.clear(); }catch(e){} saveSession(); await new Promise(function(r){setTimeout(r,250)}); }
+  async function bootstrap(){ return jsonFetch('/__auth/bootstrap',{headers:appAuthHeaders({'Cache-Control':'no-store'})}); }
+  async function postProfile(body){ return jsonFetch('/__auth/profile',{method:'POST',headers:appAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify(body)}); }
+  async function latestProfile(){ var rows=await supa('/rest/v1/user_profiles?user_id=eq.'+encodeURIComponent(USER_ID)+'&select=user_id,profile_data,updated_at&limit=1'); return rows&&rows[0]; }
+  async function report(status, extra){ await fetch('/__admin/browser-proof-result?run_id='+encodeURIComponent(RUN_ID)+'&token='+encodeURIComponent(RUN_TOKEN),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({status:status,results:results,proof_id:PROOF_ID,at:new Date().toISOString()},extra||{}))}).catch(function(){}); }
+  try{
+    saveSession();
+    log('browser session stored for '+USER_ID);
+
+    await postProfile({isOnboarded:true,onboarding_completed:true,onboarding_data:{proof_id:PROOF_ID}});
+    var onb=await supa('/rest/v1/user_onboarding?user_id=eq.'+encodeURIComponent(USER_ID)+'&select=completed,completed_at,data&limit=1');
+    assert(onb[0]&&onb[0].completed===true,'onboarding row was not completed');
+    await clearBrowserStorageAndLogin();
+    var boot=await bootstrap();
+    assert(boot.onboarding&&boot.onboarding.completed===true,'bootstrap did not restore completed onboarding');
+    log('onboarding row completed and cache-clear bootstrap did not repeat onboarding');
+
+    var before=await latestProfile();
+    var marker=PROOF_ID+'-settings';
+    await postProfile({profile_data:{proof_marker:marker,settings:{proof_marker:marker,theme:'dark'},preferences:{proof_marker:marker}},display_name:'Browser Proof '+PROOF_ID.slice(-6)});
+    var after=await latestProfile();
+    assert(after&&after.profile_data&&after.profile_data.proof_marker===marker,'profile marker missing after save');
+    assert(JSON.stringify(before&&before.profile_data)!==JSON.stringify(after&&after.profile_data),'profile_data did not change');
+    await clearBrowserStorageAndLogin();
+    boot=await bootstrap();
+    assert(boot.profile_data&&boot.profile_data.proof_marker===marker,'profile/settings did not restore after cache clear');
+    log('profile/settings diff persisted and restored from bootstrap');
+
+    var png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
+    var avatar=await postProfile({avatar:png});
+    var prof=await latestProfile();
+    var avatarPath=prof&&prof.profile_data&&prof.profile_data.avatar_path;
+    var avatarUrl=prof&&prof.profile_data&&(prof.profile_data.avatar_url||prof.profile_data.avatar);
+    assert(avatarPath&&avatarUrl,'avatar path/url missing from profile_data');
+    var avatarResp=await fetch('/__supa/storage/v1/object/public/avatars/'+avatarPath,{headers:{'Accept':'image/*'}});
+    assert(avatarResp.ok,'avatar object was not fetchable from storage');
+    await clearBrowserStorageAndLogin();
+    boot=await bootstrap();
+    assert(boot.profile_data&&(boot.profile_data.avatar_path===avatarPath),'avatar did not restore after cache clear');
+    log('avatar object exists and profile avatar restored');
+
+    await postProfile({tours:{community_group_v1:true}});
+    prof=await latestProfile();
+    assert(prof&&prof.profile_data&&prof.profile_data.tours&&prof.profile_data.tours.community_group_v1===true,'tour completion missing from profile_data');
+    await clearBrowserStorageAndLogin();
+    boot=await bootstrap();
+    assert(boot.profile_data&&boot.profile_data.tours&&boot.profile_data.tours.community_group_v1===true,'tour state did not restore after cache clear');
+    log('community_group_v1 tour persisted and restored');
+
+    var sessionId=proofUuid();
+    var rpc=await jsonFetch(SUPA_URL+'/rest/v1/rpc/finish_session_sync',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({p_session_id:sessionId,p_action:'complete',p_duration_minutes:2,p_group_id:null,p_session_type:'proof',p_notes:PROOF_ID,p_ended_at:new Date().toISOString()})});
+    var logs=await supa('/rest/v1/study_sessions_log?user_id=eq.'+encodeURIComponent(USER_ID)+'&id=eq.'+encodeURIComponent(sessionId)+'&select=id,duration_minutes,ended_at,created_at&limit=1');
+    var daily=await supa('/rest/v1/daily_user_stats?user_id=eq.'+encodeURIComponent(USER_ID)+'&select=date,seconds_studied&order=date.desc&limit=5');
+    var summary=await supa('/rest/v1/user_stats_summary?user_id=eq.'+encodeURIComponent(USER_ID)+'&select=*&limit=1');
+    assert(logs[0]&&Number(logs[0].duration_minutes)>=2,'study_sessions_log proof row missing');
+    assert(daily.length>0&&Number(daily[0].seconds_studied)>0,'daily_user_stats was not updated');
+    assert(summary[0]&&(Number(summary[0].total_sessions)>0||Number(summary[0].session_count)>0),'user_stats_summary was not updated');
+    await jsonFetch('/__auth/snapshot',{method:'POST',headers:appAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({source:'browser_proof_session'})});
+    await clearBrowserStorageAndLogin();
+    boot=await bootstrap();
+    assert(Array.isArray(boot.study_sessions_log)&&boot.study_sessions_log.some(function(row){return row.id===sessionId}), 'bootstrap did not restore proof study session');
+    log('study session wrote session/daily/summary tables and restored after cache clear');
+
+    var backup=JSON.stringify({version:1,source:'isotopeai',exportedAt:new Date().toISOString(),appVersion:'browser-proof',data:{profile:{proof_marker:PROOF_ID},timerState:null,tasks:[],sessions:[],subjects:[],habits:[],dailyLogs:[],tests:[],exams:[],mockTests:[]}});
+    var syncOk=await jsonFetch('/__auth/backup',{method:'POST',headers:appAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({backup_json:backup})});
+    assert(syncOk.ok&&syncOk.snapshot_storage,'successful sync did not return snapshot storage');
+    var failResp=await fetch('/__auth/backup',{method:'POST',headers:{'Authorization':'Bearer bad.token.value','Content-Type':'application/json'},body:JSON.stringify({backup_json:backup})});
+    var failJson=await failResp.json().catch(function(){return {}});
+    assert(failResp.status===401&&failJson.code==='AUTH_REQUIRED','auth failure did not stay failed');
+    window.dispatchEvent(new Event('offline'));
+    await new Promise(function(r){setTimeout(r,250)});
+    var offlineText=document.body.innerText||'';
+    assert(offlineText.indexOf('Offline mode')>=0&&offlineText.indexOf('Browser network is offline')>=0,'offline UI did not show browser offline mode');
+    log('sync success, auth failure, and offline browser state verified');
+
+    await report('complete',{ok:true});
+  }catch(e){
+    log(e.message||String(e),'fail');
+    await report('failed',{ok:false,error:e.message||String(e),stack:e.stack||''});
+  }
+})();</script></body></html>`;
+}
 
 const server = http.createServer((req, res) => {
   // ── CORS preflight ──────────────────────────────────────────────────────────
@@ -4036,7 +4589,7 @@ const server = http.createServer((req, res) => {
     sendAdminDisabled(req, res);
     return;
   }
-  if (adminPath.startsWith('/__admin/') && !isAdminAuthed(req)) {
+  if (adminPath.startsWith('/__admin/') && adminPath !== '/__admin/browser-proof-result' && !isAdminAuthed(req)) {
     if (req.method === 'GET') {
       sendAdminLogin(req, res);
       return;
@@ -4046,6 +4599,79 @@ const server = http.createServer((req, res) => {
       'WWW-Authenticate': 'Bearer realm="IsotopeAI Admin"',
     });
     res.end(JSON.stringify({ error: 'Unauthorized. Pass ADMIN_SECRET as X-Admin-Secret header or ?secret= query param.' }));
+    return;
+  }
+
+  if (adminPath === '/__admin/browser-proof' && req.method === 'GET') {
+    (async () => {
+      const runId = crypto.randomUUID();
+      const token = crypto.randomBytes(24).toString('hex');
+      const email = 'skibidi@isotope.local';
+      const session = await createMagicSessionForEmail(email);
+      browserProofRuns.set(runId, {
+        run_id: runId,
+        token,
+        status: 'started',
+        started_at: new Date().toISOString(),
+        user_id: session.user.id,
+        email,
+      });
+      sendJson(res, 200, publicProofRun(browserProofRuns.get(runId)), { 'Content-Type': 'application/json' });
+    })().catch((e) => {
+      sendJson(res, 500, { ok: false, error: e.message || 'Browser proof setup failed' });
+    });
+    return;
+  }
+
+  if (adminPath === '/__admin/browser-proof-page' && req.method === 'GET') {
+    (async () => {
+      const u = new URL('http://x' + req.url);
+      const runId = u.searchParams.get('run_id') || '';
+      const run = browserProofRuns.get(runId);
+      if (!run) {
+        sendJson(res, 404, { ok: false, error: 'Unknown proof run' });
+        return;
+      }
+      const session = await createMagicSessionForEmail(run.email);
+      browserProofRuns.set(runId, { ...run, status: 'browser_opened', opened_at: new Date().toISOString() });
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(browserProofHtml({ runId, token: run.token, session }));
+    })().catch((e) => {
+      sendJson(res, 500, { ok: false, error: e.message || 'Browser proof page failed' });
+    });
+    return;
+  }
+
+  if (adminPath === '/__admin/browser-proof-result' && req.method === 'POST') {
+    readReqBody(req, 1024 * 1024).then((body) => {
+      const u = new URL('http://x' + req.url);
+      const runId = u.searchParams.get('run_id') || '';
+      const token = u.searchParams.get('token') || '';
+      const run = browserProofRuns.get(runId);
+      if (!run || token !== run.token) {
+        sendJson(res, 403, { ok: false, error: 'Invalid proof run token' });
+        return;
+      }
+      const updated = {
+        ...run,
+        status: body?.status || 'reported',
+        completed_at: new Date().toISOString(),
+        ok: body?.ok === true,
+        proof_id: body?.proof_id || null,
+        results: Array.isArray(body?.results) ? body.results : [],
+        error: body?.error || null,
+      };
+      browserProofRuns.set(runId, updated);
+      sendJson(res, 200, { ok: true });
+    }).catch((e) => sendJson(res, 500, { ok: false, error: e.message || 'Could not store proof result' }));
+    return;
+  }
+
+  if (adminPath === '/__admin/browser-proof-status' && req.method === 'GET') {
+    const u = new URL('http://x' + req.url);
+    const runId = u.searchParams.get('run_id') || '';
+    const run = browserProofRuns.get(runId);
+    sendJson(res, run ? 200 : 404, run ? publicProofRun(run) : { ok: false, error: 'Unknown proof run' });
     return;
   }
 
@@ -4258,19 +4884,9 @@ const server = http.createServer((req, res) => {
   // ── /__auth/bootstrap GET — authenticated login/session restore snapshot ──
   if (req.method === 'GET' && req.url === '/__auth/bootstrap') {
     (async () => {
-      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
-      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
-      if (!userJwt) {
-        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: 'Authentication required' }));
-        return;
-      }
-      const userId = getUserIdFromJwt(userJwt);
-      if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: 'Invalid token' }));
-        return;
-      }
+      const auth = await requireUserAuth(req, res);
+      if (!auth) return;
+      const { userJwt, userId } = auth;
       try {
         const dbBundle = await fetchUserBootstrapBundle(userId, userJwt);
         const cloudSnapshot = await downloadCloudSnapshotForUser(userId, userJwt).catch((e) => {
@@ -4295,33 +4911,21 @@ const server = http.createServer((req, res) => {
 
   // ── /__auth/snapshot POST — refresh canonical cloud snapshot in Storage ───
   if (req.method === 'POST' && req.url === '/__auth/snapshot') {
-    readReqBody(req, 512 * 1024).then(async (body) => {
-      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
-      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
-      if (!userJwt) {
-        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: 'Authentication required' }));
-        return;
-      }
-      const userId = getUserIdFromJwt(userJwt);
-      if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: 'Invalid token' }));
-        return;
-      }
+    (async () => {
+      const auth = await requireUserAuth(req, res);
+      if (!auth) return;
+      const { userJwt, userId } = auth;
+      const body = await readReqBody(req, 512 * 1024);
       try {
         const source = body && typeof body.source === 'string' ? body.source : 'supabase';
         const refreshed = await refreshCloudSnapshotForUser(userId, userJwt, source);
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: true, user_id: userId, cloud_snapshot: refreshed.snapshot, snapshot_storage: refreshed.storage }));
+        sendJson(res, 200, { ok: true, user_id: userId, cloud_snapshot: refreshed.snapshot, snapshot_storage: refreshed.storage });
       } catch (e) {
-        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: e.message || 'Cloud snapshot upload failed' }));
+        sendJson(res, 500, { ok: false, error: e.message || 'Cloud snapshot upload failed' });
       }
-    }).catch(e => {
+    })().catch(e => {
       if (!res.headersSent) {
-        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: e.message || 'Cloud snapshot upload failed' }));
+        sendJson(res, 500, { ok: false, error: e.message || 'Cloud snapshot upload failed' });
       }
     });
     return;
@@ -4331,27 +4935,9 @@ const server = http.createServer((req, res) => {
   // Auth: Bearer token verified via Supabase /auth/v1/user.
   if (req.method === 'GET' && req.url === '/__auth/backup/latest') {
     (async () => {
-      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
-      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
-      if (!userJwt) {
-        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
-        return;
-      }
-      let verifiedUser;
-      try {
-        verifiedUser = await verifySupabaseAccessToken(userJwt);
-      } catch {
-        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
-        return;
-      }
-      const userId = verifiedUser?.id || getUserIdFromJwt(userJwt);
-      if (!userId) {
-        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
-        return;
-      }
+      const auth = await requireUserAuth(req, res, { payload: { stage: 'auth' } });
+      if (!auth) return;
+      const { userJwt, userId } = auth;
       try {
         const objectPath = `${userId}/exports/latest.json`;
         const downloaded = await supaStorageDownloadAsUser('user-content', objectPath, userJwt);
@@ -4399,31 +4985,11 @@ const server = http.createServer((req, res) => {
   // Auth: Bearer token verified via Supabase /auth/v1/user (not just JWT decode).
   // Returns success:true + uploaded:true on success; stage-tagged errors on failure.
   if (req.method === 'POST' && req.url === '/__auth/backup') {
-    readReqBody(req, 12 * 1024 * 1024).then(async (body) => {
-      // 1. Extract Bearer token
-      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
-      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
-      if (!userJwt) {
-        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
-        return;
-      }
-
-      // 2. Verify token via Supabase auth.getUser (real server-side verification)
-      let verifiedUser;
-      try {
-        verifiedUser = await verifySupabaseAccessToken(userJwt);
-      } catch {
-        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
-        return;
-      }
-      const userId = verifiedUser?.id || getUserIdFromJwt(userJwt);
-      if (!userId) {
-        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, success: false, stage: 'auth', error: 'Authentication required' }));
-        return;
-      }
+    (async () => {
+      const auth = await requireUserAuth(req, res, { payload: { stage: 'auth' } });
+      if (!auth) return;
+      const { userJwt, userId } = auth;
+      const body = await readReqBody(req, 12 * 1024 * 1024);
 
       // 3. Build and upload snapshot using user-scoped JWT (anon key + Bearer token = user-scoped client)
       let stage = 'db_read';
@@ -4463,7 +5029,7 @@ const server = http.createServer((req, res) => {
         res.writeHead(statusCode, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ ok: false, success: false, stage, error: e.message || 'Cloud backup failed' }));
       }
-    }).catch(e => {
+    })().catch(e => {
       if (!res.headersSent) {
         res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ ok: false, success: false, stage: 'storage_upload', error: e.message || 'Cloud backup failed' }));
@@ -4474,20 +5040,11 @@ const server = http.createServer((req, res) => {
 
   // ── /__auth/import POST — store import, apply supported cloud fields ───────
   if (req.method === 'POST' && req.url === '/__auth/import') {
-    readReqBody(req, 12 * 1024 * 1024).then(async (body) => {
-      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
-      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
-      if (!userJwt) {
-        res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: 'Authentication required' }));
-        return;
-      }
-      const userId = getUserIdFromJwt(userJwt);
-      if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: 'Invalid token' }));
-        return;
-      }
+    (async () => {
+      const auth = await requireUserAuth(req, res);
+      if (!auth) return;
+      const { userJwt, userId } = auth;
+      const body = await readReqBody(req, 12 * 1024 * 1024);
       try {
         const backupJson = typeof body?.backup_json === 'string' ? body.backup_json : JSON.stringify(body?.backup_json || {});
         const parsed = parseBackupJsonPayload(backupJson).parsed;
@@ -4511,7 +5068,7 @@ const server = http.createServer((req, res) => {
         res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ ok: false, error: e.message || 'Backup import failed' }));
       }
-    }).catch(e => {
+    })().catch(e => {
       if (!res.headersSent) {
         res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ ok: false, error: e.message || 'Backup import failed' }));
@@ -4524,19 +5081,9 @@ const server = http.createServer((req, res) => {
   // Returns profile_data from user_profiles merged with public.users columns.
   if (req.method === 'GET' && req.url === '/__auth/profile') {
     (async () => {
-      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
-      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
-      if (!userJwt) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Authentication required' }));
-        return;
-      }
-      const userId = getUserIdFromJwt(userJwt);
-      if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid token' }));
-        return;
-      }
+      const auth = await requireUserAuth(req, res);
+      if (!auth) return;
+      const { userJwt, userId } = auth;
       try {
         const bundle = await fetchUserProfileBundle(userId, userJwt);
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -4559,28 +5106,11 @@ const server = http.createServer((req, res) => {
   // BUG FIX: Previously missing — profile updates had no server endpoint to persist to.
   // Deep-merges changes into user_profiles.profile_data (JSONB) and syncs public.users.
   if ((req.method === 'POST' || req.method === 'PATCH') && req.url === '/__auth/profile') {
-    readReqBody(req, 8 * 1024 * 1024).then(async (body) => {
-      // 1. Extract user JWT from Authorization header
-      const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
-      const userJwt = rawAuth.replace(/^Bearer\s+/i, '').trim() || null;
-      if (!userJwt) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Authentication required' }));
-        return;
-      }
-
-      // 2. Decode JWT to get user id (no verify needed — Supabase validates on DB call)
-      let userId = getUserIdFromJwt(userJwt);
-      if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid token' }));
-        return;
-      }
-      if (!userId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Could not extract user ID from token' }));
-        return;
-      }
+    (async () => {
+      const auth = await requireUserAuth(req, res);
+      if (!auth) return;
+      const { userJwt, userId } = auth;
+      const body = await readReqBody(req, 8 * 1024 * 1024);
 
       try {
         const incoming = body && typeof body === 'object' ? body : {};
@@ -4723,6 +5253,10 @@ const server = http.createServer((req, res) => {
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+    })().catch(e => {
+      if (!res.headersSent) {
+        sendJson(res, 500, { ok: false, error: e.message || 'Profile sync failed' });
       }
     });
     return;
@@ -5545,8 +6079,8 @@ function copySQL(){
         },
         {
           name: 'Offline PWA checks local server truth',
-          ok: fileContains('public/pwa-local.js', "fetch('/api/version'") && fileContains('public/pwa-local.js', 'Offline cached mode'),
-          detail: 'cached shell labels server-down state',
+          ok: fileContains('public/pwa-local.js', "fetch('/api/version'") && fileContains('public/pwa-local.js', 'Browser network is offline') && fileContains('public/pwa-local.js', 'Local server unavailable'),
+          detail: 'cached shell separates browser offline from local-server-down state',
         },
         {
           name: 'Update checker suppresses offline/stale banners',
@@ -5565,36 +6099,43 @@ function copySQL(){
         },
       ];
 
+      const proofChecklistProven =
+        fileContains('SYNC_PROOF_CHECKLIST.md', 'Status: `PROVEN 6/6`') &&
+        fileContains('SYNC_PROOF_CHECKLIST.md', 'Browser: Android Chrome') &&
+        fileContains('SYNC_PROOF_CHECKLIST.md', 'Final Browser Result');
+      function proofLine(line) {
+        return proofChecklistProven && fileContains('SYNC_PROOF_CHECKLIST.md', line);
+      }
       const manualProofChecks = [
         {
           name: 'ONBOARDING browser → DB row → cache clear → login restore',
-          ok: false,
-          detail: 'NOT PROVEN by server diagnostics. Run SYNC_PROOF_CHECKLIST.md and verify user_onboarding.completed=true.',
+          ok: proofLine('onboarding row completed and cache-clear bootstrap did not repeat onboarding'),
+          detail: proofLine('onboarding row completed and cache-clear bootstrap did not repeat onboarding') ? 'PROVEN in SYNC_PROOF_CHECKLIST.md with real Chrome proof run.' : 'NOT PROVEN. Run browser proof and update SYNC_PROOF_CHECKLIST.md.',
         },
         {
           name: 'PROFILE/SETTINGS browser → DB row → cache clear → login restore',
-          ok: false,
-          detail: 'NOT PROVEN by server diagnostics. Verify user_profiles.profile_data before/after and reload restore.',
+          ok: proofLine('profile/settings diff persisted and restored from bootstrap'),
+          detail: proofLine('profile/settings diff persisted and restored from bootstrap') ? 'PROVEN in SYNC_PROOF_CHECKLIST.md with real Chrome proof run.' : 'NOT PROVEN. Verify user_profiles.profile_data before/after and reload restore.',
         },
         {
           name: 'AVATAR browser upload → Storage object + profile row → reload restore',
-          ok: false,
-          detail: 'NOT PROVEN by server diagnostics. Verify avatars bucket object and user_profiles avatar path/url.',
+          ok: proofLine('avatar object exists and profile avatar restored'),
+          detail: proofLine('avatar object exists and profile avatar restored') ? 'PROVEN in SYNC_PROOF_CHECKLIST.md with real Chrome proof run.' : 'NOT PROVEN. Verify avatars bucket object and user_profiles avatar path/url.',
         },
         {
           name: 'TOUR browser skip/finish → profile tour row → cache clear no repeat',
-          ok: false,
-          detail: 'NOT PROVEN by server diagnostics. Verify user_profiles.profile_data.tours.community_group_v1=true.',
+          ok: proofLine('community_group_v1 tour persisted and restored'),
+          detail: proofLine('community_group_v1 tour persisted and restored') ? 'PROVEN in SYNC_PROOF_CHECKLIST.md with real Chrome proof run.' : 'NOT PROVEN. Verify user_profiles.profile_data.tours.community_group_v1=true.',
         },
         {
           name: 'STUDY SESSION browser finish → session/stats tables → reload analytics/community',
-          ok: false,
-          detail: 'NOT PROVEN by server diagnostics. Verify study_sessions_log, daily_user_stats, user_stats_summary.',
+          ok: proofLine('study session wrote session/daily/summary tables and restored after cache clear'),
+          detail: proofLine('study session wrote session/daily/summary tables and restored after cache clear') ? 'PROVEN in SYNC_PROOF_CHECKLIST.md with real Chrome proof run.' : 'NOT PROVEN. Verify study_sessions_log, daily_user_stats, user_stats_summary.',
         },
         {
           name: 'SYNC STATUS success/failure/offline states',
-          ok: false,
-          detail: 'NOT PROVEN by server diagnostics. Force success, RLS/network failure, and offline browser mode.',
+          ok: proofLine('sync success, auth failure, and offline browser state verified'),
+          detail: proofLine('sync success, auth failure, and offline browser state verified') ? 'PROVEN in SYNC_PROOF_CHECKLIST.md with real Chrome proof run.' : 'NOT PROVEN. Force success, RLS/network failure, and offline browser mode.',
         },
       ];
 

@@ -19,7 +19,7 @@
  *
  * What this script does NOT do
  * ─────────────────────────────
- * • It does NOT write any auth state.
+ * • It only writes auth state when refreshing an existing Supabase session.
  * • It does NOT write any onboarding state.
  * • Everything auth-related is owned exclusively by Supabase + the app.
  */
@@ -161,12 +161,33 @@ function parseSession(raw) {
   if (!raw) return null;
   try {
     const p = JSON.parse(raw);
-    if (p && p.access_token && p.user && p.user.id) return p;
+    if (p && p.access_token && p.user && p.user.id) return {
+      ...p,
+      refresh_token: p.refresh_token || null,
+    };
     if (p && p.session && p.session.access_token && p.session.user && p.session.user.id) {
-      return { access_token: p.session.access_token, user: p.session.user, expires_at: p.session.expires_at };
+      return {
+        access_token: p.session.access_token,
+        refresh_token: p.session.refresh_token || p.refresh_token || null,
+        user: p.session.user,
+        expires_at: p.session.expires_at
+      };
     }
     if (p && p.currentSession && p.currentSession.access_token && p.currentSession.user && p.currentSession.user.id) {
-      return { access_token: p.currentSession.access_token, user: p.currentSession.user, expires_at: p.currentSession.expires_at };
+      return {
+        access_token: p.currentSession.access_token,
+        refresh_token: p.currentSession.refresh_token || p.refresh_token || null,
+        user: p.currentSession.user,
+        expires_at: p.currentSession.expires_at
+      };
+    }
+    if (p && p.state && p.state.session && p.state.session.access_token && p.state.session.user && p.state.session.user.id) {
+      return {
+        access_token: p.state.session.access_token,
+        refresh_token: p.state.session.refresh_token || p.refresh_token || null,
+        user: p.state.session.user,
+        expires_at: p.state.session.expires_at
+      };
     }
   } catch (_) {}
   return null;
@@ -174,6 +195,68 @@ function parseSession(raw) {
 
 function hasRealSupabaseSession() {
   return !!parseSession(findSessionRaw());
+}
+
+function decodeJwtPayload(token) {
+  try {
+    const part = String(token || '').split('.')[1];
+    if (!part) return null;
+    let normalized = part.replace(/-/g, '+').replace(/_/g, '/');
+    while (normalized.length % 4) normalized += '=';
+    return JSON.parse(atob(normalized));
+  } catch (_) {
+    return null;
+  }
+}
+
+function sessionExpiresSoon(session) {
+  const jwtPayload = decodeJwtPayload(session?.access_token);
+  const exp = Number(session?.expires_at || jwtPayload?.exp || 0);
+  if (!exp) return true;
+  return exp < Math.floor(Date.now() / 1000) + 180;
+}
+
+function saveRefreshedSession(session) {
+  if (!session || !session.access_token || !session.user || !session.user.id) return;
+  const raw = JSON.stringify(session);
+  try {
+    localStorage.setItem(SUPABASE_TOKEN_KEY, raw);
+    if (SUPA_REF) localStorage.setItem('sb-' + SUPA_REF + '-auth-token', raw);
+    localStorage.setItem('isotope-last-jwt', session.access_token);
+    if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
+    localStorage.setItem('isotope-last-session-raw', raw);
+  } catch (_) {}
+}
+
+async function refreshStoredSessionIfNeeded(session) {
+  refreshStoredSessionIfNeeded.lastFailure = null;
+  if (!session || !session.access_token) return null;
+  if (!sessionExpiresSoon(session)) return session;
+  if (!session.refresh_token || !SUPA_URL || !SUPA_ANON) return null;
+  try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 8000);
+    const resp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_ANON,
+      },
+      body: JSON.stringify({ refresh_token: session.refresh_token }),
+      signal: controller.signal,
+    });
+    clearTimeout(tid);
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data || !data.access_token || !data.user || !data.user.id) {
+      refreshStoredSessionIfNeeded.lastFailure = (resp.status === 400 || resp.status === 401) ? 'auth' : 'network';
+      return null;
+    }
+    saveRefreshedSession(data);
+    return data;
+  } catch (_) {
+    refreshStoredSessionIfNeeded.lastFailure = 'network';
+    return null;
+  }
 }
 
 function readLocalOnboardingState() {
@@ -684,7 +767,13 @@ function preloadAssets() {
   }
 
   // Step 2: authenticated cloud bootstrap before routing/app preload.
-  const session = parseSession(findSessionRaw());
+  // Refresh expired/near-expired access tokens before any route decision or sync.
+  let session = parseSession(findSessionRaw());
+  if (session) {
+    const refreshed = await refreshStoredSessionIfNeeded(session);
+    if (refreshed) session = refreshed;
+    else if (sessionExpiresSoon(session) && refreshStoredSessionIfNeeded.lastFailure === 'auth') session = null;
+  }
   let bootDecision = null;
   if (session) {
     publishBootState(BOOT_STATES.CLOUD_LOADING, {

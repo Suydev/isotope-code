@@ -65,9 +65,9 @@
     var message = '';
     var snapshotText = 'Last cloud snapshot: ' + formatSnapshotTime(state.lastSnapshotAt) + '. ';
     if (!state.browserOnline) {
-      message = '<strong>Cached offline mode.</strong> <span>' + snapshotText + 'Local server is not running. Cloud sync unavailable.</span>';
+      message = '<strong>Offline mode.</strong> <span>' + snapshotText + 'Browser network is offline. Cloud sync is pending.</span>';
     } else if (!state.serverOnline) {
-      message = '<strong>Cached offline mode.</strong> <span>' + snapshotText + 'Local server is not running. Cloud sync unavailable.</span>';
+      message = '<strong>Local server unavailable.</strong> <span>' + snapshotText + 'Browser is online, but the Isotope local server is not responding.</span>';
     }
 
     if (!message) {
@@ -82,7 +82,8 @@
   function publishStatus() {
     state.lastSnapshotAt = readLastSnapshotAt();
     window.__isoLocalStatus = state;
-    window.__isoLocalServerOffline = !state.serverOnline || !state.browserOnline;
+    window.__isoBrowserOffline = !state.browserOnline;
+    window.__isoLocalServerOffline = state.browserOnline && !state.serverOnline;
     try {
       window.dispatchEvent(new CustomEvent('isotope:local-status', { detail: {
         browserOnline: state.browserOnline,
