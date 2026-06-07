@@ -1,0 +1,57 @@
+# Auto-label configuration for actions/labeler@v5
+
+"🗄️ database":
+  - changed-files:
+    - any-glob-to-any-file:
+      - '*.sql'
+      - 'isotope-complete.sql'
+      - 'community-patch-v4.sql'
+      - 'performance-patch.sql'
+
+"🖥️ server":
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'server.mjs'
+
+"📝 documentation":
+  - changed-files:
+    - any-glob-to-any-file:
+      - '*.md'
+      - 'docs/**'
+
+"🔧 setup":
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'setup.sh'
+      - 'setup.bat'
+      - 'install.ps1'
+      - 'update.sh'
+      - 'update.bat'
+      - 'bin/**'
+      - '.env.example'
+
+"⚙️ ci":
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/workflows/**'
+      - '.github/**'
+
+"📱 android":
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'setup-termux-widget.sh'
+      - 'TERMUX_WIDGET.md'
+
+"🎨 frontend":
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'public/**'
+      - 'src/**'
+      - 'index.html'
+      - 'vite.config.ts'
+
+"📦 dependencies":
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'package.json'
+      - 'package-lock.json'
