@@ -5,6 +5,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.1.3] — 2026-06-07 — Performance hardening and professional release
+
+### Added
+- `.env.example` — required template for first-time setup; `setup.sh` and `setup.bat` now copy it correctly without erroring on a missing file.
+- `update.bat` — Windows update shortcut that delegates to `isotope update` or the local wrapper.
+- `performance-patch.sql` §5 — Supabase Advisor: all RLS policies upgraded from `auth.uid()` to `(SELECT auth.uid())`, eliminating per-row function re-evaluation. Also replaces `auth.role() = 'authenticated'` with the safer `(SELECT auth.uid()) IS NOT NULL` pattern in the presence policy.
+- `performance-patch.sql` get_my_group_ids() — the security-definer helper function now uses `(SELECT auth.uid())` internally.
+
+### Fixed
+- `public/pwa-local.js` — replaced aggressive 10-second `setInterval` server poll with a visibility-change listener and a 5-minute background keepalive. Eliminates unnecessary `/api/version` requests while the app is actively in use.
+- RLS policies — all 20+ policies across users, profiles, stats, sessions, presence, groups, chat, challenges, invites, and announcements now use the optimised `(SELECT auth.uid())` pattern.
+
+### Changed
+- `VERSION` bumped to `3.1.3`.
+- `package.json` version bumped to `3.1.3`.
+- `README.md` version badge updated to `3.1.3`.
+
+---
+
 ## [Unreleased] — 2026-06-05 — PR #1 local-server cherry-picks
 
 ### Changed

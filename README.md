@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="./CHANGELOG.md">
-    <img alt="Version" src="https://img.shields.io/badge/version-3.1.2-8b5cf6?style=flat-square">
+    <img alt="Version" src="https://img.shields.io/badge/version-3.1.3-8b5cf6?style=flat-square">
   </a>
   <a href="https://nodejs.org">
     <img alt="Node" src="https://img.shields.io/badge/node-18%2B-339933?style=flat-square&logo=node.js">
@@ -755,6 +755,7 @@ See [CHANGELOG.md](./CHANGELOG.md).
 
 Highlights:
 
+- **v3.1.3** — Supabase RLS performance hardening, PWA polling fix, `.env.example`, `update.bat`, professional release
 - **v3.1.2-patch** — Critical PWA stability fixes (cache SHA, timer leaks, update logic)
 - **v3.1.2** — Storage-backed backup restore and `/__auth/backup` auth hardening
 - **v3.1.1** — Real cloud backup pipeline

@@ -157,10 +157,26 @@
     renderStatus();
   });
 
+  var _serverCheckTimer = null;
+
+  function scheduleServerCheck(delayMs) {
+    clearTimeout(_serverCheckTimer);
+    _serverCheckTimer = setTimeout(checkServer, delayMs);
+  }
+
   function init() {
     registerServiceWorker();
     checkServer();
-    setInterval(checkServer, 10000);
+    // Visibility-change recheck: triggers when user returns to the tab.
+    // This replaces aggressive 10s polling with event-driven refresh.
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) {
+        scheduleServerCheck(800);
+      }
+    });
+    // Long-running session keepalive: one recheck every 5 minutes.
+    // Covers cases where the browser tab stays open without visibility changes.
+    setInterval(checkServer, 5 * 60 * 1000);
   }
 
   if (document.readyState === 'loading') {

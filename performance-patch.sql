@@ -3,6 +3,7 @@
 -- ============================================================================
 -- Run this in the Supabase SQL Editor (or via psql) after isotope-schema.sql.
 -- Safe to re-run: all DDL uses IF NOT EXISTS / CREATE OR REPLACE.
+-- Apply this patch after isotope-schema.sql for best results.
 -- ============================================================================
 
 -- ── 1. Covering index for the RLS membership subquery ─────────────────────
@@ -22,24 +23,18 @@ CREATE INDEX IF NOT EXISTS idx_gm_user_group_covering
 -- parent table (auth.users) requires a sequential scan of the child table
 -- to enforce ON DELETE CASCADE.  Add indexes for every FK that lacks one.
 
--- group_invites.created_by → no index exists
 CREATE INDEX IF NOT EXISTS idx_ginv_created_by
   ON public.group_invites (created_by);
 
--- group_announcements.author_id → no index exists
 CREATE INDEX IF NOT EXISTS idx_gann_author
   ON public.group_announcements (author_id);
 
--- group_challenges.created_by → no index exists
 CREATE INDEX IF NOT EXISTS idx_gchall_created_by
   ON public.group_challenges (created_by);
 
--- group_challenge_participants: composite (challenge_id, user_id) for fast
--- member-in-challenge lookups used by the gcpart_read_members RLS policy
 CREATE INDEX IF NOT EXISTS idx_gcpart_challenge_user
   ON public.group_challenge_participants (challenge_id, user_id);
 
--- user_inventory.user_id → ensure exists (may already; safe to re-run)
 CREATE INDEX IF NOT EXISTS idx_inventory_user
   ON public.user_inventory (user_id);
 
@@ -49,13 +44,6 @@ CREATE INDEX IF NOT EXISTS idx_inventory_user
 -- SECURITY DEFINER function.  Postgres can cache this result per statement,
 -- turning O(policies × rows) subqueries into O(1) per query.
 --
--- To adopt this, replace:
---   group_id IN (SELECT group_id FROM public.group_members WHERE user_id = auth.uid())
--- with:
---   group_id = ANY (public.get_my_group_ids())
--- in each RLS policy.  The policies below do that replacement for the tables
--- most queried during a normal session.
-
 CREATE OR REPLACE FUNCTION public.get_my_group_ids()
 RETURNS uuid[]
 LANGUAGE sql
@@ -66,33 +54,232 @@ AS $$
   SELECT ARRAY(
     SELECT group_id
     FROM public.group_members
-    WHERE user_id = auth.uid()
+    WHERE user_id = (SELECT auth.uid())
   );
 $$;
 
--- ── 4. Presence table: index on updated_at for cleanup queries ────────────
---
--- Offline-sweep queries filter by updated_at to find stale presence rows.
+-- ── 4. Presence and stats indexes ────────────────────────────────────────
+
 CREATE INDEX IF NOT EXISTS idx_presence_updated_at
   ON public.user_presence (updated_at DESC);
 
--- ── 5. study_sessions_log: composite index for per-user time range queries ─
---
--- Sessions are commonly fetched as: WHERE user_id = X AND started_at > Y
 CREATE INDEX IF NOT EXISTS idx_sessions_user_started
   ON public.study_sessions_log (user_id, started_at DESC);
 
--- ── 6. daily_user_stats: composite covering index ─────────────────────────
---
--- Leaderboard and stats queries filter by (user_id, date) then read minutes.
--- A covering index avoids heap fetches for these lightweight reads.
 CREATE INDEX IF NOT EXISTS idx_daily_user_date_minutes
   ON public.daily_user_stats (user_id, date DESC)
   INCLUDE (study_minutes);
 
+-- ── 5. RLS auth.uid() → (SELECT auth.uid()) — Supabase Advisor fix ────────
+--
+-- The Supabase Performance Advisor flags every RLS policy that calls auth.uid()
+-- directly because PostgreSQL evaluates it once per row.  Wrapping it as
+-- (SELECT auth.uid()) forces a single evaluation per query — often the largest
+-- single source of RLS overhead on busy tables.
+--
+-- This section drops and re-creates every affected policy.  It is safe to
+-- re-run because each DROP uses IF EXISTS.
+--
+-- ─── public.users ──────────────────────────────────────────────────────────
+
+DROP POLICY IF EXISTS users_own ON public.users;
+CREATE POLICY users_own ON public.users
+  FOR ALL
+  USING (id = (SELECT auth.uid()))
+  WITH CHECK (id = (SELECT auth.uid()));
+
+-- ─── public.user_profiles ─────────────────────────────────────────────────
+
+DROP POLICY IF EXISTS profiles_own ON public.user_profiles;
+CREATE POLICY profiles_own ON public.user_profiles
+  FOR ALL
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- ─── public.user_points ───────────────────────────────────────────────────
+
+DROP POLICY IF EXISTS points_own_write ON public.user_points;
+CREATE POLICY points_own_write ON public.user_points
+  FOR ALL
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- ─── public.user_stats_summary ────────────────────────────────────────────
+
+DROP POLICY IF EXISTS stats_own ON public.user_stats_summary;
+CREATE POLICY stats_own ON public.user_stats_summary
+  FOR ALL
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- ─── public.daily_user_stats ──────────────────────────────────────────────
+
+DROP POLICY IF EXISTS daily_own ON public.daily_user_stats;
+CREATE POLICY daily_own ON public.daily_user_stats
+  FOR ALL
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- ─── public.study_sessions_log ────────────────────────────────────────────
+
+DROP POLICY IF EXISTS sessions_own ON public.study_sessions_log;
+CREATE POLICY sessions_own ON public.study_sessions_log
+  FOR ALL
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- ─── public.user_inventory ────────────────────────────────────────────────
+
+DROP POLICY IF EXISTS inventory_own ON public.user_inventory;
+CREATE POLICY inventory_own ON public.user_inventory
+  FOR ALL
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- ─── public.notifications ─────────────────────────────────────────────────
+
+DROP POLICY IF EXISTS notif_own ON public.notifications;
+CREATE POLICY notif_own ON public.notifications
+  FOR ALL
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- ─── public.user_presence ─────────────────────────────────────────────────
+-- Replace auth.role() = 'authenticated' with the safer uid IS NOT NULL check.
+
+DROP POLICY IF EXISTS presence_read_auth ON public.user_presence;
+CREATE POLICY presence_read_auth ON public.user_presence
+  FOR SELECT
+  USING ((SELECT auth.uid()) IS NOT NULL);
+
+DROP POLICY IF EXISTS presence_own_write ON public.user_presence;
+CREATE POLICY presence_own_write ON public.user_presence
+  FOR ALL
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- ─── public.groups ────────────────────────────────────────────────────────
+
+DROP POLICY IF EXISTS groups_owner_write ON public.groups;
+CREATE POLICY groups_owner_write ON public.groups
+  FOR ALL
+  USING (owner_id = (SELECT auth.uid()))
+  WITH CHECK (owner_id = (SELECT auth.uid()));
+
+-- ─── public.group_members ─────────────────────────────────────────────────
+
+DROP POLICY IF EXISTS gm_read_members ON public.group_members;
+CREATE POLICY gm_read_members ON public.group_members
+  FOR SELECT
+  USING (
+    group_id = ANY (public.get_my_group_ids())
+  );
+
+DROP POLICY IF EXISTS gm_own_write ON public.group_members;
+CREATE POLICY gm_own_write ON public.group_members
+  FOR ALL
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- ─── public.group_chat_messages ───────────────────────────────────────────
+
+DROP POLICY IF EXISTS gchat_read_members ON public.group_chat_messages;
+CREATE POLICY gchat_read_members ON public.group_chat_messages
+  FOR SELECT
+  USING (group_id = ANY (public.get_my_group_ids()));
+
+DROP POLICY IF EXISTS gchat_send ON public.group_chat_messages;
+CREATE POLICY gchat_send ON public.group_chat_messages
+  FOR INSERT
+  WITH CHECK (
+    user_id = (SELECT auth.uid())
+    AND group_id = ANY (public.get_my_group_ids())
+  );
+
+DROP POLICY IF EXISTS gchat_delete_own ON public.group_chat_messages;
+CREATE POLICY gchat_delete_own ON public.group_chat_messages
+  FOR UPDATE
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- ─── public.group_challenges ──────────────────────────────────────────────
+
+DROP POLICY IF EXISTS gchall_read ON public.group_challenges;
+CREATE POLICY gchall_read ON public.group_challenges
+  FOR SELECT
+  USING (group_id = ANY (public.get_my_group_ids()));
+
+DROP POLICY IF EXISTS gchall_write ON public.group_challenges;
+CREATE POLICY gchall_write ON public.group_challenges
+  FOR ALL
+  USING (created_by = (SELECT auth.uid()))
+  WITH CHECK (created_by = (SELECT auth.uid()));
+
+-- ─── public.group_challenge_participants ──────────────────────────────────
+
+DROP POLICY IF EXISTS gcpart_own ON public.group_challenge_participants;
+CREATE POLICY gcpart_own ON public.group_challenge_participants
+  FOR ALL
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS gcpart_read_members ON public.group_challenge_participants;
+CREATE POLICY gcpart_read_members ON public.group_challenge_participants
+  FOR SELECT
+  USING (
+    challenge_id IN (
+      SELECT gch.id
+      FROM public.group_challenges gch
+      JOIN public.group_members gm ON gm.group_id = gch.group_id
+      WHERE gm.user_id = (SELECT auth.uid())
+    )
+  );
+
+-- ─── public.group_announcements ───────────────────────────────────────────
+
+DROP POLICY IF EXISTS gann_read ON public.group_announcements;
+CREATE POLICY gann_read ON public.group_announcements
+  FOR SELECT
+  USING (group_id = ANY (public.get_my_group_ids()));
+
+DROP POLICY IF EXISTS gann_write ON public.group_announcements;
+CREATE POLICY gann_write ON public.group_announcements
+  FOR ALL
+  USING (author_id = (SELECT auth.uid()))
+  WITH CHECK (author_id = (SELECT auth.uid()));
+
+-- ─── public.group_invites ─────────────────────────────────────────────────
+
+DROP POLICY IF EXISTS ginv_read ON public.group_invites;
+CREATE POLICY ginv_read ON public.group_invites
+  FOR SELECT
+  USING (
+    group_id = ANY (public.get_my_group_ids())
+    OR created_by = (SELECT auth.uid())
+  );
+
+DROP POLICY IF EXISTS ginv_create ON public.group_invites;
+CREATE POLICY ginv_create ON public.group_invites
+  FOR INSERT
+  WITH CHECK (
+    created_by = (SELECT auth.uid())
+    AND group_id IN (
+      SELECT group_id FROM public.group_members
+      WHERE user_id = (SELECT auth.uid()) AND role IN ('admin','moderator')
+    )
+  );
+
+-- ─── public.group_milestones ──────────────────────────────────────────────
+
+DROP POLICY IF EXISTS gmile_read ON public.group_milestones;
+CREATE POLICY gmile_read ON public.group_milestones
+  FOR SELECT
+  USING (group_id = ANY (public.get_my_group_ids()));
+
 -- ── Done ──────────────────────────────────────────────────────────────────
--- To verify index usage:
---   EXPLAIN (ANALYZE, BUFFERS)
---   SELECT group_id FROM public.group_members WHERE user_id = auth.uid();
--- Expected: Index Only Scan using idx_gm_user_group_covering
+-- Verification:
+--   SELECT policyname, tablename FROM pg_policies
+--   WHERE schemaname = 'public'
+--   ORDER BY tablename, policyname;
+-- Expected: all policies present, none duplicated.
 -- ============================================================================

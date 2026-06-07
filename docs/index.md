@@ -1,66 +1,153 @@
 ---
-title: IsotopeAI Local
-description: A downloadable local-server study app with Supabase cloud sync.
+title: IsotopeAI — Self-Hosted Study App
+description: A downloadable, local-first student productivity app with cloud sync via Supabase.
 ---
 
-# IsotopeAI Local
+# IsotopeAI
 
-Isotope is downloadable software. Run the Node server on your own device, then open the app in your browser.
+**A self-hosted, local-first student productivity app with Supabase cloud sync.**
 
-Supabase is backend/cloud sync only:
+Run the app on your own device and open it in any browser. Supabase provides auth, database, storage, and realtime sync — no VPS required.
 
-- Auth
-- Database
-- Storage
-- Realtime
-- Community/group sync
-- Optional edge functions
+---
 
-Supabase is not static website hosting, a VPS replacement, or the main website. Do not try to open the app at `https://<project-ref>.supabase.co/`.
+## Quick Start
 
-## Start Fast
+### Linux / macOS / Termux
 
-- Windows: run `setup.bat`
-- macOS/Linux/Termux: run `bash setup.sh`
-- PowerShell: run `.\install.ps1`
+```bash
+git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+bash setup.sh
+```
 
-Normal users only need `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Owner/admin fields stay blank unless private admin mode is enabled.
+### Windows
+
+```bat
+git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+setup.bat
+```
+
+### PowerShell
+
+```powershell
+git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+.\install.ps1
+```
+
+Open the app at:
+
+```
+http://127.0.0.1:3000
+```
+
+Normal users only need:
+
+```env
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+```
+
+---
+
+## Features
+
+| Area | Features |
+|---|---|
+| Study | Focus timer, session log, daily stats, streaks |
+| Planner | Subjects, tasks, habits, exam calendar |
+| Analytics | Study breakdowns, subject insights, progress views |
+| Community | Groups, chat, challenges, leaderboard |
+| AI | Study assistant, summaries, analysis cards |
+| Cloud Sync | Supabase-backed snapshot backup and restore |
+| Offline | PWA shell works from cache when server is off |
+| CLI | `isotope start`, `update`, `doctor`, `logs` |
+| Android | Termux Widget shortcuts for start/update/open |
+
+---
 
 ## Commands
 
-After setup, run these from any directory:
+After setup, these work from any directory:
 
 ```bash
-isotope start
-isotope stop
-isotope restart
-isotope update
-isotope status
-isotope doctor
-isotope open
-isotope logs
+isotope start      # Start the local server
+isotope stop       # Stop the server
+isotope restart    # Restart the server
+isotope update     # Pull latest + install deps + restart
+isotope status     # Show server state
+isotope doctor     # Check Node, Git, PATH, Supabase health
+isotope open       # Open in browser (after health check)
+isotope logs       # Tail server logs
 ```
 
-## Offline Support
+---
 
-After the first successful visit with the local server running, the browser caches the app shell and core assets.
+## Cloud Sync
 
-If the local server later stops, the cached shell may still load. Local API routes and Supabase-backed features do not work until the server and network are available again. The UI shows an offline/server-unavailable indicator instead of pretending cloud features are online.
+Cloud sync is Supabase-backed and requires a free Supabase project.
 
-PWA service-worker activation reloads are guarded so a session performs at most one automatic refresh. The update banner only shows a command dialog for `isotope update`; it does not stop or restart the server from the browser.
+The sync chain is:
 
-## Android / Termux Widget
-
-Install shortcuts with:
-
-```bash
-bash setup-termux-widget.sh
+```
+Browser action
+  → Supabase DB / Storage change
+  → Cache cleared
+  → Login again
+  → Data restored from Supabase
 ```
 
-Then add Termux Widget buttons such as `isotope-start`, `isotope-update`, `isotope-open`, and `isotope-doctor` to the Android home screen.
+Run the SQL patches in the Supabase SQL Editor:
 
-The shortcut installer embeds the resolved absolute `isotope` command path where possible, so widgets keep working even if Android launches them without the interactive Termux `PATH`.
+1. `community-patch-v4.sql` — full schema, RLS, storage buckets
+2. `performance-patch.sql` — covering indexes and RLS performance hardening
 
-## Admin
+---
 
-Open `/__admin/login` only if you own the Supabase project. Unlock with a private admin secret, an allowed Supabase admin email, or an admin role in `user_roles`.
+## Architecture
+
+```
+Browser / PWA
+    ↓
+127.0.0.1:3000
+    ↓
+Local Node.js server (server.mjs)
+    ↓
+Supabase Auth + Database + Storage + Realtime
+```
+
+Supabase is not the public website host. It is the cloud backend only.
+
+---
+
+## Supabase Setup
+
+Expected buckets:
+
+| Bucket | Purpose |
+|---|---|
+| `avatars` | Profile images |
+| `user-content` | Cloud snapshots and user files |
+| `notes` | Notes/documents |
+
+---
+
+## Links
+
+- [GitHub Repository](https://github.com/Suydev/isotope-code)
+- [README](https://github.com/Suydev/isotope-code/blob/main/README.md)
+- [Changelog](https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md)
+- [AGENTS.md](https://github.com/Suydev/isotope-code/blob/main/AGENTS.md)
+- [TERMUX_WIDGET.md](https://github.com/Suydev/isotope-code/blob/main/TERMUX_WIDGET.md)
+
+---
+
+## License
+
+MIT. See [LICENSE](https://github.com/Suydev/isotope-code/blob/main/LICENSE).
+
+---
+
+*Built by [Suydev](https://github.com/Suydev) — v3.1.3*
