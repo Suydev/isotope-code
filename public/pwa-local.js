@@ -3,6 +3,7 @@
   'use strict';
 
   var STATUS_ID = '__iso_offline_status__';
+  var swActivationReloadGuard = false;
   var state = {
     browserOnline: navigator.onLine,
     serverOnline: true,
@@ -124,8 +125,18 @@
     navigator.serviceWorker.addEventListener('message', function (event) {
       var data = event.data || {};
       if (data.type === 'ISOTOPE_SW_READY' || data.type === 'ISOTOPE_SW_VERSION') {
-        state.swVersion = data.version || '';
-        state.swSha = data.sha || '';
+        var newVersion = data.version || '';
+        var newSha = data.sha || '';
+        // One-shot reload guard: only reload on first SW activation with new version
+        if (!swActivationReloadGuard && newVersion && newVersion !== state.swVersion) {
+          swActivationReloadGuard = true;
+          state.swVersion = newVersion;
+          state.swSha = newSha;
+          window.location.reload();
+          return;
+        }
+        state.swVersion = newVersion;
+        state.swSha = newSha;
       }
     });
   }
