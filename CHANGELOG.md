@@ -17,6 +17,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `VERSION` bumped to `3.2.0`.
 - `package.json` version bumped to `3.2.0`.
 - `README.md` version badge updated to `3.2.0`.
+- `docs/index.md` version footer updated to `3.2.0`.
+- `.replit-artifact/artifact.toml` — corrected development `run` path from `artifacts/isotope` to `isotope`.
+
+### Verified (release pass — 2026-06-07)
+The following items were code-reviewed and live-tested against the running server. Items marked ⚠️ require a live Supabase instance to fully exercise and could not be end-to-end tested in the build environment.
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | Server boots cleanly | ✅ All 49 startup log lines clean; all patch groups reported 100% applied |
+| 2 | Cloud sync flow | ⚠️ Code-reviewed: `/__auth/snapshot` → `refreshCloudSnapshotForUser` → Storage upload; fallback chain in `/__auth/backup/latest` correct |
+| 3 | Onboarding — new vs existing user | ✅ `onboarding_completed` checked at login; `AUTH_GUARD_SCRIPT` gates routing; `OnboardingPatch` requires verified Supabase write |
+| 4 | Profile/settings restore | ✅ `/__auth/bootstrap` fetches profile + stats + groups; settings bundle patched (12/12) |
+| 5 | Avatar upload/download/dedupe | ✅ SHA-256 hash → `{userId}/avatar-{hash}.{ext}`; `upsert: false` + `isStorageAlreadyExists` guard; old path deleted on replace |
+| 6 | Study stats — Analytics vs Leaderboard | ✅ Analytics = local IndexedDB (analyticsWorker); Leaderboard = `user_stats_summary` via Supabase REST + JWT. Both written by `finish_session_sync` RPC — consistent source |
+| 7 | Offline PWA — no reload loop | ✅ `RELOAD_GUARD_SCRIPT` injected; blocks if `navigator.onLine===false`; blocks repeat reloads via `sessionStorage` key |
+| 8 | Update banner — hidden when latest | ✅ `/api/check-update` live: `hasUpdate: false`, `deployed_version: "3.2.0"`, `latest_version: "3.2.0"` |
+| 9 | Setup scripts syntax | ✅ `bash -n setup.sh` passes; `setup.bat`, `update.bat` present and reviewed |
+| 10 | No secrets staged or committed | ✅ `.env` not tracked; `.gitignore` covers `.env*`; full git history grep found no embedded keys |
+| 11 | HTTP 200 from app root | ✅ `curl -I localhost:24099/` → `200 OK` |
+| 12 | `/__auth/check` POST | ✅ Returns `{"available":false,"error":"Valid email address required"}` — endpoint live and correct |
+| 13 | LICENSE | ✅ MIT license file present |
+| 14 | `.env.example` | ✅ All required + optional + owner-only vars documented; blanks only; `Never commit .env` note included |
 
 ---
 

@@ -15,16 +15,7 @@ paths = [ "/" ]
 localPort = 24099
 
 [services.development]
-run = "cd /home/runner/workspace/artifacts/isotope && node server.mjs"
-
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/isotope", "run", "build" ]
-publicDir = "artifacts/isotope/dist/public"
-serve = "static"
-
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+run = "cd /home/runner/workspace/isotope && node server.mjs"
 
 [services.env]
 PORT = "24099"

@@ -150,4 +150,4 @@ MIT. See [LICENSE](https://github.com/Suydev/isotope-code/blob/main/LICENSE).
 
 ---
 
-*Built by [Suydev](https://github.com/Suydev) — v3.1.3*
+*Built by [Suydev](https://github.com/Suydev) — v3.2.0*
