@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.3.4] — 2026-06-07 — Critical bug fixes; YepAPI removed; security hardened
+
+### Fixed
+- **SyntaxError in Upload-only sync patch** — `|| async ()` is invalid JS (malformed arrow function parameter list). Fixed to `(async () => ...)` wrapper so the upload-dirty-local sync path no longer crashes the App bundle in some browsers.
+- **YepAPI removed entirely** — `/__ai/*` endpoints, `YEPAPI_KEY`, `YEPAPI_BASE` constants, and the full `handleAiRoute()` function have been deleted. The server is now fully self-contained with zero external AI API dependencies.
+- **Unknown `/api/*` routes returned HTTP 200 with SPA HTML** — API paths that don't match any handler now return `{"ok":false,"error":"Not found"}` with HTTP 404, as expected by API clients and monitoring tools.
+- **Security headers missing from all responses** — Added `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `X-XSS-Protection: 1; mode=block`, and `Referrer-Policy: strict-origin-when-cross-origin` to every HTTP response.
+- **CORS `Access-Control-Allow-Methods` was incomplete** — Now includes `PATCH` and `DELETE` (both are used by Supabase REST proxy routes).
+- **Service worker files cached for 1 hour** — `sw.js` and `pwa-local.js` now get `Cache-Control: no-cache` so the browser always checks for updates, preventing users getting stuck on a stale service worker.
+- **`/__auth/backup` POST silently failed without auth** — Now correctly returns HTTP 401 JSON for unauthenticated backup upload requests.
+- **`backup.json` and `firebase-messaging-sw.js` served publicly** — `backup.json` exposed the full backup data schema; `firebase-messaging-sw.js` is a vestigial Firebase Cloud Messaging file with no active Firebase integration. Both now return HTTP 404.
+
+---
+
 ## [3.3.3] — 2026-06-07 — Admin role check bug fixed; 8 undocumented DB functions added to schema
 
 ### Fixed
@@ -502,3 +516,4 @@ First production-stable release. Every feature from the original IsotopeAI is co
 - Demo mode disabled; plan type forced to `ranker`
 - `restore-and-launch.js` — session detection + onboarding routing
 - Base schema: 16 tables + 5 RPCs
+
