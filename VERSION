@@ -1,6 +1,6 @@
 {
-  "version": "3.3.4",
-  "sha": "v3.3.4",
-  "message": "fix: critical bug fixes \u2014 YepAPI removed, security headers, syntax error, API 404s, SW cache",
+  "version": "3.3.5",
+  "sha": "v3.3.5",
+  "message": "perf: speed probe fix, health caching, pre-gzip bundles, 14 DB indexes",
   "updated_at": "2026-06-07T00:00:00.000Z"
 }
