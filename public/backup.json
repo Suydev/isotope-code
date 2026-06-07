@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "source": "isotopeai",
+  "exportedAt": "2026-01-01T00:00:00.000Z",
+  "appVersion": "1.1.1",
+  "data": {
+    "profile": {
+      "name": "",
+      "swot": {
+        "strengths": [],
+        "weaknesses": [],
+        "opportunities": [],
+        "threats": []
+      },
+      "settings": {
+        "theme": "system",
+        "notifications": true,
+        "performanceMode": "standard"
+      },
+      "focusSettings": {
+        "defaultDuration": 25,
+        "shortBreakDuration": 5,
+        "longBreakDuration": 15,
+        "autoStartBreaks": false,
+        "dailyGoalMinutes": 360,
+        "notificationSound": true,
+        "sessionEndSound": true,
+        "pomodorosUntilLongBreak": 4,
+        "notificationInterval": 195,
+        "showPauseReasonPicker": true,
+        "showSessionCompletionCard": true,
+        "showQuestionTrackingInTimerPip": true,
+        "showSessionProductivityRating": true,
+        "focusTypes": [
+          { "id": "theory",    "label": "Theory",    "icon": "📚", "trackQuestions": false },
+          { "id": "questions", "label": "Questions", "icon": "❓", "trackQuestions": true  },
+          { "id": "lecture",   "label": "Lecture",   "icon": "🎓", "trackQuestions": false },
+          { "id": "revision",  "label": "Revision",  "icon": "🔁", "trackQuestions": false }
+        ]
+      }
+    },
+    "tasks":     [],
+    "subjects":  [],
+    "sessions":  [],
+    "habits":    [],
+    "exams":     [],
+    "tests":     [],
+    "mockTests": [],
+    "dailyLogs": []
+  }
+}
