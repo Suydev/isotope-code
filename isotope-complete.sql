@@ -1360,6 +1360,42 @@ CREATE TRIGGER tr_cleanup_old_notifications
   AFTER INSERT ON public.notifications
   FOR EACH ROW EXECUTE FUNCTION public.cleanup_old_notifications();
 
+-- ── §13b. user_tours — persistent tour/guide state per user ──────────────────
+-- Stores which onboarding tours/guided walkthroughs a user has completed or
+-- dismissed. Prevents tours from repeating on every login.
+-- Tour keys match the keys used in the compiled React tour store.
+
+CREATE TABLE IF NOT EXISTS public.user_tours (
+  id            uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id       uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  tour_key      text NOT NULL,
+  completed     boolean NOT NULL DEFAULT false,
+  completed_at  timestamptz,
+  dismissed     boolean NOT NULL DEFAULT false,
+  dismissed_at  timestamptz,
+  step_reached  integer NOT NULL DEFAULT 0,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(user_id, tour_key)
+);
+
+ALTER TABLE public.user_tours ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "user_tours_own" ON public.user_tours;
+CREATE POLICY "user_tours_own" ON public.user_tours
+  FOR ALL TO authenticated
+  USING  (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.set_user_tours_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
+
+DROP TRIGGER IF EXISTS trg_user_tours_updated_at ON public.user_tours;
+CREATE TRIGGER trg_user_tours_updated_at
+  BEFORE UPDATE ON public.user_tours
+  FOR EACH ROW EXECUTE FUNCTION public.set_user_tours_updated_at();
+
 -- ── §14. Storage buckets ──────────────────────────────────────────────────────
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -1411,6 +1447,7 @@ DO $$ BEGIN
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.groups;                     EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.group_members;              EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.user_settings;              EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.user_tours;               EXCEPTION WHEN OTHERS THEN NULL; END;
 END $$;
 
 -- ── §16. Backfill existing users into satellite tables ────────────────────────
