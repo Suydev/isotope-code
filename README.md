@@ -6,7 +6,7 @@
   <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z" />
 </svg>
 
-# IsotopeAI
+# [![IsotopeAI](https://i.ibb.co/WSrcM6R/desktop-2.png)](https://suydev.github.io/isotope-code/)
 
 **A self-hosted, local-first student productivity app with cloud sync via Supabase.**
 
