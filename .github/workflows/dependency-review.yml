@@ -1,0 +1,46 @@
+name: 🔒 Dependency Review
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'npm-shrinkwrap.json'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    name: Review dependency changes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔒 Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0, LGPL-2.0, LGPL-2.1
+          comment-summary-in-pr: always
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: 📦 Install and audit
+        run: |
+          npm ci
+          echo "=== npm audit ==="
+          npm audit --audit-level=high || echo "⚠️ Audit issues found — review above"
+
+      - name: 📊 Report dependency count
+        run: |
+          echo "Production deps: $(node -e "const p=require('./package.json'); console.log(Object.keys(p.dependencies||{}).length)")"
+          echo "Dev deps: $(node -e "const p=require('./package.json'); console.log(Object.keys(p.devDependencies||{}).length)")"
