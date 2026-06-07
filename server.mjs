@@ -262,7 +262,6 @@ async function isSupabaseAdminUser(user) {
     const q = '/rest/v1/user_roles'
       + '?select=role'
       + '&user_id=eq.' + encodeURIComponent(user.id)
-      + '&is_active=eq.true'
       + '&limit=10';
     const r = await supaRestReq('GET', q, null);
     if (r.status >= 400 || !Array.isArray(r.body)) return false;
