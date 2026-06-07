@@ -1,6 +1,6 @@
 {
-  "version": "3.2.0",
-  "sha": "v3.2.0",
-  "message": "release: v3.2.0 leaderboard RLS fix + SQL index correction",
+  "version": "3.3.0",
+  "sha": "v3.3.0",
+  "message": "release: v3.3.0 live DB RLS patch, GitHub Pages docs link, login error improvements",
   "updated_at": "2026-06-07T00:00:00.000Z"
 }

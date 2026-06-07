@@ -5,6 +5,40 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.3.0] — 2026-06-07 — Live DB RLS patch, GitHub Pages docs link, login error improvements
+
+### Fixed
+- **§5+§6 RLS policies applied to live Supabase DB** — `performance-patch.sql` §5 (own-row `(SELECT auth.uid())` optimisation) and §6 (leaderboard `stats_select_all`, `daily_select_all`, `users_select_display` public-read policies) were not applied to the live database. Applied all 6 batches via the Supabase Management API. Leaderboard queries now work correctly for authenticated users and all RLS policies use the single-evaluation `(SELECT auth.uid())` pattern.
+- **Improved login error messages** (`server.mjs` `/__auth/login`) — Login failures now surface the specific Supabase error: "email not confirmed" shows a confirmation-link hint; "invalid credentials" shows a clear message directing users to use their Supabase-registered email and password. Previously all failures returned the generic "Invalid email or password" with no context.
+
+### Added
+- **GitHub Pages docs link in login screen** (`server.mjs` `DOCS_LINK_HTML`) — A `📖 Docs` badge is injected into every served HTML page (including the unauthenticated login screen) linking to `https://suydev.github.io/isotope-code/`. The badge floats in the bottom-right corner and is non-intrusive.
+- **GitHub Pages link in README** — Logo in README header now links to GitHub Pages; a Docs badge and nav link added to the header; footer updated with Documentation link.
+- **GitHub Pages docs updated** (`docs/index.md`) — Added v3.3.0 changelog section, GitHub Pages self-link, repository link, and updated version footer.
+
+### Changed
+- `VERSION` bumped to `3.3.0`.
+- `package.json` version bumped to `3.3.0`.
+- `README.md` version badge updated to `3.3.0`.
+
+### Audit (v3.3.0 release pass — 2026-06-07)
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | Total assets scanned | 211 (191 non-font) |
+| 2 | `/api/broadcast` in vendor-supabase bundle | ✅ Supabase realtime internal — not a server route |
+| 3 | All `/__auth/*` endpoints exist in server.mjs | ✅ login, signup, backup, backup/latest, snapshot, profile, refresh, delete-account |
+| 4 | All `/api/*` endpoints exist in server.mjs | ✅ version, healthz, status, config, export, ai/*, pwa-events, proxy |
+| 5 | §5 own-row RLS policies applied to live DB | ✅ Applied via Management API (6 batches, all 201) |
+| 6 | §6 leaderboard public-read policies applied | ✅ stats_select_all, daily_select_all, users_select_display |
+| 7 | Missing tables (user_inventory, community_events) | ℹ️ Not in live DB schema — SQL skipped safely |
+| 8 | Login error messages improved | ✅ email-not-confirmed hint + invalid-credentials hint |
+| 9 | GitHub Pages link injected into login screen | ✅ DOCS_LINK_HTML appended before </body> |
+| 10 | README GitHub Pages link added | ✅ Logo, badge, nav, footer |
+| 11 | docs/index.md updated to v3.3.0 | ✅ |
+
+---
+
 ## [3.2.0] — 2026-06-07 — Leaderboard RLS fix and SQL index correction
 
 ### Fixed
