@@ -1545,6 +1545,180 @@ FROM (VALUES
 ) AS v(title, event_type, description, host, start_time, end_time, image_gradient, tags, max_attendees, is_featured)
 WHERE NOT EXISTS (SELECT 1 FROM public.community_events ce WHERE ce.title = v.title);
 
+-- ── §18. Live-DB trigger functions (in DB but not previously in schema file) ──
+-- These functions exist in the live Supabase project (confirmed via pg_proc audit).
+-- Documented here so a fresh install produces an identical DB to the live instance.
+
+-- §18a. handle_new_user_profile — secondary signup trigger that ensures
+-- user_profiles and user_settings rows exist. Complements handle_new_user().
+CREATE OR REPLACE FUNCTION public.handle_new_user_profile()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  INSERT INTO public.user_profiles (user_id, profile_data)
+  VALUES (NEW.id, jsonb_build_object(
+    'display_name', COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+    'avatar_url', COALESCE(NEW.raw_user_meta_data->>'avatar_url', ''),
+    'bio', ''
+  ))
+  ON CONFLICT (user_id) DO NOTHING;
+
+  INSERT INTO public.user_settings (user_id, settings)
+  VALUES (NEW.id, '{}'::jsonb)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  RETURN NEW;
+END; $$;
+
+DROP TRIGGER IF EXISTS trg_handle_new_user_profile ON auth.users;
+CREATE TRIGGER trg_handle_new_user_profile
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_profile();
+
+-- §18b. rls_auto_enable — event trigger: automatically enables RLS on every
+-- new public table created during migrations, preventing accidental open tables.
+CREATE OR REPLACE FUNCTION public.rls_auto_enable()
+RETURNS event_trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog AS $$
+DECLARE cmd record;
+BEGIN
+  FOR cmd IN
+    SELECT * FROM pg_event_trigger_ddl_commands()
+    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+      AND object_type IN ('table','partitioned table')
+  LOOP
+    IF cmd.schema_name IS NOT NULL
+      AND cmd.schema_name IN ('public')
+      AND cmd.schema_name NOT LIKE 'pg_%'
+      AND cmd.schema_name NOT IN ('information_schema')
+    THEN
+      BEGIN
+        EXECUTE format('ALTER TABLE IF EXISTS %s ENABLE ROW LEVEL SECURITY', cmd.object_identity);
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END;
+    END IF;
+  END LOOP;
+END; $$;
+
+DROP EVENT TRIGGER IF EXISTS rls_auto_enable;
+CREATE EVENT TRIGGER rls_auto_enable ON ddl_command_end
+  WHEN TAG IN ('CREATE TABLE','CREATE TABLE AS','SELECT INTO')
+  EXECUTE FUNCTION public.rls_auto_enable();
+
+-- §18c. set_group_slug_from_name — BEFORE INSERT trigger on public.groups.
+-- Auto-generates a URL-safe slug from the group name when none is supplied.
+CREATE OR REPLACE FUNCTION public.set_group_slug_from_name()
+RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF NEW.slug IS NULL THEN
+    NEW.slug := lower(regexp_replace(COALESCE(NEW.name,''), '[^a-zA-Z0-9]+', '-', 'g'));
+    IF NEW.slug = '' THEN NEW.slug := NULL; END IF;
+  END IF;
+  RETURN NEW;
+END; $$;
+
+DROP TRIGGER IF EXISTS trg_set_group_slug ON public.groups;
+CREATE TRIGGER trg_set_group_slug
+  BEFORE INSERT ON public.groups
+  FOR EACH ROW EXECUTE FUNCTION public.set_group_slug_from_name();
+
+-- §18d. sync_group_visibility — BEFORE INSERT OR UPDATE on public.groups.
+-- Keeps is_public in sync when a visibility text column is set.
+CREATE OR REPLACE FUNCTION public.sync_group_visibility()
+RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF NEW.visibility IS NULL THEN RETURN NEW; END IF;
+  NEW.is_public := lower(trim(NEW.visibility)) IN ('public','true','t','1','yes','y');
+  RETURN NEW;
+END; $$;
+
+DROP TRIGGER IF EXISTS trg_sync_group_visibility ON public.groups;
+CREATE TRIGGER trg_sync_group_visibility
+  BEFORE INSERT OR UPDATE ON public.groups
+  FOR EACH ROW EXECUTE FUNCTION public.sync_group_visibility();
+
+-- §18e. sync_group_member_count — AFTER INSERT/DELETE on public.group_members.
+-- Keeps groups.member_count accurate without expensive COUNT(*) queries.
+CREATE OR REPLACE FUNCTION public.sync_group_member_count()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE public.groups SET member_count = member_count + 1 WHERE id = NEW.group_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.groups SET member_count = GREATEST(member_count - 1, 0) WHERE id = OLD.group_id;
+  END IF;
+  RETURN NULL;
+END; $$;
+
+DROP TRIGGER IF EXISTS trg_sync_member_count ON public.group_members;
+CREATE TRIGGER trg_sync_member_count
+  AFTER INSERT OR DELETE ON public.group_members
+  FOR EACH ROW EXECUTE FUNCTION public.sync_group_member_count();
+
+-- §18f. create_community_group — RPC wrapper for group creation.
+-- Handles slug generation and inserts the creator as owner atomically.
+-- NOTE: frontend uses direct .from("groups").insert() — this RPC is an
+-- alternative path useful for server-side / admin scripts.
+CREATE OR REPLACE FUNCTION public.create_community_group(
+  p_name        text,
+  p_description text    DEFAULT NULL,
+  p_category    text    DEFAULT 'community',
+  p_is_public   boolean DEFAULT true,
+  p_slug        text    DEFAULT NULL,
+  p_logo_url    text    DEFAULT NULL,
+  p_cover_url   text    DEFAULT NULL,
+  p_settings    jsonb   DEFAULT '{}'
+)
+RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+  v_group_id uuid;
+  v_uid      uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
+
+  IF p_slug IS NULL THEN
+    p_slug := lower(regexp_replace(COALESCE(p_name,''), '[^a-zA-Z0-9]+', '-', 'g'));
+    IF p_slug = '' THEN p_slug := NULL; END IF;
+  END IF;
+
+  INSERT INTO public.groups (name, description, category, is_public, slug, logo_url, cover_url, owner_id, settings)
+  VALUES (p_name, p_description, p_category, COALESCE(p_is_public, true), p_slug, p_logo_url, p_cover_url, v_uid, COALESCE(p_settings, '{}'))
+  RETURNING id INTO v_group_id;
+
+  INSERT INTO public.group_members (group_id, user_id, role)
+  VALUES (v_group_id, v_uid, 'owner')
+  ON CONFLICT (group_id, user_id) DO UPDATE SET role = EXCLUDED.role;
+
+  RETURN v_group_id;
+END; $$;
+
+-- §18g. check_user_role — simple role membership check used by admin middleware.
+CREATE OR REPLACE FUNCTION public.check_user_role(p_user_id uuid, p_role text)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = p_user_id AND role = p_role);
+$$;
+
+-- §18h. get_my_role — returns the highest-priority role for the calling user.
+CREATE OR REPLACE FUNCTION public.get_my_role()
+RETURNS text LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public AS $$
+  SELECT role FROM public.user_roles
+  WHERE user_id = auth.uid()
+  ORDER BY CASE role WHEN 'admin' THEN 1 WHEN 'moderator' THEN 2 ELSE 3 END
+  LIMIT 1;
+$$;
+
+-- §18 grants
+GRANT EXECUTE ON FUNCTION public.handle_new_user_profile()                                           TO service_role;
+GRANT EXECUTE ON FUNCTION public.set_group_slug_from_name()                                          TO service_role;
+GRANT EXECUTE ON FUNCTION public.sync_group_visibility()                                             TO service_role;
+GRANT EXECUTE ON FUNCTION public.sync_group_member_count()                                           TO service_role;
+GRANT EXECUTE ON FUNCTION public.create_community_group(text,text,text,boolean,text,text,text,jsonb) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.check_user_role(uuid,text)                                         TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_my_role()                                                       TO anon, authenticated, service_role;
+
 -- ── Done ──────────────────────────────────────────────────────────────────────
 -- Verify:
 --   SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;
