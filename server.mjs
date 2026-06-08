@@ -779,9 +779,69 @@ function buildUsernameAuthScript() {
     } catch(e) { return false; }
   }
 
+  // ── Sync auth state machine ──────────────────────────────────────────────
+  // Auth failure is a STOP condition. Network failure is a RETRY condition.
+  // When any sync call gets an auth error we block all scheduled syncs.
+  // When a new valid session token arrives we unblock and queue one retry.
+
+  function isAuthError(e) {
+    if (!e) return false;
+    if (e.__isAuthError) return true;
+    var msg = String(e.message || e || '').toLowerCase();
+    return /authentication required|please log in|invalid token|token expired|jwt expired|not authenticated|invalid credentials|invalid claim|invalid jwt|session expired|no session|user not found/.test(msg) || (e.__httpStatus === 401);
+  }
+
+  function isPermissionError(e) {
+    if (!e) return false;
+    var msg = String(e.message || e || '').toLowerCase();
+    return /permission denied|policy|not authorized|forbidden|rls|row level security/.test(msg) || (e.__httpStatus === 403);
+  }
+
+  function isNetworkError(e) {
+    if (!e) return false;
+    var msg = String(e.message || e || '').toLowerCase();
+    return /network|fetch|timeout|timed out|econnrefused|econnreset|dns|no internet|failed to fetch|load failed/.test(msg) || e.name === 'AbortError' || e.name === 'TypeError';
+  }
+
+  window.__isoSyncAuthBlocked = false;
+
+  // Block all scheduled syncs (auth failure). Stops the 30-min timer.
+  window.__isoSyncAuthBlock = function(reason) {
+    if (!window.__isoSyncAuthBlocked) {
+      window.__isoSyncAuthBlocked = true;
+      writeSyncMetadata({ last_sync_status: 'paused_auth', last_error: reason || 'Authentication required — please log in' });
+      writeSyncHistory({ op: 'auth_block', status: 'paused_auth', detail: reason || 'Authentication required' });
+      // Stop the 30-min timer so it cannot fire while auth is broken
+      if (typeof _autoSyncTimer !== 'undefined' && _autoSyncTimer) {
+        clearInterval(_autoSyncTimer);
+        _autoSyncTimer = null;
+      }
+    }
+  };
+
+  // Unblock syncs (new session token received). Restarts the timer + queues one sync.
+  window.__isoSyncAuthUnblock = function() {
+    var wasBlocked = window.__isoSyncAuthBlocked;
+    window.__isoSyncAuthBlocked = false;
+    if (wasBlocked) {
+      writeSyncHistory({ op: 'auth_unblock', status: 'ok', detail: 'Session restored — sync resuming' });
+      // Restart the recurring timer and schedule one sync attempt shortly
+      if (typeof startAutoSyncTimer === 'function') {
+        try { startAutoSyncTimer(); } catch(e) {}
+      }
+      setTimeout(function() {
+        try { window.__isoAutoSync('auth_recovered').catch(function() {}); } catch(e) {}
+      }, 2000);
+    }
+  };
+
   async function authedJson(url, options) {
     var jwt = await getValidJwt();
-    if (!jwt) throw new Error('Authentication required — please log in');
+    if (!jwt) {
+      var _noJwtErr = new Error('Authentication required — please log in');
+      _noJwtErr.__isAuthError = true;
+      throw _noJwtErr;
+    }
     var headers = Object.assign({ 'Accept': 'application/json', 'Authorization': 'Bearer ' + jwt }, (options && options.headers) || {});
     var timeoutMs = options && options.timeoutMs ? options.timeoutMs : 45000;
     var r = await withTimeout(function(signal) {
@@ -801,10 +861,26 @@ function buildUsernameAuthScript() {
           if (signal) init.signal = signal;
           return fetch(url, init);
         }, timeoutMs, 'Cloud request timed out');
+      } else {
+        // Refresh failed — this is a genuine auth error
+        var _authErr = new Error('Authentication required — session could not be refreshed');
+        _authErr.__isAuthError = true;
+        _authErr.__httpStatus = 401;
+        throw _authErr;
       }
     }
     var d = await r.json().catch(function(){ return {}; });
-    if (!r.ok || !d.ok) throw new Error(d.error || ('Request failed: ' + r.status));
+    if (!r.ok || !d.ok) {
+      var errMsg = d.error || ('Request failed: ' + r.status);
+      var err = new Error(errMsg);
+      err.__httpStatus = r.status;
+      if (r.status === 401 || /authentication required|please log in|invalid token|jwt|not authenticated|session/i.test(errMsg)) {
+        err.__isAuthError = true;
+      } else if (r.status === 403 || /permission|policy|forbidden|rls/i.test(errMsg)) {
+        err.__isPermissionError = true;
+      }
+      throw err;
+    }
     if (d.cloud_snapshot && d.user_id) cacheCloudSnapshot(d.cloud_snapshot, d.user_id);
     return d;
   }
@@ -910,8 +986,13 @@ function buildUsernameAuthScript() {
         writeSyncHistory({ op: 'snapshot', status: 'ok', source: _src, at: snapshotAt });
         return { ok: true, snapshot_storage: d.snapshot_storage || null };
       } catch(e) {
-        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Cloud snapshot upload failed' });
-        writeSyncHistory({ op: 'snapshot', status: 'failed', error: e.message || 'Cloud snapshot upload failed', source: _src });
+        if (isAuthError(e)) {
+          try { window.__isoSyncAuthBlock(e.message); } catch(_ae) {}
+          writeSyncHistory({ op: 'snapshot', status: 'paused_auth', error: e.message, source: _src });
+        } else {
+          writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Cloud snapshot upload failed' });
+          writeSyncHistory({ op: 'snapshot', status: 'failed', error: e.message || 'Cloud snapshot upload failed', source: _src });
+        }
         throw e;
       }
     });
@@ -930,8 +1011,13 @@ function buildUsernameAuthScript() {
         writeSyncHistory({ op: 'upload', status: result.skipped ? 'skipped' : 'ok', source: source, bytes: bytes, hash: hash, detail: result.reason || null });
         return result;
       } catch(e) {
-        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup upload failed' });
-        writeSyncHistory({ op: 'upload', status: 'failed', source: source, error: e.message || 'Backup upload failed', bytes: bytes, hash: hash });
+        if (isAuthError(e)) {
+          try { window.__isoSyncAuthBlock(e.message); } catch(_ae) {}
+          writeSyncHistory({ op: 'upload', status: 'paused_auth', source: source, error: e.message, bytes: bytes, hash: hash });
+        } else {
+          writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup upload failed' });
+          writeSyncHistory({ op: 'upload', status: 'failed', source: source, error: e.message || 'Backup upload failed', bytes: bytes, hash: hash });
+        }
         throw e;
       }
     });
@@ -999,6 +1085,9 @@ function buildUsernameAuthScript() {
           cloudIsNewer = cloudTs > 0 && localTs > 0 ? (cloudTs - localTs > 10000) : false;
           if (!localTs && cloudTs > 0) cloudIsNewer = true; // first sync: always download first
         } catch(fetchErr) {
+          // Auth errors must propagate — they are a STOP condition, not non-fatal
+          if (isAuthError(fetchErr)) throw fetchErr;
+          // Network/other errors are non-fatal for smart-sync direction check
           console.warn('[SmartSync] Could not fetch cloud metadata (non-fatal):', fetchErr && fetchErr.message);
         }
 
@@ -1059,8 +1148,17 @@ function buildUsernameAuthScript() {
         writeSyncHistory({ op: 'manual_sync', status: 'ok', source: _src, bytes: bytes, hash: hash, uploaded: uploaded, upload_skipped: uploadSkipped, downloaded: downloaded, imported: imported });
         return { ok: true, uploaded: uploaded, upload_skipped: uploadSkipped, downloaded: downloaded, imported: imported, hash: hash, bytes: bytes };
       } catch(e) {
-        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Cloud sync failed' });
-        writeSyncHistory({ op: 'manual_sync', status: 'failed', source: _src, bytes: bytes, hash: hash, error: e.message || 'Cloud sync failed' });
+        // Auth errors are a STOP condition — block scheduled syncs immediately
+        if (isAuthError(e)) {
+          try { window.__isoSyncAuthBlock(e.message); } catch(_ae) {}
+          writeSyncHistory({ op: 'manual_sync', status: 'paused_auth', source: _src, bytes: bytes, hash: hash, error: e.message });
+        } else if (isPermissionError(e)) {
+          writeSyncMetadata({ last_sync_status: 'failed_permission', last_error: e.message || 'Storage permission error' });
+          writeSyncHistory({ op: 'manual_sync', status: 'failed_permission', source: _src, bytes: bytes, hash: hash, error: e.message });
+        } else {
+          writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Cloud sync failed' });
+          writeSyncHistory({ op: 'manual_sync', status: 'failed', source: _src, bytes: bytes, hash: hash, error: e.message || 'Cloud sync failed' });
+        }
         throw e;
       }
     });
@@ -1085,8 +1183,13 @@ function buildUsernameAuthScript() {
         writeSyncHistory({ op: 'download_import', status: result && result.skipped ? 'skipped' : 'ok', source: _src, bytes: result && result.bytes || 0, hash: result && result.hash || null, imported: imported });
         return { ok: true, imported: imported, downloaded: !!(result && result.backup_json), hash: result && result.hash || null };
       } catch(e) {
-        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Download/import failed' });
-        writeSyncHistory({ op: 'download_import', status: 'failed', source: _src, error: e.message || 'Download/import failed' });
+        if (isAuthError(e)) {
+          try { window.__isoSyncAuthBlock(e.message); } catch(_ae) {}
+          writeSyncHistory({ op: 'download_import', status: 'paused_auth', source: _src, error: e.message });
+        } else {
+          writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Download/import failed' });
+          writeSyncHistory({ op: 'download_import', status: 'failed', source: _src, error: e.message || 'Download/import failed' });
+        }
         throw e;
       }
     });
@@ -1282,6 +1385,8 @@ function buildUsernameAuthScript() {
           console.warn('[Auth] Profile sync after login failed (non-fatal):', syncErr && syncErr.message);
           // Still succeed — the session is valid, the app will retry sync later.
         }
+        // AUTH GATE: new valid session → unblock sync immediately
+        try { if (window.__isoSyncAuthUnblock) window.__isoSyncAuthUnblock(); } catch(_ue) {}
       }
       return {ok: true, onboarding_completed: onboarding_completed};
     } catch(e) {
@@ -1541,9 +1646,17 @@ function buildUsernameAuthScript() {
         writeSyncHistory({ op: 'auto_sync', status: 'skipped', source: _src, detail: 'offline' });
         return { ok: false, skipped: true, reason: 'offline' };
       }
+      // AUTH GATE: never run sync when auth is blocked (previous auth failure)
+      if (window.__isoSyncAuthBlocked) {
+        return { ok: false, skipped: true, reason: 'paused_auth' };
+      }
       var jwt = null;
       try { jwt = await getValidJwt(); } catch(e) {}
-      if (!jwt) return { ok: false, skipped: true, reason: 'no_session' };
+      if (!jwt) {
+        // No session — block immediately to prevent repeat attempts
+        try { window.__isoSyncAuthBlock('No active session'); } catch(_ae) {}
+        return { ok: false, skipped: true, reason: 'no_session' };
+      }
 
       var speed = null;
       try { speed = await measureNetSpeed(); } catch(e) {}
@@ -1603,6 +1716,16 @@ function buildUsernameAuthScript() {
           return { ok: true, snapshot: true };
         }
       } catch(e) {
+        if (isAuthError(e)) {
+          // Auth failure: block all future scheduled syncs until session is restored
+          try { window.__isoSyncAuthBlock(e.message); } catch(_ae) {}
+          writeSyncHistory({ op: 'auto_sync', status: 'paused_auth', source: _src, error: e.message });
+          return { ok: false, reason: 'paused_auth', error: e.message };
+        } else if (isPermissionError(e)) {
+          writeSyncMetadata({ last_sync_status: 'failed_permission', last_error: e.message || 'Permission error' });
+          writeSyncHistory({ op: 'auto_sync', status: 'failed_permission', source: _src, error: e.message });
+          return { ok: false, reason: 'failed_permission', error: e.message };
+        }
         writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Auto-sync failed' });
         writeSyncHistory({ op: 'auto_sync', status: 'failed', source: _src, error: e.message || 'Auto-sync failed' });
         return { ok: false, error: e.message };
@@ -1617,9 +1740,14 @@ function buildUsernameAuthScript() {
     window.__isoStartupSync = async function() {
       var _src = 'startup_sync';
       if (!navigator.onLine) return { ok: false, reason: 'offline' };
+      // AUTH GATE: if a previous sync already blocked due to auth failure, skip
+      if (window.__isoSyncAuthBlocked) return { ok: false, reason: 'paused_auth' };
       var jwt = null;
       try { jwt = await getValidJwt(); } catch(e) {}
-      if (!jwt) return { ok: false, reason: 'no_session' };
+      if (!jwt) {
+        try { window.__isoSyncAuthBlock('No active session on startup'); } catch(_ae) {}
+        return { ok: false, reason: 'no_session' };
+      }
       var _isFirstSync = false;
       try {
         var meta = readSyncMetadata();
@@ -1651,6 +1779,8 @@ function buildUsernameAuthScript() {
     function startAutoSyncTimer() {
       if (_autoSyncTimer) clearInterval(_autoSyncTimer);
       _autoSyncTimer = setInterval(function() {
+        // AUTH GATE: timer must not fire while auth is blocked
+        if (window.__isoSyncAuthBlocked) return;
         window.__isoAutoSync('auto_30min').catch(function() {});
       }, AUTO_SYNC_INTERVAL);
     }
@@ -1661,7 +1791,7 @@ function buildUsernameAuthScript() {
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
         var away = Date.now() - _lastVisibleAt;
-        if (away >= 5 * 60 * 1000) {
+        if (away >= 5 * 60 * 1000 && !window.__isoSyncAuthBlocked) {
           setTimeout(function() {
             window.__isoAutoSync('visibility_sync').catch(function() {});
           }, 2000);
@@ -1674,6 +1804,14 @@ function buildUsernameAuthScript() {
     // ── Online-event sync ─────────────────────────────────────────────────────
     window.addEventListener('online', function() {
       setTimeout(function() {
+        // Auth-blocked: re-validate session instead of retrying upload
+        if (window.__isoSyncAuthBlocked) {
+          // Try to get a valid JWT — if it succeeds, unblock and sync
+          getValidJwt().then(function(jwt) {
+            if (jwt) { try { window.__isoSyncAuthUnblock(); } catch(e) {} }
+          }).catch(function() {});
+          return;
+        }
         window.__isoAutoSync('online_sync').catch(function() {});
       }, 3000);
     });
@@ -2440,6 +2578,8 @@ const PREMIUM_SCRIPT = `<script>
                 localStorage.setItem('isotope-auth-token', _s);
               } catch(_e) {}
               upgradeProfile(jwt, userId);
+              // AUTH GATE: new valid session → unblock sync (resumes timer + queues one sync)
+              try { if (window.__isoSyncAuthUnblock) window.__isoSyncAuthUnblock(); } catch(_ue) {}
             }
           }).catch(function(){});
         }
