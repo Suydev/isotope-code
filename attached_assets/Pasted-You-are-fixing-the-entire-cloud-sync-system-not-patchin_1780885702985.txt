@@ -1,0 +1,857 @@
+You are fixing the entire cloud sync system, not patching one error message.
+
+Current observed bug:
+- Sync History shows:
+  Status: syncing
+  Upload 2009 KB
+  Upload failed: Authentication required / Authentication required — please log in
+  Then the same 2009 KB payload retries repeatedly.
+- This means the sync engine is running without a valid auth session, or the session is not restored before sync starts.
+- The issue is architectural: auth gating, queue logic, deduplication, retry policy, download verification, storage policy, and app reload logic are all suspect.
+
+Your task:
+Rebuild cloud sync into a proper auth-gated, offline-safe, deterministic state machine.
+
+Do not only edit the file where the visible error appears.
+Search the whole codebase recursively.
+Find every sync/auth/storage/offline/local-cache/import/export/queue/profile-image/backup/community-media related file.
+Automatically wire the new logic into the app.
+Add missing imports.
+Remove dead duplicate sync logic.
+Unify scattered sync functions into one reliable sync engine.
+
+Core rule:
+Authentication failure is a STOP condition.
+Network failure is a RETRY condition.
+Successful upload must mark item synced.
+Same payload must never upload infinitely.
+Uploads/downloads/database writes must only run after valid login.
+
+────────────────────────────────────────
+PHASE 1 — CODEBASE DISCOVERY
+────────────────────────────────────────
+
+Before editing, search for all files containing:
+
+auth
+session
+getSession
+getUser
+onAuthStateChange
+refreshSession
+supabase
+storage
+bucket
+upload
+download
+sync
+queue
+offline
+online
+localStorage
+IndexedDB
+cache
+profile image
+avatar
+backup
+restore
+export
+import
+cloud
+pending
+retry
+Authentication required
+login required
+401
+403
+RLS
+policy
+
+Map the real architecture:
+- Supabase client creation file
+- Auth provider/context/store
+- Router/auth guard
+- Sync manager/service
+- Upload queue
+- Download queue
+- Local persistence layer
+- Profile image upload logic
+- Backup upload/download logic
+- Community/media upload logic
+- Settings/sync UI component
+- Sync history/log component
+- Any duplicate older sync implementations
+
+Do not assume filenames.
+If files are missing, create clean modules.
+If duplicate sync logic exists, consolidate it.
+
+Expected modules if no better structure exists:
+
+src/lib/supabaseClient.ts
+src/auth/authSessionManager.ts
+src/sync/syncTypes.ts
+src/sync/syncStateMachine.ts
+src/sync/syncQueue.ts
+src/sync/syncEngine.ts
+src/sync/syncStorage.ts
+src/sync/syncDatabase.ts
+src/sync/syncConflictResolver.ts
+src/sync/syncDiagnostics.ts
+src/sync/syncBootstrap.ts
+src/hooks/useCloudSync.ts
+src/components/SyncStatus.tsx
+
+Automatically import these wherever needed:
+- app root / main layout
+- auth provider
+- dashboard/home page
+- settings page
+- profile page
+- backup/restore UI
+- sync history component
+
+No manual user setup should be needed after your changes.
+
+────────────────────────────────────────
+PHASE 2 — AUTH BOOT ORDER
+────────────────────────────────────────
+
+Fix app startup order.
+
+Correct boot sequence:
+
+1. Initialize Supabase client.
+2. Restore local app data.
+3. Restore Supabase auth session.
+4. Wait for auth initialization result.
+5. If session exists:
+   - verify user.id
+   - verify access_token exists
+   - optionally refresh session if token is near expiry
+   - set sync state to authenticated_ready
+6. If no session:
+   - set sync state to paused_auth
+   - do not upload
+   - do not download
+   - do not DB-write
+7. Only after authenticated_ready, run sync queue.
+
+Wrong behavior to remove:
+- Sync starts immediately on app load.
+- App redirects logged-in user to auth page before session restoration finishes.
+- Upload starts while session is null.
+- Auth error causes infinite retry.
+- Storage upload runs before user.id exists.
+- Queue starts before auth provider finishes loading.
+
+Implement:
+
+CloudSyncBootstrap:
+- waits for INITIAL_SESSION / getSession completion
+- subscribes to auth changes
+- on SIGNED_IN → unlock sync
+- on TOKEN_REFRESHED → resume blocked auth queue
+- on SIGNED_OUT → pause sync and clear sensitive remote session state
+- on USER_UPDATED → revalidate user context
+
+Important:
+Use getSession for client-side session restoration, but do not blindly trust stale local session.
+Before protected writes, validate user with getUser or ensure Supabase request succeeds using the authenticated client.
+
+────────────────────────────────────────
+PHASE 3 — SYNC STATE MACHINE
+────────────────────────────────────────
+
+Create one authoritative sync state machine.
+
+States:
+
+idle
+booting
+checking_auth
+paused_auth
+authenticated_ready
+scanning_local_changes
+scanning_remote_changes
+syncing_uploads
+syncing_downloads
+resolving_conflicts
+synced
+failed_network
+failed_permission
+failed_storage_policy
+failed_schema
+failed_unknown
+offline
+blocked_auth
+conflict_detected
+
+Allowed transitions:
+
+booting → checking_auth
+checking_auth → paused_auth
+checking_auth → authenticated_ready
+paused_auth → authenticated_ready only after valid login
+authenticated_ready → scanning_local_changes
+authenticated_ready → scanning_remote_changes
+scanning_local_changes → syncing_uploads
+scanning_remote_changes → syncing_downloads
+syncing_uploads → resolving_conflicts / synced / failed_*
+syncing_downloads → resolving_conflicts / synced / failed_*
+failed_network → retry with backoff
+failed_permission → stop, no retry
+blocked_auth → paused_auth
+conflict_detected → resolving_conflicts
+resolving_conflicts → synced or failed_unknown
+any state → offline when network lost
+offline → checking_auth when network returns
+
+Never allow:
+paused_auth → syncing_uploads
+paused_auth → syncing_downloads
+blocked_auth → retry_loop
+failed_permission → retry_loop
+failed_storage_policy → retry_loop
+
+Expose state to UI:
+- “Cloud sync paused — login required”
+- “Syncing uploads”
+- “Syncing downloads”
+- “Offline — changes saved locally”
+- “Permission error — storage policy blocked”
+- “Conflict detected”
+- “Synced”
+
+────────────────────────────────────────
+PHASE 4 — QUEUE MODEL
+────────────────────────────────────────
+
+Implement durable local queue.
+
+Every queue item must contain:
+
+id
+userId
+type
+entity
+operation
+localRef
+remoteRef
+bucket
+path
+table
+recordId
+payload
+contentHash
+payloadSize
+baseVersion
+localVersion
+remoteVersion
+createdAt
+updatedAt
+attemptCount
+lastAttemptAt
+nextRetryAt
+status
+lastErrorCode
+lastErrorMessage
+requiresAuth
+priority
+
+Valid item statuses:
+
+pending
+running
+synced
+paused_auth
+failed_network
+failed_permission
+failed_storage_policy
+failed_schema
+conflict
+cancelled
+
+Operation types:
+
+db_upsert
+db_delete
+storage_upload
+storage_download
+storage_delete
+backup_upload
+backup_download
+profile_avatar_upload
+profile_avatar_download
+settings_sync
+tasks_sync
+sessions_sync
+subjects_sync
+community_media_upload
+
+Queue rules:
+
+1. Queue must persist across reloads.
+2. Queue must not run without auth.
+3. Queue must process one item or controlled batch safely.
+4. Queue must lock running items to avoid duplicate workers.
+5. Queue must mark success immediately after confirmed remote success.
+6. Queue must not retry auth/permission errors blindly.
+7. Queue must deduplicate by:
+   userId + operation + entity + recordId + contentHash
+8. Queue must coalesce updates:
+   If same record is edited 5 times offline, only latest payload should upload.
+9. Queue must recover partial success:
+   If storage upload succeeds but DB metadata update fails, do not reupload the blob.
+   Instead resume from metadata update step.
+10. Queue must expose sync history.
+
+────────────────────────────────────────
+PHASE 5 — DEDUPLICATION
+────────────────────────────────────────
+
+Fix the repeated 2009 KB upload bug.
+
+Implement content hashing:
+
+- For files/blobs: SHA-256 hash.
+- For JSON records: stable stringify + SHA-256.
+- Store hash locally and remotely.
+- Before upload, check:
+  same userId
+  same path
+  same hash
+  same size
+- If identical remote object exists, mark queue item synced.
+- If upload success occurs, persist remote path/hash immediately.
+
+Stable storage paths:
+
+Profile avatar:
+users/{user_id}/profile/avatar-{hash}.{ext}
+
+Backups:
+users/{user_id}/backups/{backup_id}-{hash}.json
+
+User files:
+users/{user_id}/files/{file_id}-{hash}.{ext}
+
+Community media:
+community/{user_id}/{media_id}-{hash}.{ext}
+
+Do not use random path every retry.
+Do not create infinite duplicate avatars.
+Do not reupload same payload after reload.
+Do not mark upload as pending if remote already has same hash.
+
+For profile image:
+- Upload once.
+- Save avatar_path, avatar_hash, avatar_size, updated_at in DB.
+- On reload, download/use cached avatar if hash unchanged.
+- If same image selected again, skip upload.
+
+────────────────────────────────────────
+PHASE 6 — STORAGE LOGIC
+────────────────────────────────────────
+
+Audit all Supabase buckets.
+
+Identify required buckets:
+- user-files
+- avatars/profile-images
+- backups
+- community-media
+- app-public-assets if needed
+
+For each bucket, verify:
+- bucket exists
+- public/private type is correct
+- upload allowed for authenticated users
+- read/download allowed for owner
+- delete allowed for owner
+- paths include user.id where private
+- no hardcoded wrong bucket names
+- no anon write policy
+- no cross-user access
+
+Storage operation wrapper required:
+
+safeUpload({
+  bucket,
+  path,
+  blob,
+  contentType,
+  upsert,
+  expectedHash,
+  userId
+})
+
+safeDownload({
+  bucket,
+  path,
+  expectedHash,
+  userId
+})
+
+safeDelete({
+  bucket,
+  path,
+  userId
+})
+
+Each wrapper must:
+- require valid session
+- require user.id
+- log bucket/path/size/hash
+- classify error as auth/network/permission/policy/schema/unknown
+- verify upload by reading metadata or attempting signed URL/download
+- return normalized result
+
+For private buckets:
+- use signed URLs correctly
+- do not assume public URL works
+
+For public buckets:
+- only use public URL where bucket is intentionally public
+- never make private user backups public
+
+────────────────────────────────────────
+PHASE 7 — DATABASE SYNC LOGIC
+────────────────────────────────────────
+
+Add or repair cloud tables if needed.
+
+Required metadata fields on syncable tables:
+
+id
+user_id
+data / proper columns
+created_at
+updated_at
+deleted_at nullable
+version integer default 1
+content_hash
+device_id
+last_synced_at
+
+For generic sync metadata, create table if missing:
+
+sync_items:
+id uuid primary key
+user_id uuid not null
+entity text not null
+entity_id text not null
+operation text not null
+remote_path text
+bucket text
+content_hash text
+payload_size bigint
+version integer not null default 1
+deleted_at timestamptz
+created_at timestamptz default now()
+updated_at timestamptz default now()
+last_synced_at timestamptz
+
+Unique constraints:
+unique(user_id, entity, entity_id)
+
+RLS:
+- authenticated users can select own rows
+- authenticated users can insert own rows
+- authenticated users can update own rows
+- authenticated users can delete own rows only if user_id = auth.uid()
+
+Important:
+Use `(select auth.uid())` inside policies where appropriate to avoid repeated per-row auth function evaluation.
+
+Never use service role key in frontend.
+Never disable RLS to “fix” sync.
+
+────────────────────────────────────────
+PHASE 8 — RLS AND STORAGE POLICIES
+────────────────────────────────────────
+
+Audit and fix policies.
+
+Database tables:
+- RLS enabled on every exposed public table.
+- Owner-only policies for user private data.
+- Community/public data policies separated from private user data.
+- No anon insert/update/delete for private data.
+- No policy that lets one user read another user’s private backup/profile/session/task.
+
+Storage:
+Policies on storage.objects:
+
+Owner can upload:
+bucket_id in allowed private buckets
+path starts with users/{auth.uid()}/...
+
+Owner can read:
+bucket_id in allowed private buckets
+path starts with users/{auth.uid()}/...
+
+Owner can update:
+bucket_id in allowed private buckets
+path starts with users/{auth.uid()}/...
+
+Owner can delete:
+bucket_id in allowed private buckets
+path starts with users/{auth.uid()}/...
+
+Community media:
+- authenticated insert into own path
+- read policy depends on app rules
+- update/delete only owner/moderator
+
+Do not fake success if RLS blocks operation.
+Expose exact permission error in diagnostics.
+
+────────────────────────────────────────
+PHASE 9 — OFFLINE-FIRST LOGIC
+────────────────────────────────────────
+
+Local-first rules:
+
+1. App must work offline.
+2. All user actions first write locally.
+3. Then enqueue cloud operation.
+4. UI should not freeze waiting for cloud.
+5. When online + authenticated, queue flushes.
+6. If logged out, local data stays local and sync pauses.
+7. On login, local data maps to that user and uploads safely.
+8. On logout, protect/collapse user-specific remote cache.
+
+Do not store large binary blobs in localStorage.
+Use IndexedDB / OPFS / Cache API depending on existing project setup.
+localStorage is acceptable only for small flags/settings, not 1–10 GB data.
+
+Connectivity logic:
+- Listen to online/offline events.
+- Also perform lightweight Supabase reachability checks.
+- Browser “online” does not guarantee Supabase reachable.
+- If network unavailable, mark failed_network/offline and retry later.
+
+Backoff:
+- exponential backoff for network errors only
+- jitter added
+- max retry delay
+- reset after successful sync
+
+No backoff for:
+- auth required
+- RLS denied
+- bucket missing
+- schema missing
+- invalid path
+- corrupted payload
+
+────────────────────────────────────────
+PHASE 10 — CONFLICT RESOLUTION
+────────────────────────────────────────
+
+Conflict detection:
+
+Compare:
+- local updated_at
+- remote updated_at
+- local version
+- remote version
+- content_hash
+- device_id
+- baseVersion
+
+Conflict cases:
+1. Local changed, remote unchanged → upload local.
+2. Remote changed, local unchanged → download remote.
+3. Both changed same fields → conflict.
+4. Both changed different mergeable fields → merge.
+5. File/blob changed both sides → keep both or ask user.
+
+Resolution strategy:
+- For simple records: latest updated_at wins only if safe.
+- For study sessions/tasks: merge by id.
+- For settings: field-level merge.
+- For profile avatar: latest explicit user change wins.
+- For backups: never overwrite; create new version.
+- For ambiguous conflicts: create conflict copy.
+
+Conflict item naming:
+{entity}-{recordId}-conflict-{timestamp}
+
+Log every conflict.
+
+Never silently overwrite newer data.
+
+────────────────────────────────────────
+PHASE 11 — DOWNLOAD LOGIC
+────────────────────────────────────────
+
+After login:
+
+1. Fetch remote sync metadata.
+2. Compare remote hash/version with local hash/version.
+3. Download only missing or newer items.
+4. Verify downloaded hash.
+5. Save locally.
+6. Mark as synced.
+7. Cache file/blob by hash.
+8. Do not redownload unchanged files.
+
+For profile image:
+- if local avatar_hash === remote avatar_hash, use local cache.
+- else download signed/public URL correctly.
+- verify image loads.
+- update cache.
+
+For backups:
+- list backup metadata
+- download selected or latest backup
+- verify hash
+- do not auto-overwrite current local data unless restore flow confirms
+
+For community/media:
+- apply read policy and caching
+- avoid downloading huge files unnecessarily
+
+────────────────────────────────────────
+PHASE 12 — UI REQUIREMENTS
+────────────────────────────────────────
+
+Update sync UI to show real state.
+
+Sync history should show:
+
+timestamp
+operation
+entity
+file size
+hash short
+bucket/path
+status
+error class
+retry allowed
+user/session present
+duration
+
+Visible statuses:
+
+Pending
+Checking login
+Paused — login required
+Syncing upload
+Syncing download
+Synced
+Offline — saved locally
+Network retry scheduled
+Permission blocked
+Storage policy blocked
+Conflict detected
+Failed
+
+For the exact current bug:
+Instead of infinite:
+Upload 2009 KB
+Authentication required
+Upload 2009 KB
+Authentication required
+
+Expected:
+Upload 2009 KB → Paused — login required
+No retry until login.
+After login:
+Upload 2009 KB → success → marked synced.
+If same file already uploaded:
+Upload skipped — identical remote hash exists.
+
+Add developer diagnostics panel if admin/dev mode exists.
+
+────────────────────────────────────────
+PHASE 13 — ROUTER / RELOAD BUG FIX
+────────────────────────────────────────
+
+Fix reload causing logged-in user to land on auth page.
+
+Auth guard must have 3 states:
+- loading_auth
+- authenticated
+- unauthenticated
+
+During loading_auth:
+- show loading/restoring session
+- do not redirect
+
+Only redirect to auth page after auth restoration finishes and no session exists.
+
+On app reload:
+1. render shell
+2. restore session
+3. then decide route
+4. then start sync
+
+Do not start sync from route component before auth provider is ready.
+
+────────────────────────────────────────
+PHASE 14 — AUTOMATIC IMPORT / WIRING REQUIREMENT
+────────────────────────────────────────
+
+After creating or editing sync modules:
+
+- Import SyncBootstrap at app root.
+- Import useCloudSync in settings/sync UI.
+- Replace old direct upload calls with syncEngine.enqueue().
+- Replace old direct Supabase storage calls with syncStorage.safeUpload/safeDownload.
+- Replace old direct DB sync calls with syncDatabase.safeUpsert/safeFetch.
+- Remove duplicate legacy sync workers.
+- Export central functions through index/barrel files if project uses them.
+- Fix TypeScript/ESLint import errors.
+- Ensure no circular imports.
+- Ensure tree-shaking/build still works.
+
+Do not leave new files unused.
+Do not create “future” modules that are not wired.
+Do not require the user to manually connect anything.
+
+────────────────────────────────────────
+PHASE 15 — ERROR CLASSIFICATION
+────────────────────────────────────────
+
+Implement classifySyncError(error):
+
+auth:
+- no session
+- no user
+- missing access token
+- expired token and refresh failed
+- 401
+
+permission:
+- 403
+- RLS denied
+- storage policy denied
+
+network:
+- fetch failed
+- timeout
+- offline
+- DNS/network unavailable
+
+storage_policy:
+- bucket missing
+- object not found when expected
+- upload denied
+- signed URL generation denied
+- wrong bucket/path
+
+schema:
+- table missing
+- column missing
+- constraint violation
+- migration missing
+
+conflict:
+- version mismatch
+- hash mismatch
+- both local and remote changed
+
+unknown:
+- everything else
+
+Retry rules:
+auth → no retry, pause until login
+permission → no retry
+storage_policy → no retry unless bucket just created by migration
+schema → no retry
+network → retry with backoff
+conflict → resolver
+unknown → limited retry then fail
+
+────────────────────────────────────────
+PHASE 16 — TESTS
+────────────────────────────────────────
+
+Add automated tests or test scripts for:
+
+Auth:
+- logged out app load → sync paused, zero upload attempts
+- logged in app load → session restored before sync
+- reload while logged in → no auth page flicker
+- expired token → refresh before sync
+- sign out while syncing → sync stops safely
+
+Upload:
+- upload profile image once
+- upload same 2009 KB payload twice → second skipped
+- upload success marks queue item synced
+- storage upload success + metadata failure resumes metadata only
+- wrong bucket gives failed_storage_policy, no infinite retry
+
+Download:
+- uploaded file can be downloaded
+- private bucket uses signed URL
+- unchanged hash does not redownload
+- changed remote file downloads and updates local cache
+
+Offline:
+- offline edit queues operation
+- reconnect while logged out → paused_auth
+- reconnect while logged in → sync runs
+- network failure retries with backoff only
+
+Conflict:
+- local newer uploads
+- remote newer downloads
+- both changed creates conflict
+- backup never overwritten silently
+
+Security:
+- one user cannot read another user's private files
+- anon cannot upload private data
+- RLS enabled on exposed tables
+- frontend does not contain service role key
+
+UI:
+- sync status changes correctly
+- sync history logs exact error class
+- auth error does not loop
+
+────────────────────────────────────────
+PHASE 17 — ACCEPTANCE CRITERIA
+────────────────────────────────────────
+
+Final behavior must prove:
+
+1. Sync never uploads/downloads/writes without valid login.
+2. App reload restores auth before redirect decisions.
+3. “Authentication required” never loops.
+4. Same 2009 KB payload never uploads infinitely.
+5. Profile image upload/download works.
+6. Backup upload/download works.
+7. Storage RLS policies allow owner access only.
+8. Database RLS policies allow owner access only.
+9. Offline changes queue locally.
+10. Online + authenticated flushes queue.
+11. Network errors retry.
+12. Auth/permission errors stop.
+13. Conflicts are detected, not silently overwritten.
+14. Sync UI shows truthful state.
+15. All new modules are imported and wired automatically.
+16. No dead duplicate sync engines remain.
+17. Build passes.
+18. Tests pass.
+
+Final response required from you after coding:
+
+- List every file changed.
+- Explain old broken flow.
+- Explain new sync architecture.
+- Show exact auth boot order.
+- Show exact queue retry rules.
+- Show how duplicate 2009 KB upload is prevented.
+- Show how storage upload/download is verified.
+- Show RLS/storage policies fixed.
+- Show tests run and results.
+- Mention any remaining limitation honestly.
+
+Do not stop after one local patch.
+Audit the whole sync system end-to-end.

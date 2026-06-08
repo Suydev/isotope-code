@@ -1,0 +1,108 @@
+name: 🚀 Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🏷️ Get tag info
+        id: tag
+        run: |
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: 📋 Extract changelog section
+        id: changelog
+        run: |
+          VERSION="${{ steps.tag.outputs.version }}"
+          # Extract section for this version from CHANGELOG.md
+          NOTES=$(awk "/^## \[$VERSION\]/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
+          if [ -z "$NOTES" ]; then
+            NOTES="See [CHANGELOG.md](./CHANGELOG.md) for details."
+          fi
+          # Save multiline output
+          {
+            echo "notes<<EOF"
+            echo "$NOTES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: 🤖 Enhance release notes with AI
+        id: ai_notes
+        continue-on-error: true
+        env:
+          YEPAPI_KEY: ${{ secrets.YEPAPI_KEY }}
+        run: |
+          if [ -z "$YEPAPI_KEY" ]; then
+            echo "notes=${{ steps.changelog.outputs.notes }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          CHANGELOG_EXCERPT=$(echo "${{ steps.changelog.outputs.notes }}" | head -50)
+          RESPONSE=$(curl -s -X POST "https://api.yepapi.com/v1/ai/chat" \
+            -H "x-api-key: $YEPAPI_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"model\":\"gpt-4o-mini\",\"messages\":[{\"role\":\"user\",\"content\":\"Polish these GitHub release notes for IsotopeAI v${{ steps.tag.outputs.version }} into a clean, friendly, emoji-enhanced format for students. Keep it concise (max 300 words). Original:\\n$CHANGELOG_EXCERPT\"}]}")
+          AI_NOTES=$(echo "$RESPONSE" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const p=JSON.parse(d);console.log(p.data?.message?.content||'')}catch{console.log('')}})")
+          if [ -n "$AI_NOTES" ]; then
+            echo "notes<<EOF" >> $GITHUB_OUTPUT
+            echo "$AI_NOTES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "notes=${{ steps.changelog.outputs.notes }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📦 Package release archive
+        run: |
+          VERSION="${{ steps.tag.outputs.version }}"
+          # Create a clean release zip without dev files
+          zip -r "isotope-v${VERSION}.zip" . \
+            --exclude ".git/*" \
+            --exclude "node_modules/*" \
+            --exclude ".env" \
+            --exclude "*.log" \
+            --exclude ".github/*" \
+            --exclude "screenshots/*"
+          echo "Archive: $(wc -c < isotope-v${VERSION}.zip) bytes"
+
+      - name: 🎉 Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: IsotopeAI ${{ steps.tag.outputs.tag }} 🧪
+          body: |
+            ## IsotopeAI ${{ steps.tag.outputs.tag }}
+
+            ${{ steps.ai_notes.outputs.notes || steps.changelog.outputs.notes }}
+
+            ---
+
+            ### 📥 Quick Install
+
+            ```bash
+            git clone https://github.com/Suydev/isotope-code.git
+            cd isotope-code
+            bash setup.sh
+            ```
+
+            ### 📋 What's Changed
+            See [CHANGELOG.md](https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md) for the full history.
+
+            ### ❤️ Support
+            UPI: `9699393886@fam` · [isotopeai.in](https://isotopeai.in)
+          draft: false
+          prerelease: ${{ contains(steps.tag.outputs.tag, '-beta') || contains(steps.tag.outputs.tag, '-rc') }}
+          files: isotope-v${{ steps.tag.outputs.version }}.zip
+          generate_release_notes: false

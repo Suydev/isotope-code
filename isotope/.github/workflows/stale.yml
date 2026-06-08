@@ -1,0 +1,60 @@
+name: 🕰️ Stale Issue Management
+
+on:
+  schedule:
+    # Run every day at 01:00 UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: Mark and close stale items
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🕰️ Process stale issues and PRs
+        uses: actions/stale@v9
+        with:
+          # Issues
+          stale-issue-message: |
+            👋 This issue hasn't had any activity for **30 days**.
+
+            It will be automatically closed in **7 days** if there's no further activity.
+
+            - If this is still relevant, please add a comment or the `keep-open` label.
+            - If you've found a workaround, share it so others benefit!
+
+            Thanks for helping keep the tracker clean 🙏
+          close-issue-message: |
+            🔒 This issue was automatically closed due to inactivity.
+
+            If you're still experiencing this, please open a new issue with fresh details and system info.
+          stale-issue-label: stale
+
+          # PRs
+          stale-pr-message: |
+            👋 This PR hasn't had any activity for **14 days**.
+
+            It will be automatically closed in **7 days** unless there's a review, commit, or comment.
+
+            - Rebase and push to refresh it
+            - Add a comment if you need help getting it merged
+          close-pr-message: |
+            🔒 This PR was automatically closed due to inactivity.
+
+            Feel free to reopen it when you're ready to continue!
+          stale-pr-label: stale
+
+          # Config
+          days-before-stale: 30
+          days-before-close: 7
+          days-before-pr-stale: 14
+          days-before-pr-close: 7
+          exempt-issue-labels: 'keep-open,bug,security,in-progress,help-wanted'
+          exempt-pr-labels: 'keep-open,in-progress,do-not-close'
+          remove-stale-when-updated: true
+          operations-per-run: 100

@@ -1,0 +1,13 @@
+{
+  "name": "isotope-code",
+  "version": "3.3.5",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file=.env --watch server.mjs",
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

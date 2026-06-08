@@ -1,0 +1,763 @@
+You are not only fixing cloud sync. You must also fix GitHub Actions workflows, release packaging, update logic, Termux install logic, one-tap Android launcher logic, and all .sh/.bat/.ps1 setup files.
+
+Current problems:
+1. 2–3 GitHub workflows are failing or unreliable.
+2. .sh files do not behave like true one-tap install.
+3. Termux install path is incomplete.
+4. The installer misses important Termux steps like update, upgrade, repo repair, dependency verification, permissions, widget setup, and first-run doctor validation.
+5. README/docs claim some files/features exist that may not actually exist.
+6. The release ZIP may not be tested as a clean install.
+7. User wants normal people to download/run without technical setup pain.
+
+Do not rush.
+Search the whole repo first.
+Fix the actual architecture, not only one visible error.
+
+────────────────────────────────────────
+PHASE 1 — FULL REPO DISCOVERY
+────────────────────────────────────────
+
+Before editing, recursively inspect:
+
+.github/workflows/*
+.github/labeler.yml
+README.md
+TERMUX_WIDGET.md
+CHANGELOG.md
+CONTRIBUTING.md
+AGENTS.md if present
+package.json
+.env.example
+setup.sh
+setup.bat
+install.ps1
+update.sh
+update.bat
+setup-termux-widget.sh
+bin/isotope
+bin/isotope.bat
+server.mjs
+public/*
+docs/*
+screenshots/*
+all root scripts
+
+Search for:
+
+setup
+install
+update
+termux
+pkg
+apt
+node
+npm
+git
+curl
+wget
+unzip
+zip
+bash
+sh
+chmod
+PATH
+PREFIX
+TERMUX_VERSION
+termux-open-url
+termux-wake-lock
+termux-widget
+.shortcut
+.shortcuts
+update.sh
+update.bat
+workflow
+actions
+release
+pages
+dependency-review
+codeql
+schema-lint
+doctor
+one tap
+launcher
+start
+health
+api/health
+api/version
+
+Make a real map:
+- Which scripts exist
+- Which scripts are referenced but missing
+- Which workflows exist
+- Which workflows are failing or fragile
+- Which workflow checks are fake/pass even when broken
+- Which install docs are outdated
+- Which commands normal users must currently type
+- Which parts are not actually one-tap
+
+Do not assume filenames.
+Do not preserve broken script structure.
+
+────────────────────────────────────────
+PHASE 2 — TERMUX INSTALLER MUST BE HARDENED
+────────────────────────────────────────
+
+Current setup.sh is not enough.
+
+Build a proper Termux install pipeline:
+
+1. Detect Termux reliably:
+   - TERMUX_VERSION
+   - PREFIX containing com.termux
+   - /data/data/com.termux/files/usr
+   - uname fallback
+
+2. Detect bad Termux source:
+   - Warn if user appears to be using old Play Store Termux.
+   - Tell user to install Termux and Termux:Widget from the same source: F-Droid or GitHub release.
+   - Add this to doctor output.
+
+3. Add Termux preflight:
+   - pkg update -y
+   - pkg upgrade -y
+   - pkg install -y nodejs git curl wget unzip zip openssl termux-api
+   - verify node
+   - verify npm
+   - verify git
+   - verify curl or wget
+   - verify termux-open-url if termux-api is installed
+   - verify writable HOME
+   - verify enough storage
+   - verify internet before git clone/update
+   - verify project path
+
+4. Do not use `|| true` for critical dependency installs.
+   Current issue: installer can pretend success even when pkg install fails.
+   Replace with:
+   - retry logic
+   - clear failure message
+   - repo repair suggestion
+   - exit non-zero if Node/Git cannot be installed
+
+5. Add Termux repo repair:
+   - If pkg update fails, offer:
+     termux-change-repo
+   - Detect repository errors.
+   - Print exact repair steps.
+   - Do not continue silently.
+
+6. Add storage and permission handling:
+   - Run or suggest `termux-setup-storage` only if needed.
+   - Do not require storage permission unless app actually needs shared storage.
+   - Keep project inside `$HOME/isotope-code` by default.
+
+7. Add wake-lock logic:
+   - During install/update/start, optionally use:
+     termux-wake-lock
+   - Release after setup/update:
+     termux-wake-unlock
+   - Do not fail if termux-api is missing; warn only.
+
+8. Add non-interactive install mode:
+   - `bash setup.sh --yes`
+   - `bash setup.sh --no-start`
+   - `bash setup.sh --termux`
+   - `bash setup.sh --repair`
+   - `bash setup.sh --install-widgets`
+   - `bash setup.sh --skip-upgrade`
+   - `bash setup.sh --port=3000`
+
+9. Add idempotency:
+   Running setup 10 times should not break anything.
+   It should:
+   - preserve .env
+   - preserve user data
+   - reinstall missing dependencies
+   - refresh CLI command
+   - refresh widgets
+   - not duplicate PATH entries
+   - not create duplicate aliases
+   - not overwrite local changes
+
+10. Add strong logging:
+   Logs must go to:
+   ~/.isotope/logs/setup.log
+   ~/.isotope/logs/update.log
+   ~/.isotope/logs/server.log
+
+Every setup step should log:
+- command
+- success/failure
+- duration
+- platform
+- node version
+- npm version
+- git version
+- project path
+- selected port
+
+Redact secrets.
+
+────────────────────────────────────────
+PHASE 3 — TRUE ONE-TAP TERMUX EXPERIENCE
+────────────────────────────────────────
+
+Normal Android users do not understand terminal commands.
+
+Create these options:
+
+A. One-line installer for Termux:
+
+Create `install-termux.sh` that can be run by:
+
+bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+
+or fallback:
+
+curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh -o install-termux.sh
+bash install-termux.sh
+
+The script must:
+1. update/upgrade Termux
+2. install git/node/curl/wget/unzip/zip/termux-api
+3. clone repo if missing
+4. pull latest if repo exists
+5. run setup.sh --yes --install-widgets
+6. create global isotope command
+7. create widgets
+8. start server
+9. open browser
+10. run isotope doctor at end
+
+B. Existing ZIP install path:
+
+If user downloads ZIP manually:
+- create `start-termux.sh`
+- it should:
+  - cd into project
+  - run setup if first run
+  - install missing dependencies
+  - start server
+  - open browser
+
+C. Home screen widgets:
+
+Refresh `setup-termux-widget.sh`:
+- Create shortcuts:
+  isotope-start
+  isotope-stop
+  isotope-restart
+  isotope-update
+  isotope-open
+  isotope-doctor
+  isotope-logs
+  isotope-repair
+  isotope-reinstall
+- Use absolute paths only.
+- Do not depend on interactive PATH.
+- Each widget should log its own output.
+- Each widget should show useful error if command missing.
+- `isotope-start` should start server and open browser.
+- `isotope-update` should pull latest, install changed deps, restart server.
+- `isotope-repair` should run Termux dependency repair.
+- `isotope-doctor` should print actionable diagnosis.
+
+D. Add `.shortcuts` and `.shortcuts/tasks` compatibility if needed.
+Check current Termux Widget behavior and support both if appropriate.
+
+E. Add Android documentation:
+- Install Termux from F-Droid/GitHub.
+- Install Termux:Widget from same source.
+- Open Termux once.
+- Paste one command.
+- Add widget to home screen.
+- From then on, use one-tap buttons.
+
+Be honest:
+A true zero-terminal install is impossible unless user already has Termux/Widget and a launcher shortcut installed. But after first bootstrap, start/update/open must be one tap.
+
+────────────────────────────────────────
+PHASE 4 — FIX MISSING / MISREFERENCED SCRIPTS
+────────────────────────────────────────
+
+Audit README and actual files.
+
+If README mentions these, they must exist or docs must change:
+
+setup.sh
+setup.bat
+install.ps1
+update.sh
+update.bat
+bin/isotope
+bin/isotope.bat
+setup-termux-widget.sh
+install-termux.sh
+start-termux.sh
+
+Current suspected issue:
+README/project structure mentions `update.sh / update.bat`, but update logic appears mainly inside `bin/isotope`.
+Fix by either:
+- creating real root `update.sh` and `update.bat` wrappers, or
+- removing false README references.
+
+Preferred:
+Create real wrappers:
+
+update.sh:
+#!/usr/bin/env bash
+set -euo pipefail
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ISOTOPE_PROJECT_DIR="$DIR" "$DIR/bin/isotope" update
+
+start.sh:
+#!/usr/bin/env bash
+set -euo pipefail
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ISOTOPE_PROJECT_DIR="$DIR" "$DIR/bin/isotope" start
+
+doctor.sh:
+same pattern
+
+For Windows:
+update.bat
+start.bat
+doctor.bat
+
+For PowerShell:
+install.ps1
+start.ps1
+update.ps1 if useful
+
+Every script must be executable where needed.
+
+────────────────────────────────────────
+PHASE 5 — CLI FIXES
+────────────────────────────────────────
+
+Improve `bin/isotope`.
+
+Required commands:
+
+isotope start
+isotope stop
+isotope restart
+isotope update
+isotope status
+isotope doctor
+isotope open
+isotope logs
+isotope setup
+isotope repair
+isotope reinstall-widgets
+isotope version
+
+Termux-specific doctor checks:
+- Termux detected
+- Termux source warning
+- Android version if detectable
+- PREFIX
+- node version
+- npm version
+- git version
+- curl/wget
+- zip/unzip
+- termux-api commands
+- termux-open-url
+- project path
+- .env present
+- Supabase URL present
+- Supabase anon key present
+- server syntax
+- service worker present
+- manifest present
+- shortcuts present
+- global isotope executable present
+- server health
+- port availability
+- stale PID
+- stale alias
+- missing update.sh wrapper
+- bad PATH
+
+Repair command:
+- rerun Termux update/upgrade
+- install missing packages
+- reinstall CLI
+- recreate widgets
+- fix permissions
+- clear stale PID
+- verify server
+
+Start command:
+- if server already running and healthy: open URL
+- if PID exists but health fails: mark stale, kill, restart
+- if port busy by another process: explain and optionally use next port
+- always log
+- always open browser if possible
+
+Update command:
+- stash local changes
+- fetch branch
+- ff-only merge
+- npm install only if package files changed
+- run syntax checks
+- refresh VERSION
+- refresh widgets if Termux
+- restart server if it was running
+- never destroy .env
+- never leak secrets
+
+────────────────────────────────────────
+PHASE 6 — GITHUB ACTIONS FIXES
+────────────────────────────────────────
+
+Audit all workflows:
+
+.github/workflows/ci.yml
+.github/workflows/pages.yml
+.github/workflows/release.yml
+.github/workflows/schema-lint.yml
+.github/workflows/codeql.yml
+.github/workflows/dependency-review.yml
+.github/workflows/auto-label.yml
+.github/workflows/stale.yml
+.github/workflows/welcome.yml
+
+Fix all fragile workflows.
+
+General workflow rules:
+- Add `set -euo pipefail` to multiline shell steps.
+- Avoid fake passing.
+- If a command is expected to fail, explain why.
+- Pin stable major versions.
+- Add concurrency to heavy workflows.
+- Add permissions explicitly.
+- Avoid unnecessary external paid AI calls.
+- Do not require missing secrets.
+- Do not fail release if optional AI note secret is absent.
+- Print useful debug data.
+- Upload logs/artifacts on failure.
+
+CI workflow must test:
+1. shell syntax:
+   - bash -n setup.sh
+   - bash -n setup-termux-widget.sh
+   - bash -n install-termux.sh
+   - bash -n update.sh
+   - bash -n start.sh
+   - bash -n doctor.sh
+
+2. shell lint if possible:
+   - shellcheck setup.sh setup-termux-widget.sh install-termux.sh update.sh start.sh doctor.sh bin/isotope
+   - If shellcheck is not available, install it in CI.
+
+3. Node:
+   - node --check server.mjs
+   - node scripts if any
+
+4. Required files:
+   - server.mjs
+   - package.json
+   - setup.sh
+   - setup.bat
+   - install.ps1
+   - install-termux.sh
+   - setup-termux-widget.sh
+   - bin/isotope
+   - isotope-complete.sql
+   - .env.example
+   - README.md
+
+5. Clean install simulation:
+   - Create temp directory
+   - Copy repo like release zip would
+   - Run bash setup.sh --yes --no-start with test env
+   - Run isotope doctor
+   - Start server
+   - Check /api/health and /api/version
+   - Stop server
+
+6. Release zip install simulation:
+   - Build release ZIP
+   - Extract into fresh temp dir
+   - Run setup from extracted dir
+   - Ensure no missing scripts
+
+7. Termux simulation:
+   - Cannot fully emulate Android Termux on GitHub Ubuntu.
+   - But can force TERMUX_VERSION=ci-test and PREFIX=/data/data/com.termux/files/usr
+   - Run setup dry-run/preflight mode.
+   - Ensure Termux branch does not crash.
+   - Test widget script creates shortcut files in fake HOME.
+
+8. Secret scan:
+   - Fail if service-role JWT is committed.
+   - Fail if `.env` committed.
+   - Redact all logs.
+
+Fix `ci.yml`:
+- Do not run `node --check bin/isotope` because it is a bash script.
+- Replace with `bash -n bin/isotope`.
+- Add shellcheck.
+- Add install tests.
+- Add artifact upload on failure.
+
+Fix `schema-lint.yml`:
+- Add `set -euo pipefail`.
+- Current pipeline can hide SQL failure if output is piped through tail.
+- Capture psql exit status correctly.
+- Do not grep out SQL lines in a way that corrupts schema.
+- Build a proper Supabase compatibility shim.
+- Add extensions if needed:
+  create extension if not exists pgcrypto;
+  create extension if not exists "uuid-ossp";
+- Add storage schema functions if schema uses them.
+- Fail if SQL execution fails.
+- Count tables, policies, functions after schema run.
+- Verify RLS enabled on private tables.
+- Verify storage buckets exist.
+
+Fix `pages.yml`:
+- Confirm docs directory exists and has index.html.
+- If docs missing, fail clearly or generate docs.
+- Use latest stable pages actions.
+- Ensure GitHub Pages is enabled or document required repo setting.
+- Upload artifact only if docs are valid.
+
+Fix `release.yml`:
+- Remove or isolate external AI release-note call.
+- Do not depend on YepAPI.
+- Validate changelog extraction.
+- Validate package archive contents.
+- Include install-termux.sh, setup.sh, setup-termux-widget.sh, wrappers, docs.
+- Exclude .env, node_modules, logs, .git, screenshots only if intended.
+- After ZIP creation, extract it and run smoke install test before publishing release.
+- Release notes must include correct install options:
+  - Android Termux one-command install
+  - Linux/macOS
+  - Windows CMD
+  - PowerShell
+  - Update command
+  - Doctor command
+
+Fix `dependency-review.yml`:
+- If repo has no lockfile, do not pretend it reviews a dependency graph.
+- Either add package-lock.json or adjust workflow to not fail pointlessly.
+- If zero dependencies, workflow should say that clearly.
+- Add npm audit only if lockfile exists.
+
+Fix `codeql.yml`:
+- If project is mostly plain JS server + static frontend, ensure CodeQL can analyze without broken autobuild.
+- Replace Autobuild with explicit no-build or setup if needed.
+- Do not let CodeQL fail because there is no build system.
+
+Fix `auto-label.yml`:
+- Confirm labeler config matches actions/labeler@v5 syntax.
+- Create missing labels if needed or document that labels must exist.
+- Avoid unsafe pull_request_target behavior if executing untrusted code.
+- Since labeler only reads file changes, okay, but keep permissions minimal.
+
+Fix `welcome.yml`:
+- Avoid using pull_request_target unnecessarily if not needed.
+- Ensure GITHUB_TOKEN permissions allow commenting.
+- Avoid failing whole workflow if comment already exists or API rate-limits.
+- Add continue-on-error where welcome comments are non-critical.
+
+Fix `stale.yml`:
+- Ensure labels exist or action can create them.
+- Do not close important issues by default if repo is early-stage.
+- Add dry-run option or conservative thresholds.
+
+────────────────────────────────────────
+PHASE 7 — RELEASE PACKAGE MUST BE PLUG-AND-PLAY
+────────────────────────────────────────
+
+The release ZIP must contain everything needed except user secrets:
+
+Required:
+- server.mjs
+- package.json
+- package-lock.json if dependencies exist
+- public/**
+- docs/**
+- isotope-complete.sql
+- .env.example
+- setup.sh
+- setup.bat
+- install.ps1
+- install-termux.sh
+- setup-termux-widget.sh
+- start.sh
+- update.sh
+- doctor.sh
+- start.bat
+- update.bat
+- bin/isotope
+- bin/isotope.bat
+- README.md
+- TERMUX_WIDGET.md
+- CHANGELOG.md
+- LICENSE
+
+Do not include:
+- .env
+- service role keys
+- admin secrets
+- node_modules unless intentionally vendored
+- logs
+- .git
+- temporary files
+
+After building ZIP:
+1. unzip into temp dir
+2. run file existence check
+3. run bash -n scripts
+4. run setup dry-run
+5. start server with test env
+6. health check
+7. stop server
+8. only then publish release
+
+────────────────────────────────────────
+PHASE 8 — DOCS MUST MATCH REALITY
+────────────────────────────────────────
+
+Fix README.
+
+Add separate install paths:
+
+A. Android / Termux easiest:
+
+1. Install Termux from F-Droid or official GitHub release.
+2. Install Termux:Widget from the same source.
+3. Open Termux.
+4. Paste:
+
+curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh -o install-termux.sh && bash install-termux.sh
+
+5. Add home-screen widgets.
+
+B. Android after first install:
+Tap:
+- isotope-start
+- isotope-update
+- isotope-open
+- isotope-doctor
+
+C. Linux/macOS:
+git clone...
+bash setup.sh
+
+D. Windows:
+setup.bat or install.ps1
+
+E. Update:
+isotope update
+
+F. Repair:
+isotope repair
+
+G. Diagnose:
+isotope doctor
+
+Remove false claims:
+- Do not say “one tap install” before bootstrap.
+- Say “one-command bootstrap, then one-tap widget start/update.”
+- Do not mention scripts that do not exist.
+- Do not say “under 60 seconds” unless tested.
+
+────────────────────────────────────────
+PHASE 9 — TEST MATRIX
+────────────────────────────────────────
+
+Add or simulate tests for:
+
+Install:
+- fresh Linux install
+- repeated Linux install
+- fake Termux install branch
+- missing Node
+- missing Git
+- missing npm
+- missing curl/wget
+- missing .env
+- invalid Supabase URL
+- invalid anon key
+- no TTY mode
+- --yes mode
+- --no-start mode
+- --install-widgets mode
+- broken PATH
+- stale alias
+
+Update:
+- up-to-date repo
+- fast-forward update
+- local changes stash
+- package changed → npm install
+- server running before update → restart after update
+- server not running before update → do not start unexpectedly
+- divergent branch → fail safely
+
+Widget:
+- shortcuts created
+- shortcuts executable
+- absolute isotope path embedded
+- fallback project path works
+- logs generated
+- start widget starts server
+- open widget fails clearly if server down
+- repair widget runs
+
+Workflow:
+- CI passes
+- schema-lint actually fails on bad SQL
+- release zip contains required files
+- release zip install smoke test passes
+- pages deploy only runs when docs valid
+- CodeQL does not fail from missing build
+- dependency review does not fail from no lockfile
+
+Cloud sync:
+- logged out → no upload
+- logged in → upload/download
+- reload → no auth page flicker
+- same 2009 KB payload → no infinite upload
+- storage read/write verified
+
+────────────────────────────────────────
+PHASE 10 — ACCEPTANCE CRITERIA
+────────────────────────────────────────
+
+Final result must prove:
+
+1. GitHub Actions are green or failures are real and actionable.
+2. CI tests shell scripts, not only server.mjs.
+3. Release ZIP is install-tested before publishing.
+4. `setup.sh` handles Termux properly.
+5. `install-termux.sh` exists and performs one-command Android bootstrap.
+6. Termux update + upgrade + dependency install + verification exists.
+7. Critical dependency failures are not ignored.
+8. Widgets are recreated reliably.
+9. Start/update/open/doctor work from Android home screen after bootstrap.
+10. README matches actual files.
+11. Missing scripts are either created or removed from docs.
+12. `isotope doctor` detects real problems.
+13. `isotope repair` fixes common Termux problems.
+14. `.env` and secrets are preserved and never printed.
+15. Cloud sync still follows auth-gated state-machine rules.
+
+Final response after coding must include:
+
+- Files changed
+- Workflows fixed
+- Why each workflow was failing/fragile
+- Exact Termux install flow
+- Exact one-command Android install command
+- Exact one-tap widget behavior after bootstrap
+- Scripts created
+- Scripts removed or docs corrected
+- Tests run
+- Workflow results
+- Remaining limitations honestly
