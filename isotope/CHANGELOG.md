@@ -5,6 +5,38 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.3.7] — 2026-06-08 — Fix: auth-gated sync state machine; stop infinite retry on auth failure
+
+### Fixed (sync state machine — complete rebuild)
+
+- **Auth failure is now a STOP condition, not a retry condition** — Previously any auth error (expired session, no session, 401) caused the sync to be written as `failed` and retried on the next timer tick, visibility change, or online event. The same 2009 KB payload would upload infinitely. Now any auth error immediately sets `__isoSyncAuthBlocked = true` and the entire sync pipeline halts.
+- **New `isAuthError` / `isPermissionError` / `isNetworkError` classifiers** — Errors are classified before deciding to stop vs. retry. Network errors still retry; auth and permission errors do not.
+- **`authedJson` now throws tagged `AuthError` objects** — When JWT is null or refresh fails, the thrown `Error` has `__isAuthError = true`. When the server returns 401/auth message, the thrown error is also tagged. All callers can now distinguish the error type.
+- **30-min timer stops on auth failure, restarts on recovery** — `__isoSyncAuthBlock()` calls `clearInterval(_autoSyncTimer)`. `__isoSyncAuthUnblock()` restarts it and schedules one sync attempt.
+- **All sync triggers check auth-blocked state** — `__isoAutoSync`, `__isoStartupSync`, the 30-min timer interval, the visibility-change handler, and the online-event handler all check `window.__isoSyncAuthBlocked` and return `{ reason: 'paused_auth' }` without running any upload/download.
+- **Token intercept unblocks sync on new valid session** — When Supabase returns a new `access_token` (login, token refresh), the fetch interceptor calls `window.__isoSyncAuthUnblock()`, which clears the blocked flag, restarts the timer, and queues one sync attempt 2 s later.
+- **Login (`__isoLogin`) unblocks sync on success** — After a successful username/password login and profile sync, `__isoSyncAuthUnblock()` is called so sync resumes without waiting for the next Supabase token intercept.
+- **Online event re-validates session before unblocking** — When the network comes back and `__isoSyncAuthBlocked` is true, the handler calls `getValidJwt()` first; if a valid JWT exists, it unblocks and syncs. It does not blindly retry the upload.
+- **Smart-sync catch re-throws auth errors** — The `try/catch` around `/__auth/backup/latest` in `__isoRunManualCloudSync` previously swallowed all errors as "non-fatal". Now auth errors are rethrown so they propagate to the outer catch and trigger the block.
+- **Permission errors get a distinct `failed_permission` status** — These are written to sync metadata and history separately; they never trigger a retry.
+- **All sync operations (`snapshot`, `upload`, `download_import`, `manual_sync`) handle auth errors uniformly** — Each catch block calls `__isoSyncAuthBlock()` and writes `paused_auth` to sync history instead of `failed`.
+
+### Audit (v3.3.7 — 2026-06-08)
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | Auth failure stops all scheduled sync | ✅ fixed |
+| 2 | Same payload never uploads infinitely on auth error | ✅ fixed |
+| 3 | 30-min timer cleared on auth failure | ✅ fixed |
+| 4 | Timer restarted on new valid session | ✅ fixed |
+| 5 | All sync triggers check `__isoSyncAuthBlocked` | ✅ fixed |
+| 6 | Token intercept calls `__isoSyncAuthUnblock()` | ✅ fixed |
+| 7 | Login success calls `__isoSyncAuthUnblock()` | ✅ fixed |
+| 8 | Auth vs network vs permission errors classified | ✅ fixed |
+| 9 | Smart-sync auth errors propagate instead of being swallowed | ✅ fixed |
+
+---
+
 ## [3.3.6] — 2026-06-08 — Fix: cloud sync download on new device; storage cleanup; setup improvements
 
 ### Fixed

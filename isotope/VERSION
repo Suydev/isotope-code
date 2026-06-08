@@ -1,6 +1,6 @@
 {
-  "version": "3.3.6",
-  "sha": "v3.3.6",
-  "message": "fix: cloud sync download on new device; storage cleanup; setup improvements",
-  "updated_at": "2026-06-08T00:00:00.000Z"
+  "version": "3.3.7",
+  "sha": "v3.3.7",
+  "message": "fix: auth-gated sync state machine — stop infinite retry on auth failure",
+  "updated_at": "2026-06-08T01:00:00.000Z"
 }
