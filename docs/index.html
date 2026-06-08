@@ -2,118 +2,789 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IsotopeAI Local — Self-Hosted Study App</title>
-<meta name="description" content="IsotopeAI is a downloadable local-server study app with Supabase cloud sync. Run it on any device in under 60 seconds.">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IsotopeAI — Local-First Study Planner</title>
+<meta name="description" content="Self-hosted AI study planner for JEE, NEET and Board students. Runs on your device in 60 seconds. Optional Supabase sync. No subscription.">
+<meta property="og:title" content="IsotopeAI — Local-First Study Planner">
+<meta property="og:description" content="Self-hosted study planner with focus timer, analytics, community, and cloud sync. Runs on your own device.">
+<meta property="og:image" content="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/icon-512.png">
 <style>
-:root{--bg:#08090b;--panel:#101216;--line:#252a33;--text:#f5f7fb;--muted:#a5adba;--brand:#53e0c2;--accent:#8fb7ff;--warn:#ffd166}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.55}a{color:inherit}.hero{min-height:72vh;background:linear-gradient(90deg,rgba(8,9,11,.88),rgba(8,9,11,.48)),url('https://raw.githubusercontent.com/Suydev/isotope-code/main/public/opengraph.jpg') center/cover;padding:28px;display:flex;align-items:flex-end}.hero-inner{max-width:1100px;margin:0 auto;width:100%;padding:80px 0 48px}.nav{position:absolute;top:0;left:0;right:0;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(rgba(0,0,0,.55),transparent)}.brand{display:flex;align-items:center;gap:12px;font-weight:800}.brand img{width:36px;height:36px}.links{display:flex;gap:10px;flex-wrap:wrap}.links a,.btn{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);text-decoration:none;border-radius:8px;padding:9px 13px;color:var(--text)}h1{font-size:clamp(40px,7vw,80px);line-height:.96;margin:0 0 18px;max-width:900px;letter-spacing:0}.lead{font-size:clamp(18px,2.4vw,25px);max-width:820px;color:#d7dde8;margin:0 0 28px}.cta{display:flex;gap:12px;flex-wrap:wrap}.primary{background:var(--brand);color:#06211b;border-color:var(--brand);font-weight:800}.main{max-width:1100px;margin:0 auto;padding:52px 28px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:22px}.card h3{margin:0 0 8px;font-size:18px}.card p,.card li{color:var(--muted)}.card p{margin:0}.band{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#0c0e12;margin:38px -28px;padding:38px 28px}.code{background:#050608;border:1px solid var(--line);border-radius:8px;padding:18px;overflow:auto;color:#b7f7df}.split{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:600px){.split{grid-template-columns:1fr}}.warn{background:#1a1408;border-color:#4a3800}.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(83,224,194,.12);border:1px solid rgba(83,224,194,.3);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--brand);margin-bottom:16px;font-weight:600}.fix-card{background:rgba(83,224,194,.06);border-color:rgba(83,224,194,.25)}.fix-card h3{color:var(--brand)}.version-banner{background:linear-gradient(135deg,rgba(83,224,194,.1),rgba(143,183,255,.08));border:1px solid rgba(83,224,194,.25);border-radius:12px;padding:20px 24px;margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}.version-banner strong{color:var(--brand);font-size:15px}.version-banner a{background:var(--brand);color:#06211b;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:700;text-decoration:none}footer{border-top:1px solid var(--line);padding:28px;text-align:center;color:var(--muted);font-size:13px}
+:root {
+  --bg: #07080b;
+  --panel: #0e1017;
+  --panel2: #13161f;
+  --line: #1e2230;
+  --text: #f0f3fa;
+  --muted: #8892a8;
+  --muted2: #5a6380;
+  --brand: #7c6aff;
+  --brand2: #a78bfa;
+  --teal: #2dd4bf;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  font-size: 16px;
+}
+a { color: var(--brand2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: #1a1d2a;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 0.875em;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+  color: var(--teal);
+}
+pre {
+  background: #080a10;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #c2d0f5;
+}
+pre code { background: none; border: none; padding: 0; color: inherit; font-size: inherit; }
+h1, h2, h3, h4 { line-height: 1.2; }
+img { max-width: 100%; }
+
+/* ── NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(7,8,11,.88);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.05rem; color: var(--text); }
+.nav-brand img { width: 30px; height: 30px; border-radius: 7px; }
+.nav-links { display: flex; gap: 6px; flex-wrap: wrap; }
+.nav-links a {
+  padding: 6px 12px; border-radius: 7px;
+  font-size: 0.85rem; font-weight: 500;
+  color: var(--muted); transition: color .15s, background .15s;
+}
+.nav-links a:hover { color: var(--text); background: rgba(255,255,255,.06); text-decoration: none; }
+.nav-links a.primary {
+  background: var(--brand); color: #fff; font-weight: 700;
+}
+.nav-links a.primary:hover { background: var(--brand2); }
+
+/* ── HERO ── */
+.hero {
+  padding: 140px 28px 80px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(124,106,255,.22) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 40% at 80% 60%, rgba(45,212,191,.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(124,106,255,.12); border: 1px solid rgba(124,106,255,.3);
+  border-radius: 999px; padding: 5px 14px;
+  font-size: 0.8rem; font-weight: 600; color: var(--brand2);
+  margin-bottom: 24px; letter-spacing: .02em;
+}
+.hero-badge .dot { width: 6px; height: 6px; background: var(--brand2); border-radius: 50%; }
+.hero h1 {
+  font-size: clamp(2.6rem, 7vw, 5rem);
+  font-weight: 900;
+  letter-spacing: -.03em;
+  line-height: 1.04;
+  margin-bottom: 22px;
+  background: linear-gradient(135deg, #f0f3fa 0%, #a78bfa 55%, #2dd4bf 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: var(--muted);
+  max-width: 620px;
+  margin: 0 auto 36px;
+  line-height: 1.65;
+}
+.hero-cta {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+  margin-bottom: 60px;
+}
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 22px; border-radius: var(--radius-sm);
+  font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  transition: transform .12s, box-shadow .12s;
+  text-decoration: none;
+}
+.btn:hover { transform: translateY(-1px); text-decoration: none; }
+.btn-primary {
+  background: var(--brand); color: #fff;
+  box-shadow: 0 4px 24px rgba(124,106,255,.35);
+}
+.btn-primary:hover { box-shadow: 0 6px 32px rgba(124,106,255,.55); }
+.btn-ghost {
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+.btn-ghost:hover { background: rgba(255,255,255,.1); }
+.btn-teal {
+  background: rgba(45,212,191,.12);
+  border: 1px solid rgba(45,212,191,.3);
+  color: var(--teal);
+}
+.btn-teal:hover { background: rgba(45,212,191,.2); }
+.hero-img {
+  margin: 0 auto;
+  max-width: 1100px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(124,106,255,.12);
+}
+.hero-img img { width: 100%; display: block; }
+
+/* ── PROOF STRIP ── */
+.proof-strip {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  padding: 20px 28px;
+  text-align: center;
+}
+.proof-strip-inner {
+  max-width: 900px; margin: 0 auto;
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center;
+}
+.proof-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 0.82rem; color: var(--muted);
+  background: var(--panel2); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 14px;
+}
+.proof-pill .icon { font-style: normal; }
+
+/* ── SECTION LAYOUT ── */
+.section { max-width: 1100px; margin: 0 auto; padding: 80px 28px; }
+.section-sm { padding: 56px 28px; }
+.section-title {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 800; letter-spacing: -.02em;
+  margin-bottom: 10px;
+}
+.section-sub {
+  color: var(--muted); font-size: 1.05rem;
+  max-width: 600px; margin-bottom: 44px; line-height: 1.6;
+}
+.label {
+  font-size: 0.75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--brand2); margin-bottom: 10px;
+}
+
+/* ── INSTALL TABS ── */
+.install-section { background: var(--panel); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.install-inner { max-width: 1100px; margin: 0 auto; padding: 72px 28px; }
+.tab-bar {
+  display: flex; gap: 4px; margin-bottom: 24px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--line); padding-bottom: 0;
+}
+.tab-btn {
+  background: none; border: none; cursor: pointer;
+  padding: 10px 18px; border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  font-size: 0.9rem; font-weight: 600; color: var(--muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color .15s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--brand2); border-bottom-color: var(--brand2); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.install-note {
+  margin-top: 14px; font-size: 0.875rem; color: var(--muted);
+  line-height: 1.6;
+}
+.install-note a { color: var(--brand2); }
+.install-note strong { color: var(--text); }
+.warn-box {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.2);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+  margin-top: 16px; font-size: 0.875rem; color: #fde68a; line-height: 1.6;
+}
+.warn-icon { flex-shrink: 0; font-size: 1rem; }
+
+/* ── FEATURE GRID ── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 16px;
+}
+.feature-card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 24px;
+  transition: border-color .2s, transform .15s;
+}
+.feature-card:hover { border-color: rgba(124,106,255,.4); transform: translateY(-2px); }
+.feature-icon { font-size: 1.8rem; margin-bottom: 12px; }
+.feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+.feature-card p { font-size: 0.875rem; color: var(--muted); line-height: 1.65; }
+.feature-card ul { padding-left: 18px; font-size: 0.875rem; color: var(--muted); line-height: 1.8; }
+
+/* ── ARCHITECTURE ── */
+.arch-box {
+  background: #060810; border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 32px;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 0.85rem; line-height: 1.8; color: #8892a8;
+  overflow-x: auto;
+}
+.arch-browser { color: #c2d0f5; font-weight: 700; }
+.arch-node { color: var(--teal); font-weight: 700; }
+.arch-supa { color: var(--brand2); font-weight: 700; }
+.arch-arrow { color: var(--muted2); }
+
+/* ── FAQ ── */
+.faq-list { display: flex; flex-direction: column; gap: 12px; max-width: 820px; }
+.faq-item {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  overflow: hidden;
+}
+.faq-q {
+  padding: 16px 20px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  user-select: none; list-style: none;
+}
+.faq-q::-webkit-details-marker { display: none; }
+.faq-q::after { content: '+'; color: var(--muted); font-size: 1.2rem; flex-shrink: 0; }
+details[open] .faq-q::after { content: '−'; }
+.faq-a { padding: 0 20px 16px; color: var(--muted); font-size: 0.9rem; line-height: 1.7; }
+.faq-a code { font-size: 0.85em; }
+
+/* ── PROOF CHECKLIST ── */
+.checklist { display: flex; flex-direction: column; gap: 10px; max-width: 680px; }
+.check-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 12px 16px;
+  font-size: 0.9rem;
+}
+.check-icon { flex-shrink: 0; font-size: 1rem; margin-top: 1px; }
+.check-text { color: var(--muted); line-height: 1.55; }
+.check-text strong { color: var(--text); }
+
+/* ── FOOTER ── */
+.footer {
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+  padding: 40px 28px;
+  text-align: center;
+}
+.footer-inner { max-width: 900px; margin: 0 auto; }
+.footer-links {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 18px;
+}
+.footer-links a {
+  padding: 6px 12px; border-radius: 7px;
+  font-size: 0.85rem; color: var(--muted); background: var(--panel2); border: 1px solid var(--line);
+}
+.footer-links a:hover { color: var(--text); text-decoration: none; }
+.footer-copy { font-size: 0.82rem; color: var(--muted2); line-height: 1.8; }
+.footer-copy a { color: var(--muted); }
+
+/* ── DIVIDER ── */
+.divider { border: none; border-top: 1px solid var(--line); margin: 0; }
+
+/* ── BADGE ROW ── */
+.badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--panel2); border: 1px solid var(--line);
+  border-radius: 999px; padding: 5px 12px; font-size: 0.78rem; font-weight: 600;
+}
+.badge.green { color: var(--green); border-color: rgba(74,222,128,.25); background: rgba(74,222,128,.07); }
+.badge.purple { color: var(--brand2); border-color: rgba(167,139,250,.25); background: rgba(167,139,250,.07); }
+.badge.teal { color: var(--teal); border-color: rgba(45,212,191,.25); background: rgba(45,212,191,.07); }
+.badge.yellow { color: var(--yellow); border-color: rgba(251,191,36,.25); background: rgba(251,191,36,.07); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .nav { padding: 12px 16px; }
+  .nav-links a:not(.primary) { display: none; }
+  .hero { padding: 110px 16px 60px; }
+  .section, .install-inner { padding: 56px 16px; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .tab-btn { padding: 8px 12px; font-size: 0.82rem; }
+}
 </style>
 </head>
 <body>
-<header class="hero">
-  <nav class="nav">
-    <div class="brand">
-      <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/logo.svg" alt="IsotopeAI">
-      IsotopeAI Local
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-brand">
+    <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/icon-512.png" alt="IsotopeAI">
+    IsotopeAI
+  </div>
+  <div class="nav-links">
+    <a href="#install">Install</a>
+    <a href="#features">Features</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#faq">FAQ</a>
+    <a href="https://github.com/Suydev/isotope-code" class="primary">GitHub →</a>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="dot"></span>
+    v3.3.8 — Hardened installer + Android one-tap setup
+  </div>
+  <h1>Study smarter.<br>Own your data.</h1>
+  <p class="hero-sub">
+    IsotopeAI is a self-hosted study planner for JEE, NEET, and Board students.
+    It runs on your own device — phone, laptop, or desktop — with optional Supabase cloud sync.
+    No subscription. No vendor lock-in.
+  </p>
+  <div class="hero-cta">
+    <a class="btn btn-primary" href="#install">⚡ Install now</a>
+    <a class="btn btn-teal" href="#android">📱 Android (one command)</a>
+    <a class="btn btn-ghost" href="https://github.com/Suydev/isotope-code">View on GitHub</a>
+  </div>
+  <div class="hero-img">
+    <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png"
+         alt="IsotopeAI dashboard — daily stats, focus timer, streaks"
+         loading="eager">
+  </div>
+</section>
+
+<!-- ── PROOF STRIP ─────────────────────────────────────────── -->
+<div class="proof-strip">
+  <div class="proof-strip-inner">
+    <span class="proof-pill"><span class="icon">✅</span> App runs locally — no cloud server needed</span>
+    <span class="proof-pill"><span class="icon">✅</span> CI-tested installer on every commit</span>
+    <span class="proof-pill"><span class="icon">✅</span> Supabase free tier works</span>
+    <span class="proof-pill"><span class="icon">✅</span> PWA — works offline after first load</span>
+    <span class="proof-pill"><span class="icon">✅</span> Android Termux supported</span>
+    <span class="proof-pill"><span class="icon">✅</span> MIT licensed</span>
+  </div>
+</div>
+
+<!-- ── WHY ──────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="label">Why it exists</div>
+  <h2 class="section-title">Study tracking without SaaS lock-in</h2>
+  <p class="section-sub">
+    Most study apps are SaaS products. You log your data into someone else's server, pay a monthly fee, and lose everything if you stop paying.
+    IsotopeAI runs entirely on your device. Supabase is optional — it only provides sync, auth, and community. Stop paying for Supabase? Export your data and keep studying locally.
+  </p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🖥️</div>
+      <h3>Runs on your device</h3>
+      <p>Start the Node.js server, open <code>localhost:3000</code>, and the entire app runs locally. No data ever touches a server you don't own.</p>
     </div>
-    <div class="links">
+    <div class="feature-card">
+      <div class="feature-icon">📶</div>
+      <h3>Offline-capable PWA</h3>
+      <p>After first launch the service worker caches the app shell. You can study, use the timer, and view analytics without internet — server-side features show honest offline status.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">☁️</div>
+      <h3>Supabase sync — optional</h3>
+      <p>Point the app at your own free Supabase project for auth, realtime community, and cloud backup. Run the SQL schema once and you're done.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h3>Android phone server</h3>
+      <p>Run IsotopeAI entirely on an Android phone via Termux. One install command, then home-screen widget buttons for start, update, and open.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔐</div>
+      <h3>Your Supabase, your data</h3>
+      <p>The Supabase project is yours — you create it, own the credentials, and can export or delete all data at any time. IsotopeAI never has access to it.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>No VPS required</h3>
+      <p>This is not a self-hosted SaaS. There is no server to provision, configure, or maintain. The app is a Node.js process on your own machine.</p>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ── FEATURES ─────────────────────────────────────────────── -->
+<div class="section" id="features">
+  <div class="label">Features</div>
+  <h2 class="section-title">Everything a serious student needs</h2>
+  <p class="section-sub">Built specifically for competitive exam prep — not generic productivity.</p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⏱️</div>
+      <h3>Focus Timer</h3>
+      <ul>
+        <li>Pomodoro and custom session modes</li>
+        <li>Subject and task tagging per session</li>
+        <li>Session log with every minute tracked</li>
+        <li>Streak counter and daily goals</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Analytics</h3>
+      <ul>
+        <li>Hourly, daily, weekly time breakdowns</li>
+        <li>Per-subject and per-chapter distribution</li>
+        <li>Habit consistency scoring</li>
+        <li>AI weekly summary cards</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📚</div>
+      <h3>Syllabus & Exams</h3>
+      <ul>
+        <li>Chapter-by-chapter syllabus with progress bars</li>
+        <li>Exam countdown calendar</li>
+        <li>Mock test tracker and result log</li>
+        <li>Mistake journal</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">✅</div>
+      <h3>Task Planner</h3>
+      <ul>
+        <li>Priority levels, due dates, subtasks</li>
+        <li>Subject-linked tasks</li>
+        <li>Daily habit tracker</li>
+        <li>Filters and sort by urgency</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">👥</div>
+      <h3>Community</h3>
+      <ul>
+        <li>Study groups with real-time leaderboards</li>
+        <li>Group chat with live presence</li>
+        <li>Group and global challenges</li>
+        <li>One-click invite links</li>
+      </ul>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3>AI (optional)</h3>
+      <ul>
+        <li>AI weekly study summary</li>
+        <li>Configure with Gemini or Groq API key</li>
+        <li>Runs entirely through your local server</li>
+        <li>Not required to use the app</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ── INSTALL ───────────────────────────────────────────────── -->
+<div class="install-section" id="install">
+  <div class="install-inner">
+    <div class="label">Install</div>
+    <h2 class="section-title">Get running in under 60 seconds</h2>
+    <p class="section-sub" style="margin-bottom:32px">
+      You need Node.js 18+ and a free <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a> project for auth and sync.
+      For local-only testing, you can start the server immediately and skip Supabase.
+    </p>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="showTab('android')">📱 Android (Termux)</button>
+      <button class="tab-btn" onclick="showTab('linux')">🐧 Linux / macOS</button>
+      <button class="tab-btn" onclick="showTab('windows')">🪟 Windows</button>
+      <button class="tab-btn" onclick="showTab('update')">🔄 Update</button>
+    </div>
+
+    <div id="tab-android" class="tab-content active" id="android">
+      <p class="install-note" style="margin-bottom:14px">
+        <strong>Step 1:</strong> Install Termux from
+        <a href="https://f-droid.org/packages/com.termux/" target="_blank" rel="noopener">F-Droid</a> or
+        <a href="https://github.com/termux/termux-app/releases" target="_blank" rel="noopener">GitHub Releases</a> — not the Play Store.
+      </p>
+      <p class="install-note" style="margin-bottom:14px">
+        <strong>Step 2:</strong> Open Termux and paste this one command:
+      </p>
+      <pre><code>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)</code></pre>
+      <p class="install-note" style="margin-top:14px">
+        <strong>Step 3:</strong> After install, use <strong>home-screen widget buttons</strong> — no typing needed.
+      </p>
+      <div class="warn-box">
+        <span class="warn-icon">⚠️</span>
+        <span>Install Termux:Widget from the <strong>same source</strong> as Termux (F-Droid or GitHub). Mixing sources causes install failures. See <a href="https://github.com/Suydev/isotope-code/blob/main/TERMUX_WIDGET.md" target="_blank" rel="noopener">TERMUX_WIDGET.md</a> for full details.</span>
+      </div>
+    </div>
+
+    <div id="tab-linux" class="tab-content">
+      <pre><code>git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+bash setup.sh</code></pre>
+      <p class="install-note">
+        <code>setup.sh</code> automatically installs Node.js 22 via NodeSource on Ubuntu/Debian if not present.
+        After setup, open <strong>http://127.0.0.1:3000</strong>.
+      </p>
+    </div>
+
+    <div id="tab-windows" class="tab-content">
+      <p class="install-note" style="margin-bottom:12px"><strong>CMD or PowerShell:</strong></p>
+      <pre><code>git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+setup.bat</code></pre>
+      <p class="install-note" style="margin-top:16px; margin-bottom:12px"><strong>PowerShell (automated Node install):</strong></p>
+      <pre><code>git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+.\install.ps1</code></pre>
+    </div>
+
+    <div id="tab-update" class="tab-content">
+      <pre><code># From any directory after setup
+isotope update</code></pre>
+      <p class="install-note">
+        Stashes local changes → fetches latest → fast-forward merges → runs <code>npm install</code> if needed → restarts server.
+        On Android, automatically refreshes widget shortcuts too.
+      </p>
+      <pre style="margin-top:16px"><code># Windows
+update.bat</code></pre>
+    </div>
+
+    <div style="margin-top:36px">
+      <div class="label" style="margin-bottom:14px">After install — CLI commands</div>
+      <pre><code>isotope start              # start server in background
+isotope stop               # stop server
+isotope restart            # stop + start + open
+isotope update             # pull latest version
+isotope status             # show PID, port, version, config
+isotope doctor             # full diagnostic — checks everything
+isotope open               # open in browser
+isotope logs               # last 80 log lines (secrets redacted)
+isotope repair             # fix broken deps or CLI</code></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ── SUPABASE SETUP ─────────────────────────────────────────── -->
+<div class="section">
+  <div class="label">Supabase</div>
+  <h2 class="section-title">Set up your cloud backend in 5 minutes</h2>
+  <p class="section-sub">Required for auth, community, and cross-device sync. The free Supabase tier works indefinitely for personal use.</p>
+
+  <div style="max-width:640px">
+    <div class="check-item" style="margin-bottom:10px">
+      <span class="check-icon">1️⃣</span>
+      <div class="check-text">Create a <strong>free project</strong> at <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a> — takes 2 minutes.</div>
+    </div>
+    <div class="check-item" style="margin-bottom:10px">
+      <span class="check-icon">2️⃣</span>
+      <div class="check-text">In your Supabase dashboard, go to <strong>SQL Editor</strong> → paste and run <code>isotope-complete.sql</code> from the repo. Creates all 24 tables, RLS policies, triggers, storage buckets, and seed data in one shot.</div>
+    </div>
+    <div class="check-item" style="margin-bottom:10px">
+      <span class="check-icon">3️⃣</span>
+      <div class="check-text">Copy your <strong>Project URL</strong> and <strong>anon/public key</strong> from Project Settings → API.</div>
+    </div>
+    <div class="check-item" style="margin-bottom:24px">
+      <span class="check-icon">4️⃣</span>
+      <div class="check-text">Paste them into <code>.env</code>:<br><br>
+        <code>SUPABASE_URL=https://your-ref.supabase.co</code><br>
+        <code>SUPABASE_ANON_KEY=your-anon-key</code>
+      </div>
+    </div>
+
+    <div class="warn-box">
+      <span class="warn-icon">🔐</span>
+      <span>Never share or commit your <code>SUPABASE_SERVICE_ROLE_KEY</code>. Normal users only need the anon key. The service-role key grants unrestricted database access.</span>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ── ARCHITECTURE ──────────────────────────────────────────── -->
+<div class="section" id="architecture">
+  <div class="label">Architecture</div>
+  <h2 class="section-title">How it works</h2>
+  <p class="section-sub">Three layers. You own all of them. No intermediary server.</p>
+
+  <div class="arch-box">
+    <span class="arch-browser">┌──────────────────────────────────────────────────────────────┐
+│                   Your Browser / PWA                         │
+│        React + Zustand + React Query + Service Worker        │
+└───────────────────────┬──────────────────────────────────────┘</span>
+                        <span class="arch-arrow">│ http://localhost:3000</span>
+<span class="arch-node">┌───────────────────────▼──────────────────────────────────────┐
+│                  Local Node.js Server                        │
+│  server.mjs — Express 5 + JWT verification + Supabase proxy  │
+│  Routes: /__auth/*  /__admin/*  /api/*  /__supa/*            │
+└───────────────────────┬──────────────────────────────────────┘</span>
+                        <span class="arch-arrow">│ REST / Realtime / Storage (optional)</span>
+<span class="arch-supa">┌───────────────────────▼──────────────────────────────────────┐
+│           Supabase (your own free project)                   │
+│   PostgreSQL · Auth · Storage · Realtime · Edge Functions    │
+│   24 tables · RLS · Triggers · 3 buckets · 30+ functions    │
+└──────────────────────────────────────────────────────────────┘</span>
+  </div>
+
+  <div class="feature-grid" style="margin-top:28px">
+    <div class="feature-card">
+      <div class="feature-icon">🌐</div>
+      <h3>Browser / PWA</h3>
+      <p>The React app is compiled to static files and served by your local Node.js server. The service worker enables offline use after the first visit.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚙️</div>
+      <h3>Local Node.js server</h3>
+      <p>Runs on your device. Proxies auth and database requests to Supabase, adds JWT verification, and serves the compiled frontend. The only process you run.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🗄️</div>
+      <h3>Supabase</h3>
+      <p>Acts as a cloud database, auth provider, and storage backend — only if you connect it. IsotopeAI is designed to gracefully handle offline or unconfigured Supabase.</p>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ── PROOF CHECKLIST ────────────────────────────────────────── -->
+<div class="section">
+  <div class="label">Reliability</div>
+  <h2 class="section-title">Tested on every commit</h2>
+  <p class="section-sub">CI runs against every push to main. Install scripts are syntax-checked, shell-linted, and smoke-tested against a real Node.js server start.</p>
+
+  <div class="checklist">
+    <div class="check-item">
+      <span class="check-icon">✅</span>
+      <div class="check-text"><strong>Shell syntax check</strong> — <code>bash -n</code> on all 7 shell scripts on every CI run</div>
+    </div>
+    <div class="check-item">
+      <span class="check-icon">✅</span>
+      <div class="check-text"><strong>ShellCheck lint</strong> — all install/setup scripts are linted with ShellCheck</div>
+    </div>
+    <div class="check-item">
+      <span class="check-icon">✅</span>
+      <div class="check-text"><strong>Required files check</strong> — 19 critical files verified present on every build</div>
+    </div>
+    <div class="check-item">
+      <span class="check-icon">✅</span>
+      <div class="check-text"><strong>Smoke test</strong> — server starts and responds to <code>/api/health</code> using safe placeholder credentials</div>
+    </div>
+    <div class="check-item">
+      <span class="check-icon">✅</span>
+      <div class="check-text"><strong>Release zip validation</strong> — zip is built and extracted to confirm all required files are present</div>
+    </div>
+    <div class="check-item">
+      <span class="check-icon">✅</span>
+      <div class="check-text"><strong>Termux simulation</strong> — platform detection tested with <code>TERMUX_VERSION=ci-test</code></div>
+    </div>
+    <div class="check-item">
+      <span class="check-icon">✅</span>
+      <div class="check-text"><strong>No hardcoded secrets</strong> — grep scan for service-role key patterns in all source files</div>
+    </div>
+    <div class="check-item">
+      <span class="check-icon">✅</span>
+      <div class="check-text"><strong>Docs validation</strong> — screenshot paths, image links, and install command references verified</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ── FAQ ──────────────────────────────────────────────────── -->
+<div class="section" id="faq">
+  <div class="label">FAQ</div>
+  <h2 class="section-title">Common questions</h2>
+
+  <div class="faq-list">
+    <details class="faq-item">
+      <summary class="faq-q">Is this a hosted service?</summary>
+      <div class="faq-a">No. IsotopeAI is software you download and run yourself. There is no cloud server, no account at isotopeai.in, and no third-party service that holds your study data. It's a Node.js app that runs on your device.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Do I need Supabase?</summary>
+      <div class="faq-a">Only for auth, community features, and cross-device sync. The timer, local analytics, tasks, syllabus, and habits work without Supabase. You'll need to provide a Supabase URL and anon key in <code>.env</code> for the app to fully function.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Does it work offline?</summary>
+      <div class="faq-a">Yes — partially. The service worker caches the app shell after the first load. If the local Node.js server is running, the full app works without internet. If the server is also off, the PWA shell loads from cache but shows honest offline status for server-dependent features.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Can I run it on Android?</summary>
+      <div class="faq-a">Yes. Termux runs Node.js on Android without root. One install command sets everything up, and Termux:Widget home-screen buttons let you start, stop, update, and open the app without typing. Works on phones with 2GB+ RAM.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Is my study data private?</summary>
+      <div class="faq-a">Yes. Your data lives in your local Node.js process and your own Supabase project. IsotopeAI's author has no access to either. Secrets stay in your <code>.env</code> file on your device.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Why a local server and not a browser extension or static app?</summary>
+      <div class="faq-a">A local Node.js server can proxy Supabase auth and database requests, manage sessions securely, serve the service worker correctly, and run background sync tasks. A pure browser app would expose Supabase credentials in JavaScript and lose control over session management.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">How do I update?</summary>
+      <div class="faq-a">Run <code>isotope update</code> from any directory, or tap the <code>isotope-update</code> widget on Android. It stashes local changes, pulls the latest commit, reinstalls dependencies if needed, and restarts the server — all without touching your <code>.env</code>.</div>
+    </details>
+    <details class="faq-item">
+      <summary class="faq-q">Something broke. How do I fix it?</summary>
+      <div class="faq-a">Run <code>isotope doctor</code> — it checks Node.js, Git, PATH, Supabase config, PWA files, server health, and (on Android) Termux tools and widget shortcuts. For deeper issues, run <code>isotope repair</code> to re-install dependencies and refresh the CLI.</div>
+    </details>
+  </div>
+</div>
+
+<!-- ── FOOTER ────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-links">
       <a href="https://github.com/Suydev/isotope-code">GitHub</a>
-      <a href="https://github.com/Suydev/isotope-code/releases">Releases</a>
       <a href="https://github.com/Suydev/isotope-code/blob/main/README.md">README</a>
+      <a href="https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/Suydev/isotope-code/blob/main/TERMUX_WIDGET.md">Termux Widget</a>
+      <a href="https://github.com/Suydev/isotope-code/releases">Releases</a>
+      <a href="https://github.com/Suydev/isotope-code/blob/main/LICENSE">MIT License</a>
+      <a href="https://github.com/Suydev/isotope-code/issues/new?template=bug_report.md">Report a bug</a>
     </div>
-  </nav>
-  <div class="hero-inner">
-    <div class="badge">v3.3.6 — Cloud sync fixed</div>
-    <h1>Run Isotope on your own device.</h1>
-    <p class="lead">Isotope is downloadable local-server software. Supabase provides auth, database, storage, realtime, and community sync — the app runs entirely through your local Node server.</p>
-    <div class="cta">
-      <a class="btn primary" href="https://github.com/Suydev/isotope-code/releases/latest">Download latest release</a>
-      <a class="btn" href="https://github.com/Suydev/isotope-code">View source</a>
+    <div class="footer-copy">
+      IsotopeAI · Local-first study planner · v3.3.8 ·
+      Built by <a href="https://github.com/Suydev">Suydev</a> ·
+      <a href="https://isotopeai.in">isotopeai.in</a>
     </div>
   </div>
-</header>
-
-<main class="main">
-
-  <div class="version-banner">
-    <div>
-      <strong>v3.3.6 — 2026-06-08</strong> &nbsp;
-      <span style="color:var(--muted);font-size:14px">Cloud sync download on new device fixed · Storage cleanup · setup.sh Node 18+ installer</span>
-    </div>
-    <a href="https://github.com/Suydev/isotope-code/releases/tag/v3.3.6">Release notes →</a>
-  </div>
-
-  <section class="grid">
-    <div class="card fix-card">
-      <h3>✅ Cloud sync fixed</h3>
-      <p>Login on a new device now correctly downloads your cloud backup and applies it. Two root-cause bugs patched: missing <code>cloud_snapshot</code> field and a timing race with the startup sync.</p>
-    </div>
-    <div class="card fix-card">
-      <h3>✅ Storage cleanup</h3>
-      <p>Old timestamped backup files in Supabase Storage are now automatically pruned after each upload. Only the 3 most recent exports and 5 snapshot history files are kept.</p>
-    </div>
-    <div class="card">
-      <h3>Local server</h3>
-      <p>Run <code>node server.mjs</code> or <code>isotope start</code> from the project folder, then open <code>localhost:3000</code> in any browser.</p>
-    </div>
-    <div class="card">
-      <h3>Cross-device sync</h3>
-      <p>Your study data (tasks, sessions, subjects, habits, stats) is backed up to Supabase Storage and automatically restored when you log in on a new device.</p>
-    </div>
-    <div class="card">
-      <h3>Offline shell</h3>
-      <p>The service worker caches the app shell after first launch and shows honest offline status without crashing.</p>
-    </div>
-    <div class="card">
-      <h3>One-tap install</h3>
-      <p><code>bash setup.sh</code> installs Node.js 22 via NodeSource on Ubuntu/Debian, sets up global <code>isotope</code> command, and starts the server.</p>
-    </div>
-  </section>
-
-  <section class="band">
-    <h2>Install</h2>
-    <div class="split">
-      <pre class="code"># macOS / Linux / Termux
-git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-cp .env.example .env   # fill in Supabase URL + anon key
-bash setup.sh</pre>
-      <pre class="code">:: Windows (PowerShell)
-git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-copy .env.example .env  &amp; REM fill in Supabase keys
-.\install.ps1</pre>
-    </div>
-    <p style="color:var(--muted);margin-top:18px;font-size:14px">After setup, open <strong>http://localhost:3000</strong> — sign in with your Supabase account and your cloud data syncs automatically.</p>
-  </section>
-
-  <section class="grid">
-    <div class="card">
-      <h3>Global commands</h3>
-      <p><code>isotope start</code>, <code>isotope stop</code>, <code>isotope restart</code>, <code>isotope update</code>, <code>isotope status</code>, <code>isotope doctor</code>, <code>isotope open</code>, and <code>isotope logs</code> — work from any directory after setup.</p>
-    </div>
-    <div class="card">
-      <h3>Termux / Android</h3>
-      <p>Run <code>bash setup.sh</code> in Termux. Optionally run <code>bash setup-termux-widget.sh</code> for home-screen shortcuts: isotope-start, isotope-update, isotope-open.</p>
-    </div>
-    <div class="card">
-      <h3>Supabase setup</h3>
-      <p>Create a free project at <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a>, run the SQL from the README, and paste your project URL + anon key into <code>.env</code>.</p>
-    </div>
-    <div class="card">
-      <h3>📖 Docs badge in app</h3>
-      <p>A floating <strong>📖 Docs</strong> badge links to this page from every screen in the app — including the login page — so first-time users can find setup instructions instantly.</p>
-    </div>
-  </section>
-
-  <section class="band warn">
-    <h2>Supabase is not the website host</h2>
-    <p>Do not try to access the app at <code>https://&lt;project-ref&gt;.supabase.co/</code>. That URL is for Supabase APIs only. Isotope runs entirely through your local Node server at <code>localhost:3000</code>. Supabase is used for auth, database, storage, realtime, and community sync — not as a web host.</p>
-  </section>
-
-</main>
-<footer>
-  IsotopeAI Local · <a href="https://github.com/Suydev/isotope-code">github.com/Suydev/isotope-code</a> · v3.3.6 · Downloadable local-server software with Supabase cloud sync
 </footer>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  const content = document.getElementById('tab-' + name);
+  if (content) content.classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+</script>
 </body>
 </html>

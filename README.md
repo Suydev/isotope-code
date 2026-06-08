@@ -1,66 +1,132 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/icon-512.png" alt="IsotopeAI" width="100" />
+  <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/icon-512.png" alt="IsotopeAI" width="96" />
 </p>
 
 <h1 align="center">IsotopeAI</h1>
 
 <p align="center">
-  <strong>Self-hosted AI study planner · Focus timer · Analytics · Community</strong><br/>
-  For JEE, NEET, CUET, Boards & beyond. Running on your device in under 60 seconds.
+  <strong>Local-first AI study planner · Focus timer · Analytics · Community</strong><br/>
+  Runs on your own device in under 60 seconds. No subscription. No SaaS lock-in. Your data stays yours.
 </p>
 
 <p align="center">
-  <a href="https://github.com/Suydev/isotope-code/stargazers">
-    <img alt="GitHub Stars" src="https://img.shields.io/github/stars/Suydev/isotope-code?style=flat-square&color=8b5cf6&logo=github">
-  </a>
-  <a href="./CHANGELOG.md">
-    <img alt="Version" src="https://img.shields.io/badge/version-3.3.5-8b5cf6?style=flat-square">
-  </a>
-  <a href="https://nodejs.org">
-    <img alt="Node" src="https://img.shields.io/badge/node-18%2B-339933?style=flat-square&logo=node.js&logoColor=white">
-  </a>
+  <a href="https://github.com/Suydev/isotope-code/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/Suydev/isotope-code?style=flat-square&color=8b5cf6&logo=github"></a>
+  &nbsp;
+  <a href="./CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-3.3.8-8b5cf6?style=flat-square"></a>
+  &nbsp;
+  <a href="https://nodejs.org"><img alt="Node" src="https://img.shields.io/badge/node-18%2B-339933?style=flat-square&logo=node.js&logoColor=white"></a>
+  &nbsp;
   <img alt="Platform" src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Android-lightgrey?style=flat-square">
+  &nbsp;
   <img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
-  <a href="https://isotopeai.in">
-    <img alt="Website" src="https://img.shields.io/badge/website-isotopeai.in-8b5cf6?style=flat-square">
-  </a>
-  <a href="https://suydev.github.io/isotope-code/">
-    <img alt="Docs" src="https://img.shields.io/badge/docs-GitHub%20Pages-0f9d58?style=flat-square&logo=github">
-  </a>
+  <br/>
+  <a href="https://isotopeai.in"><img alt="Website" src="https://img.shields.io/badge/website-isotopeai.in-8b5cf6?style=flat-square"></a>
+  &nbsp;
+  <a href="https://suydev.github.io/isotope-code/"><img alt="Docs" src="https://img.shields.io/badge/docs-GitHub%20Pages-0f9d58?style=flat-square&logo=github"></a>
+  &nbsp;
+  <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/Suydev/isotope-code/ci.yml?branch=main&style=flat-square&label=CI">
 </p>
 
 <p align="center">
-  <a href="#-quick-start">⚡ Quick Start</a> ·
-  <a href="#-features">✨ Features</a> ·
-  <a href="#-screenshots">📸 Screenshots</a> ·
-  <a href="#%EF%B8%8F-supabase-setup">🗄️ Supabase Setup</a> ·
-  <a href="#-contributing">🤝 Contributing</a> ·
-  <a href="#-support--donate">❤️ Support</a>
+  <a href="#-android--termux-one-command">📱 Android</a> ·
+  <a href="#-linux--macos">🐧 Linux / macOS</a> ·
+  <a href="#-windows">🪟 Windows</a> ·
+  <a href="#-supabase-setup">☁️ Supabase</a> ·
+  <a href="#-cli-reference">⚡ CLI</a> ·
+  <a href="https://suydev.github.io/isotope-code/">📖 Docs</a>
 </p>
 
 <br/>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png" alt="IsotopeAI App" width="100%" style="border-radius:12px"/>
+  <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png" alt="IsotopeAI — local-first study app dashboard" width="100%" style="border-radius:12px"/>
 </p>
 
 ---
 
 ## What is IsotopeAI?
 
-IsotopeAI is a **fully self-hosted, local-first** student productivity platform. You clone it, run one setup command, and get a complete study app running on your own device — with optional Supabase cloud sync for backup, community, and cross-device access.
+IsotopeAI is a **fully self-hosted, local-first** student productivity platform built for JEE, NEET, CUET, and Board exam students.
 
-**No subscription. No SaaS lock-in. Your data stays yours.**
+You clone it, run one setup command, and a complete study app runs on **your own device** — with Supabase as an optional cloud backend for sync, community, and cross-device access.
 
-```text
+```
 Browser / PWA
-    ↓  (localhost:3000)
-Local Node.js server  ←  you own and run this
+    ↓  localhost:3000
+Local Node.js server     ← you own and run this
     ↓
-Supabase (free tier works)  ←  you own this too
+Supabase (free tier)     ← you own this too (optional for sync)
 ```
 
-> Targeted at JEE / NEET / CUET / Board students who want a serious, distraction-free environment with real analytics — without giving their data to a third party.
+**No subscription. No SaaS vendor. No third-party tracking. Your study data stays on your device.**
+
+---
+
+## ⚡ Install
+
+### 📱 Android / Termux — one command
+
+> Install Termux from **[F-Droid](https://f-droid.org/packages/com.termux/)** or **[GitHub](https://github.com/termux/termux-app/releases)** — not the Play Store (unmaintained since 2020).
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+```
+
+That's it. One command installs Node.js, Git, IsotopeAI, and creates home-screen widget shortcuts. After first install, tap **isotope-start** on your home screen to launch.
+
+### 🐧 Linux / macOS
+
+```bash
+git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+bash setup.sh
+```
+
+### 🪟 Windows
+
+**CMD / PowerShell:**
+```bat
+git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+setup.bat
+```
+
+**PowerShell (automated):**
+```powershell
+git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+.\install.ps1
+```
+
+Setup does exactly this — no hidden steps:
+1. Checks Node.js 18+, npm, and Git
+2. Creates `.env` from `.env.example` and prompts for Supabase URL + anon key
+3. Installs dependencies
+4. Installs the global `isotope` CLI command
+5. Starts the server → opens `http://127.0.0.1:3000`
+
+> Need Supabase credentials? See [☁️ Supabase Setup](#️-supabase-setup) below — it takes about 5 minutes.
+
+---
+
+## ⚡ CLI Reference
+
+After setup, these work from **any directory**:
+
+```bash
+isotope start              # Start the local server (background)
+isotope stop               # Stop it
+isotope restart            # Stop + start + open
+isotope update             # Pull latest + reinstall deps + restart
+isotope status             # Show PID, port, version, config
+isotope doctor             # Full diagnostic — checks everything
+isotope open               # Open in browser (after health check)
+isotope logs               # Last 80 server log lines (secrets redacted)
+isotope version            # Print installed version
+isotope repair             # Re-install deps + reinstall CLI
+isotope reinstall-widgets  # Refresh Android home-screen shortcuts
+isotope setup              # Re-run setup.sh without starting
+```
 
 ---
 
@@ -71,21 +137,20 @@ Supabase (free tier works)  ←  you own this too
 <td width="50%">
 
 ### 🎯 Study Engine
-- **Focus Timer** — Pomodoro + custom sessions
-- **Session Logging** — every minute tracked
-- **Daily Stats** — streaks, hours, leaderboard
-- **Subject & Chapter Planner**
-- **Task Manager** — priority, due dates, subtasks
+- **Focus Timer** — Pomodoro, custom sessions, session tagging
+- **Session Logging** — every minute tracked with subject/task
+- **Daily Stats** — streaks, today's hours, subject breakdown
 - **Habit Tracker** — daily consistency scoring
+- **Task Manager** — priority, due dates, subtasks, filters
 
 </td>
 <td width="50%">
 
 ### 📊 Analytics
-- Hourly / daily / weekly time breakdowns
-- Per-subject & per-chapter distribution
-- Exam countdown & prep progress tracker
-- Mock test analysis & mistake log
+- Hourly / daily / weekly study time breakdowns
+- Per-subject and per-chapter distribution charts
+- Exam countdown and prep progress tracker
+- Mock test result analysis and mistake log
 - AI weekly summary cards
 
 </td>
@@ -95,8 +160,8 @@ Supabase (free tier works)  ←  you own this too
 
 ### 👥 Community
 - **Study groups** with real-time leaderboards
-- **Group chat** — broadcast channel, zero latency
-- **Challenges** — group & global goals
+- **Group chat** — broadcast channel, near-zero latency
+- **Challenges** — group and global goal tracking
 - **Invite links** — join any group in one click
 - **Live presence** — see who's studying right now
 
@@ -104,25 +169,15 @@ Supabase (free tier works)  ←  you own this too
 <td width="50%">
 
 ### ☁️ Cloud & Offline
-- **Supabase-backed** cloud snapshot & restore
+- **Supabase-backed** snapshot backup and restore
 - **PWA** — works offline from service worker cache
-- **Local-first** — no internet needed to study
-- **CLI** — `isotope start / stop / update / doctor`
+- **Local-first** — study without internet
 - **Termux Widget** — Android home screen shortcuts
+- **CLI** — full control from terminal
 
 </td>
 </tr>
 </table>
-
----
-
-## 📸 Screenshots
-
-> The app is local-first — run it yourself to explore all views. Below is a preview of the main interface.
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png" alt="IsotopeAI Dashboard" width="90%"/>
-</p>
 
 | Route | What you see |
 |---|---|
@@ -133,119 +188,74 @@ Supabase (free tier works)  ←  you own this too
 | `/community/group/:slug` | Group chat, member presence, group leaderboard |
 | `/syllabus` | Chapter-by-chapter syllabus with progress bars |
 | `/exams` | Exam calendar, mock test tracker, result analysis |
-| `/settings` | Profile, cloud sync, preferences |
+| `/settings` | Profile, cloud sync status, preferences |
 
 ---
 
-## ⚡ Quick Start
+## 🗄️ Supabase Setup
 
-> **Requirements**: Node.js 18+, Git, a free [Supabase](https://supabase.com) project
+You need a free Supabase project for auth and cloud sync. The app can run without it for local-only use, but login and community features require it.
 
-### 🐧 Linux / macOS / Termux (Android)
+**Steps (5 minutes):**
 
-```bash
-git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-bash setup.sh
-```
-
-### 🪟 Windows (CMD)
-
-```bat
-git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-setup.bat
-```
-
-### 🪟 Windows (PowerShell)
-
-```powershell
-git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-.\install.ps1
-```
-
-Setup automatically:
-1. Checks Node.js, npm, and Git
-2. Creates `.env` and prompts for your Supabase URL + anon key
-3. Installs dependencies
-4. Installs the global `isotope` CLI
-5. Starts the server → open `http://127.0.0.1:3000`
-
----
-
-## 🔧 CLI Commands
-
-After setup, these work from **any directory**:
-
-```bash
-isotope start      # Start the local server
-isotope stop       # Stop it
-isotope restart    # Restart
-isotope update     # Pull latest + install + restart
-isotope status     # Is the server running?
-isotope doctor     # Check Node, Git, Supabase health
-isotope open       # Health check then open browser
-isotope logs       # Tail server logs
-```
-
----
-
-## 🔑 Environment Variables
+1. Create a **free** project at [supabase.com](https://supabase.com)
+2. Go to **SQL Editor** → paste and run **`isotope-complete.sql`** (entire file, one shot)
+3. Copy your **Project URL** and **anon/public key** from Project Settings → API
+4. Paste them into `.env`:
 
 ```env
-# Required — from your Supabase project dashboard
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 
 # Optional
 PORT=3000
 ENABLE_ADMIN_MODE=false
-SUPABASE_SERVICE_ROLE_KEY=    # admin only — never share
-ADMIN_SECRET=                 # admin only
-ADMIN_EMAIL=                  # admin only
 ```
 
-> Normal users only need `SUPABASE_URL` and `SUPABASE_ANON_KEY`. **Never commit `.env`.**
+> ⚠️ Never share your `SUPABASE_SERVICE_ROLE_KEY`. Normal users only need the anon key.
 
----
-
-## 🗄️ Supabase Setup
-
-1. Create a **free** project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** → paste and run **`isotope-complete.sql`**
-3. Done — all 24 tables, RLS policies, triggers, storage buckets, and seed data applied in one shot
-
-```
-isotope-complete.sql  ←  single authoritative schema (idempotent, safe to re-run anytime)
-```
-
-**Expected storage buckets after setup:**
+**Storage buckets created by the SQL:**
 
 | Bucket | Purpose |
 |---|---|
 | `avatars` | Profile pictures |
-| `user-content` | Cloud snapshots & backups |
-| `notes` | Notes & documents |
+| `user-content` | Cloud snapshots and backups |
+| `notes` | Notes and documents |
 
 ---
 
-## 📱 Android / Termux
+## 📱 Android / Termux — Beginner Guide
 
-Run IsotopeAI entirely on your Android phone:
+**Step 1 — Install Termux (from the right source)**
+
+Install from [F-Droid](https://f-droid.org/packages/com.termux/) or [GitHub Releases](https://github.com/termux/termux-app/releases). The Play Store version is unmaintained and has bugs.
+
+**Step 2 — Install Termux:Widget (same source as Termux)**
+
+[F-Droid](https://f-droid.org/packages/com.termux.widget/) or [GitHub](https://github.com/termux/termux-widget/releases). Mixing sources causes install failures.
+
+**Step 3 — Open Termux and paste this one command**
 
 ```bash
-# Install Termux from F-Droid, then:
-pkg install nodejs git
-git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-bash setup.sh
-
-# Add home screen shortcuts
-bash setup-termux-widget.sh
+bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
 ```
 
-Creates widget shortcuts for: `start`, `stop`, `restart`, `update`, `open`, `doctor`, `status`, `logs`
+This installs everything: Node.js, Git, IsotopeAI, and home-screen widget buttons.
+
+**Step 4 — Add home-screen buttons**
+
+Long press home screen → Widgets → Termux Widget → drag to home screen → choose a shortcut:
+
+| Shortcut | What it does |
+|---|---|
+| `isotope-start` | Start server + open in browser |
+| `isotope-update` | Pull latest version |
+| `isotope-open` | Open app in browser |
+| `isotope-doctor` | Diagnose any issue |
+| `isotope-repair` | Fix broken install |
+| `isotope-stop` | Stop server |
+
+See [TERMUX_WIDGET.md](./TERMUX_WIDGET.md) for the full shortcut reference.
 
 ---
 
@@ -264,11 +274,13 @@ Creates widget shortcuts for: `start`, `stop`, `restart`, `update`, `open`, `doc
 └───────────────────────┬──────────────────────────────────────┘
                         │ REST / Realtime / Storage
 ┌───────────────────────▼──────────────────────────────────────┐
-│                   Supabase (your project)                    │
+│           Supabase (your own free project)                   │
 │   PostgreSQL · Auth · Storage · Realtime · Edge Functions    │
 │   24 tables · RLS · Triggers · 3 buckets · 30+ functions    │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+The Node.js server is the only process running on your device. It proxies auth and database requests to Supabase. There is no cloud server owned by anyone else.
 
 ---
 
@@ -276,22 +288,27 @@ Creates widget shortcuts for: `start`, `stop`, `restart`, `update`, `open`, `doc
 
 ```
 isotope-code/
-├── server.mjs              ← Main server (Express 5, ~7000 lines)
-├── isotope-complete.sql    ← Master DB schema (run once on fresh Supabase)
-├── community-patch-v4.sql  ← Incremental patch reference
+├── server.mjs                   ← Main server (Express 5)
+├── isotope-complete.sql         ← Full DB schema (run once on new Supabase project)
 ├── public/
-│   ├── assets/             ← Compiled React app (211 JS chunks)
-│   ├── sw.js               ← Service worker (offline + caching)
-│   ├── pwa-local.js        ← PWA local-server offline handler
-│   └── update-checker.js   ← In-app update banner
+│   ├── assets/                  ← Compiled React app (211 JS chunks)
+│   ├── sw.js                    ← Service worker (offline + caching)
+│   └── pwa-local.js             ← PWA offline handler
 ├── bin/
-│   ├── isotope             ← Linux / macOS / Termux CLI
-│   └── isotope.bat         ← Windows CLI
+│   ├── isotope                  ← Linux / macOS / Termux CLI
+│   └── isotope.bat              ← Windows CLI
+├── scripts/
+│   ├── capture-screenshots.mjs  ← Playwright screenshot capture
+│   ├── seed-demo-data.mjs       ← Seed realistic demo data
+│   └── validate-docs.mjs        ← Validate docs/README links + image paths
 ├── setup.sh / setup.bat / install.ps1   ← First-time setup
+├── install-termux.sh                    ← One-line Android bootstrap
 ├── update.sh / update.bat               ← One-command update
-├── setup-termux-widget.sh               ← Android home screen shortcuts
+├── start.sh / start.bat                 ← Start shortcut
+├── doctor.sh / doctor.bat               ← Doctor shortcut
+├── setup-termux-widget.sh               ← Android widget shortcuts
 ├── screenshots/                         ← App screenshots
-└── CHANGELOG.md
+└── docs/                                ← GitHub Pages source
 ```
 
 ---
@@ -302,18 +319,18 @@ isotope-code/
 isotope update
 ```
 
-Stashes local changes → pulls latest → runs `npm install` if needed → restarts server. Zero data loss.
+Stashes local changes → fetches latest → fast-forward merges → runs `npm install` if dependencies changed → restarts server → refreshes Termux widget shortcuts. Zero data loss.
 
 ---
 
-## 🔒 Admin Mode (Optional)
+## 🔒 Admin Mode (optional)
 
-For power users who want diagnostics, DB inspection, and repair tools:
+For owners who need diagnostics, DB inspection, and repair tools:
 
 ```env
 ENABLE_ADMIN_MODE=true
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-ADMIN_SECRET=your-local-secret
+ADMIN_SECRET=your-local-admin-secret
 ADMIN_EMAIL=your@email.com
 ```
 
@@ -326,37 +343,38 @@ Access: `http://127.0.0.1:3000/__admin/verify`
 ```bash
 isotope doctor     # Diagnoses most issues automatically
 isotope status     # Is the server actually running?
-isotope logs       # Real-time server output
+isotope logs       # Real-time server output (secrets redacted)
+isotope repair     # Re-install deps + CLI + clear stale state
 ```
 
 | Problem | Fix |
 |---|---|
-| Global `isotope` command missing | `bash setup.sh --no-start` |
-| Port already in use | `isotope stop` or `PORT=3001 isotope start` |
+| `isotope` command not found | `bash setup.sh --no-start` |
+| Port already in use | `isotope stop`, or set `PORT=3001` in `.env` |
 | Cloud sync "Authentication required" | Check `SUPABASE_URL` and `SUPABASE_ANON_KEY` in `.env` |
 | Storage permission denied | Re-run `isotope-complete.sql` in Supabase SQL Editor |
-| App opens but server is down | `isotope start` then `http://127.0.0.1:3000` |
-| Termux shortcuts broken | `bash setup-termux-widget.sh` |
+| App opens but server is down | `isotope start` then refresh |
+| Termux shortcuts broken | `isotope reinstall-widgets` or `bash setup-termux-widget.sh` |
+| Termux pkg update fails | `termux-change-repo` then retry |
+| Node.js not found on Linux | Re-run `bash setup.sh` — installs Node 22 via NodeSource |
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome — bug fixes, new features, docs, translations, UI polish.
+Contributions are welcome — bug fixes, features, docs, UI polish.
 
 **Before contributing:**
-1. Read [AGENTS.md](./AGENTS.md) — AI agent rules and code conventions
-2. Do not commit `.env` or secrets
-3. Do not weaken RLS policies
-4. Update `isotope-complete.sql` if you change the DB schema
+1. Read [AGENTS.md](./AGENTS.md) — AI agent conventions
+2. Never commit `.env` or secrets
+3. Never weaken RLS policies
+4. Update `isotope-complete.sql` for any DB schema changes
 5. Prove sync works: browser action → Supabase row → clear cache → login → data restored
 
 ```bash
-# Fork → clone → branch → PR
 git checkout -b fix/your-description
+# PR against main
 ```
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide.
 
 ---
 
@@ -366,33 +384,31 @@ See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
 | Version | Highlights |
 |---|---|
-| **v3.3.3** | Admin role auth bug fix (`user_roles.is_active`), 8 undocumented DB functions added to master schema |
-| **v3.3.2** | `user_tours` table, `/__admin/schema` endpoint fixed |
-| **v3.3.1** | `isotope-complete.sql` master schema, 4 missing tables applied |
+| **v3.3.8** | Hardened setup.sh, complete CLI overhaul (repair/version/reinstall-widgets), one-line Termux install, background widget shortcuts, CI rewrite |
+| **v3.3.7** | Auth-gated sync state machine — infinite retry on auth failure fixed |
+| **v3.3.6** | Cloud sync download on new device fixed · Storage cleanup |
+| **v3.3.5** | Sync items table, metadata columns, Supabase schema migration |
+| **v3.3.3** | Admin role auth bug fix, 8 undocumented DB functions added to master schema |
 | **v3.3.0** | RLS policies hardened, GitHub Pages docs |
-| **v3.2.0** | Leaderboard RLS, SQL index corrections |
-| **v3.1.x** | RLS performance, PWA stability fixes, Termux CLI |
 
 ---
 
-## ❤️ Support & Donate
+## ❤️ Support
 
-IsotopeAI is free, open-source, and built by a student for students. If it helped your prep, consider supporting development.
+IsotopeAI is free, open-source, and built by a student for students.
 
 **UPI (India): `9699393886@fam`**
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/upi-qr.png" alt="UPI Donation QR — 9699393886@fam" width="200" /><br/>
+  <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/upi-qr.png" alt="UPI Donation QR — 9699393886@fam" width="180" /><br/>
   <em>Scan with GPay · PhonePe · Paytm · BHIM · any UPI app</em>
 </p>
-
-Every ₹ goes directly into keeping this project alive and bug-free. 🙏
 
 ---
 
 ## ⭐ Star History
 
-If IsotopeAI is useful, **please star this repo** — it helps other students discover it!
+If IsotopeAI is useful, **star this repo** — it helps other students find it.
 
 [![Star History Chart](https://api.star-history.com/svg?repos=Suydev/isotope-code&type=Date)](https://star-history.com/#Suydev/isotope-code&Date)
 
@@ -408,6 +424,8 @@ If IsotopeAI is useful, **please star this repo** — it helps other students di
   Built with ❤️ by <a href="https://github.com/Suydev">Suydev</a>
   ·
   <a href="https://isotopeai.in">isotopeai.in</a>
+  ·
+  <a href="https://suydev.github.io/isotope-code/">📖 Docs</a>
   ·
   <a href="https://github.com/Suydev/isotope-code/issues/new?template=bug_report.md">🐛 Report Bug</a>
   ·

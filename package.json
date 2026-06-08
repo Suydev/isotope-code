@@ -1,11 +1,25 @@
 {
   "name": "isotope-code",
-  "version": "3.3.5",
+  "version": "3.3.8",
   "private": true,
   "type": "module",
+  "description": "Self-hosted local-first AI study planner for JEE, NEET, and Board students",
+  "homepage": "https://isotopeai.in",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Suydev/isotope-code.git"
+  },
   "scripts": {
+    "start": "node server.mjs",
     "dev": "node --env-file=.env --watch server.mjs",
-    "start": "node server.mjs"
+    "preview": "node server.mjs",
+    "demo:seed": "node scripts/seed-demo-data.mjs",
+    "demo:reset": "node scripts/seed-demo-data.mjs --reset",
+    "screenshots": "node scripts/capture-screenshots.mjs",
+    "screenshots:compress": "node scripts/capture-screenshots.mjs --compress",
+    "screenshots:demo": "node scripts/capture-screenshots.mjs --demo",
+    "docs:validate": "node scripts/validate-docs.mjs",
+    "docs:validate:strict": "node scripts/validate-docs.mjs --strict"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -257,6 +257,15 @@ jobs:
           [ "$FAIL" -eq 0 ] || exit 1
           echo "✅ Release zip contains all required files"
 
+      # ── Docs validation ──────────────────────────────────────────────────────
+      - name: 📝 Docs + README validation
+        run: |
+          set -euo pipefail
+          node scripts/validate-docs.mjs || {
+            echo "⚠️  Docs validation had errors — see output above"
+            exit 1
+          }
+
       # ── Upload logs on failure ────────────────────────────────────────────────
       - name: 📤 Upload CI logs on failure
         if: failure()
