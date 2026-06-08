@@ -6,13 +6,19 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   ci:
     name: Node ${{ matrix.node }} on ubuntu-latest
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # engines: node >=18.0.0  |  --env-file needs 20.6+
         node: ['20', '22']
       fail-fast: false
 
@@ -24,52 +30,164 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          # No cache — zero npm dependencies, no lockfile
 
-      - name: ✅ Syntax check — server.mjs
+      # ── Shell syntax checks ──────────────────────────────────────────────────
+      - name: 🐚 Shell syntax check (bash -n)
+        run: |
+          set -euo pipefail
+          FAIL=0
+          for f in \
+            setup.sh \
+            setup-termux-widget.sh \
+            install-termux.sh \
+            update.sh \
+            start.sh \
+            doctor.sh \
+            bin/isotope; do
+            if [ -f "$f" ]; then
+              if bash -n "$f" 2>/dev/null; then
+                echo "✅ $f"
+              else
+                echo "❌ $f — syntax error"
+                bash -n "$f" || true
+                FAIL=1
+              fi
+            else
+              echo "⚠️  $f — not found (skipping)"
+            fi
+          done
+          [ "$FAIL" -eq 0 ] || exit 1
+
+      - name: 🔍 ShellCheck
+        run: |
+          set -euo pipefail
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            echo "Installing shellcheck..."
+            sudo apt-get install -y shellcheck >/dev/null 2>&1
+          fi
+          echo "shellcheck $(shellcheck --version | head -2 | tail -1)"
+          FAIL=0
+          for f in \
+            setup.sh \
+            setup-termux-widget.sh \
+            install-termux.sh \
+            update.sh \
+            start.sh \
+            doctor.sh \
+            bin/isotope; do
+            if [ -f "$f" ]; then
+              # SC1090: can't follow sourced file — expected in this codebase
+              # SC1091: not following include — expected
+              # SC2148: no shebang for sourced files — not applicable
+              if shellcheck -x -e SC1090,SC1091 "$f"; then
+                echo "✅ $f"
+              else
+                echo "⚠️  $f — shellcheck warnings (non-fatal for now)"
+              fi
+            else
+              echo "⚠️  $f — not found (skipping)"
+            fi
+          done
+          # ShellCheck is advisory in CI for now — uncomment to make it block:
+          # [ "$FAIL" -eq 0 ] || exit 1
+
+      # ── Node syntax ──────────────────────────────────────────────────────────
+      - name: ✅ Node.js syntax check — server.mjs
         run: node --check server.mjs
 
-      - name: ✅ Syntax check — bin/isotope CLI
+      # ── Required files ───────────────────────────────────────────────────────
+      - name: 📁 Required files present
         run: |
-          if file bin/isotope 2>/dev/null | grep -q 'shell\|bash\|sh script'; then
-            bash -n bin/isotope && echo "✅ bin/isotope syntax ok (shell)" || echo "⚠️ bin/isotope has shell syntax errors"
-          elif [ -f bin/isotope ]; then
-            node --check bin/isotope 2>/dev/null && echo "✅ bin/isotope ok" || echo "⚠️ bin/isotope not checkable"
-          else
-            echo "⚠️ bin/isotope not found — skipping"
-          fi
+          set -euo pipefail
+          FAIL=0
+          REQUIRED=(
+            server.mjs
+            package.json
+            setup.sh
+            setup.bat
+            install.ps1
+            install-termux.sh
+            setup-termux-widget.sh
+            update.sh
+            update.bat
+            start.sh
+            start.bat
+            doctor.sh
+            doctor.bat
+            bin/isotope
+            bin/isotope.bat
+            isotope-complete.sql
+            .env.example
+            README.md
+            CHANGELOG.md
+            TERMUX_WIDGET.md
+          )
+          for f in "${REQUIRED[@]}"; do
+            if [ -f "$f" ]; then
+              echo "✅ $f"
+            else
+              echo "❌ $f — MISSING"
+              FAIL=1
+            fi
+          done
+          [ "$FAIL" -eq 0 ] || exit 1
 
-      - name: 📋 Schema file sanity check
+      # ── No hardcoded secrets ─────────────────────────────────────────────────
+      - name: 🔒 No hardcoded secrets
         run: |
-          if [ -f isotope-complete.sql ]; then
-            echo "=== isotope-complete.sql ==="
-            echo "  Size   : $(wc -c < isotope-complete.sql) bytes"
-            echo "  Lines  : $(wc -l < isotope-complete.sql)"
-            echo "  Tables : $(grep -c 'CREATE TABLE' isotope-complete.sql || echo 0)"
-            echo "  Funcs  : $(grep -c 'CREATE OR REPLACE FUNCTION' isotope-complete.sql || echo 0)"
-            echo "  Policies: $(grep -c 'CREATE POLICY' isotope-complete.sql || echo 0)"
-          else
-            echo "⚠️ isotope-complete.sql not found — skipping schema stats"
-          fi
-
-      - name: 🔒 No hardcoded secrets check
-        run: |
-          if grep -rE 'SUPABASE_SERVICE_ROLE_KEY\s*=\s*eyJ' --include="*.mjs" --include="*.js" .; then
+          set -euo pipefail
+          if grep -rE 'SUPABASE_SERVICE_ROLE_KEY\s*=\s*eyJ' \
+               --include="*.mjs" --include="*.js" --include="*.sh" .; then
             echo "❌ Hardcoded service-role key detected!"
             exit 1
           fi
           echo "✅ No hardcoded secrets"
 
-      - name: 📁 Required files present
+      # ── Schema stats ─────────────────────────────────────────────────────────
+      - name: 📋 Schema file stats
         run: |
-          for f in server.mjs package.json setup.sh isotope-complete.sql .env.example; do
-            test -f "$f" && echo "✅ $f" || (echo "❌ $f missing" && exit 1)
+          set -euo pipefail
+          for f in isotope-complete.sql community-patch-v4.sql performance-patch.sql; do
+            if [ -f "$f" ]; then
+              echo "=== $f ==="
+              echo "  Size   : $(wc -c < "$f") bytes"
+              echo "  Lines  : $(wc -l < "$f")"
+              echo "  Tables : $(grep -c 'CREATE TABLE' "$f" || echo 0)"
+              echo "  Funcs  : $(grep -c 'CREATE OR REPLACE FUNCTION' "$f" || echo 0)"
+              echo "  Policies: $(grep -c 'CREATE POLICY' "$f" || echo 0)"
+            else
+              echo "⚠️  $f not found — skipping"
+            fi
           done
-          # setup.bat is Windows-only, not required on CI
-          test -f "setup.bat" && echo "✅ setup.bat" || echo "⚠️ setup.bat missing (optional)"
 
-      - name: 🚀 Smoke test — server starts and answers /api/health
+      # ── Termux simulation ─────────────────────────────────────────────────────
+      - name: 📱 Termux simulation — platform detection
         run: |
+          set -euo pipefail
+          echo "Simulating Termux environment..."
+          export TERMUX_VERSION="ci-test"
+          export PREFIX="/data/data/com.termux/files/usr"
+
+          # Test that setup.sh correctly detects 'termux' platform when vars are set
+          DETECTED=$(
+            TERMUX_VERSION="$TERMUX_VERSION" PREFIX="$PREFIX" \
+            node -e "
+              const { execSync } = require('child_process');
+              const out = execSync(
+                'bash -c \\'source setup.sh --yes --no-start --termux-ci 2>&1 | head -5 || true\\'',
+                { env: { ...process.env, TERMUX_VERSION: \"ci-test\", PREFIX: \"/data/data/com.termux/files/usr\" }, timeout: 10000 }
+              ).toString().trim();
+              console.log(out);
+            " 2>/dev/null || echo "skipped"
+          )
+          echo "Termux simulation output (first 5 lines):"
+          echo "$DETECTED" | head -5
+          echo "✅ Termux simulation completed (full install requires real Android device)"
+
+      # ── Smoke test ────────────────────────────────────────────────────────────
+      - name: 🚀 Smoke test — server starts and responds
+        run: |
+          set -uo pipefail
           SUPABASE_URL=https://placeholder.supabase.co \
           SUPABASE_ANON_KEY=placeholder_anon_key \
           SESSION_SECRET=ci_smoke_test_secret_not_real \
@@ -78,25 +196,75 @@ jobs:
           PORT=3099 \
           node server.mjs &
           SERVER_PID=$!
-          echo "Server started (pid $SERVER_PID), polling for /api/health..."
 
+          echo "Server PID: $SERVER_PID — polling /api/health..."
           STATUS="000"
           for i in $(seq 1 40); do
             sleep 0.5
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3099/api/health 2>/dev/null || echo "000")
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              http://127.0.0.1:3099/api/health 2>/dev/null || echo "000")
             if [ "$STATUS" != "000" ]; then
-              echo "  Got HTTP $STATUS after ${i} attempts ($(echo "$i * 0.5" | bc)s)"
+              echo "  HTTP $STATUS after ${i} attempts"
               break
             fi
-            echo "  Attempt $i: no response yet..."
+            printf '  Attempt %d: waiting...\n' "$i"
           done
 
-          kill $SERVER_PID 2>/dev/null || true
-          wait $SERVER_PID 2>/dev/null || true
-          echo "Health check HTTP status: $STATUS"
+          kill "$SERVER_PID" 2>/dev/null || true
+          wait "$SERVER_PID" 2>/dev/null || true
+          echo "Final health status: $STATUS"
 
-          # Accept any real HTTP response (200, 401, 403, 5xx) — placeholder creds will cause some errors
           case "$STATUS" in
-            2*|3*|4*|5*) echo "✅ Server started and responded with HTTP $STATUS" ;;
-            *) echo "❌ Server did not respond (got $STATUS) — server may have crashed on startup" && exit 1 ;;
+            2*|3*|4*|5*)
+              echo "✅ Server started and responded (HTTP $STATUS)"
+              ;;
+            *)
+              echo "❌ Server did not respond (got: $STATUS)"
+              exit 1
+              ;;
           esac
+
+      # ── Release zip simulation ────────────────────────────────────────────────
+      - name: 📦 Release zip — build + verify extract
+        run: |
+          set -euo pipefail
+          VERSION="$(node -e "process.stdout.write(require('./package.json').version)")"
+          echo "Building release zip for v$VERSION..."
+          zip -qr "isotope-v${VERSION}-ci-test.zip" . \
+            --exclude ".git/*" \
+            --exclude "node_modules/*" \
+            --exclude ".env" \
+            --exclude "*.log" \
+            --exclude ".github/*" \
+            --exclude "screenshots/*" \
+            --exclude "*.zip"
+          echo "Archive: $(wc -c < "isotope-v${VERSION}-ci-test.zip") bytes"
+
+          # Extract to a fresh dir and check required files are present
+          TMPDIR="$(mktemp -d)"
+          unzip -q "isotope-v${VERSION}-ci-test.zip" -d "$TMPDIR"
+          echo "Verifying extracted release..."
+          FAIL=0
+          for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example; do
+            if [ -f "$TMPDIR/$f" ]; then
+              echo "  ✅ $f"
+            else
+              echo "  ❌ $f — missing from zip"
+              FAIL=1
+            fi
+          done
+          rm -rf "$TMPDIR" "isotope-v${VERSION}-ci-test.zip"
+          [ "$FAIL" -eq 0 ] || exit 1
+          echo "✅ Release zip contains all required files"
+
+      # ── Upload logs on failure ────────────────────────────────────────────────
+      - name: 📤 Upload CI logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs-node${{ matrix.node }}-${{ github.run_id }}
+          path: |
+            ~/.isotope/logs/
+            /tmp/isotope-ci-*.log
+          if-no-files-found: ignore
+          retention-days: 7

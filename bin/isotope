@@ -1,4 +1,20 @@
 #!/usr/bin/env bash
+# IsotopeAI CLI
+# ──────────────────────────────────────────────────────────────────────────────
+# Usage: isotope <command>
+#   start              Start the local server in the background
+#   stop               Stop the managed local server
+#   restart            Stop, start, and open the local app
+#   update             Safely pull the latest GitHub version
+#   status             Show project path, port, version, and config
+#   doctor             Full diagnostic check
+#   open               Open http://127.0.0.1:<PORT> in browser
+#   logs               Show last 80 server log lines
+#   version            Print the installed version
+#   repair             Re-run dependency install + CLI reinstall
+#   reinstall-widgets  Refresh Termux Widget shortcuts (Termux only)
+#   setup              Run setup.sh --no-start from the project dir
+# ──────────────────────────────────────────────────────────────────────────────
 set -u
 
 ISO_HOME="${ISOTOPE_HOME:-$HOME/.isotope}"
@@ -13,7 +29,7 @@ DEFAULT_PORT=3000
 info() { printf '%s\n' "$*"; }
 warn() { printf 'WARN: %s\n' "$*" >&2; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
-has() { command -v "$1" >/dev/null 2>&1; }
+has()  { command -v "$1" >/dev/null 2>&1; }
 
 redact() {
   sed -E \
@@ -54,8 +70,10 @@ resolve_project() {
     if looks_like_project "$p"; then save_project_path "$p"; printf '%s\n' "$p"; return 0; fi
     p="$(dirname "$p")"
   done
-  if looks_like_project "$HOME/isotope"; then save_project_path "$HOME/isotope"; printf '%s\n' "$HOME/isotope"; return 0; fi
-  fail "Could not find Isotope project. Run setup.sh from the project folder."
+  for try_dir in "$HOME/isotope-code" "$HOME/isotope"; do
+    if looks_like_project "$try_dir"; then save_project_path "$try_dir"; printf '%s\n' "$try_dir"; return 0; fi
+  done
+  fail "Could not find IsotopeAI project. Run setup.sh from the project folder."
 }
 
 read_env_key() {
@@ -67,9 +85,9 @@ read_env_key() {
     {
       left=$1; gsub(/^[[:space:]]+|[[:space:]]+$/, "", left)
       if (left == k) {
-        val=substr($0, index($0, "=")+1)
+        val=substr($0, index($0,"=")+1)
         gsub(/^[[:space:]]+|[[:space:]]+$/, "", val)
-        gsub(/^["'\'']|["'\'']$/, "", val)
+        gsub(/^["'"'"']|["'"'"']$/, "", val)
         print val
       }
     }
@@ -104,7 +122,7 @@ is_running() {
 }
 
 server_pid() {
-  [ -f "$PID_FILE" ] && sed -n '1p' "$PID_FILE"
+  [ -f "$PID_FILE" ] && sed -n '1p' "$PID_FILE" || true
 }
 
 health_check() {
@@ -140,7 +158,21 @@ open_url() {
   if has xdg-open; then xdg-open "$url" >/dev/null 2>&1 && return 0; fi
   if has open; then open "$url" >/dev/null 2>&1 && return 0; fi
   if has cmd.exe; then cmd.exe /c start "$url" >/dev/null 2>&1 && return 0; fi
-  info "Open this in browser: $url"
+  info "Open in browser: $url"
+}
+
+port_in_use_by_other() {
+  port="$1"
+  # Return 0 if port is in use by a process that is NOT the managed Isotope pid
+  if ! has ss && ! has netstat; then return 1; fi
+  if has ss; then
+    ss -tlnp 2>/dev/null | grep -q ":$port " || return 1
+  elif has netstat; then
+    netstat -tlnp 2>/dev/null | grep -q ":$port " || return 1
+  fi
+  # Port is in use — check if it's our own managed process
+  if is_running; then return 1; fi
+  return 0
 }
 
 report_stale_aliases() {
@@ -164,30 +196,40 @@ report_stale_aliases() {
   return "$found"
 }
 
+# ── cmd_start ─────────────────────────────────────────────────────────────────
 cmd_start() {
   ensure_home
   project="$(resolve_project)"
   save_project_path "$project"
+
   if is_running; then
     port="$(project_port "$project")"
-    info "Isotope is already running."
-    info "PID: $(server_pid)"
+    info "IsotopeAI is already running (PID: $(server_pid))."
     info "Local URL: http://127.0.0.1:$port"
     if health_check "http://127.0.0.1:$port/api/version"; then
       open_url "$port" || true
     else
-      warn "Managed process exists but /api/version is not responding."
-      warn "Check logs with: isotope logs"
-      return 1
+      warn "Process is alive but /api/version is not responding."
+      warn "Check logs: isotope logs"
     fi
     return 0
   fi
+
   has node || fail "Node.js 18+ is required."
   load_env "$project"
   port="${PORT:-$DEFAULT_PORT}"
+
+  # Check if port is already in use by something else
+  if port_in_use_by_other "$port"; then
+    warn "Port $port is already in use by another process."
+    warn "Change the PORT in $project/.env and retry, or stop the other process."
+    return 1
+  fi
+
   printf '%s\n' "$port" > "$PORT_FILE"
-  info "Starting Isotope from: $project"
+  info "Starting IsotopeAI from: $project"
   info "Logs: $SERVER_LOG"
+
   (
     cd "$project" || exit 1
     if command -v setsid >/dev/null 2>&1; then
@@ -199,66 +241,83 @@ cmd_start() {
     printf '%s\n' "$child_pid" > "$PID_FILE"
     disown "$child_pid" 2>/dev/null || true
   )
+
   if wait_for_health "$port"; then
-    info "Isotope started."
-    info "PID: $(server_pid)"
+    info "IsotopeAI started. PID: $(server_pid)"
     info "Local URL: http://127.0.0.1:$port"
     open_url "$port" || true
   else
-    warn "Server did not answer health checks yet."
-    warn "Check logs with: isotope logs"
+    warn "Server did not respond to health checks in time."
+    warn "Check logs: isotope logs"
     info "Local URL: http://127.0.0.1:$port"
     return 1
   fi
 }
 
+# ── cmd_stop ──────────────────────────────────────────────────────────────────
 cmd_stop() {
   ensure_home
   if ! is_running; then
     [ -f "$PID_FILE" ] && rm -f "$PID_FILE"
-    info "Isotope is not running."
+    info "IsotopeAI is not running."
     return 0
   fi
   pid="$(server_pid)"
-  info "Stopping Isotope PID $pid..."
+  info "Stopping IsotopeAI (PID $pid)..."
   kill "$pid" >/dev/null 2>&1 || true
   i=0
   while [ "$i" -lt 20 ]; do
     if ! kill -0 "$pid" >/dev/null 2>&1; then
       rm -f "$PID_FILE"
-      info "Isotope stopped."
+      info "IsotopeAI stopped."
       return 0
     fi
     i=$((i + 1))
     sleep 0.5
   done
-  warn "Graceful stop timed out. Forcing stop."
+  warn "Graceful stop timed out. Forcing kill."
   kill -9 "$pid" >/dev/null 2>&1 || true
   rm -f "$PID_FILE"
-  info "Isotope stopped."
+  info "IsotopeAI stopped."
 }
 
+# ── cmd_restart ───────────────────────────────────────────────────────────────
 cmd_restart() {
   cmd_stop
   cmd_start
 }
 
-version_text() {
-  project="$1"
-  node - "$project" <<'NODE' 2>/dev/null || printf 'unknown'
-const fs = require('fs');
-const path = require('path');
+# ── cmd_version ───────────────────────────────────────────────────────────────
+cmd_version() {
+  project="$(resolve_project 2>/dev/null || true)"
+  if [ -n "$project" ] && [ -f "$project/package.json" ]; then
+    ver="$(node - "$project" <<'NODE' 2>/dev/null || printf 'unknown'
+const fs = require('fs'), path = require('path');
 const dir = process.argv[2];
-let version = 'unknown';
-try { version = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')).version || version; } catch {}
-process.stdout.write(version);
+try {
+  const v = JSON.parse(fs.readFileSync(path.join(dir,'package.json'),'utf8')).version || 'unknown';
+  process.stdout.write(v);
+} catch { process.stdout.write('unknown'); }
 NODE
+)"
+    sha=""
+    if [ -f "$project/VERSION" ]; then
+      sha="$(node - "$project/VERSION" <<'NODE' 2>/dev/null || true
+const fs = require('fs');
+try {
+  const d = JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+  process.stdout.write(' (sha: ' + (d.sha||'').slice(0,8) + ')');
+} catch {}
+NODE
+)"
+    fi
+    info "IsotopeAI v${ver}${sha}"
+  else
+    info "IsotopeAI (project not found)"
+  fi
 }
 
-configured_text() {
-  [ -n "$1" ] && printf 'configured' || printf 'missing'
-}
-
+# ── cmd_status ────────────────────────────────────────────────────────────────
 cmd_status() {
   ensure_home
   project="$(resolve_project 2>/dev/null || true)"
@@ -271,64 +330,209 @@ cmd_status() {
   supa_url="$(read_env_key "$env_file" SUPABASE_URL)"
   anon="$(read_env_key "$env_file" SUPABASE_ANON_KEY)"
   admin_mode="$(read_env_key "$env_file" ENABLE_ADMIN_MODE)"
-  info "Project path: $project"
-  if is_running; then info "Server running: yes"; info "PID: $(server_pid)"; else info "Server running: no"; info "PID: none"; fi
-  info "Port: $port"
-  info "Local URL: http://127.0.0.1:$port"
-  info "Version: $(version_text "$project")"
-  info ".env exists: $([ -f "$env_file" ] && printf yes || printf no)"
-  info "Supabase URL: $(configured_text "$supa_url")"
-  info "Supabase anon key: $(configured_text "$anon")"
-  case "$admin_mode" in true|TRUE|1|yes|YES) info "Admin mode enabled: yes" ;; *) info "Admin mode enabled: no" ;; esac
+  info "Project: $project"
+  if is_running; then
+    info "Server:  running (PID: $(server_pid))"
+  else
+    info "Server:  not running"
+  fi
+  info "Port:    $port"
+  info "URL:     http://127.0.0.1:$port"
+  # version
+  ver="$(node - "$project" <<'NODE' 2>/dev/null || printf 'unknown'
+const fs=require('fs'),path=require('path'),dir=process.argv[2];
+try{process.stdout.write(JSON.parse(fs.readFileSync(path.join(dir,'package.json'),'utf8')).version||'unknown')}catch{process.stdout.write('unknown')}
+NODE
+)"
+  info "Version: $ver"
+  info ".env:    $([ -f "$env_file" ] && printf 'present' || printf 'missing')"
+  info "Supabase URL: $([ -n "$supa_url" ] && printf 'configured' || printf 'missing')"
+  info "Supabase key: $([ -n "$anon" ] && printf 'configured' || printf 'missing')"
+  case "$admin_mode" in
+    true|TRUE|1|yes|YES) info "Admin mode: enabled" ;;
+    *)                   info "Admin mode: disabled" ;;
+  esac
   info "Logs: $SERVER_LOG"
 }
 
+# ── cmd_doctor ────────────────────────────────────────────────────────────────
 cmd_doctor() {
   ensure_home
   project="$(resolve_project 2>/dev/null || true)"
-  info "Isotope doctor"
-  if is_termux; then info "[ok] Termux detected"; else info "[info] Termux not detected"; fi
-  has node && info "[ok] node $(node --version)" || warn "[missing] node"
-  has npm && info "[ok] npm $(npm --version)" || warn "[missing] npm"
-  has git && info "[ok] git $(git --version | awk '{print $3}')" || warn "[missing] git"
-  command -v isotope >/dev/null 2>&1 && info "[ok] isotope in PATH ($(command -v isotope))" || warn "isotope not in PATH; run bash setup.sh to install the global command"
-  if report_stale_aliases; then info "[ok] no stale isotope aliases/functions detected"; fi
+  info "IsotopeAI doctor"
+  info "─────────────────────────────────────"
+
+  # Platform
+  if is_termux; then
+    info "[ok]  Termux detected (v${TERMUX_VERSION:-unknown})"
+
+    # Warn about Play Store Termux
+    VER="${TERMUX_VERSION:-0}"
+    case "$VER" in
+      0.*)
+        warn "[warn] Termux v$VER may be the outdated Play Store version."
+        warn "       Install from F-Droid: https://f-droid.org/packages/com.termux/"
+        ;;
+    esac
+
+    # Check termux-api tools
+    has termux-api          && info "[ok]  termux-api installed" \
+                            || warn "[warn] termux-api not installed — widget features limited. Run: pkg install termux-api"
+    has termux-open-url     && info "[ok]  termux-open-url available" \
+                            || warn "[warn] termux-open-url not available (needs termux-api)"
+    has termux-wake-lock    && info "[ok]  termux-wake-lock available" \
+                            || info "[info] termux-wake-lock not available (optional)"
+
+    # Shortcuts
+    SDIR="$HOME/.shortcuts"
+    if [ -d "$SDIR" ]; then
+      info "[ok]  ~/.shortcuts exists"
+      for s in isotope-start isotope-update isotope-open isotope-doctor isotope-stop isotope-repair; do
+        if [ -x "$SDIR/$s" ]; then
+          info "[ok]  shortcut: $s"
+        else
+          warn "[warn] shortcut missing: $s (run: bash setup-termux-widget.sh)"
+        fi
+      done
+    else
+      warn "[warn] ~/.shortcuts not found — run: bash setup-termux-widget.sh"
+    fi
+  else
+    info "[info] Not running in Termux"
+  fi
+
+  info ""
+  # Tools
+  has node  && info "[ok]  node $(node --version)"  || warn "[fail] node not found"
+  has npm   && info "[ok]  npm $(npm --version)"    || warn "[warn] npm not found"
+  has git   && info "[ok]  git $(git --version | awk '{print $3}')" || warn "[warn] git not found (needed for isotope update)"
+  has curl  && info "[ok]  curl available"          || info "[info] curl not found"
+  has wget  && info "[ok]  wget available"          || info "[info] wget not found"
+
+  # Global command
+  if command -v isotope >/dev/null 2>&1; then
+    info "[ok]  isotope in PATH: $(command -v isotope)"
+  else
+    warn "[warn] isotope not in PATH — run: bash setup.sh"
+  fi
+
+  # Stale aliases
+  if ! report_stale_aliases 2>/dev/null; then
+    info "[ok]  no stale isotope aliases"
+  fi
+
+  info ""
+  # Project
   if [ -n "$project" ]; then
-    info "[ok] project path $project"
-    [ -f "$project/package.json" ] && info "[ok] package.json" || warn "[missing] package.json"
-    [ -f "$project/server.mjs" ] && info "[ok] server.mjs" || warn "[missing] server.mjs"
-    [ -f "$project/.env" ] && info "[ok] .env" || warn "[missing] .env"
+    info "[ok]  project: $project"
+    [ -f "$project/package.json" ] && info "[ok]  package.json"    || warn "[fail] package.json missing"
+    [ -f "$project/server.mjs" ]   && info "[ok]  server.mjs"      || warn "[fail] server.mjs missing"
+    [ -f "$project/.env" ]         && info "[ok]  .env present"     || warn "[warn] .env missing — run: bash setup.sh"
+    [ -f "$project/update.sh" ]    && info "[ok]  update.sh"        || warn "[warn] update.sh missing"
+    [ -f "$project/install-termux.sh" ] && info "[ok]  install-termux.sh" || warn "[warn] install-termux.sh missing"
+
     supa_url="$(read_env_key "$project/.env" SUPABASE_URL)"
     anon="$(read_env_key "$project/.env" SUPABASE_ANON_KEY)"
-    [ -n "$supa_url" ] && info "[ok] Supabase URL configured" || warn "[missing] Supabase URL"
-    [ -n "$anon" ] && info "[ok] Supabase anon key configured" || warn "[missing] Supabase anon key"
-    (cd "$project" && node --check server.mjs >/dev/null 2>&1) && info "[ok] server syntax" || warn "[fail] server syntax"
-    [ -f "$project/public/sw.js" ] && info "[ok] PWA service worker" || warn "[missing] PWA service worker"
-    [ -f "$project/public/manifest.webmanifest" ] && info "[ok] PWA manifest" || warn "[missing] PWA manifest"
-    [ -f "$project/update.sh" ] && info "[ok] update.sh" || warn "[missing] update.sh"
+    [ -n "$supa_url" ] && info "[ok]  Supabase URL configured" || warn "[warn] Supabase URL missing in .env"
+    [ -n "$anon" ]     && info "[ok]  Supabase anon key configured" || warn "[warn] Supabase anon key missing in .env"
+
+    (cd "$project" && node --check server.mjs >/dev/null 2>&1) \
+      && info "[ok]  server.mjs syntax" \
+      || warn "[fail] server.mjs syntax check failed"
+
+    [ -f "$project/public/sw.js" ]              && info "[ok]  PWA service worker"  || warn "[warn] PWA sw.js missing"
+    [ -f "$project/public/manifest.webmanifest" ] && info "[ok]  PWA manifest"      || warn "[warn] PWA manifest missing"
   else
-    warn "[missing] project path"
+    warn "[warn] project path unknown — run: bash setup.sh from the project directory"
   fi
+
+  # Stale PID check
+  info ""
+  if [ -f "$PID_FILE" ]; then
+    pid="$(sed -n '1p' "$PID_FILE")"
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+      info "[ok]  managed process alive (PID: $pid)"
+    elif [ -n "$pid" ]; then
+      warn "[warn] stale PID file detected (PID $pid is not running) — will be cleared on next start"
+    fi
+  fi
+
+  # Server health
   if is_running && [ -n "$project" ]; then
     port="$(project_port "$project")"
-    health_check "http://127.0.0.1:$port/api/version" && info "[ok] local /api/version endpoint" || warn "[fail] local /api/version endpoint"
+    if health_check "http://127.0.0.1:$port/api/version"; then
+      info "[ok]  /api/version endpoint responding on port $port"
+    else
+      warn "[fail] /api/version not responding (server may be starting up)"
+    fi
   else
     info "[info] local server not running"
   fi
+
+  info ""
+  info "Run 'isotope repair' to fix dependency or command issues."
+  info "Run 'isotope logs' to see recent server output."
 }
 
+# ── cmd_repair ────────────────────────────────────────────────────────────────
+cmd_repair() {
+  ensure_home
+  project="$(resolve_project)"
+  info "IsotopeAI repair"
+  info "Project: $project"
+  info "This will re-run dependency install and CLI reinstall."
+  info "Your .env will not be modified."
+  (
+    cd "$project" || fail "Cannot cd into $project"
+    bash setup.sh --yes --no-start --repair \
+      || warn "Repair had errors. Check output above."
+  )
+  if is_termux && [ -f "$project/setup-termux-widget.sh" ]; then
+    info "Refreshing Termux Widget shortcuts..."
+    bash "$project/setup-termux-widget.sh" || warn "Widget refresh had errors."
+  fi
+  # Clear any stale PID
+  if [ -f "$PID_FILE" ]; then
+    pid="$(sed -n '1p' "$PID_FILE")"
+    if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+      info "Clearing stale PID file ($pid)."
+      rm -f "$PID_FILE"
+    fi
+  fi
+  info "Repair complete. Run 'isotope doctor' to verify."
+}
+
+# ── cmd_reinstall_widgets ─────────────────────────────────────────────────────
+cmd_reinstall_widgets() {
+  is_termux || fail "reinstall-widgets is only available on Android Termux."
+  project="$(resolve_project)"
+  [ -f "$project/setup-termux-widget.sh" ] \
+    || fail "setup-termux-widget.sh not found in $project"
+  info "Reinstalling Termux Widget shortcuts..."
+  bash "$project/setup-termux-widget.sh"
+}
+
+# ── cmd_setup ─────────────────────────────────────────────────────────────────
+cmd_setup() {
+  project="$(resolve_project)"
+  info "Running setup from: $project"
+  (
+    cd "$project" || fail "Cannot cd into $project"
+    bash setup.sh --no-start
+  )
+}
+
+# ── cmd_update ────────────────────────────────────────────────────────────────
 write_version_file() {
   project="$1"
   (cd "$project" && node - <<'NODE'
 const cp = require('child_process');
 const fs = require('fs');
 const path = require('path');
-let sha = 'unknown';
-let message = '';
-let version = '0.0.0';
+let sha = 'unknown', message = '', version = '0.0.0';
 try { sha = cp.execSync('git rev-parse HEAD').toString().trim(); } catch {}
 try { message = cp.execSync('git log -1 --pretty=%s').toString().trim(); } catch {}
-try { version = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')).version || version; } catch {}
+try { version = JSON.parse(fs.readFileSync(path.join(process.cwd(),'package.json'),'utf8')).version || version; } catch {}
 fs.writeFileSync('VERSION', JSON.stringify({ version, sha, message, updated_at: new Date().toISOString() }, null, 2) + '\n');
 NODE
   )
@@ -338,61 +542,62 @@ cmd_update_body() {
   ensure_home
   project="$(resolve_project)"
   save_project_path "$project"
-  has git || fail "Git is required for isotope update."
+  has git  || fail "Git is required for isotope update."
   has node || fail "Node.js 18+ is required."
   was_running=0
   is_running && was_running=1
-  info "Isotope update"
+  info "IsotopeAI update"
   info "Project: $project"
-  info "Your private .env will be preserved."
+  info "Your .env will be preserved."
   cd "$project" || exit 1
-  [ -d .git ] || fail "This project is not a Git checkout. Download the latest release or clone the repository."
+  [ -d .git ] || fail "Not a Git checkout. Clone the repo or download the latest release."
 
   stash_name=""
   if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
     stash_name="isotope-auto-stash-$(date +%Y%m%d%H%M%S)"
-    info "Local changes detected. Saving them as Git stash: $stash_name"
+    info "Local changes detected — stashing as: $stash_name"
     git stash push -u -m "$stash_name" >/dev/null || fail "Could not stash local changes."
   fi
 
   branch="$(git rev-parse --abbrev-ref HEAD)"
   [ "$branch" != "HEAD" ] || fail "Detached HEAD. Checkout a branch before updating."
   info "Fetching origin/$branch..."
-  git fetch origin "$branch" || fail "git fetch failed."
+  git fetch origin "$branch" || fail "git fetch failed. Check internet connection."
   local_sha="$(git rev-parse HEAD)"
   remote_sha="$(git rev-parse "origin/$branch")"
   if [ "$local_sha" = "$remote_sha" ]; then
     info "Already up to date."
   else
-    git merge-base --is-ancestor "$local_sha" "$remote_sha" || fail "Local branch has diverged. Your changes are safe; update manually with Git."
-    package_changed="$(git diff --name-only "$local_sha" "$remote_sha" | grep -E '^(package.json|package-lock.json)$' || true)"
+    git merge-base --is-ancestor "$local_sha" "$remote_sha" \
+      || fail "Local branch has diverged. Your changes are safe. Update manually with Git."
+    package_changed="$(git diff --name-only "$local_sha" "$remote_sha" | grep -E '^(package\.json|package-lock\.json)$' || true)"
     info "Applying fast-forward update..."
     git merge --ff-only "$remote_sha" || fail "Fast-forward merge failed."
-    if [ -n "$package_changed" ]; then
-      if has npm; then
-        info "Package files changed. Running npm install..."
-        npm install || fail "npm install failed."
-      else
-        warn "npm missing; package files changed but dependencies were not refreshed."
-      fi
+    if [ -n "$package_changed" ] && has npm; then
+      info "Package files changed — running npm install..."
+      npm install || fail "npm install failed."
     fi
   fi
 
-  if [ ! -f .env ] && [ -f .env.example ]; then
-    cp .env.example .env
-    info "Created .env from .env.example. Fill Supabase URL and anon key if needed."
-  fi
-  node --check server.mjs >/dev/null || fail "server.mjs syntax check failed."
+  [ -f .env ] || { [ -f .env.example ] && cp .env.example .env && info "Created .env from .env.example."; }
+  node --check server.mjs >/dev/null 2>&1 || fail "server.mjs syntax check failed after update."
   write_version_file "$project"
+
+  # Refresh Termux widgets on update
+  if is_termux && [ -f setup-termux-widget.sh ]; then
+    info "Refreshing Termux Widget shortcuts..."
+    bash setup-termux-widget.sh || warn "Widget refresh had errors."
+  fi
+
   info "Update complete."
-  [ -n "$stash_name" ] && info "Previous local changes are saved in Git stash: $stash_name"
+  [ -n "$stash_name" ] && info "Stashed local changes saved as: $stash_name"
 
   if [ "$was_running" -eq 1 ]; then
-    info "Restarting local server because it was running before update..."
+    info "Restarting server..."
     cmd_stop
     cmd_start
   else
-    info "Start the app with: isotope start"
+    info "Start with: isotope start"
   fi
 }
 
@@ -408,17 +613,19 @@ cmd_update() {
   info "Update log: $UPDATE_LOG"
 }
 
+# ── cmd_open ──────────────────────────────────────────────────────────────────
 cmd_open() {
   project="$(resolve_project 2>/dev/null || true)"
   if [ -n "$project" ]; then port="$(project_port "$project")"; else port="$DEFAULT_PORT"; fi
   if ! health_check "http://127.0.0.1:$port/api/version"; then
     warn "Server is not responding on port $port."
-    warn "Start the server first with: isotope start"
+    warn "Start the server first: isotope start"
     return 1
   fi
   open_url "$port"
 }
 
+# ── cmd_logs ──────────────────────────────────────────────────────────────────
 cmd_logs() {
   ensure_home
   if [ ! -f "$SERVER_LOG" ]; then
@@ -428,32 +635,43 @@ cmd_logs() {
   tail -n 80 "$SERVER_LOG" | redact
 }
 
+# ── usage ─────────────────────────────────────────────────────────────────────
 usage() {
   cat <<'EOF'
 Usage: isotope <command>
 
 Commands:
-  start     Start the local Isotope server in the background
-  stop      Stop the managed local server
-  restart   Stop, start, and open the local app
-  update    Safely pull the latest GitHub version and restart if needed
-  status    Show project path, port, version, and configuration status
-  doctor    Check Node, npm, Git, .env, PWA files, and server health
-  open      Open http://127.0.0.1:<PORT>
-  logs      Show the last 80 server log lines
+  start               Start the local IsotopeAI server (background)
+  stop                Stop the managed local server
+  restart             Stop, start, and open the local app
+  update              Safely pull the latest GitHub version
+  status              Show project path, port, version, and config
+  doctor              Full diagnostic — checks all dependencies
+  open                Open http://127.0.0.1:<PORT> in browser
+  logs                Show last 80 server log lines (secrets redacted)
+  version             Print the installed version
+  repair              Re-run dependency install and CLI reinstall
+  reinstall-widgets   Refresh Termux home-screen shortcuts (Termux only)
+  setup               Run setup.sh --no-start from the project directory
+  help / --help       Show this message
 EOF
 }
 
+# ── main dispatch ─────────────────────────────────────────────────────────────
 cmd="${1:-}"
 case "$cmd" in
-  start) cmd_start ;;
-  stop) cmd_stop ;;
-  restart) cmd_restart ;;
-  update) cmd_update ;;
-  status) cmd_status ;;
-  doctor) cmd_doctor ;;
-  open) cmd_open ;;
-  logs) cmd_logs ;;
-  ""|help|--help|-h) usage ;;
-  *) usage; exit 1 ;;
+  start)               cmd_start ;;
+  stop)                cmd_stop ;;
+  restart)             cmd_restart ;;
+  update)              cmd_update ;;
+  status)              cmd_status ;;
+  doctor)              cmd_doctor ;;
+  open)                cmd_open ;;
+  logs)                cmd_logs ;;
+  version)             cmd_version ;;
+  repair)              cmd_repair ;;
+  reinstall-widgets)   cmd_reinstall_widgets ;;
+  setup)               cmd_setup ;;
+  ""|help|--help|-h)   usage ;;
+  *)                   warn "Unknown command: $cmd"; usage; exit 1 ;;
 esac
