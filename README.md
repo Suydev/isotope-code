@@ -24,6 +24,9 @@
   <a href="https://isotopeai.in">
     <img alt="Website" src="https://img.shields.io/badge/website-isotopeai.in-8b5cf6?style=flat-square">
   </a>
+  <a href="https://suydev.github.io/isotope-code/">
+    <img alt="Docs" src="https://img.shields.io/badge/docs-GitHub%20Pages-0f9d58?style=flat-square&logo=github">
+  </a>
 </p>
 
 <p align="center">

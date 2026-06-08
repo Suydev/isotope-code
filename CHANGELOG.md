@@ -5,6 +5,40 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.3.6] — 2026-06-08 — Fix: cloud sync download on new device; storage cleanup; setup improvements
+
+### Fixed
+
+- **CRITICAL: Cloud backup never downloaded on new/different device** — `GET /__auth/backup/latest` returned the backup JSON but omitted the `cloud_snapshot` field when serving from the `exports/latest.json` path (the primary path). The client smart-sync reads `cloudData.cloud_snapshot.exported_at` to compute `cloudTs`. Without it, `cloudTs = 0` so the `cloudIsNewer` check (`!localTs && cloudTs > 0`) was always `false` on a new device — the cloud backup was fetched but never applied. Fix: the endpoint now also fetches `cloud-snapshot/latest.json` and includes it in the response on every path.
+- **CRITICAL: Download skipped on startup (timing race)** — `window.__isoBuildBackup` and `window.__isoApplyBackup` are registered by the app bundle's internal sync method, which fires asynchronously after React initialises. The startup sync (previously 5 s after page load) frequently fired before these were set, falling back to an upload-only snapshot and never downloading cloud data. Fix: startup delay increased to 8 s; `__isoAutoSync` now polls for the functions for up to 15 additional seconds before falling back, giving the app enough time to register them.
+- **First-sync debounce blocks retry** — If the startup sync fell back to upload-only on a new device (no download), the 5-minute debounce was already written, preventing retry on the next page load. Fix: when a first-sync (no local snapshot history) completes without a download, the debounce timestamp is cleared so the next page load retries.
+- **New-device fallback bootstraps from cloud** — In the upload-only fallback path, if the device has no local sync history, the server now calls `/__auth/bootstrap` first to restore the cloud snapshot into Supabase DB before uploading a snapshot. This ensures the snapshot reflects actual cloud state even when build/apply fns were never registered.
+
+### Fixed (storage)
+
+- **Old cloud backup files accumulating in Storage** — `uploadRawUserBackupJson` wrote a new timestamped file (`{userId}/exports/YYYY-MM-DD....json`) on every upload but never deleted old ones. Fixed: after each upload, old timestamped files in the same folder are pruned in the background, keeping only the 3 most recent.
+- **Cloud snapshot history files accumulating** — `uploadCloudSnapshotForUser` wrote history snapshots (`{userId}/cloud-snapshot/history/....json`) that were never cleaned up. Fixed: after each history write, files are pruned keeping only the 5 most recent.
+- **New `supaStorageListAsUser` helper** — Implements `POST /storage/v1/object/list/{bucket}` using user-scoped JWT + anon key, used by the new pruning logic.
+
+### Improved (setup)
+
+- **`setup.sh` installs Node.js 18+ on Debian/Ubuntu via NodeSource** — Previously used `apt-get install nodejs` which installs the distro-packaged version (often v12). Now checks the installed version first; if < 18, fetches the NodeSource v22 setup script and uses that, falling back to `nvm` or a clear error.
+- **`setup.sh` works non-interactively** — `--yes` / `-y` flag and piped stdin now skip all prompts reliably.
+
+### Audit (v3.3.6 — 2026-06-08)
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | `cloud_snapshot` included in all `/__auth/backup/latest` responses | ✅ fixed |
+| 2 | Startup sync polls up to 15 s for build/apply fns before fallback | ✅ fixed |
+| 3 | First-sync debounce cleared when download didn't happen | ✅ fixed |
+| 4 | Fallback path calls `/__auth/bootstrap` on new device | ✅ fixed |
+| 5 | Old export files pruned after upload (keep 3) | ✅ fixed |
+| 6 | Old snapshot history files pruned after upload (keep 5) | ✅ fixed |
+| 7 | `supaStorageListAsUser` helper implemented | ✅ added |
+
+---
+
 ## [3.3.5] — 2026-06-07 — Performance: speed probe fixed, health cache, pre-gzip bundles, 14 DB indexes
 
 ### Fixed

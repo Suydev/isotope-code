@@ -69,13 +69,47 @@ try_install_deps() {
     linux)
       SUDO=""
       [ "$(id -u)" -ne 0 ] && has sudo && SUDO=sudo
-      if has apt-get; then
-        $SUDO apt-get update || true
-        $SUDO apt-get install -y nodejs npm git || true
-      elif has dnf; then
-        $SUDO dnf install -y nodejs npm git || true
-      elif has pacman; then
-        $SUDO pacman -Sy --noconfirm nodejs npm git || true
+
+      # Ensure git is available first
+      has git || {
+        if has apt-get; then $SUDO apt-get update -q || true; $SUDO apt-get install -y git || true
+        elif has dnf; then $SUDO dnf install -y git || true
+        elif has pacman; then $SUDO pacman -Sy --noconfirm git || true
+        fi
+      }
+
+      # Node.js: distro-packaged nodejs is often very old (v12/v14).
+      # Use NodeSource for v22 on Debian/Ubuntu; nvm elsewhere as fallback.
+      _need_node=1
+      if has node; then
+        _nv="$(node -e "process.stdout.write(process.versions.node.split('.')[0])" 2>/dev/null || echo 0)"
+        [ "$_nv" -ge "$NODE_MIN" ] 2>/dev/null && _need_node=0
+      fi
+
+      if [ "$_need_node" -eq 1 ]; then
+        if has apt-get && has curl; then
+          info "Installing Node.js 22 via NodeSource (Debian/Ubuntu)..."
+          curl -fsSL https://deb.nodesource.com/setup_22.x | $SUDO bash - || true
+          $SUDO apt-get install -y nodejs || true
+        elif has apt-get && has wget; then
+          info "Installing Node.js 22 via NodeSource (wget)..."
+          wget -qO- https://deb.nodesource.com/setup_22.x | $SUDO bash - || true
+          $SUDO apt-get install -y nodejs || true
+        elif has dnf; then
+          $SUDO dnf install -y nodejs npm || true
+        elif has pacman; then
+          $SUDO pacman -Sy --noconfirm nodejs npm || true
+        elif has curl; then
+          # Fallback: nvm (works without root)
+          info "Trying nvm to install Node.js 22..."
+          curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash || true
+          export NVM_DIR="$HOME/.nvm"
+          # shellcheck disable=SC1091
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" || true
+          has nvm && nvm install 22 && nvm use 22 || true
+        else
+          warn "Could not install Node.js automatically. Install Node.js 18+ from https://nodejs.org then re-run setup.sh."
+        fi
       fi
       ;;
   esac

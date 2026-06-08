@@ -1553,6 +1553,19 @@ function buildUsernameAuthScript() {
         var buildFn = window.__isoBuildBackup || null;
         var applyFn = window.__isoApplyBackup || null;
 
+        // Wait up to 15 s for the app bundle to register the backup functions.
+        // These are registered inside the app's internal sync method (bundle patch),
+        // which fires asynchronously. On a new device they are often not set when
+        // the startup sync fires after the initial page load delay.
+        if (!buildFn || !applyFn) {
+          for (var _wi = 0; _wi < 15; _wi++) {
+            await new Promise(function(r) { setTimeout(r, 1000); });
+            buildFn = window.__isoBuildBackup || null;
+            applyFn = window.__isoApplyBackup || null;
+            if (buildFn && applyFn) break;
+          }
+        }
+
         if (typeof window.__isoRunManualCloudSync === 'function' && buildFn && applyFn) {
           // Full bidirectional sync (all local data + profile)
           var result = await window.__isoRunManualCloudSync(buildFn, applyFn, _src);
@@ -1561,7 +1574,23 @@ function buildUsernameAuthScript() {
             bytes: result && result.bytes || 0, speed: speed && speed.label });
           return result;
         } else {
-          // Fallback: lightweight DB→Storage snapshot (no local collection data needed)
+          // Fallback: build/apply fns still not registered after polling.
+          // If this is a first sync on a new device (no local snapshot history),
+          // try to bootstrap cloud data into Supabase DB first so the snapshot
+          // upload reflects the correct cloud state.
+          var _fallbackMeta = readSyncMetadata();
+          var _fallbackLocalTs = _fallbackMeta.last_snapshot_at ? new Date(_fallbackMeta.last_snapshot_at).getTime() : 0;
+          if (!_fallbackLocalTs) {
+            try {
+              await authedJson('/__auth/bootstrap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source: 'startup_bootstrap_fallback' }),
+                timeoutMs: 45000
+              });
+            } catch(_be) { /* non-fatal — no cloud data yet or network issue */ }
+          }
+          // Lightweight DB→Storage snapshot
           var d = await authedJson('/__auth/snapshot', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1583,20 +1612,30 @@ function buildUsernameAuthScript() {
     // ── Startup sync ──────────────────────────────────────────────────────────
     // Runs once per 5-minute window on page load: downloads cloud if newer,
     // then uploads merged local state. Debounced so tab-switches don't re-fire.
+    // On first sync (new device): clears the debounce timestamp if no download
+    // happened, so the next page load retries rather than waiting 5 minutes.
     window.__isoStartupSync = async function() {
       var _src = 'startup_sync';
       if (!navigator.onLine) return { ok: false, reason: 'offline' };
       var jwt = null;
       try { jwt = await getValidJwt(); } catch(e) {}
       if (!jwt) return { ok: false, reason: 'no_session' };
+      var _isFirstSync = false;
       try {
         var meta = readSyncMetadata();
         var lastStartup = meta.last_startup_sync_at ? new Date(meta.last_startup_sync_at).getTime() : 0;
         if (Date.now() - lastStartup < 5 * 60 * 1000) return { ok: true, skipped: true, reason: 'debounced' };
+        _isFirstSync = !meta.last_snapshot_at; // no snapshot history → new device
         writeSyncMetadata({ last_startup_sync_at: new Date().toISOString() });
       } catch(e) {}
       try {
         var r = await window.__isoAutoSync(_src);
+        // If this was a first-device sync and we didn't manage to download
+        // (e.g. build/apply fns still never registered), clear the debounce so
+        // the next page load retries the full sync instead of skipping for 5 min.
+        if (_isFirstSync && r && !r.downloaded) {
+          try { writeSyncMetadata({ last_startup_sync_at: null }); } catch(_e) {}
+        }
         writeSyncHistory({ op: 'startup_sync', status: r && r.ok !== false ? 'ok' : 'skipped', source: _src, detail: r && r.reason || null });
         return r;
       } catch(e) {
@@ -1646,10 +1685,11 @@ function buildUsernameAuthScript() {
       startAutoSyncTimer();
       // Measure speed in the background immediately — result cached for later.
       setTimeout(function() { measureNetSpeed().catch(function(){}); }, 500);
-      // Startup sync: wait 5 s so the app is fully initialised first.
+      // Startup sync: wait 8 s so the app is fully initialised and the bundle
+      // has had time to register __isoBuildBackup / __isoApplyBackup.
       setTimeout(function() {
         window.__isoStartupSync().catch(function() {});
-      }, 5000);
+      }, 8000);
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootAutoSync);
@@ -3764,6 +3804,48 @@ function supaStorageRemoveAsUser(bucket, objectPaths, userJwt) {
   });
 }
 
+// List files in a Storage folder (prefix). Returns { status, body: [{name, ...}, ...] }
+function supaStorageListAsUser(bucket, prefix, userJwt, options = {}) {
+  return new Promise((resolve, reject) => {
+    const supaHost = new URL(SUPA_URL).hostname;
+    const bodyObj = {
+      prefix: prefix || '',
+      limit: options.limit || 200,
+      offset: options.offset || 0,
+      sortBy: { column: 'name', order: 'asc' },
+    };
+    const bodyBuf = Buffer.from(JSON.stringify(bodyObj));
+    const opts = {
+      hostname: supaHost,
+      path: `/storage/v1/object/list/${encodeURIComponent(bucket)}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + userJwt,
+        'apikey': SUPA_ANON_KEY,
+        'Content-Length': String(bodyBuf.length),
+      },
+    };
+    const rq = https.request(opts, (r) => {
+      const chunks = [];
+      r.on('data', (c) => chunks.push(Buffer.from(c)));
+      r.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        let parsed = [];
+        try { parsed = JSON.parse(text); } catch {}
+        resolve({ status: r.statusCode, body: Array.isArray(parsed) ? parsed : [] });
+      });
+    });
+    rq.on('error', reject);
+    rq.setTimeout(options.timeoutMs || 15000, () => {
+      rq.destroy();
+      reject(new Error('Storage list timed out'));
+    });
+    rq.write(bodyBuf);
+    rq.end();
+  });
+}
+
 function isStorageAlreadyExists(res) {
   const text = typeof res?.body === 'string' ? res.body : JSON.stringify(res?.body || {});
   return (res?.status === 400 || res?.status === 409)
@@ -4090,6 +4172,8 @@ async function uploadCloudSnapshotForUser(userId, userJwt, snapshot, options = {
   if (options.history !== false) {
     history = await supaStorageUploadAsUser('user-content', historyPath, Buffer.from(json, 'utf8'), 'application/json', userJwt, { upsert: false, timeoutMessage: 'Cloud snapshot history upload timed out' });
     if (!isStorageAlreadyExists(history)) assertSupaOk(history, 'Cloud snapshot history upload');
+    // Prune old history files in background (keep last 5 only)
+    pruneOldStorageFiles(userId, userJwt, `${userId}/cloud-snapshot/history/`, 5).catch(() => {});
   }
   return {
     snapshot: canonical,
@@ -4102,6 +4186,27 @@ async function uploadCloudSnapshotForUser(userId, userJwt, snapshot, options = {
       uploaded_at: canonical.exported_at,
     },
   };
+}
+
+// Prune old timestamped files in a Storage folder, keeping the newest `keepCount`.
+// Files named 'latest.json' are always excluded from pruning.
+// Runs best-effort in background — errors are logged but never thrown.
+async function pruneOldStorageFiles(userId, userJwt, folderPrefix, keepCount = 3) {
+  try {
+    const listed = await supaStorageListAsUser('user-content', folderPrefix, userJwt);
+    if (!Array.isArray(listed.body) || listed.body.length === 0) return;
+    const files = listed.body
+      .filter(f => f.name && f.name !== 'latest.json' && f.name.endsWith('.json'))
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)); // ascending = oldest first
+    if (files.length <= keepCount) return;
+    const toDelete = files.slice(0, files.length - keepCount).map(f => `${folderPrefix}${f.name}`);
+    if (toDelete.length > 0) {
+      await supaStorageRemoveAsUser('user-content', toDelete, userJwt);
+      console.log(`[StoragePrune] Deleted ${toDelete.length} old file(s) from ${folderPrefix}`);
+    }
+  } catch (e) {
+    console.warn(`[StoragePrune] Non-fatal error pruning ${folderPrefix}:`, e.message);
+  }
 }
 
 async function refreshCloudSnapshotForUser(userId, userJwt, source = 'supabase') {
@@ -4131,6 +4236,8 @@ async function uploadRawUserBackupJson(userId, userJwt, rawJson, folder) {
   if (!isStorageAlreadyExists(uploaded)) assertSupaOk(uploaded, 'Backup JSON upload');
   const latest = await supaStorageUploadAsUser('user-content', latestPath, Buffer.from(json, 'utf8'), 'application/json', userJwt, { upsert: true, timeoutMessage: 'Backup latest JSON upload timed out' });
   assertSupaOk(latest, 'Backup latest JSON upload');
+  // Prune old timestamped backup files in background (keep last 3 only)
+  pruneOldStorageFiles(userId, userJwt, `${userId}/${folder}/`, 3).catch(() => {});
   return { bucket: 'user-content', path: objectPath, latest_path: latestPath, uploaded_at: now };
 }
 
@@ -5252,8 +5359,18 @@ const server = http.createServer((req, res) => {
         assertSupaOk(downloaded, 'Cloud backup download');
         const backupJson = Buffer.isBuffer(downloaded.body) ? downloaded.body.toString('utf8') : String(downloaded.body || '');
         parseBackupJsonPayload(backupJson);
+        // Also fetch the cloud snapshot so the client smart-sync can compare timestamps.
+        // Without cloud_snapshot, cloudTs = 0 and cloudIsNewer never becomes true on a
+        // new device — the backup is never downloaded even though it exists in storage.
+        const cloudSnapshot = await downloadCloudSnapshotForUser(userId, userJwt).catch(() => null);
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: true, success: true, user_id: userId, backup_json: backupJson, backup_storage: { bucket: 'user-content', path: objectPath } }));
+        res.end(JSON.stringify({
+          ok: true, success: true,
+          user_id: userId,
+          backup_json: backupJson,
+          backup_storage: { bucket: 'user-content', path: objectPath },
+          cloud_snapshot: cloudSnapshot,
+        }));
       } catch (e) {
         const isStoragePermission = /permission|policy|not authorized|403|forbidden/i.test(e.message || '');
         const statusCode = isStoragePermission ? 403 : 500;
