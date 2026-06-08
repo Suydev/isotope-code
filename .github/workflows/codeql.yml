@@ -27,7 +27,11 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
-          queries: security-extended,security-and-quality
+          # Config excludes public/ (154 minified React bundle files) and docs/
+          # which would otherwise generate hundreds of false-positive warnings.
+          # Uses security-extended only — security-and-quality adds stylistic
+          # rules that are not actionable for a single-file server app.
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: 🏗️ Autobuild
         uses: github/codeql-action/autobuild@v3

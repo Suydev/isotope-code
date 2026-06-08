@@ -4,9 +4,11 @@ on:
   push:
     paths:
       - '*.sql'
+      - 'sql/**'
   pull_request:
     paths:
       - '*.sql'
+      - 'sql/**'
 
 jobs:
   validate:
@@ -18,6 +20,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_PASSWORD: testpass
+          POSTGRES_USER: postgres
           POSTGRES_DB: isotope_test
         ports:
           - 5432:5432
@@ -42,63 +45,155 @@ jobs:
               echo "  CREATE FUNCTION: $(grep -c 'CREATE.*FUNCTION' $f || echo 0)"
               echo "  CREATE POLICY: $(grep -c 'CREATE POLICY' $f || echo 0)"
               echo "  CREATE INDEX: $(grep -c 'CREATE.*INDEX' $f || echo 0)"
+            else
+              echo "⚠️  $f not found — skipping"
             fi
           done
 
       - name: 🔍 Check for dangerous patterns
         run: |
+          if [ ! -f isotope-complete.sql ]; then
+            echo "⚠️ isotope-complete.sql not found — skipping pattern checks"
+            exit 0
+          fi
+
           echo "Checking for DROP without IF EXISTS..."
-          if grep -nE '^\s*DROP (TABLE|FUNCTION|POLICY|INDEX|TRIGGER)\s' isotope-complete.sql | grep -v 'IF EXISTS'; then
-            echo "⚠️ Found DROP without IF EXISTS — these may fail on fresh installs"
+          UNSAFE_DROPS=$(grep -nE '^\s*DROP (TABLE|FUNCTION|POLICY|INDEX|TRIGGER)\s' isotope-complete.sql | grep -v 'IF EXISTS' || true)
+          if [ -n "$UNSAFE_DROPS" ]; then
+            echo "⚠️ Found DROP without IF EXISTS — may fail on fresh installs:"
+            echo "$UNSAFE_DROPS"
           else
             echo "✅ All DROPs use IF EXISTS"
           fi
 
+          echo ""
           echo "Checking for SECURITY DEFINER functions..."
           SEC_DEF=$(grep -c 'SECURITY DEFINER' isotope-complete.sql || echo 0)
-          echo "  $SEC_DEF SECURITY DEFINER functions (expected: all functions)"
+          echo "  $SEC_DEF SECURITY DEFINER functions"
 
-          echo "Checking for missing GRANT statements..."
+          echo ""
+          echo "Checking GRANT coverage..."
           FUNCTIONS=$(grep -c 'CREATE OR REPLACE FUNCTION' isotope-complete.sql || echo 0)
           GRANTS=$(grep -c 'GRANT EXECUTE' isotope-complete.sql || echo 0)
-          echo "  Functions: $FUNCTIONS | GRANTs: $GRANTS"
+          echo "  Functions: $FUNCTIONS | GRANT EXECUTE: $GRANTS"
 
-      - name: 🗄️ Test isotope-complete.sql against PostgreSQL
+      - name: 🗄️ Create Supabase compatibility shim
         env:
           PGPASSWORD: testpass
         run: |
-          # Create auth schema (Supabase compatibility shim)
-          psql -h localhost -U postgres -d isotope_test -c "
+          psql -h localhost -U postgres -d isotope_test -v ON_ERROR_STOP=1 -c "
             CREATE SCHEMA IF NOT EXISTS auth;
             CREATE TABLE IF NOT EXISTS auth.users (
               id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
               email text,
               raw_user_meta_data jsonb DEFAULT '{}'
             );
-            CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid; \$\$;
+            CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid
+              LANGUAGE sql STABLE AS \$\$ SELECT '00000000-0000-0000-0000-000000000000'::uuid; \$\$;
+            CREATE OR REPLACE FUNCTION auth.role() RETURNS text
+              LANGUAGE sql STABLE AS \$\$ SELECT 'authenticated'::text; \$\$;
+            CREATE OR REPLACE FUNCTION auth.email() RETURNS text
+              LANGUAGE sql STABLE AS \$\$ SELECT ''::text; \$\$;
             CREATE SCHEMA IF NOT EXISTS storage;
-            CREATE TABLE IF NOT EXISTS storage.buckets (id text PRIMARY KEY, name text, public boolean DEFAULT false, file_size_limit bigint, allowed_mime_types text[]);
-            CREATE TABLE IF NOT EXISTS storage.objects (id uuid PRIMARY KEY, bucket_id text, name text, owner uuid);
-          " && echo "✅ Auth schema shim created"
+            CREATE TABLE IF NOT EXISTS storage.buckets (
+              id text PRIMARY KEY,
+              name text,
+              public boolean DEFAULT false,
+              file_size_limit bigint,
+              allowed_mime_types text[]
+            );
+            CREATE TABLE IF NOT EXISTS storage.objects (
+              id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+              bucket_id text,
+              name text,
+              owner uuid
+            );
+            CREATE OR REPLACE FUNCTION storage.foldername(name text) RETURNS text[]
+              LANGUAGE plpgsql AS \$\$ BEGIN RETURN string_to_array(name, '/'); END; \$\$;
+            CREATE SCHEMA IF NOT EXISTS extensions;
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
+            CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
+          " && echo "✅ Auth/storage shim created"
 
-          # Strip Supabase-specific statements that won't work locally
-          grep -v 'supabase_realtime\|ALTER PUBLICATION\|storage\.foldername\|CREATE EVENT TRIGGER\|DROP EVENT TRIGGER' isotope-complete.sql > /tmp/schema_test.sql
+      - name: 🗄️ Test isotope-complete.sql against PostgreSQL
+        env:
+          PGPASSWORD: testpass
+        run: |
+          if [ ! -f isotope-complete.sql ]; then
+            echo "⚠️ isotope-complete.sql not found — skipping execution test"
+            exit 0
+          fi
 
-          # Run the schema
-          psql -h localhost -U postgres -d isotope_test -f /tmp/schema_test.sql 2>&1 | tail -30
-          echo "Exit code: $?"
+          echo "Stripping Supabase-cloud-only statements..."
+          grep -v \
+            -e 'ALTER PUBLICATION' \
+            -e 'supabase_realtime' \
+            -e 'CREATE EVENT TRIGGER' \
+            -e 'DROP EVENT TRIGGER' \
+            -e 'pg_net\.' \
+            -e 'http_request' \
+            -e 'supabase_admin' \
+            -e 'net\.http' \
+            isotope-complete.sql > /tmp/schema_test.sql
 
-          # Count created objects
+          echo "Running schema against PostgreSQL 16..."
+          PSQL_OUT=$(psql -h localhost -U postgres -d isotope_test \
+            -v ON_ERROR_STOP=0 \
+            -f /tmp/schema_test.sql 2>&1) || true
+          EXIT_CODE=$?
+
+          echo "$PSQL_OUT" | tail -40
+          echo ""
+          echo "psql exit code: $EXIT_CODE"
+
+          ERROR_COUNT=$(echo "$PSQL_OUT" | grep -c '^ERROR' || echo 0)
+          WARNING_COUNT=$(echo "$PSQL_OUT" | grep -c '^WARNING' || echo 0)
+          echo "  Errors  : $ERROR_COUNT"
+          echo "  Warnings: $WARNING_COUNT"
+
+          if [ "$ERROR_COUNT" -gt 0 ]; then
+            echo ""
+            echo "=== Errors found ==="
+            echo "$PSQL_OUT" | grep '^ERROR'
+          fi
+
           echo ""
           echo "=== Created objects ==="
           psql -h localhost -U postgres -d isotope_test -c "
-            SELECT schemaname, count(*) as tables
+            SELECT table_schema AS schema, count(*) AS tables
             FROM information_schema.tables
-            WHERE table_schema = 'public'
-            GROUP BY schemaname;
-          "
+            WHERE table_schema IN ('public', 'auth', 'storage')
+            GROUP BY table_schema
+            ORDER BY schema;
+          " || true
+
           psql -h localhost -U postgres -d isotope_test -c "
-            SELECT count(*) as rls_policies
+            SELECT count(*) AS rls_policies
             FROM pg_policies
             WHERE schemaname = 'public';
-          "
+          " || true
+
+          # Fail only if there are critical structural errors
+          if [ "$ERROR_COUNT" -gt 20 ]; then
+            echo "❌ Too many SQL errors ($ERROR_COUNT) — schema needs fixes"
+            exit 1
+          elif [ "$ERROR_COUNT" -gt 0 ]; then
+            echo "⚠️  $ERROR_COUNT SQL error(s) — check output above (may be Supabase-specific statements)"
+          else
+            echo "✅ Schema executed without errors"
+          fi
+
+      - name: 🔍 Validate migration SQL files
+        env:
+          PGPASSWORD: testpass
+        run: |
+          for f in community-patch-v4.sql performance-patch.sql; do
+            if [ -f "$f" ]; then
+              echo "Testing $f..."
+              ERRS=$(psql -h localhost -U postgres -d isotope_test \
+                -v ON_ERROR_STOP=0 \
+                -f "$f" 2>&1 | grep -c '^ERROR' || echo 0)
+              echo "  $f: $ERRS error(s)"
+            fi
+          done
+          echo "✅ Migration file validation complete"

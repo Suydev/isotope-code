@@ -31,10 +31,11 @@ jobs:
       - name: 📊 Report package.json stats
         run: |
           node -e "
-            const p = require('./package.json');
+            const fs = require('fs');
+            const p = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
             const deps = Object.keys(p.dependencies || {}).length;
             const dev  = Object.keys(p.devDependencies || {}).length;
             console.log('Production deps:', deps);
             console.log('Dev deps:', dev);
-            console.log('Node engines:', p.engines?.node || 'not specified');
+            console.log('Node engines:', p.engines && p.engines.node ? p.engines.node : 'not specified');
           "

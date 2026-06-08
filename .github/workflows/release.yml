@@ -22,8 +22,8 @@ jobs:
       - name: 🏷️ Get tag info
         id: tag
         run: |
-          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
       - name: 📋 Extract changelog section
         id: changelog
@@ -34,12 +34,13 @@ jobs:
           if [ -z "$NOTES" ]; then
             NOTES="See [CHANGELOG.md](./CHANGELOG.md) for details."
           fi
-          # Save multiline output
+          # Write to a file to avoid multi-line/special-char issues in GITHUB_OUTPUT
+          echo "$NOTES" > /tmp/changelog_notes.txt
           {
-            echo "notes<<EOF"
-            echo "$NOTES"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
+            echo "notes<<CHANGELOG_EOF"
+            cat /tmp/changelog_notes.txt
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: 🤖 Enhance release notes with AI
         id: ai_notes
@@ -48,27 +49,70 @@ jobs:
           YEPAPI_KEY: ${{ secrets.YEPAPI_KEY }}
         run: |
           if [ -z "$YEPAPI_KEY" ]; then
-            echo "notes=${{ steps.changelog.outputs.notes }}" >> $GITHUB_OUTPUT
+            echo "No YEPAPI_KEY — using raw changelog notes"
+            {
+              echo "notes<<CHANGELOG_EOF"
+              cat /tmp/changelog_notes.txt
+              echo "CHANGELOG_EOF"
+            } >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          CHANGELOG_EXCERPT=$(echo "${{ steps.changelog.outputs.notes }}" | head -50)
+
+          VERSION="${{ steps.tag.outputs.version }}"
+          # Write excerpt to a file — avoids shell injection via changelog content
+          head -50 /tmp/changelog_notes.txt > /tmp/changelog_excerpt.txt
+
+          # Build JSON payload using node to handle escaping safely
+          node -e "
+            const fs = require('fs');
+            const excerpt = fs.readFileSync('/tmp/changelog_excerpt.txt', 'utf8').trim();
+            const payload = {
+              model: 'gpt-4o-mini',
+              messages: [{
+                role: 'user',
+                content: 'Polish these GitHub release notes for IsotopeAI v${VERSION} into a clean, friendly, emoji-enhanced format for students. Keep it concise (max 300 words). Original:\n' + excerpt
+              }]
+            };
+            fs.writeFileSync('/tmp/ai_payload.json', JSON.stringify(payload));
+          "
+
           RESPONSE=$(curl -s -X POST "https://api.yepapi.com/v1/ai/chat" \
             -H "x-api-key: $YEPAPI_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"model\":\"gpt-4o-mini\",\"messages\":[{\"role\":\"user\",\"content\":\"Polish these GitHub release notes for IsotopeAI v${{ steps.tag.outputs.version }} into a clean, friendly, emoji-enhanced format for students. Keep it concise (max 300 words). Original:\\n$CHANGELOG_EXCERPT\"}]}")
-          AI_NOTES=$(echo "$RESPONSE" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const p=JSON.parse(d);console.log(p.data?.message?.content||'')}catch{console.log('')}})")
+            -d @/tmp/ai_payload.json)
+
+          AI_NOTES=$(echo "$RESPONSE" | node -e "
+            let d='';
+            process.stdin.on('data', c => d += c);
+            process.stdin.on('end', () => {
+              try {
+                const p = JSON.parse(d);
+                console.log(p.data?.message?.content || '');
+              } catch {
+                console.log('');
+              }
+            });
+          ")
+
           if [ -n "$AI_NOTES" ]; then
-            echo "notes<<EOF" >> $GITHUB_OUTPUT
-            echo "$AI_NOTES" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
+            echo "$AI_NOTES" > /tmp/ai_notes.txt
+            {
+              echo "notes<<CHANGELOG_EOF"
+              cat /tmp/ai_notes.txt
+              echo "CHANGELOG_EOF"
+            } >> "$GITHUB_OUTPUT"
           else
-            echo "notes=${{ steps.changelog.outputs.notes }}" >> $GITHUB_OUTPUT
+            echo "AI returned empty — falling back to raw changelog"
+            {
+              echo "notes<<CHANGELOG_EOF"
+              cat /tmp/changelog_notes.txt
+              echo "CHANGELOG_EOF"
+            } >> "$GITHUB_OUTPUT"
           fi
 
       - name: 📦 Package release archive
         run: |
           VERSION="${{ steps.tag.outputs.version }}"
-          # Create a clean release zip without dev files
           zip -r "isotope-v${VERSION}.zip" . \
             --exclude ".git/*" \
             --exclude "node_modules/*" \

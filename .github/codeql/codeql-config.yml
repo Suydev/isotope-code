@@ -1,0 +1,11 @@
+name: "IsotopeAI CodeQL Config"
+
+paths-ignore:
+  - "public/**"
+  - "docs/**"
+  - "**/*.min.js"
+  - "**/*.min.mjs"
+  - "screenshots/**"
+
+queries:
+  - uses: security-extended
