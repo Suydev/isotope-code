@@ -329,7 +329,7 @@ For owners who need diagnostics, DB inspection, and repair tools:
 
 ```env
 ENABLE_ADMIN_MODE=true
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_SERVICE_ROLE_KEY=""
 ADMIN_SECRET=your-local-admin-secret
 ADMIN_EMAIL=your@email.com
 ```

@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -92,8 +93,88 @@ jobs:
           # [ "$FAIL" -eq 0 ] || exit 1
 
       # ── Node syntax ──────────────────────────────────────────────────────────
-      - name: ✅ Node.js syntax check — server.mjs
-        run: node --check server.mjs
+      - name: ✅ Node.js syntax checks
+        run: |
+          set -euo pipefail
+          files=(
+            server.mjs
+            server/backup-manager.mjs
+            public/sync/backup-normalizer.js
+            public/sync/local-data-adapter.js
+            scripts/storage-backup-lib.mjs
+            scripts/validate-backup-files.mjs
+            scripts/repair-user-backup.mjs
+            scripts/prove-new-browser-restore.mjs
+            scripts/validate-storage-cleanup.mjs
+            scripts/verify-supabase-security.mjs
+            scripts/validate-docs.mjs
+          )
+          for f in "${files[@]}"; do
+            node --check "$f"
+            echo "✅ $f"
+          done
+
+      - name: 🧪 Backup normalizer safety smoke
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {
+            normalizeAnyBackup,
+            isBackupRich,
+            isBackupEmpty,
+            compareBackupCandidates,
+            mergeBackupData,
+          } from './public/sync/backup-normalizer.js';
+
+          const rich = normalizeAnyBackup({
+            version: 1,
+            source: 'isotopeai',
+            exportedAt: '2026-06-01T00:00:00.000Z',
+            data: {
+              profile: { name: 'rich' },
+              timerState: null,
+              tasks: [{ id: 'task-1', updatedAt: '2026-06-01T00:00:00.000Z' }],
+              sessions: [{ id: 'session-1', updatedAt: '2026-06-01T00:00:00.000Z' }],
+              subjects: [{ id: 'subject-1', updatedAt: '2026-06-01T00:00:00.000Z' }],
+              habits: [],
+              dailyLogs: [],
+              tests: [],
+              exams: [],
+              mockTests: [],
+            },
+          }, { source_path: 'imports/latest.json' });
+
+          const emptyNewer = normalizeAnyBackup({
+            schema_version: 1,
+            exported_at: '2026-06-11T00:00:00.000Z',
+            profile_data: { name: 'empty' },
+            backup_data: {
+              profile: { name: 'empty' },
+              tasks: [],
+              sessions: [],
+              subjects: [],
+              habits: [],
+              dailyLogs: [],
+              tests: [],
+              exams: [],
+              mockTests: [],
+            },
+          }, { source_path: 'cloud-snapshot/latest.json' });
+
+          assert.equal(isBackupRich(rich), true);
+          assert.equal(isBackupEmpty(emptyNewer), true);
+          assert.equal(compareBackupCandidates(
+            { normalized: rich, exported_at: rich.exported_at, size_bytes: rich.size },
+            { normalized: emptyNewer, exported_at: emptyNewer.exported_at, size_bytes: emptyNewer.size },
+          ), 1, 'rich backup must beat newer empty backup');
+
+          const merged = mergeBackupData(emptyNewer, rich);
+          assert.equal(merged.tasks.length, 1);
+          assert.equal(merged.sessions.length, 1);
+          assert.equal(merged.subjects.length, 1);
+          console.log('✅ backup normalizer protects rich data from empty overwrite');
+          NODE
 
       # ── Required files ───────────────────────────────────────────────────────
       - name: 📁 Required files present
@@ -117,10 +198,26 @@ jobs:
             bin/isotope
             bin/isotope.bat
             isotope-complete.sql
+            community-patch-v4.sql
+            sql/006_security_policy_cleanup.sql
+            sql/backup_manifests.sql
+            sql/verify-security.sql
             .env.example
             README.md
+            ADMIN.md
             CHANGELOG.md
             TERMUX_WIDGET.md
+            docs/sync-system.md
+            docs/storage-backup-system.md
+            docs/supabase-connection-map.md
+            public/sync/backup-normalizer.js
+            public/sync/local-data-adapter.js
+            scripts/validate-backup-files.mjs
+            scripts/repair-user-backup.mjs
+            scripts/prove-new-browser-restore.mjs
+            scripts/validate-storage-cleanup.mjs
+            scripts/verify-supabase-security.mjs
+            server/backup-manager.mjs
           )
           for f in "${REQUIRED[@]}"; do
             if [ -f "$f" ]; then
@@ -136,9 +233,13 @@ jobs:
       - name: 🔒 No hardcoded secrets
         run: |
           set -euo pipefail
-          if grep -rE 'SUPABASE_SERVICE_ROLE_KEY\s*=\s*eyJ' \
-               --include="*.mjs" --include="*.js" --include="*.sh" .; then
-            echo "❌ Hardcoded service-role key detected!"
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo "❌ .env is tracked; remove it before release"
+            exit 1
+          fi
+          if git grep -nE 'SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=[[:space:]]*eyJ|SUPABASE_ACCESS_TOKEN[[:space:]]*=[[:space:]]*sbp_|ADMIN_SECRET[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{24,}' -- \
+               ':!*.md' ':!.env.example' ':!public/assets/**'; then
+            echo "❌ Hardcoded private secret detected!"
             exit 1
           fi
           echo "✅ No hardcoded secrets"
@@ -147,7 +248,7 @@ jobs:
       - name: 📋 Schema file stats
         run: |
           set -euo pipefail
-          for f in isotope-complete.sql community-patch-v4.sql performance-patch.sql; do
+          for f in isotope-complete.sql community-patch-v4.sql sql/006_security_policy_cleanup.sql sql/backup_manifests.sql sql/verify-security.sql performance-patch.sql; do
             if [ -f "$f" ]; then
               echo "=== $f ==="
               echo "  Size   : $(wc -c < "$f") bytes"
@@ -189,7 +290,7 @@ jobs:
         run: |
           set -uo pipefail
           SUPABASE_URL=https://placeholder.supabase.co \
-          SUPABASE_ANON_KEY=placeholder_anon_key \
+          SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature \
           SESSION_SECRET=ci_smoke_test_secret_not_real \
           ADMIN_SECRET=ci_admin_placeholder \
           NODE_ENV=test \
@@ -245,7 +346,7 @@ jobs:
           unzip -q "isotope-v${VERSION}-ci-test.zip" -d "$TMPDIR"
           echo "Verifying extracted release..."
           FAIL=0
-          for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example; do
+          for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql docs/sync-system.md docs/storage-backup-system.md docs/supabase-connection-map.md; do
             if [ -f "$TMPDIR/$f" ]; then
               echo "  ✅ $f"
             else

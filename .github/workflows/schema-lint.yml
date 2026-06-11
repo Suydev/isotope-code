@@ -5,10 +5,13 @@ on:
     paths:
       - '*.sql'
       - 'sql/**'
+      - '.github/workflows/schema-lint.yml'
   pull_request:
     paths:
       - '*.sql'
       - 'sql/**'
+      - '.github/workflows/schema-lint.yml'
+  workflow_dispatch:
 
 jobs:
   validate:
@@ -36,7 +39,7 @@ jobs:
 
       - name: 📊 Schema file stats
         run: |
-          for f in isotope-complete.sql community-patch-v4.sql performance-patch.sql; do
+          for f in isotope-complete.sql community-patch-v4.sql sql/*.sql performance-patch.sql; do
             if [ -f "$f" ]; then
               echo "=== $f ==="
               echo "  Size: $(wc -c < $f) bytes"
@@ -82,6 +85,9 @@ jobs:
           PGPASSWORD: testpass
         run: |
           psql -h localhost -U postgres -d isotope_test -v ON_ERROR_STOP=1 -c "
+            DO \$\$ BEGIN CREATE ROLE anon; EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;
+            DO \$\$ BEGIN CREATE ROLE authenticated; EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;
+            DO \$\$ BEGIN CREATE ROLE service_role; EXCEPTION WHEN duplicate_object THEN NULL; END \$\$;
             CREATE SCHEMA IF NOT EXISTS auth;
             CREATE TABLE IF NOT EXISTS auth.users (
               id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -106,7 +112,11 @@ jobs:
               id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
               bucket_id text,
               name text,
-              owner uuid
+              owner uuid,
+              owner_id uuid,
+              metadata jsonb DEFAULT '{}',
+              created_at timestamptz DEFAULT now(),
+              updated_at timestamptz DEFAULT now()
             );
             CREATE OR REPLACE FUNCTION storage.foldername(name text) RETURNS text[]
               LANGUAGE plpgsql AS \$\$ BEGIN RETURN string_to_array(name, '/'); END; \$\$;
@@ -173,27 +183,41 @@ jobs:
             WHERE schemaname = 'public';
           " || true
 
-          # Fail only if there are critical structural errors
-          if [ "$ERROR_COUNT" -gt 20 ]; then
-            echo "❌ Too many SQL errors ($ERROR_COUNT) — schema needs fixes"
+          if [ "$ERROR_COUNT" -gt 0 ]; then
+            echo "❌ isotope-complete.sql must execute cleanly against the Supabase compatibility shim"
             exit 1
-          elif [ "$ERROR_COUNT" -gt 0 ]; then
-            echo "⚠️  $ERROR_COUNT SQL error(s) — check output above (may be Supabase-specific statements)"
-          else
-            echo "✅ Schema executed without errors"
           fi
+          echo "✅ Schema executed without errors"
 
       - name: 🔍 Validate migration SQL files
         env:
           PGPASSWORD: testpass
         run: |
-          for f in community-patch-v4.sql performance-patch.sql; do
+          set -euo pipefail
+          for f in sql/*.sql; do
             if [ -f "$f" ]; then
               echo "Testing $f..."
               ERRS=$(psql -h localhost -U postgres -d isotope_test \
                 -v ON_ERROR_STOP=0 \
                 -f "$f" 2>&1 | grep -c '^ERROR' || echo 0)
               echo "  $f: $ERRS error(s)"
+              if [ "$ERRS" -gt 0 ]; then
+                echo "❌ $f failed against the compatibility database"
+                exit 1
+              fi
+            fi
+          done
+          for f in community-patch-v4.sql performance-patch.sql; do
+            if [ -f "$f" ]; then
+              echo "Legacy compatibility smoke: $f"
+              ERRS=$(psql -h localhost -U postgres -d isotope_test \
+                -v ON_ERROR_STOP=0 \
+                -f "$f" 2>&1 | grep -c '^ERROR' || echo 0)
+              echo "  $f: $ERRS error(s)"
+              if [ "$ERRS" -gt 20 ]; then
+                echo "❌ $f has too many compatibility errors"
+                exit 1
+              fi
             fi
           done
           echo "✅ Migration file validation complete"

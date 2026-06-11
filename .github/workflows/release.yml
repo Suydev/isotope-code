@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,8 +23,34 @@ jobs:
       - name: 🏷️ Get tag info
         id: tag
         run: |
-          echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
+          else
+            VERSION="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -1)"
+            TAG="v${VERSION}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: ✅ Release syntax checks
+        run: |
+          set -euo pipefail
+          node --check server.mjs
+          node --check server/backup-manager.mjs
+          node --check public/sync/backup-normalizer.js
+          node --check public/sync/local-data-adapter.js
+          node --check scripts/validate-backup-files.mjs
+          node --check scripts/repair-user-backup.mjs
+          node --check scripts/prove-new-browser-restore.mjs
+          node --check scripts/validate-storage-cleanup.mjs
+          node --check scripts/verify-supabase-security.mjs
+          npm run docs:validate
 
       - name: 📋 Extract changelog section
         id: changelog
@@ -113,14 +140,67 @@ jobs:
       - name: 📦 Package release archive
         run: |
           VERSION="${{ steps.tag.outputs.version }}"
-          zip -r "isotope-v${VERSION}.zip" . \
+          zip -qr "isotope-v${VERSION}.zip" . \
             --exclude ".git/*" \
             --exclude "node_modules/*" \
             --exclude ".env" \
+            --exclude ".isotope/*" \
             --exclude "*.log" \
             --exclude ".github/*" \
             --exclude "screenshots/*"
           echo "Archive: $(wc -c < isotope-v${VERSION}.zip) bytes"
+
+      - name: 🔎 Verify release archive
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.tag.outputs.version }}"
+          TMPDIR="$(mktemp -d)"
+          unzip -q "isotope-v${VERSION}.zip" -d "$TMPDIR"
+          required=(
+            server.mjs
+            package.json
+            public/sync/backup-normalizer.js
+            public/sync/local-data-adapter.js
+            server/backup-manager.mjs
+            scripts/prove-new-browser-restore.mjs
+            scripts/repair-user-backup.mjs
+            scripts/validate-backup-files.mjs
+            scripts/validate-storage-cleanup.mjs
+            scripts/verify-supabase-security.mjs
+            sql/backup_manifests.sql
+            sql/006_security_policy_cleanup.sql
+            docs/sync-system.md
+            docs/storage-backup-system.md
+            docs/supabase-connection-map.md
+            README.md
+            ADMIN.md
+            .env.example
+          )
+          for f in "${required[@]}"; do
+            test -f "$TMPDIR/$f" || { echo "❌ Missing from release: $f"; exit 1; }
+            echo "✅ $f"
+          done
+          if [ -f "$TMPDIR/.env" ]; then
+            echo "❌ .env included in release"
+            exit 1
+          fi
+          PORT=3099 \
+          SUPABASE_URL=https://placeholder.supabase.co \
+          SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature \
+          SESSION_SECRET=release_smoke_test_secret_not_real \
+          node "$TMPDIR/server.mjs" &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true; rm -rf "$TMPDIR"' EXIT
+          for i in $(seq 1 30); do
+            STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3099/api/health 2>/dev/null || echo 000)"
+            if [ "$STATUS" != "000" ]; then
+              echo "Release smoke HTTP $STATUS"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "❌ Release archive server did not respond"
+          exit 1
 
       - name: 🎉 Create GitHub Release
         uses: softprops/action-gh-release@v2

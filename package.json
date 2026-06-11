@@ -19,7 +19,12 @@
     "screenshots:compress": "node scripts/capture-screenshots.mjs --compress",
     "screenshots:demo": "node scripts/capture-screenshots.mjs --demo",
     "docs:validate": "node scripts/validate-docs.mjs",
-    "docs:validate:strict": "node scripts/validate-docs.mjs --strict"
+    "docs:validate:strict": "node scripts/validate-docs.mjs --strict",
+    "backup:validate": "node scripts/validate-backup-files.mjs",
+    "backup:repair:dry-run": "node scripts/repair-user-backup.mjs --dry-run",
+    "backup:prove-restore": "node scripts/prove-new-browser-restore.mjs",
+    "storage:cleanup:dry-run": "node scripts/validate-storage-cleanup.mjs --dry-run",
+    "security:verify": "node scripts/verify-supabase-security.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

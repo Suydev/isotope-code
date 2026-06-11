@@ -6123,7 +6123,7 @@ function showMsg(type, msg) {
     <div class="done-banner" id="done-banner">✅ All statements applied successfully! Hard-reload the app to activate community features.</div>
     <div class="err-banner" id="err-banner"></div>
     <p style="margin-top:14px;font-size:12px;color:#555">
-      Tip: set <code>SUPABASE_ACCESS_TOKEN=sbp_...</code> as an env var on your server to pre-fill this field automatically.
+      Tip: set <code>SUPABASE_ACCESS_TOKEN=your-personal-access-token</code> as an env var on your server to pre-fill this field automatically.
     </p>
   </div>
 
