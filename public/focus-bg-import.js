@@ -80,14 +80,57 @@
     return Math.min(24, Math.max(0, Math.round(n)));
   }
 
+  function parseStoredValue(raw) {
+    if (raw == null) return null;
+    if (typeof raw !== 'string') return raw;
+    try { return JSON.parse(raw); } catch (e) { return raw; }
+  }
+
+  function extractBlurValue(value) {
+    if (value == null) return 0;
+    if (typeof value === 'number' || typeof value === 'string') return clampBlur(value);
+    if (typeof value !== 'object') return 0;
+    var direct = [
+      value.blurAmount,
+      value.blur,
+      value.value,
+      value.state && value.state.blurAmount,
+      value.state && value.state.blur,
+      value.state && value.state.value,
+    ];
+    for (var i = 0; i < direct.length; i += 1) {
+      var amount = clampBlur(direct[i]);
+      if (amount > 0) return amount;
+    }
+    return 0;
+  }
+
+  function readStoredBlur() {
+    var keys = ['focus-bg-blur'];
+    try {
+      for (var i = 0; i < localStorage.length; i += 1) {
+        var key = localStorage.key(i);
+        if (key && /focus-bg-blur$/i.test(key) && keys.indexOf(key) === -1) keys.push(key);
+      }
+      for (var j = 0; j < keys.length; j += 1) {
+        var amount = extractBlurValue(parseStoredValue(localStorage.getItem(keys[j])));
+        if (amount > 0) return amount;
+      }
+    } catch (e) {}
+    return 0;
+  }
+
   function readNativeBlur() {
     return focusBgApi().then(function (api) {
       if (api && typeof api.g === 'function') {
-        return api.g().then(function (cfg) { return clampBlur(cfg && cfg.blurAmount); });
+        return api.g().then(function (cfg) {
+          var fromApi = clampBlur(cfg && cfg.blurAmount);
+          return fromApi > 0 ? fromApi : readStoredBlur();
+        });
       }
-      return 0;
+      return readStoredBlur();
     }).catch(function () {
-      try { return clampBlur(localStorage.getItem('focus-bg-blur')); } catch (e) { return 0; }
+      return readStoredBlur();
     });
   }
 
@@ -168,6 +211,30 @@
 
   function isSafeVideoUrl(url) {
     return /^blob:/i.test(url) || /^https?:\/\//i.test(url) || /^data:video\//i.test(url);
+  }
+
+  function looksLikeVideoFile(fileLike) {
+    var mime = String((fileLike && (fileLike.type || fileLike.mime)) || '').toLowerCase();
+    var name = String((fileLike && fileLike.name) || '').toLowerCase();
+    return mime.indexOf('video/') === 0 || /\.(mp4|webm|mov|m4v|mkv)$/i.test(name);
+  }
+
+  function looksLikeImageFile(fileLike) {
+    var mime = String((fileLike && (fileLike.type || fileLike.mime)) || '').toLowerCase();
+    var name = String((fileLike && fileLike.name) || '').toLowerCase();
+    return mime.indexOf('image/') === 0 || /\.(jpg|jpeg|png|webp|avif|gif|bmp)$/i.test(name);
+  }
+
+  function mediaRecord(kind, file) {
+    return {
+      type: 'blob',
+      kind: kind,
+      blob: file,
+      name: file && file.name ? file.name : '',
+      mime: file && file.type ? file.type : '',
+      size: file && typeof file.size === 'number' ? file.size : 0,
+      savedAt: new Date().toISOString(),
+    };
   }
 
   function prepareTarget(el) {
@@ -277,6 +344,9 @@
     vid.muted = true;
     vid.loop = true;
     vid.playsInline = true;
+    vid.onerror = function () {
+      toast('This video could not play. Use MP4 or WebM for best support.', 'error');
+    };
     vid.load();
     var play = vid.play();
     if (play && play.catch) play.catch(function () {});
@@ -326,9 +396,15 @@
   function loadSaved() {
     idbGet(CUSTOM_KEY).then(function (saved) {
       if (!saved) return;
+      if (saved && saved.type === 'blob' && saved.blob instanceof Blob) {
+        var savedUrl = URL.createObjectURL(saved.blob);
+        var savedIsVideo = saved.kind === 'video' || looksLikeVideoFile(saved);
+        applyBackground(savedUrl, savedIsVideo, true);
+        return;
+      }
       if (saved instanceof Blob) {
         var blobUrl = URL.createObjectURL(saved);
-        applyBackground(blobUrl, !!(saved.type && saved.type.indexOf('video/') === 0), true);
+        applyBackground(blobUrl, looksLikeVideoFile(saved) && !looksLikeImageFile(saved), true);
         return;
       }
       if (saved && saved.type === 'url' && saved.url) {
@@ -429,7 +505,7 @@
     imgInput.onchange = function () {
       var file = imgInput.files && imgInput.files[0];
       if (!file) return;
-      idbPut(CUSTOM_KEY, file).catch(function () {});
+      idbPut(CUSTOM_KEY, mediaRecord('image', file)).catch(function () {});
       var url = URL.createObjectURL(file);
       closeModal();
       applyBackground(url, false, true);
@@ -439,7 +515,7 @@
     vidInput.onchange = function () {
       var file = vidInput.files && vidInput.files[0];
       if (!file) return;
-      idbPut(CUSTOM_KEY, file).catch(function () {});
+      idbPut(CUSTOM_KEY, mediaRecord('video', file)).catch(function () {});
       var url = URL.createObjectURL(file);
       closeModal();
       applyBackground(url, true, true);
@@ -728,7 +804,7 @@
 
   window.addEventListener('popstate', function () { scheduleRouteWork(140); });
   window.addEventListener('storage', function (event) {
-    if (event && event.key === 'focus-bg-blur') refreshBlur();
+    if (event && event.key && /focus-bg-blur$/i.test(event.key)) refreshBlur();
   });
 
   new MutationObserver(function () { scheduleRouteWork(160); })

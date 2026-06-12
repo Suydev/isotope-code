@@ -1,0 +1,156 @@
+name: ♻️ Regenerate Release Asset
+
+on:
+  release:
+    types: [created, published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to rebuild, for example v3.3.8
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: regenerate-release-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    name: Rebuild and re-upload release zip
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🏷️ Select release tag
+        id: tag
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            TAG="${{ inputs.tag }}"
+          fi
+          if ! git rev-parse "$TAG^{commit}" >/dev/null 2>&1; then
+            echo "❌ Tag not found: $TAG"
+            exit 1
+          fi
+          git checkout --detach "$TAG"
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: ✅ Smoke checks before packaging
+        run: |
+          set -euo pipefail
+          node --check server.mjs
+          node --check server/backup-manager.mjs
+          node --check public/sync/backup-normalizer.js
+          node --check public/sync/local-data-adapter.js
+          node --check scripts/validate-backup-files.mjs
+          node --check scripts/repair-user-backup.mjs
+          node --check scripts/prove-new-browser-restore.mjs
+          node --check scripts/validate-storage-cleanup.mjs
+          node --check scripts/verify-supabase-security.mjs
+          node --check scripts/compare-remote-assets.mjs
+          npm run docs:validate
+
+      - name: 📦 Rebuild release archive
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.tag.outputs.version }}"
+          ARCHIVE="isotope-v${VERSION}.zip"
+          rm -f "$ARCHIVE"
+          zip -qr "$ARCHIVE" . \
+            --exclude ".git/*" \
+            --exclude "node_modules/*" \
+            --exclude ".env" \
+            --exclude ".env.*" \
+            --exclude ".isotope/*" \
+            --exclude "artifacts/*" \
+            --exclude "*.log" \
+            --exclude ".github/*" \
+            --exclude "screenshots/*"
+          echo "Archive: $(wc -c < "$ARCHIVE") bytes"
+
+      - name: 🔎 Verify rebuilt archive
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.tag.outputs.version }}"
+          ARCHIVE="isotope-v${VERSION}.zip"
+          TMPDIR="$(mktemp -d)"
+          unzip -q "$ARCHIVE" -d "$TMPDIR"
+          required=(
+            server.mjs
+            package.json
+            public/index.html
+            public/sync/backup-normalizer.js
+            public/sync/local-data-adapter.js
+            public/focus-bg-import.js
+            server/backup-manager.mjs
+            scripts/prove-new-browser-restore.mjs
+            scripts/repair-user-backup.mjs
+            scripts/validate-backup-files.mjs
+            scripts/validate-storage-cleanup.mjs
+            scripts/verify-supabase-security.mjs
+            scripts/compare-remote-assets.mjs
+            isotope-complete.sql
+            sql/backup_manifests.sql
+            docs/sync-system.md
+            docs/storage-backup-system.md
+            docs/supabase-connection-map.md
+            README.md
+            ADMIN.md
+            .env.example
+          )
+          for f in "${required[@]}"; do
+            test -f "$TMPDIR/$f" || { echo "❌ Missing from release: $f"; exit 1; }
+          done
+          if [ -f "$TMPDIR/.env" ]; then
+            echo "❌ .env included in release"
+            exit 1
+          fi
+          if find "$TMPDIR" -maxdepth 1 -name '.env.*' | grep -q .; then
+            echo "❌ .env.* included in release"
+            exit 1
+          fi
+          PORT=3099 \
+          SUPABASE_URL=https://placeholder.supabase.co \
+          SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature \
+          SESSION_SECRET=release_regen_smoke_secret_not_real \
+          node "$TMPDIR/server.mjs" &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true; rm -rf "$TMPDIR"' EXIT
+          for i in $(seq 1 30); do
+            STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3099/__isotope/ping 2>/dev/null || echo 000)"
+            if [ "$STATUS" = "200" ]; then
+              echo "Release archive smoke HTTP $STATUS"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "❌ Release archive server ping did not return 200 (got: $STATUS)"
+          exit 1
+
+      - name: 🚀 Upload asset to existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.tag.outputs.tag }}"
+          VERSION="${{ steps.tag.outputs.version }}"
+          ARCHIVE="isotope-v${VERSION}.zip"
+          gh release view "$TAG" >/dev/null
+          gh release upload "$TAG" "$ARCHIVE" --clobber
+          echo "✅ Uploaded $ARCHIVE to $TAG"

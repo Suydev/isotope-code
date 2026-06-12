@@ -170,6 +170,7 @@ const ADMIN_EMAILS   = Array.from(new Set(
     .map((v) => String(v || '').trim().toLowerCase())
     .filter(Boolean)
 ));
+const BROWSER_PROOF_EMAIL = String(process.env.BROWSER_PROOF_EMAIL || ADMIN_EMAIL || ADMIN_EMAILS[0] || '').trim().toLowerCase();
 const ADMIN_COOKIE_SECRET = ADMIN_SECRET || SUPA_SERVICE_KEY;
 const ADMIN_MODE_READY  = ENABLE_ADMIN_MODE && !!SUPA_SERVICE_KEY && !!ADMIN_COOKIE_SECRET;
 
@@ -5042,6 +5043,51 @@ function publicProofRun(run) {
   return safe;
 }
 
+function browserProofWantsJson(req) {
+  try {
+    const sp = new URL('http://x' + req.url).searchParams;
+    if (sp.get('format') === 'json') return true;
+  } catch {}
+  const accept = String(req.headers.accept || '');
+  return accept.includes('application/json') && !accept.includes('text/html');
+}
+
+function browserProofStartHtml({ run, email, error }) {
+  const safeRun = publicProofRun(run);
+  const pageUrl = safeRun?.run_id ? '/__admin/browser-proof-page?run_id=' + encodeURIComponent(safeRun.run_id) : '';
+  const statusUrl = safeRun?.run_id ? '/__admin/browser-proof-status?run_id=' + encodeURIComponent(safeRun.run_id) : '';
+  const setup = [
+    'ENABLE_ADMIN_MODE=true',
+    'SUPABASE_SERVICE_ROLE_KEY=<service role key>',
+    'ADMIN_SECRET=<private local secret>',
+    'ADMIN_EMAIL=<existing Supabase user email> or BROWSER_PROOF_EMAIL=<existing Supabase user email>',
+  ];
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Isotope Browser Proof</title>
+<style>
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#09090b;color:#e4e4e7;margin:0;padding:28px}
+main{max-width:860px;margin:6vh auto;background:#111114;border:1px solid #27272a;border-radius:18px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.42)}
+h1{margin:0 0 8px;font-size:28px;letter-spacing:-.04em}.muted{color:#a1a1aa;line-height:1.55}.error{color:#fca5a5;background:rgba(127,29,29,.25);border:1px solid rgba(248,113,113,.22);padding:12px;border-radius:12px}
+a.btn,button{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#f97316;color:#111;font-weight:800;text-decoration:none;border:0;border-radius:999px;padding:11px 16px;margin:10px 10px 0 0;cursor:pointer}
+a.secondary{background:#27272a;color:#fafafa}.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:18px 0}.card{background:#18181b;border:1px solid #27272a;border-radius:12px;padding:12px}
+code,pre{background:#050505;border:1px solid #27272a;border-radius:8px;color:#fdba74}code{padding:2px 5px}pre{padding:12px;overflow:auto}
+</style></head><body><main>
+<h1>Browser Proof</h1>
+<p class="muted">This starts the real browser proof run for onboarding, profile/settings, avatar, tour, study-session, and sync status checks. It is admin-only and uses a temporary Supabase session for the configured proof user.</p>
+${error ? `<p class="error">${escapeHtml(error)}</p>` : ''}
+<div class="grid">
+  <div class="card"><strong>Proof user</strong><br><span class="muted">${escapeHtml(email || '(not configured)')}</span></div>
+  <div class="card"><strong>Run status</strong><br><span class="muted">${escapeHtml(safeRun?.status || (error ? 'not started' : 'ready'))}</span></div>
+  <div class="card"><strong>Run id</strong><br><span class="muted">${escapeHtml(safeRun?.run_id || '-')}</span></div>
+</div>
+${pageUrl ? `<a class="btn" href="${escapeHtml(pageUrl)}">Open Browser Proof Page</a><a class="btn secondary" href="${escapeHtml(statusUrl)}">View Run Status JSON</a>` : ''}
+<a class="btn secondary" href="/__admin/verify">Back to Verify</a>
+<h2>Required private config</h2>
+<pre>${escapeHtml(setup.join('\n'))}</pre>
+<p class="muted">If this page shows a setup error, fix the private <code>.env</code>, restart the local server, then open <code>/__admin/browser-proof</code> again. No service-role key or proof session is written to this page.</p>
+</main></body></html>`;
+}
+
 function browserProofHtml({ runId, token, session }) {
   const publicSession = {
     access_token: session.access_token,
@@ -5252,9 +5298,23 @@ const server = http.createServer((req, res) => {
 
   if (adminPath === '/__admin/browser-proof' && req.method === 'GET') {
     (async () => {
+      const wantsJson = browserProofWantsJson(req);
+      if (!BROWSER_PROOF_EMAIL) {
+        const payload = {
+          ok: false,
+          code: 'BROWSER_PROOF_EMAIL_MISSING',
+          error: 'Set ADMIN_EMAIL or BROWSER_PROOF_EMAIL to an existing Supabase user email, then restart.',
+        };
+        if (wantsJson) sendJson(res, 400, payload);
+        else {
+          res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+          res.end(browserProofStartHtml({ email: '', error: payload.error }));
+        }
+        return;
+      }
       const runId = crypto.randomUUID();
       const token = crypto.randomBytes(24).toString('hex');
-      const email = 'skibidi@isotope.local';
+      const email = BROWSER_PROOF_EMAIL;
       const session = await createMagicSessionForEmail(email);
       browserProofRuns.set(runId, {
         run_id: runId,
@@ -5264,9 +5324,19 @@ const server = http.createServer((req, res) => {
         user_id: session.user.id,
         email,
       });
-      sendJson(res, 200, publicProofRun(browserProofRuns.get(runId)), { 'Content-Type': 'application/json' });
+      const run = browserProofRuns.get(runId);
+      if (wantsJson) sendJson(res, 200, publicProofRun(run), { 'Content-Type': 'application/json' });
+      else {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(browserProofStartHtml({ run, email }));
+      }
     })().catch((e) => {
-      sendJson(res, 500, { ok: false, error: e.message || 'Browser proof setup failed' });
+      const message = e.message || 'Browser proof setup failed';
+      if (browserProofWantsJson(req)) sendJson(res, 500, { ok: false, code: 'BROWSER_PROOF_SETUP_FAILED', error: message });
+      else {
+        res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(browserProofStartHtml({ email: BROWSER_PROOF_EMAIL, error: message }));
+      }
     });
     return;
   }

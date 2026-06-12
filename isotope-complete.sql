@@ -42,16 +42,7 @@ DROP FUNCTION IF EXISTS public.get_event_attendees(uuid);
 DROP FUNCTION IF EXISTS public.is_premium_user();
 DROP FUNCTION IF EXISTS public.is_premium_user(uuid);
 
--- ── §1. Helper: _is_group_member (must exist before RLS policies) ────────────
--- SECURITY DEFINER prevents RLS infinite-recursion when group_members policies
--- reference the group_members table themselves.
-CREATE OR REPLACE FUNCTION public._is_group_member(gid uuid, uid uuid)
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT EXISTS(SELECT 1 FROM public.group_members WHERE group_id = gid AND user_id = uid);
-$$;
-GRANT EXECUTE ON FUNCTION public._is_group_member(uuid, uuid) TO anon, authenticated, service_role;
-
--- ── §2. Core user tables ──────────────────────────────────────────────────────
+-- ── §1. Core user tables ──────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS public.users (
   id              uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -389,6 +380,16 @@ DO $$ BEGIN
     ALTER TABLE public.group_members ADD CONSTRAINT group_members_group_id_user_id_key UNIQUE (group_id, user_id);
   END IF;
 END $$;
+
+-- Helper: _is_group_member must be created after public.group_members exists,
+-- but before RLS policies use it.
+-- SECURITY DEFINER prevents RLS infinite-recursion when group_members policies
+-- reference the group_members table themselves.
+CREATE OR REPLACE FUNCTION public._is_group_member(gid uuid, uid uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS(SELECT 1 FROM public.group_members WHERE group_id = gid AND user_id = uid);
+$$;
+GRANT EXECUTE ON FUNCTION public._is_group_member(uuid, uuid) TO anon, authenticated, service_role;
 
 CREATE TABLE IF NOT EXISTS public.group_chat_messages (
   id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),

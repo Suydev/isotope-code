@@ -44,10 +44,10 @@ jobs:
               echo "=== $f ==="
               echo "  Size: $(wc -c < $f) bytes"
               echo "  Lines: $(wc -l < $f)"
-              echo "  CREATE TABLE: $(grep -c 'CREATE TABLE' $f || echo 0)"
-              echo "  CREATE FUNCTION: $(grep -c 'CREATE.*FUNCTION' $f || echo 0)"
-              echo "  CREATE POLICY: $(grep -c 'CREATE POLICY' $f || echo 0)"
-              echo "  CREATE INDEX: $(grep -c 'CREATE.*INDEX' $f || echo 0)"
+              echo "  CREATE TABLE: $(awk '/CREATE TABLE/{n++} END{print n+0}' "$f")"
+              echo "  CREATE FUNCTION: $(awk '/CREATE.*FUNCTION/{n++} END{print n+0}' "$f")"
+              echo "  CREATE POLICY: $(awk '/CREATE POLICY/{n++} END{print n+0}' "$f")"
+              echo "  CREATE INDEX: $(awk '/CREATE.*INDEX/{n++} END{print n+0}' "$f")"
             else
               echo "⚠️  $f not found — skipping"
             fi
@@ -71,13 +71,13 @@ jobs:
 
           echo ""
           echo "Checking for SECURITY DEFINER functions..."
-          SEC_DEF=$(grep -c 'SECURITY DEFINER' isotope-complete.sql || echo 0)
+          SEC_DEF=$(awk '/SECURITY DEFINER/{n++} END{print n+0}' isotope-complete.sql)
           echo "  $SEC_DEF SECURITY DEFINER functions"
 
           echo ""
           echo "Checking GRANT coverage..."
-          FUNCTIONS=$(grep -c 'CREATE OR REPLACE FUNCTION' isotope-complete.sql || echo 0)
-          GRANTS=$(grep -c 'GRANT EXECUTE' isotope-complete.sql || echo 0)
+          FUNCTIONS=$(awk '/CREATE OR REPLACE FUNCTION/{n++} END{print n+0}' isotope-complete.sql)
+          GRANTS=$(awk '/GRANT EXECUTE/{n++} END{print n+0}' isotope-complete.sql)
           echo "  Functions: $FUNCTIONS | GRANT EXECUTE: $GRANTS"
 
       - name: 🗄️ Create Supabase compatibility shim
@@ -158,8 +158,10 @@ jobs:
           echo ""
           echo "psql exit code: $EXIT_CODE"
 
-          ERROR_COUNT=$(echo "$PSQL_OUT" | grep -c '^ERROR' || echo 0)
-          WARNING_COUNT=$(echo "$PSQL_OUT" | grep -c '^WARNING' || echo 0)
+          ERROR_COUNT=$(printf '%s\n' "$PSQL_OUT" | grep -c '^ERROR' || true)
+          WARNING_COUNT=$(printf '%s\n' "$PSQL_OUT" | grep -c '^WARNING' || true)
+          ERROR_COUNT=${ERROR_COUNT:-0}
+          WARNING_COUNT=${WARNING_COUNT:-0}
           echo "  Errors  : $ERROR_COUNT"
           echo "  Warnings: $WARNING_COUNT"
 
@@ -199,9 +201,11 @@ jobs:
           for f in sql/*.sql; do
             if [ -f "$f" ]; then
               echo "Testing $f..."
-              ERRS=$(psql -h localhost -U postgres -d isotope_test \
+              OUT=$(psql -h localhost -U postgres -d isotope_test \
                 -v ON_ERROR_STOP=0 \
-                -f "$f" 2>&1 | grep -c '^ERROR' || echo 0)
+                -f "$f" 2>&1 || true)
+              ERRS=$(printf '%s\n' "$OUT" | grep -c '^ERROR' || true)
+              ERRS=${ERRS:-0}
               echo "  $f: $ERRS error(s)"
               if [ "$ERRS" -gt 0 ]; then
                 echo "❌ $f failed against the compatibility database"
@@ -212,9 +216,11 @@ jobs:
           for f in community-patch-v4.sql performance-patch.sql; do
             if [ -f "$f" ]; then
               echo "Legacy compatibility smoke: $f"
-              ERRS=$(psql -h localhost -U postgres -d isotope_test \
+              OUT=$(psql -h localhost -U postgres -d isotope_test \
                 -v ON_ERROR_STOP=0 \
-                -f "$f" 2>&1 | grep -c '^ERROR' || echo 0)
+                -f "$f" 2>&1 || true)
+              ERRS=$(printf '%s\n' "$OUT" | grep -c '^ERROR' || true)
+              ERRS=${ERRS:-0}
               echo "  $f: $ERRS error(s)"
               if [ "$ERRS" -gt 20 ]; then
                 echo "❌ $f has too many compatibility errors"

@@ -255,9 +255,9 @@ jobs:
               echo "=== $f ==="
               echo "  Size   : $(wc -c < "$f") bytes"
               echo "  Lines  : $(wc -l < "$f")"
-              echo "  Tables : $(grep -c 'CREATE TABLE' "$f" || echo 0)"
-              echo "  Funcs  : $(grep -c 'CREATE OR REPLACE FUNCTION' "$f" || echo 0)"
-              echo "  Policies: $(grep -c 'CREATE POLICY' "$f" || echo 0)"
+              echo "  Tables : $(awk '/CREATE TABLE/{n++} END{print n+0}' "$f")"
+              echo "  Funcs  : $(awk '/CREATE OR REPLACE FUNCTION/{n++} END{print n+0}' "$f")"
+              echo "  Policies: $(awk '/CREATE POLICY/{n++} END{print n+0}' "$f")"
             else
               echo "⚠️  $f not found — skipping"
             fi
