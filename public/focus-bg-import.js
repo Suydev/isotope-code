@@ -13,6 +13,7 @@
   var IDB_STORE = 'media';
   var CUSTOM_KEY = 'focus_custom';
   var FOCUS_BG_MODULE = '/assets/focusBackground-t8AknbRg.js';
+  var MAX_VIDEO_SECONDS = 60;
 
   var _activeUrl = null;
   var _activeKind = 'image';
@@ -237,6 +238,52 @@
     };
   }
 
+  function readVideoDuration(url) {
+    return new Promise(function (resolve, reject) {
+      var video = document.createElement('video');
+      var done = false;
+      var timer = setTimeout(function () {
+        finish(new Error('Could not read video length. Use MP4 or WebM under 60 seconds.'));
+      }, 8000);
+      function finish(err, duration) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        video.onloadedmetadata = null;
+        video.onerror = null;
+        try { video.removeAttribute('src'); video.load(); } catch (e) {}
+        if (err) reject(err);
+        else resolve(duration);
+      }
+      video.preload = 'metadata';
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
+      video.onloadedmetadata = function () {
+        var duration = Number(video.duration);
+        if (!Number.isFinite(duration) || duration <= 0) {
+          finish(new Error('Could not read video length. Use MP4 or WebM under 60 seconds.'));
+          return;
+        }
+        finish(null, duration);
+      };
+      video.onerror = function () {
+        finish(new Error('This video could not be opened. Use MP4 or WebM under 60 seconds.'));
+      };
+      video.src = url;
+      try { video.load(); } catch (e) { finish(e); }
+    });
+  }
+
+  function assertVideoDuration(url) {
+    return readVideoDuration(url).then(function (duration) {
+      if (duration > MAX_VIDEO_SECONDS + 0.25) {
+        throw new Error('Video background must be 60 seconds or shorter.');
+      }
+      return duration;
+    });
+  }
+
   function prepareTarget(el) {
     el.style.backgroundImage = 'none';
     el.style.backgroundSize = '';
@@ -329,6 +376,7 @@
       vid.setAttribute('loop', '');
       vid.setAttribute('muted', '');
       vid.setAttribute('playsinline', '');
+      vid.setAttribute('preload', 'metadata');
       vid.setAttribute('aria-hidden', 'true');
     }
     if (vid.parentNode !== el) el.appendChild(vid);
@@ -342,8 +390,19 @@
     ].join(';');
     if (vid.src !== url) vid.src = url;
     vid.muted = true;
+    vid.defaultMuted = true;
+    vid.volume = 0;
     vid.loop = true;
     vid.playsInline = true;
+    vid.controls = false;
+    try { vid.disablePictureInPicture = true; } catch (e) {}
+    vid.onloadedmetadata = function () {
+      var duration = Number(vid.duration);
+      if (Number.isFinite(duration) && duration > MAX_VIDEO_SECONDS + 0.25) {
+        toast('Video background must be 60 seconds or shorter.', 'error');
+        clearBackground();
+      }
+    };
     vid.onerror = function () {
       toast('This video could not play. Use MP4 or WebM for best support.', 'error');
     };
@@ -421,7 +480,8 @@
     backdrop.id = '__iso_fbg_modal__';
     backdrop.setAttribute('style', [
       'position:fixed', 'inset:0', 'z-index:2147483001',
-      'background:rgba(0,0,0,0.62)', 'backdrop-filter:blur(18px)',
+      'background:radial-gradient(circle at 20% 10%,rgba(249,115,22,0.16),transparent 34%),radial-gradient(circle at 85% 20%,rgba(34,211,238,0.14),transparent 32%),rgba(3,7,18,0.72)',
+      'backdrop-filter:blur(22px) saturate(1.2)',
       'display:flex', 'align-items:center', 'justify-content:center',
       'opacity:0', 'transition:opacity 0.25s',
       'font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
@@ -429,30 +489,33 @@
 
     var card = document.createElement('div');
     card.setAttribute('style', [
-      'width:min(460px,94vw)', 'border-radius:20px', 'overflow:hidden',
-      'background:linear-gradient(145deg,rgba(20,20,28,0.98),rgba(12,12,18,0.98))',
-      'border:1px solid rgba(255,255,255,0.12)',
-      'box-shadow:0 28px 70px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,255,255,0.10)',
+      'width:min(500px,94vw)', 'border-radius:28px', 'overflow:hidden',
+      'background:linear-gradient(145deg,rgba(24,24,27,0.86),rgba(9,9,11,0.94))',
+      'border:1px solid rgba(255,255,255,0.16)',
+      'box-shadow:0 34px 90px rgba(0,0,0,0.68),inset 0 1px 0 rgba(255,255,255,0.12)',
       'transform:translateY(16px) scale(0.98)',
       'transition:transform 0.28s cubic-bezier(0.22,1,0.36,1)',
     ].join(';'));
 
     var hdr = document.createElement('div');
     hdr.setAttribute('style', [
-      'padding:18px 22px 14px', 'border-bottom:1px solid rgba(255,255,255,0.07)',
+      'padding:22px 24px 16px', 'border-bottom:1px solid rgba(255,255,255,0.08)',
       'display:flex', 'align-items:center', 'justify-content:space-between',
+      'background:linear-gradient(90deg,rgba(249,115,22,0.16),rgba(34,211,238,0.06),transparent)',
     ].join(';'));
     hdr.innerHTML =
-      '<span style="font-size:15px;font-weight:800;color:rgba(255,255,255,0.94);letter-spacing:-0.02em;">Focus Background</span>' +
-      '<button id="__iso_fbg_close__" aria-label="Close" style="background:rgba(255,255,255,0.07);' +
-      'border:1px solid rgba(255,255,255,0.10);border-radius:50%;width:28px;height:28px;' +
-      'cursor:pointer;color:rgba(255,255,255,0.65);font-size:13px;display:flex;' +
+      '<div><div style="font-size:17px;font-weight:900;color:rgba(255,255,255,0.96);letter-spacing:-0.03em;">Focus background</div>' +
+      '<div style="font-size:12px;color:rgba(255,255,255,0.50);margin-top:3px;">Import a calm image or a muted loop for the Focus room.</div></div>' +
+      '<button id="__iso_fbg_close__" aria-label="Close" style="background:rgba(255,255,255,0.08);' +
+      'border:1px solid rgba(255,255,255,0.14);border-radius:50%;width:32px;height:32px;' +
+      'cursor:pointer;color:rgba(255,255,255,0.72);font-size:13px;display:flex;' +
       'align-items:center;justify-content:center;padding:0;">x</button>';
 
     var tabBar = document.createElement('div');
     tabBar.setAttribute('style', [
-      'display:flex', 'padding:12px 22px 0',
-      'gap:6px', 'border-bottom:1px solid rgba(255,255,255,0.07)',
+      'display:flex', 'margin:16px 22px 0', 'padding:4px',
+      'gap:4px', 'border:1px solid rgba(255,255,255,0.10)',
+      'border-radius:999px', 'background:rgba(255,255,255,0.06)',
     ].join(';'));
 
     function mkTab(id, label) {
@@ -460,13 +523,13 @@
       t.id = '__iso_tab_' + id + '__';
       t.textContent = label;
       t.setAttribute('style', [
-        'padding:8px 14px', 'border-radius:10px 10px 0 0',
+        'flex:1', 'padding:9px 14px', 'border-radius:999px',
         'font-size:13px', 'font-weight:700', 'cursor:pointer',
-        'border:1px solid transparent', 'border-bottom:none',
-        'transition:all 0.15s', 'margin-bottom:-1px',
-        'background:' + (_activeTab === id ? 'rgba(249,115,22,0.18)' : 'transparent'),
-        'color:' + (_activeTab === id ? 'rgba(249,115,22,1)' : 'rgba(255,255,255,0.48)'),
-        'border-color:' + (_activeTab === id ? 'rgba(249,115,22,0.3)' : 'transparent'),
+        'border:0',
+        'transition:all 0.15s',
+        'background:' + (_activeTab === id ? 'linear-gradient(135deg,rgba(249,115,22,0.95),rgba(34,211,238,0.74))' : 'transparent'),
+        'color:' + (_activeTab === id ? '#09090b' : 'rgba(255,255,255,0.58)'),
+        'box-shadow:' + (_activeTab === id ? '0 10px 26px rgba(249,115,22,0.20)' : 'none'),
       ].join(';'));
       t.addEventListener('click', function () {
         _activeTab = id;
@@ -475,9 +538,9 @@
           var btn = document.getElementById('__iso_tab_' + tid + '__');
           if (!btn) return;
           var active = tid === id;
-          btn.style.background = active ? 'rgba(249,115,22,0.18)' : 'transparent';
-          btn.style.color = active ? 'rgba(249,115,22,1)' : 'rgba(255,255,255,0.48)';
-          btn.style.borderColor = active ? 'rgba(249,115,22,0.3)' : 'transparent';
+          btn.style.background = active ? 'linear-gradient(135deg,rgba(249,115,22,0.95),rgba(34,211,238,0.74))' : 'transparent';
+          btn.style.color = active ? '#09090b' : 'rgba(255,255,255,0.58)';
+          btn.style.boxShadow = active ? '0 10px 26px rgba(249,115,22,0.20)' : 'none';
         });
       });
       return t;
@@ -488,7 +551,7 @@
 
     var body = document.createElement('div');
     body.id = '__iso_fbg_body__';
-    body.setAttribute('style', 'padding:20px 22px;');
+    body.setAttribute('style', 'padding:20px 22px 22px;');
 
     var imgInput = document.createElement('input');
     imgInput.type = 'file';
@@ -515,11 +578,18 @@
     vidInput.onchange = function () {
       var file = vidInput.files && vidInput.files[0];
       if (!file) return;
-      idbPut(CUSTOM_KEY, mediaRecord('video', file)).catch(function () {});
       var url = URL.createObjectURL(file);
-      closeModal();
-      applyBackground(url, true, true);
-      toast('Video background applied.');
+      toast('Checking video length...');
+      assertVideoDuration(url).then(function () {
+        idbPut(CUSTOM_KEY, mediaRecord('video', file)).catch(function () {});
+        closeModal();
+        applyBackground(url, true, true);
+        toast('Video background applied muted and looping.');
+      }).catch(function (err) {
+        try { URL.revokeObjectURL(url); } catch (e) {}
+        toast(err && err.message ? err.message : 'Use a video under 60 seconds.', 'error');
+        vidInput.value = '';
+      });
     };
 
     var urlInput = document.createElement('input');
@@ -527,14 +597,14 @@
     urlInput.placeholder = 'https://example.com/wallpaper.jpg';
     urlInput.id = '__iso_url_input__';
     urlInput.setAttribute('style', [
-      'width:100%', 'box-sizing:border-box', 'padding:10px 13px',
-      'border-radius:10px', 'background:rgba(255,255,255,0.06)',
-      'border:1px solid rgba(255,255,255,0.12)', 'color:rgba(255,255,255,0.9)',
+      'width:100%', 'box-sizing:border-box', 'padding:12px 14px',
+      'border-radius:16px', 'background:rgba(255,255,255,0.07)',
+      'border:1px solid rgba(255,255,255,0.14)', 'color:rgba(255,255,255,0.92)',
       'font-size:13px', 'outline:none', 'transition:border-color 0.2s',
       'margin-top:14px',
     ].join(';'));
-    urlInput.onfocus = function () { urlInput.style.borderColor = 'rgba(249,115,22,0.5)'; };
-    urlInput.onblur = function () { urlInput.style.borderColor = 'rgba(255,255,255,0.12)'; };
+    urlInput.onfocus = function () { urlInput.style.borderColor = 'rgba(34,211,238,0.55)'; };
+    urlInput.onblur = function () { urlInput.style.borderColor = 'rgba(255,255,255,0.14)'; };
 
     function applyImageUrl() {
       var url = urlInput.value.trim();
@@ -551,10 +621,15 @@
       var url = urlInput.value.trim();
       if (!url) { toast('Enter a video URL first.', 'error'); return; }
       if (!/^https?:\/\//i.test(url)) { toast('Use an http or https video URL.', 'error'); return; }
-      idbPut(CUSTOM_KEY, { type: 'url', kind: 'video', url: url, savedAt: new Date().toISOString() }).catch(function () {});
-      closeModal();
-      applyBackground(url, true, false);
-      toast('Video URL applied.');
+      toast('Checking video length...');
+      assertVideoDuration(url).then(function () {
+        idbPut(CUSTOM_KEY, { type: 'url', kind: 'video', url: url, savedAt: new Date().toISOString() }).catch(function () {});
+        closeModal();
+        applyBackground(url, true, false);
+        toast('Video URL applied muted and looping.');
+      }).catch(function (err) {
+        toast(err && err.message ? err.message : 'Use a video URL under 60 seconds.', 'error');
+      });
     }
 
     urlInput.onkeydown = function (event) {
@@ -567,7 +642,7 @@
       b.innerHTML = '';
 
       if (_activeTab === 'image') {
-        var importBtn = mkActionBtn('Choose image from device', 'rgba(249,115,22,0.88)', '#fff');
+        var importBtn = mkActionBtn('Choose image from device', 'linear-gradient(135deg,#f97316,#facc15)', '#111827');
         importBtn.addEventListener('click', function () { imgInput.click(); });
         b.appendChild(importBtn);
 
@@ -575,33 +650,33 @@
         urlInput.placeholder = 'https://example.com/wallpaper.jpg';
         b.appendChild(urlInput);
 
-        var applyBtn = mkActionBtn('Apply image URL', 'rgba(249,115,22,1)', '#fff');
+        var applyBtn = mkActionBtn('Apply image URL', 'linear-gradient(135deg,#f97316,#22d3ee)', '#061018');
         applyBtn.style.marginTop = '10px';
         applyBtn.addEventListener('click', applyImageUrl);
         b.appendChild(applyBtn);
       } else {
-        var vidBtn = mkActionBtn('Choose video from device', 'rgba(99,102,241,0.88)', '#fff');
+        var vidBtn = mkActionBtn('Choose video from device', 'linear-gradient(135deg,#22d3ee,#6366f1)', '#fff');
         vidBtn.addEventListener('click', function () { vidInput.click(); });
         b.appendChild(vidBtn);
 
         var note = document.createElement('p');
-        note.textContent = 'Supported: MP4, WebM, MOV, MKV. The video loops muted behind the Focus screen.';
-        note.style.cssText = 'color:rgba(255,255,255,0.42);font-size:11.5px;margin:12px 0 0;line-height:1.5;';
+        note.textContent = 'Supported: MP4, WebM, MOV, MKV. Max 60 seconds. Playback is always muted and looped.';
+        note.style.cssText = 'color:rgba(255,255,255,0.52);font-size:12px;margin:12px 0 0;line-height:1.5;padding:10px 12px;border:1px solid rgba(34,211,238,0.18);border-radius:14px;background:rgba(34,211,238,0.07);';
         b.appendChild(note);
 
         appendDivider(b, 'or URL');
         urlInput.placeholder = 'https://example.com/loop.mp4';
         b.appendChild(urlInput);
 
-        var vidApply = mkActionBtn('Apply video URL', 'rgba(99,102,241,1)', '#fff');
+        var vidApply = mkActionBtn('Apply video URL', 'linear-gradient(135deg,#6366f1,#22d3ee)', '#fff');
         vidApply.style.marginTop = '10px';
         vidApply.addEventListener('click', applyVideoUrl);
         b.appendChild(vidApply);
       }
 
       var blurNote = document.createElement('p');
-      blurNote.textContent = 'Blur uses the value from Settings > Focus Background.';
-      blurNote.style.cssText = 'color:rgba(255,255,255,0.36);font-size:11.5px;margin:14px 0 0;line-height:1.5;';
+      blurNote.textContent = 'Blur follows Settings > Focus Background.';
+      blurNote.style.cssText = 'color:rgba(255,255,255,0.42);font-size:11.5px;margin:14px 0 0;line-height:1.5;text-align:center;';
       b.appendChild(blurNote);
 
       var clearBtn = document.createElement('button');
@@ -669,14 +744,14 @@
     b.textContent = label;
     b.setAttribute('style', [
       'display:flex', 'align-items:center', 'justify-content:center',
-      'width:100%', 'padding:12px 18px', 'border-radius:12px',
-      'font-size:14px', 'font-weight:700', 'cursor:pointer',
+      'width:100%', 'padding:13px 18px', 'border-radius:16px',
+      'font-size:14px', 'font-weight:850', 'letter-spacing:-0.01em', 'cursor:pointer',
       'background:' + bg, 'color:' + color, 'border:none',
-      'box-shadow:0 4px 16px rgba(0,0,0,0.3)',
-      'transition:opacity 0.15s,transform 0.15s',
+      'box-shadow:0 14px 36px rgba(0,0,0,0.32),inset 0 1px 0 rgba(255,255,255,0.20)',
+      'transition:opacity 0.15s,transform 0.15s,filter 0.15s',
     ].join(';'));
-    b.onmouseenter = function () { b.style.opacity = '0.9'; b.style.transform = 'translateY(-1px)'; };
-    b.onmouseleave = function () { b.style.opacity = '1'; b.style.transform = 'translateY(0)'; };
+    b.onmouseenter = function () { b.style.opacity = '0.94'; b.style.transform = 'translateY(-1px)'; b.style.filter = 'saturate(1.1)'; };
+    b.onmouseleave = function () { b.style.opacity = '1'; b.style.transform = 'translateY(0)'; b.style.filter = 'none'; };
     return b;
   }
 

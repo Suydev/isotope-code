@@ -632,6 +632,17 @@ function buildUsernameAuthScript() {
     return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0') + ':' + str.length;
   }
 
+  async function hashBackupData(backupText) {
+    try {
+      var normalizer = window.IsotopeBackupNormalizer || null;
+      if (normalizer && typeof normalizer.normalizeAnyBackup === 'function' && typeof normalizer.getBackupData === 'function') {
+        var normalized = normalizer.normalizeAnyBackup(backupText || '{}');
+        return await hashText(stableStringify(normalizer.getBackupData(normalized)));
+      }
+    } catch(e) {}
+    return await hashText(backupText);
+  }
+
   function yieldToBrowser() {
     return new Promise(function(resolve) {
       if (typeof requestIdleCallback === 'function') requestIdleCallback(function(){ resolve(); }, { timeout: 250 });
@@ -916,13 +927,43 @@ function buildUsernameAuthScript() {
     var text = String(backupJson || '');
     var bytes = text.length;
     var hash = options.hash || await hashText(text);
+    var dataHash = options.dataHash || await hashBackupData(text);
     var meta = readSyncMetadata();
+    if (!options.force && meta.last_uploaded_data_hash === dataHash) {
+      writeSyncMetadata({
+        last_sync_status: 'synced',
+        last_error: null,
+        last_backup_hash: meta.last_backup_hash || hash,
+        last_data_hash: dataHash,
+        last_snapshot_at: meta.last_snapshot_at || new Date().toISOString(),
+        pending_count: 0
+      });
+      return { ok: true, skipped: true, reason: 'unchanged_data', bytes: bytes, hash: hash, data_hash: dataHash };
+    }
     try {
       var normalizer = window.IsotopeBackupNormalizer || null;
+      var normalized = null;
+      var best = null;
       if (normalizer && typeof normalizer.normalizeAnyBackup === 'function' && typeof normalizer.isBackupEmpty === 'function') {
-        var normalized = normalizer.normalizeAnyBackup(text || '{}');
+        normalized = normalizer.normalizeAnyBackup(text || '{}');
+      }
+      best = await authedJson('/__auth/backup/best', { method: 'GET', timeoutMs: 30000 });
+      if (!options.force && best && best.selected && /\/backups\/latest\.json$/.test(String(best.selected.path || '')) && best.selected.data_hash === dataHash) {
+        writeSyncMetadata({
+          last_sync_status: 'synced',
+          last_error: null,
+          last_backup_hash: best.selected.hash || hash,
+          last_uploaded_hash: best.selected.hash || hash,
+          last_uploaded_data_hash: dataHash,
+          last_data_hash: dataHash,
+          last_uploaded_bytes: bytes,
+          last_snapshot_at: best.selected.exported_at || best.selected.updated_at || meta.last_snapshot_at || new Date().toISOString(),
+          pending_count: 0
+        });
+        return { ok: true, skipped: true, reason: 'remote_canonical_unchanged', bytes: bytes, hash: best.selected.hash || hash, data_hash: dataHash, selected_backup: best.selected };
+      }
+      if (normalized && normalizer && typeof normalizer.isBackupEmpty === 'function') {
         if (normalizer.isBackupEmpty(normalized)) {
-          var best = await authedJson('/__auth/backup/best', { method: 'GET', timeoutMs: 30000 });
           if (best && best.selected && best.selected.rich === true && best.selected.empty !== true) {
             var blocked = new Error('Cloud has richer backup. Restore it before uploading this empty device.');
             blocked.__code = 'BLOCKED_EMPTY_OVERWRITE';
@@ -933,17 +974,18 @@ function buildUsernameAuthScript() {
         }
       }
     } catch(guardErr) {
-      if (isEmptyOverwriteBlocked(guardErr) || isAuthError(guardErr) || isPermissionError(guardErr)) throw guardErr;
+      throw guardErr;
     }
     if (!options.force && meta.last_uploaded_hash === hash) {
       writeSyncMetadata({
         last_sync_status: 'synced',
         last_error: null,
         last_backup_hash: hash,
+        last_data_hash: dataHash,
         last_snapshot_at: meta.last_snapshot_at || new Date().toISOString(),
         pending_count: 0
       });
-      return { ok: true, skipped: true, reason: 'unchanged', bytes: bytes, hash: hash };
+      return { ok: true, skipped: true, reason: 'unchanged', bytes: bytes, hash: hash, data_hash: dataHash };
     }
     var d = await authedJson('/__auth/backup', {
       method: 'POST',
@@ -956,6 +998,8 @@ function buildUsernameAuthScript() {
       last_sync_status: 'synced',
       last_backup_hash: hash,
       last_uploaded_hash: hash,
+      last_uploaded_data_hash: d.data_hash || dataHash,
+      last_data_hash: d.data_hash || dataHash,
       last_uploaded_bytes: bytes,
       last_snapshot_at: snapshotAt,
       pending_count: 0,
@@ -965,6 +1009,7 @@ function buildUsernameAuthScript() {
       ok: true,
       bytes: bytes,
       hash: d.hash || hash,
+      data_hash: d.data_hash || dataHash,
       export_storage: d.export_storage || null,
       snapshot_storage: d.snapshot_storage || null,
       canonical_path: d.path || d.latest_path || null,
@@ -1170,7 +1215,7 @@ function buildUsernameAuthScript() {
         var backupJson = await buildLocal();
         backupJson = String(backupJson || '');
         bytes = backupJson.length;
-        hash = await hashText(backupJson);
+        hash = await hashBackupData(backupJson);
 
         var beforeCounts = await countLocal(backupJson);
         var emptyLocal = await localIsEmpty(backupJson);
@@ -1213,7 +1258,7 @@ function buildUsernameAuthScript() {
           backupJson = await buildLocal();
           backupJson = String(backupJson || '');
           bytes = backupJson.length;
-          hash = await hashText(backupJson);
+          hash = await hashBackupData(backupJson);
         }
 
         writeSyncMetadata({ last_sync_status: 'uploading_local', last_error: null });
@@ -3903,6 +3948,14 @@ function compactObject(obj) {
   return out;
 }
 
+function stableJsonStringify(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(stableJsonStringify).join(',') + ']';
+  return '{' + Object.keys(value).sort().map((key) => (
+    JSON.stringify(key) + ':' + stableJsonStringify(value[key])
+  )).join(',') + '}';
+}
+
 function profileLegacyOnboarding(profileData) {
   const done = profileData?.isOnboarded === true || profileData?.onboarding_completed === true;
   return {
@@ -3911,6 +3964,14 @@ function profileLegacyOnboarding(profileData) {
       ? (profileData?.onboardingCompletedAt || profileData?.onboarding_completed_at || new Date().toISOString())
       : null,
   };
+}
+
+function publicAvatarUrlFromPath(avatarPath) {
+  const pathValue = String(avatarPath || '').trim();
+  if (!pathValue) return null;
+  if (/^https?:\/\//i.test(pathValue)) return pathValue;
+  const safePath = pathValue.split('/').map((part) => encodeURIComponent(part)).join('/');
+  return `${SUPA_URL.replace(/\/+$/, '')}/storage/v1/object/public/avatars/${safePath}`;
 }
 
 async function supaRestAsUser(method, restPath, userJwt, bodyObj, extraHeaders = {}) {
@@ -4596,17 +4657,35 @@ async function fetchUserProfileBundle(userId, userJwt) {
   }
 
   const isOnboarded = onboardingData.completed === true;
+  const avatarPath = profileData.avatar_path || profileData.avatarPath || null;
+  const avatarUrl = [
+    profileData.avatar,
+    profileData.avatar_url,
+    profileData.avatarUrl,
+    userData.avatar_url,
+    publicAvatarUrlFromPath(avatarPath),
+  ].find((value) => typeof value === 'string' && value.trim()) || null;
+  const normalizedProfileData = {
+    ...profileData,
+    ...(avatarUrl ? { avatar: avatarUrl, avatar_url: avatarUrl } : {}),
+    ...(avatarPath ? { avatar_path: avatarPath } : {}),
+  };
+  const normalizedUserData = {
+    ...userData,
+    ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+  };
   return {
-    userData,
-    profileData,
+    userData: normalizedUserData,
+    profileData: normalizedProfileData,
     profileUpdatedAt: profileRow?.updated_at || null,
     onboardingData,
     profile: {
-      ...userData,
-      ...profileData,
+      ...normalizedUserData,
+      ...normalizedProfileData,
+      ...(avatarUrl ? { avatar: avatarUrl, avatar_url: avatarUrl } : {}),
       isOnboarded,
       onboarding_completed: isOnboarded,
-      onboarding_completed_at: onboardingData.completed_at || profileData.onboardingCompletedAt || null,
+      onboarding_completed_at: onboardingData.completed_at || normalizedProfileData.onboardingCompletedAt || null,
     },
   };
 }
@@ -5905,10 +5984,37 @@ const server = http.createServer((req, res) => {
         manager.assertNoEmptyOverwrite(localNormalized, best);
 
         const rawHash = crypto.createHash('sha256').update(String(backupJson || '')).digest('hex');
+        const localDataHash = crypto.createHash('sha256')
+          .update(stableJsonStringify(manager.getBackupData(localNormalized)))
+          .digest('hex');
+        const canonicalCandidate = (best.candidates_internal || []).find((candidate) => candidate.path === `${userId}/backups/latest.json`);
+        if (canonicalCandidate?.exists && canonicalCandidate?.valid && canonicalCandidate.data_hash === localDataHash) {
+          sendJson(res, 200, {
+            ok: true,
+            code: 'UNCHANGED',
+            state: 'synced',
+            message: 'Canonical backup already matches local data.',
+            skipped: true,
+            hash: canonicalCandidate.hash,
+            data_hash: localDataHash,
+            size_bytes: canonicalCandidate.size_bytes,
+            collection_counts: canonicalCandidate.collection_counts,
+            path: canonicalCandidate.path,
+            latest_path: canonicalCandidate.path,
+            cloud_snapshot_path: `${userId}/cloud-snapshot/latest.json`,
+            selected_backup: best.selected,
+            snapshot_storage: {
+              bucket: 'user-content',
+              latest_path: `${userId}/cloud-snapshot/latest.json`,
+              skipped: true,
+            },
+          });
+          return;
+        }
         let backupToWrite = localNormalized;
         let state = 'uploading_local';
         let conflict = null;
-        if (localNormalized.rich && best.selected_internal?.rich && best.selected_internal.hash !== rawHash) {
+        if (localNormalized.rich && best.selected_internal?.rich && best.selected_internal.data_hash !== localDataHash) {
           const mergedData = mergeNormalizedBackupData(localNormalized, best.selected_internal.normalized);
           backupToWrite = normalizeToCanonicalBackupPayload({ data: mergedData }, {
             exportedAt: new Date().toISOString(),
@@ -5947,6 +6053,7 @@ const server = http.createServer((req, res) => {
           history_path: written.history_path,
           cloud_snapshot_path: written.cloud_snapshot_path,
           hash: written.hash,
+          data_hash: written.data_hash || localDataHash,
           size_bytes: written.size_bytes,
           collection_counts: written.collection_counts,
           synced_at: syncedAt,

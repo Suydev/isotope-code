@@ -20,6 +20,18 @@ function safeJson(value) {
   return JSON.stringify(value, null, 2);
 }
 
+function stableStringify(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(stableStringify).join(',') + ']';
+  return '{' + Object.keys(value).sort().map((key) => (
+    JSON.stringify(key) + ':' + stableStringify(value[key])
+  )).join(',') + '}';
+}
+
+function dataHash(normalizedOrRaw) {
+  return sha256(stableStringify(getBackupData(normalizedOrRaw || {})));
+}
+
 function storageMissing(res) {
   const detail = Buffer.isBuffer(res?.body) ? res.body.toString('utf8') : String(res?.body || '');
   return res?.status === 404 || (res?.status === 400 && /not found|does not exist|no such/i.test(detail));
@@ -161,6 +173,7 @@ export function createBackupManager(deps) {
       valid: false,
       kind: candidateKindFromPath(path),
       hash: null,
+      data_hash: null,
       size_bytes: 0,
       exported_at: null,
       updated_at: meta.updated_at || null,
@@ -188,6 +201,7 @@ export function createBackupManager(deps) {
         valid: normalized.valid,
         kind: candidateKindFromPath(path),
         hash,
+        data_hash: dataHash(normalized),
         size_bytes: Buffer.byteLength(rawText),
         exported_at: normalized.exported_at,
         updated_at: meta.updated_at || normalized.updated_at || null,
@@ -332,6 +346,7 @@ export function createBackupManager(deps) {
     const exportedAt = options.exportedAt || normalized.exported_at || new Date().toISOString();
     const canonicalJson = toCanonicalBackupJson(normalized, { exportedAt, appVersion });
     const canonicalHash = sha256(canonicalJson);
+    const canonicalDataHash = dataHash(normalized);
     const latestPath = `${userId}/backups/latest.json`;
     const safeStamp = exportedAt.replace(/[:.]/g, '-');
     const historyPath = `${userId}/backups/history/${safeStamp}-${canonicalHash.slice(0, 16)}.json`;
@@ -374,6 +389,7 @@ export function createBackupManager(deps) {
       history_status,
       cloud_snapshot_path: mirrorPath,
       hash: canonicalHash,
+      data_hash: canonicalDataHash,
       cloud_snapshot_hash: mirrorHash,
       size_bytes: Buffer.byteLength(canonicalJson),
       cloud_snapshot_size_bytes: Buffer.byteLength(mirrorJson),
