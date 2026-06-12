@@ -3,236 +3,163 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>IsotopeAI Setup Guide</title>
-  <meta name="description" content="Simple install and sync guide for IsotopeAI on Android, Windows, macOS, and Linux.">
-  <style>
-    :root {
-      --ink: #172016;
-      --muted: #5d6b55;
-      --paper: #fbf7e8;
-      --card: #fffdf4;
-      --line: #ded6bd;
-      --green: #314f28;
-      --lime: #d8ff71;
-      --blue: #173f5f;
-      --red: #8f2f20;
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at 10% 10%, #e4ff9b 0 10rem, transparent 24rem),
-        radial-gradient(circle at 92% 8%, #b8d9ff 0 8rem, transparent 22rem),
-        linear-gradient(135deg, #fbf7e8, #f5efd8 52%, #eef6dc);
-      font-family: "Trebuchet MS", "Aptos", "Segoe UI", sans-serif;
-      line-height: 1.55;
-    }
-    a { color: var(--blue); font-weight: 800; }
-    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
-    .wrap { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
-    header { padding: 32px 0 18px; }
-    nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 42px;
-    }
-    .brand { font-size: 20px; font-weight: 900; letter-spacing: -0.04em; }
-    .links { display: flex; flex-wrap: wrap; gap: 10px; }
-    .links a, .pill {
-      text-decoration: none;
-      border: 1px solid var(--line);
-      background: #ffffff99;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 14px;
-    }
-    .hero {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 24px;
-      align-items: stretch;
-    }
-    .panel {
-      background: #fffdf0cc;
-      border: 1px solid var(--line);
-      border-radius: 28px;
-      box-shadow: 0 24px 80px #2d250f24;
-      padding: 28px;
-    }
-    h1 {
-      font-size: clamp(44px, 8vw, 92px);
-      line-height: 0.9;
-      margin: 0 0 18px;
-      letter-spacing: -0.075em;
-      max-width: 780px;
-    }
-    h2 { font-size: clamp(28px, 4vw, 46px); line-height: 1; margin: 0 0 16px; letter-spacing: -0.05em; }
-    h3 { margin: 0 0 8px; font-size: 20px; }
-    p { color: var(--muted); margin: 0 0 14px; }
-    .lead { font-size: 20px; max-width: 740px; color: #384331; }
-    .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 44px;
-      padding: 11px 16px;
-      border-radius: 14px;
-      border: 1px solid #172016;
-      background: var(--ink);
-      color: white;
-      text-decoration: none;
-      font-weight: 900;
-    }
-    .btn.alt { background: var(--lime); color: var(--ink); }
-    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 24px 0; }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 18px;
-    }
-    pre {
-      overflow: auto;
-      background: #11180f;
-      color: #e9ffd1;
-      border-radius: 16px;
-      padding: 16px;
-      border: 1px solid #2e3a29;
-      margin: 12px 0 0;
-      font-size: 13px;
-    }
-    section { padding: 32px 0; }
-    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-    .warn { border-color: #e5b5a8; background: #fff3ee; }
-    .ok { border-color: #b9d995; background: #f6ffe8; }
-    footer { padding: 36px 0 56px; color: var(--muted); }
-    @media (max-width: 860px) {
-      .hero, .two, .grid { grid-template-columns: 1fr; }
-      .panel { padding: 22px; border-radius: 22px; }
-    }
-  </style>
+  <title>IsotopeAI Docs</title>
+  <meta name="description" content="Install IsotopeAI, restore cloud backups safely, and run it on Android, Windows, macOS, or Linux.">
+  <link rel="icon" href="./logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./assets/site.css">
 </head>
 <body>
-  <header class="wrap">
-    <nav>
-      <div class="brand">IsotopeAI</div>
-      <div class="links">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-shell">
+    <nav class="topbar" aria-label="Main navigation">
+      <a class="brand" href="./">
+        <img class="brand-logo" src="./logo.svg" alt="" width="38" height="38">
+        <span>IsotopeAI</span>
+      </a>
+      <div class="nav-links">
+        <a href="./install.html">Install</a>
+        <a href="./sync.html">Sync</a>
+        <a href="./admin.html">Admin</a>
+        <a href="./gallery.html">Screenshots</a>
+        <a href="./motion.html">Motion</a>
         <a href="https://github.com/Suydev/isotope-code">GitHub</a>
-        <a href="https://github.com/Suydev/isotope-code/blob/main/README.md">README</a>
-        <a href="./sync-system.md">Sync</a>
-        <a href="./storage-backup-system.md">Backups</a>
-        <a href="./supabase-connection-map.md">Supabase Map</a>
       </div>
     </nav>
-    <div class="hero">
-      <div class="panel">
-        <span class="pill">Local-first study app v3.3.8</span>
-        <h1>Run your study system on your own device.</h1>
-        <p class="lead">Install IsotopeAI on Android, Windows, macOS, or Linux. Use Supabase when you want login, backup, restore, and community features.</p>
-        <div class="cta">
-          <a class="btn" href="#install">Install now</a>
-          <a class="btn alt" href="https://github.com/Suydev/isotope-code/archive/refs/heads/main.zip">Download ZIP</a>
-        </div>
-      </div>
-      <div class="panel ok">
-        <h2>Safe sync rule</h2>
-        <p>If this device is empty and cloud has study data, IsotopeAI blocks upload and restores cloud first.</p>
-        <pre>BLOCKED_EMPTY_OVERWRITE</pre>
-        <p style="margin-top:14px">This protects tasks, sessions, subjects, habits, exams, tests, and mock tests.</p>
-      </div>
-    </div>
   </header>
 
-  <main class="wrap">
-    <section id="install">
-      <h2>Install</h2>
-      <div class="grid">
-        <div class="card">
-          <h3>Android</h3>
-          <p>Use Termux from F-Droid or GitHub.</p>
+  <main id="main" class="site-shell">
+    <section class="hero">
+      <div class="hero-copy reveal">
+        <p class="eyebrow"><span class="dot"></span> Local-first study app v3.3.8</p>
+        <h1>Focus. Track. Restore safely.</h1>
+        <p class="lead">IsotopeAI runs on your own device. It helps with focus sessions, tasks, subjects, habits, exams, tests, and study stats. Supabase adds login, backup, restore, avatars, and groups.</p>
+        <div class="cta-row">
+          <a class="button" href="./install.html">Install on your device</a>
+          <a class="button secondary" href="./sync.html">Read safe sync docs</a>
+        </div>
+        <div class="ticker" aria-label="Feature list">
+          <div class="ticker-track">
+            <span>Focus timer</span>
+            <span>Task board</span>
+            <span>Subject progress</span>
+            <span>Cloud restore</span>
+            <span>Backup history</span>
+            <span>Admin proof</span>
+            <span>Termux support</span>
+            <span>Windows scripts</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="hero-stage glass-card reveal" data-tilt>
+        <div class="hero-shot">
+          <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png" alt="IsotopeAI landing page with floating study cards">
+        </div>
+        <div class="float-card one">
+          <strong>BLOCK</strong>
+          <span>empty overwrite guard</span>
+        </div>
+        <div class="float-card two">
+          <strong>10+</strong>
+          <span>study screens</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section scroll-pop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> Start here</p>
+          <h2>Pick one path.</h2>
+        </div>
+        <p>Each page is short and direct. Use install first, then Supabase, then browser proof if you want to verify real cloud sync.</p>
+      </div>
+      <div class="grid stagger">
+        <article class="doc-card reveal">
+          <span class="number">1</span>
+          <h3><a href="./install.html">Install guide</a></h3>
+          <p>Android Termux, Linux, macOS, and Windows commands with low-friction setup steps.</p>
+        </article>
+        <article class="doc-card reveal">
+          <span class="number">2</span>
+          <h3><a href="./sync.html">Sync and backup</a></h3>
+          <p>Explains canonical backup paths, restore-first behavior, and why empty uploads are blocked.</p>
+        </article>
+        <article class="doc-card reveal">
+          <span class="number">3</span>
+          <h3><a href="./admin.html">Admin and proof</a></h3>
+          <p>Open verify, browser proof, storage repair, and logs without exposing private keys.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section scroll-pop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> Real app screens</p>
+          <h2>Dark, fast, study-first.</h2>
+        </div>
+        <p>The gallery uses the screenshots in this repo. They show the actual app pages, not mock marketing art.</p>
+      </div>
+      <div class="gallery-rail">
+        <figure class="shot-card reveal">
+          <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Focus timer screen">
+          <figcaption>Focus timer with blur background</figcaption>
+        </figure>
+        <figure class="shot-card reveal">
+          <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Task board screen">
+          <figcaption>Task board with status lanes</figcaption>
+        </figure>
+        <figure class="shot-card reveal">
+          <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Study screen">
+          <figcaption>Study tools and subjects</figcaption>
+        </figure>
+        <figure class="shot-card reveal">
+          <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-47-09-37_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Progress screen">
+          <figcaption>Progress and review pages</figcaption>
+        </figure>
+      </div>
+      <div class="cta-row">
+        <a class="button secondary" href="./gallery.html">Open full screenshot gallery</a>
+      </div>
+    </section>
+
+    <section class="section scroll-pop">
+      <div class="grid two">
+        <article class="command-card reveal">
+          <h2>One command on Android.</h2>
+          <p>Use Termux from F-Droid or GitHub. Do not use the old Play Store build.</p>
           <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)</pre>
-        </div>
-        <div class="card">
-          <h3>Linux</h3>
-          <p>Clone, set up, start.</p>
-          <pre>git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-bash setup.sh
-isotope start</pre>
-        </div>
-        <div class="card">
-          <h3>macOS</h3>
-          <p>Install Git and Node.js first.</p>
-          <pre>git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-bash setup.sh
-isotope start</pre>
-        </div>
-        <div class="card">
-          <h3>Windows</h3>
-          <p>Use PowerShell.</p>
-          <pre>git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-.\install.ps1</pre>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="two">
-        <div class="card">
-          <h2>Open the app</h2>
-          <p>After setup, start the server and open the local address.</p>
-          <pre>isotope start</pre>
-          <pre>http://127.0.0.1:3000</pre>
-        </div>
-        <div class="card">
-          <h2>Fix problems</h2>
-          <p>These commands work after setup.</p>
-          <pre>isotope doctor
-isotope logs
-isotope repair
-isotope update</pre>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <h2>Supabase</h2>
-      <div class="two">
-        <div class="card">
-          <h3>Use Supabase for cloud features</h3>
-          <p>Create a free Supabase project. Run <code>isotope-complete.sql</code> in SQL Editor. Put the project URL and anon key in <code>.env</code>.</p>
-          <pre>SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_ANON_KEY=your-anon-public-key</pre>
-        </div>
-        <div class="card warn">
-          <h3>Do not leak secrets</h3>
-          <p>Never commit <code>.env</code>. Never put the service-role key in frontend code. Use service-role only on your own server for admin repair.</p>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <h2>Backup paths</h2>
-      <div class="card">
-        <p>Main backup, history, and mirror paths:</p>
-        <pre>{userId}/backups/latest.json
-{userId}/backups/history/{timestamp}-{hash}.json
+        </article>
+        <article class="command-card reveal">
+          <h2>One backup rule.</h2>
+          <p>If this device has no study data and cloud has a rich backup, upload is blocked until restore succeeds.</p>
+          <pre>BLOCKED_EMPTY_OVERWRITE
+{userId}/backups/latest.json
 {userId}/cloud-snapshot/latest.json</pre>
-        <p>Old import/export folders are still read so old users can restore safely.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section scroll-pop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> Proof, not claims</p>
+          <h2>What the docs cover.</h2>
+        </div>
+      </div>
+      <div class="proof-strip">
+        <div class="proof-pill reveal"><strong>4</strong><span>device setup paths</span></div>
+        <div class="proof-pill reveal"><strong>3</strong><span>canonical backup paths</span></div>
+        <div class="proof-pill reveal"><strong>6</strong><span>browser proof checks</span></div>
+        <div class="proof-pill reveal"><strong>0</strong><span>frontend service keys</span></div>
       </div>
     </section>
   </main>
 
-  <footer class="wrap">
-    <p>Need the full file list and commands? Read the <a href="https://github.com/Suydev/isotope-code/blob/main/README.md">README on GitHub</a>.</p>
+  <footer class="footer site-shell">
+    <p>Repository: <a href="https://github.com/Suydev/isotope-code">Suydev/isotope-code</a>. Full README: <a href="https://github.com/Suydev/isotope-code/blob/main/README.md">GitHub README</a>.</p>
   </footer>
+  <script src="./assets/site.js" defer></script>
 </body>
 </html>

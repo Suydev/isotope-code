@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>IsotopeAI Admin and Browser Proof</title>
+  <meta name="description" content="Use IsotopeAI admin pages safely for browser proof, sync repair, storage cleanup, and diagnostics.">
+  <link rel="icon" href="./logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-shell">
+    <nav class="topbar" aria-label="Main navigation">
+      <a class="brand" href="./"><img class="brand-logo" src="./logo.svg" alt="" width="38" height="38"><span>IsotopeAI</span></a>
+      <div class="nav-links">
+        <a href="./install.html">Install</a>
+        <a href="./sync.html">Sync</a>
+        <a href="./admin.html">Admin</a>
+        <a href="./gallery.html">Screenshots</a>
+        <a href="./motion.html">Motion</a>
+        <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="site-shell">
+    <section class="hero">
+      <div class="hero-copy reveal">
+        <p class="eyebrow"><span class="dot"></span> Owner tools</p>
+        <h1>Admin pages should prove things.</h1>
+        <p class="lead">Use admin mode only on your own machine. It can verify schema, run browser proof, inspect backups, preview cleanup, and repair one user backup state.</p>
+        <div class="cta-row">
+          <a class="button" href="#browser-proof">Browser proof</a>
+          <a class="button secondary" href="#safe-config">Safe config</a>
+        </div>
+      </div>
+      <aside class="glass-card hero-stage reveal" data-tilt>
+        <div class="hero-shot">
+          <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg" alt="Isotope app admin-style wide screen">
+        </div>
+        <div class="float-card one"><strong>NO</strong><span>secrets in browser</span></div>
+        <div class="float-card two"><strong>DRY</strong><span>preview before apply</span></div>
+      </aside>
+    </section>
+
+    <section id="safe-config" class="section scroll-pop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> Private .env only</p>
+          <h2>Enable admin mode.</h2>
+        </div>
+        <p>Do not commit these values. Do not place the service-role key in frontend code.</p>
+      </div>
+      <article class="command-card reveal">
+        <pre>ENABLE_ADMIN_MODE=true
+ADMIN_SECRET=&lt;long-random-secret&gt;
+ADMIN_EMAIL=&lt;your-email@example.com&gt;
+BROWSER_PROOF_EMAIL=&lt;your-email@example.com&gt;
+SUPABASE_SERVICE_ROLE_KEY=&lt;service-role-key&gt;</pre>
+      </article>
+    </section>
+
+    <section id="browser-proof" class="section scroll-pop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> Real browser check</p>
+          <h2>Open proof after admin unlock.</h2>
+        </div>
+        <p>The browser proof page starts a real browser run for onboarding, profile/settings, avatar, tour, study session, and sync status.</p>
+      </div>
+      <div class="grid two">
+        <article class="command-card reveal">
+          <h3>Open admin</h3>
+          <pre>http://127.0.0.1:3000/__admin</pre>
+        </article>
+        <article class="command-card reveal">
+          <h3>Open browser proof</h3>
+          <pre>http://127.0.0.1:3000/__admin/browser-proof</pre>
+        </article>
+      </div>
+    </section>
+
+    <section class="section scroll-pop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> Useful admin pages</p>
+          <h2>What each page is for.</h2>
+        </div>
+      </div>
+      <div class="grid">
+        <article class="doc-card reveal">
+          <span class="number">Verify</span>
+          <h3><code>/__admin/verify</code></h3>
+          <p>Checks schema, RPCs, storage buckets, auth guard behavior, and integration wiring.</p>
+        </article>
+        <article class="doc-card reveal">
+          <span class="number">Sync</span>
+          <h3><code>/__admin/sync</code></h3>
+          <p>Shows best backup, candidates, canonical path status, and repair actions.</p>
+        </article>
+        <article class="doc-card reveal">
+          <span class="number">Storage</span>
+          <h3><code>/__admin/storage</code></h3>
+          <p>Shows buckets, backup files, avatar duplicates, and cleanup preview/apply.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section scroll-pop">
+      <div class="timeline">
+        <div class="timeline-item reveal">
+          <div class="label">Rule</div>
+          <div><h3>Preview before destructive work</h3><p>Cleanup must show paths, sizes, hashes, keep/delete decisions, and bytes freed before apply.</p></div>
+        </div>
+        <div class="timeline-item reveal">
+          <div class="label">Rule</div>
+          <div><h3>Admin keys stay server-side</h3><p>The service-role key and PAT must never be written into HTML, bundled assets, localStorage, or logs.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer site-shell">
+    <p>More detail: <a href="https://github.com/Suydev/isotope-code/blob/main/ADMIN.md">ADMIN.md</a> and <a href="./supabase-connection-map.md">Supabase connection map</a>.</p>
+  </footer>
+  <script src="./assets/site.js" defer></script>
+</body>
+</html>

@@ -217,6 +217,14 @@ const REQUIRED_FILES = [
   'CHANGELOG.md',
   'TERMUX_WIDGET.md',
   'docs/index.html',
+  'docs/install.html',
+  'docs/sync.html',
+  'docs/admin.html',
+  'docs/gallery.html',
+  'docs/motion.html',
+  'docs/assets/site.css',
+  'docs/assets/site.js',
+  'docs/logo.svg',
   'scripts/capture-screenshots.mjs',
   'scripts/seed-demo-data.mjs',
   'scripts/validate-docs.mjs',
@@ -234,7 +242,15 @@ for (const f of REQUIRED_FILES) {
 info('Checking screenshots/...');
 const SCREENSHOT_DIR = join(ROOT, 'screenshots');
 if (existsSync(SCREENSHOT_DIR)) {
-  const files = readdirSync(SCREENSHOT_DIR).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
+  function collectImages(dir, prefix = '') {
+    return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const abs = join(dir, entry.name);
+      if (entry.isDirectory()) return collectImages(abs, rel);
+      return /\.(png|jpg|jpeg|webp)$/i.test(entry.name) ? [rel] : [];
+    });
+  }
+  const files = collectImages(SCREENSHOT_DIR);
   ok(`screenshots/ exists — ${files.length} image file(s)`);
   if (files.length === 0) {
     warn('screenshots/ is empty — run: npm run screenshots');

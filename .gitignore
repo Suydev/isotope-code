@@ -11,3 +11,6 @@ build/
 .isotope/logs/
 .isotope/tmp/
 artifacts/
+/screenshot
+/screenshot.zip
+/screenshots/*.zip

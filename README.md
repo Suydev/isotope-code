@@ -1,9 +1,35 @@
-# IsotopeAI
+<p align="center">
+  <img src="./logo.svg" alt="IsotopeAI logo" width="76" height="76">
+</p>
 
-IsotopeAI is a study app you run on your own device.
+<h1 align="center">IsotopeAI</h1>
 
-[![Version](https://img.shields.io/badge/version-3.3.8-314f28)](./CHANGELOG.md)
-[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-173f5f)](https://suydev.github.io/isotope-code/)
+<p align="center">
+  A study app you run on your own device.
+</p>
+
+<p align="center">
+  <a href="./CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-3.3.8-314f28"></a>
+  <a href="https://suydev.github.io/isotope-code/"><img alt="Docs" src="https://img.shields.io/badge/docs-animated%20GitHub%20Pages-8df31f"></a>
+</p>
+
+<p align="center">
+  <a href="https://suydev.github.io/isotope-code/">Animated docs</a>
+  ·
+  <a href="https://suydev.github.io/isotope-code/install.html">Install</a>
+  ·
+  <a href="https://suydev.github.io/isotope-code/sync.html">Sync safety</a>
+  ·
+  <a href="https://suydev.github.io/isotope-code/admin.html">Admin proof</a>
+  ·
+  <a href="https://suydev.github.io/isotope-code/gallery.html">Screenshots</a>
+</p>
+
+<p align="center">
+  <a href="https://suydev.github.io/isotope-code/gallery.html">
+    <img src="./screenshots/landingpage.png" alt="IsotopeAI landing page screenshot" width="860">
+  </a>
+</p>
 
 It includes:
 
@@ -15,7 +41,9 @@ It includes:
 
 Start here:
 
-- Web guide: https://suydev.github.io/isotope-code/
+- Animated web guide: https://suydev.github.io/isotope-code/
+- Install guide: https://suydev.github.io/isotope-code/install.html
+- Screenshot gallery: https://suydev.github.io/isotope-code/gallery.html
 - Admin guide: [ADMIN.md](./ADMIN.md)
 - Sync details: [docs/sync-system.md](./docs/sync-system.md)
 - Backup storage details: [docs/storage-backup-system.md](./docs/storage-backup-system.md)
@@ -199,8 +227,8 @@ Use it only on your own machine.
 
 ```env
 ENABLE_ADMIN_MODE=true
-ADMIN_SECRET=make-a-long-random-secret
-ADMIN_EMAIL=you@example.com
+ADMIN_SECRET=<long-random-secret>
+ADMIN_EMAIL=<your-email@example.com>
 ```
 
 Add `SUPABASE_SERVICE_ROLE_KEY` only in your private `.env` when you need admin repair tools.

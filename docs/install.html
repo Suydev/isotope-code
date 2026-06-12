@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Install IsotopeAI</title>
+  <meta name="description" content="Install IsotopeAI on Android Termux, Linux, macOS, and Windows.">
+  <link rel="icon" href="./logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-shell">
+    <nav class="topbar" aria-label="Main navigation">
+      <a class="brand" href="./"><img class="brand-logo" src="./logo.svg" alt="" width="38" height="38"><span>IsotopeAI</span></a>
+      <div class="nav-links">
+        <a href="./install.html">Install</a>
+        <a href="./sync.html">Sync</a>
+        <a href="./admin.html">Admin</a>
+        <a href="./gallery.html">Screenshots</a>
+        <a href="./motion.html">Motion</a>
+        <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="site-shell">
+    <section class="hero">
+      <div class="hero-copy reveal">
+        <p class="eyebrow"><span class="dot"></span> Low friction setup</p>
+        <h1>Install it on any main device.</h1>
+        <p class="lead">The app runs from a local Node server. You open it in your browser at <code>http://127.0.0.1:3000</code>. Supabase is optional for cloud features.</p>
+        <div class="cta-row">
+          <a class="button" href="#android">Android first</a>
+          <a class="button secondary" href="#desktop">Desktop setup</a>
+        </div>
+      </div>
+      <aside class="glass-card hero-stage reveal" data-tilt>
+        <div class="float-card one"><strong>3000</strong><span>local port</span></div>
+        <div class="float-card two"><strong>Node 18+</strong><span>required</span></div>
+        <div class="hero-shot">
+          <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Isotope dashboard">
+        </div>
+      </aside>
+    </section>
+
+    <section id="android" class="section scroll-pop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> Android</p>
+          <h2>Termux setup.</h2>
+        </div>
+        <p>Use Termux from F-Droid or GitHub. The old Play Store Termux is outdated and can break installs.</p>
+      </div>
+      <div class="grid two">
+        <article class="command-card reveal">
+          <h3>Install</h3>
+          <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)</pre>
+        </article>
+        <article class="command-card reveal">
+          <h3>Run</h3>
+          <pre>isotope start
+isotope open</pre>
+        </article>
+      </div>
+    </section>
+
+    <section id="desktop" class="section scroll-pop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> Desktop</p>
+          <h2>Windows, Linux, macOS.</h2>
+        </div>
+      </div>
+      <div class="grid">
+        <article class="command-card reveal">
+          <h3>Linux</h3>
+          <pre>git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+bash setup.sh
+isotope start</pre>
+        </article>
+        <article class="command-card reveal">
+          <h3>macOS</h3>
+          <pre>git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+bash setup.sh
+isotope start</pre>
+        </article>
+        <article class="command-card reveal">
+          <h3>Windows PowerShell</h3>
+          <pre>git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+.\install.ps1</pre>
+        </article>
+      </div>
+    </section>
+
+    <section class="section scroll-pop">
+      <div class="grid two">
+        <article class="doc-card reveal">
+          <span class="number">1</span>
+          <h3>After setup</h3>
+          <p>Open the app in the browser:</p>
+          <pre class="code">http://127.0.0.1:3000</pre>
+        </article>
+        <article class="doc-card reveal">
+          <span class="number">2</span>
+          <h3>If it fails</h3>
+          <p>Use doctor and logs before changing files.</p>
+          <pre class="code">isotope doctor
+isotope logs
+isotope repair</pre>
+        </article>
+      </div>
+    </section>
+
+    <section class="section scroll-pop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> Supabase</p>
+          <h2>Only add cloud when ready.</h2>
+        </div>
+        <p>Local features can run first. Add Supabase URL and anon key when you want login, sync, backup restore, avatars, and groups.</p>
+      </div>
+      <article class="command-card reveal">
+        <pre>SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-anon-public-key
+PORT=3000
+ENABLE_ADMIN_MODE=false</pre>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer site-shell">
+    <p>Next: <a href="./sync.html">read sync and backup safety</a>.</p>
+  </footer>
+  <script src="./assets/site.js" defer></script>
+</body>
+</html>

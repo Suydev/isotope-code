@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>IsotopeAI Sync and Backups</title>
+  <meta name="description" content="How IsotopeAI chooses, restores, and writes safe cloud backups.">
+  <link rel="icon" href="./logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-shell">
+    <nav class="topbar" aria-label="Main navigation">
+      <a class="brand" href="./"><img class="brand-logo" src="./logo.svg" alt="" width="38" height="38"><span>IsotopeAI</span></a>
+      <div class="nav-links">
+        <a href="./install.html">Install</a>
+        <a href="./sync.html">Sync</a>
+        <a href="./admin.html">Admin</a>
+        <a href="./gallery.html">Screenshots</a>
+        <a href="./motion.html">Motion</a>
+        <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="site-shell">
+    <section class="hero">
+      <div class="hero-copy reveal">
+        <p class="eyebrow"><span class="dot"></span> Data safety first</p>
+        <h1>Rich backup beats empty latest.</h1>
+        <p class="lead">Sync checks cloud first. If this device is empty but cloud has tasks, sessions, subjects, habits, exams, tests, or mock tests, IsotopeAI restores cloud before it uploads.</p>
+        <div class="cta-row">
+          <a class="button" href="#paths">Backup paths</a>
+          <a class="button secondary" href="./admin.html">Run browser proof</a>
+        </div>
+      </div>
+      <aside class="glass-card hero-stage reveal" data-tilt>
+        <div class="hero-shot">
+          <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Isotope analytics screen">
+        </div>
+        <div class="float-card one"><strong>SAFE</strong><span>restore first</span></div>
+        <div class="float-card two"><strong>HASH</strong><span>dedupe writes</span></div>
+      </aside>
+    </section>
+
+    <section id="paths" class="section scroll-pop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> Source of truth</p>
+          <h2>Canonical paths.</h2>
+        </div>
+        <p>New writes go to canonical backup paths. Old import/export folders are still read so older users can recover data.</p>
+      </div>
+      <div class="grid">
+        <article class="command-card reveal">
+          <h3>Main latest backup</h3>
+          <pre>{userId}/backups/latest.json</pre>
+        </article>
+        <article class="command-card reveal">
+          <h3>Backup history</h3>
+          <pre>{userId}/backups/history/{timestamp}-{hash}.json</pre>
+        </article>
+        <article class="command-card reveal">
+          <h3>Cloud mirror</h3>
+          <pre>{userId}/cloud-snapshot/latest.json</pre>
+        </article>
+      </div>
+    </section>
+
+    <section class="section scroll-pop">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> Restore rule</p>
+          <h2>Do not overwrite study data.</h2>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item reveal">
+          <div class="label">Step 1</div>
+          <div><h3>Count local data</h3><p>The app checks tasks, sessions, subjects, habits, daily logs, tests, exams, mock tests, and timer state.</p></div>
+        </div>
+        <div class="timeline-item reveal">
+          <div class="label">Step 2</div>
+          <div><h3>Choose best cloud backup</h3><p>A rich backup wins over a newer empty profile-only backup.</p></div>
+        </div>
+        <div class="timeline-item reveal">
+          <div class="label">Step 3</div>
+          <div><h3>Restore before upload</h3><p>Fresh browsers must download and apply cloud data before writing canonical latest.</p></div>
+        </div>
+        <div class="timeline-item reveal">
+          <div class="label">Blocked</div>
+          <div><h3><code>BLOCKED_EMPTY_OVERWRITE</code></h3><p>This code means cloud has richer data and the empty device is not allowed to replace it.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section scroll-pop">
+      <div class="grid two">
+        <article class="doc-card reveal">
+          <span class="number">Read</span>
+          <h3>Legacy paths</h3>
+          <p>These are read for compatibility and can be promoted if they are best.</p>
+          <pre class="code">{userId}/imports/latest.json
+{userId}/exports/latest.json
+{userId}/cloud-snapshot/latest.json</pre>
+        </article>
+        <article class="doc-card reveal">
+          <span class="number">Proof</span>
+          <h3>Scripts</h3>
+          <p>Use these from the repo root when you need proof.</p>
+          <pre class="code">node scripts/repair-user-backup.mjs --user &lt;id&gt; --dry-run
+node scripts/prove-new-browser-restore.mjs
+node scripts/validate-storage-cleanup.mjs --user &lt;id&gt; --dry-run</pre>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer site-shell">
+    <p>More detail: <a href="./sync-system.md">sync-system.md</a> and <a href="./storage-backup-system.md">storage-backup-system.md</a>.</p>
+  </footer>
+  <script src="./assets/site.js" defer></script>
+</body>
+</html>
