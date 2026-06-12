@@ -76,7 +76,6 @@ jobs:
             --exclude ".git/*" \
             --exclude "node_modules/*" \
             --exclude ".env" \
-            --exclude ".env.*" \
             --exclude ".isotope/*" \
             --exclude "artifacts/*" \
             --exclude "*.log" \
@@ -121,8 +120,8 @@ jobs:
             echo "❌ .env included in release"
             exit 1
           fi
-          if find "$TMPDIR" -maxdepth 1 -name '.env.*' | grep -q .; then
-            echo "❌ .env.* included in release"
+          if find "$TMPDIR" -maxdepth 1 -name '.env.*' ! -name '.env.example' | grep -q .; then
+            echo "❌ private .env.* included in release"
             exit 1
           fi
           PORT=3099 \
