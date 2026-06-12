@@ -3494,7 +3494,7 @@ function getPatchedAuthBundle() {
     // Sign In: route only after server verified profile/onboarding state.
     p(
       'p = async h => {\n            h.preventDefault(), u(null), (await j(s, t)).success && setTimeout(() => {\n                b("/dashboard", {\n                    replace: !0\n                })\n            }, 100)\n        },',
-      'p = async h => {\n            h.preventDefault(), u(null);\n            var __r = await window.__isoLogin(s, t);\n            if (!__r.ok) {\n                m.setState({ error: __r.err || "Login failed", isLoading: false });\n                return\n            }\n            window.location.href = __r.onboarding_completed === false ? "/onboarding" : "/dashboard"\n        },'
+      'p = async h => {\n            h.preventDefault(), u(null), m.setState({ isLoading: true, error: null });\n            try {\n                var __r = await window.__isoLogin(s, t);\n                if (!__r.ok) {\n                    m.setState({ error: __r.err || "Login failed", isLoading: false });\n                    return\n                }\n                window.location.href = __r.onboarding_completed === false ? "/onboarding" : "/dashboard"\n            } catch (__e) {\n                m.setState({ error: __e && __e.message ? __e.message : "Login failed", isLoading: false })\n            }\n        },'
     );
 
     // Sign Up: replace email-validation + signUp call → server-side signup
@@ -3502,7 +3502,7 @@ function getPatchedAuthBundle() {
     // We pass t (email) + l (password) to server — real email used directly
     p(
       'const N = M(t);\n            if (N) {\n                m.setState({\n                    error: N\n                });\n                return\n            }(await j(s, t, l)).success && d("/onboarding")',
-      "var __r=await window.__isoUp(t,l);if(!__r.ok){m.setState({error:__r.err||'Signup failed',isLoading:false});return;}window.location.href='/onboarding';"
+      "m.setState({isLoading:true,error:null});try{var __r=await window.__isoUp(t,l);if(!__r.ok){m.setState({error:__r.err||'Signup failed',isLoading:false});return;}window.location.href='/onboarding';}catch(__e){m.setState({error:__e&&__e.message?__e.message:'Signup failed',isLoading:false});}"
     );
     // Sign Up: button label
     p('"Create Account with Email"', '"Create Account"');
