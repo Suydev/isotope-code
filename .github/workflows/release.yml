@@ -2,6 +2,8 @@ name: 🚀 Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -11,8 +13,11 @@ permissions:
 
 jobs:
   release:
-    name: Create GitHub Release
+    name: Create or Update GitHub Release
     runs-on: ubuntu-latest
+    concurrency:
+      group: release-${{ github.ref_name }}
+      cancel-in-progress: false
 
     steps:
       - name: ⬇️ Checkout
@@ -23,12 +28,17 @@ jobs:
       - name: 🏷️ Get tag info
         id: tag
         run: |
+          set -euo pipefail
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             TAG="${GITHUB_REF_NAME}"
             VERSION="${TAG#v}"
           else
             VERSION="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -1)"
             TAG="v${VERSION}"
+          fi
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$'; then
+            echo "❌ Invalid package version: $VERSION"
+            exit 1
           fi
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
@@ -176,6 +186,15 @@ jobs:
             docs/sync-system.md
             docs/storage-backup-system.md
             docs/supabase-connection-map.md
+            docs/index.html
+            docs/install.html
+            docs/sync.html
+            docs/admin.html
+            docs/gallery.html
+            docs/motion.html
+            docs/assets/site.css
+            docs/assets/site.js
+            docs/logo.svg
             README.md
             ADMIN.md
             .env.example
@@ -210,31 +229,64 @@ jobs:
           echo "❌ Release archive server ping did not return 200 (got: $STATUS)"
           exit 1
 
-      - name: 🎉 Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: IsotopeAI ${{ steps.tag.outputs.tag }} 🧪
-          body: |
-            ## IsotopeAI ${{ steps.tag.outputs.tag }}
+      - name: 📝 Build release notes
+        run: |
+          cat > /tmp/release_notes.md <<'EOF'
+          ## IsotopeAI ${{ steps.tag.outputs.tag }}
 
-            ${{ steps.ai_notes.outputs.notes || steps.changelog.outputs.notes }}
+          ${{ steps.ai_notes.outputs.notes || steps.changelog.outputs.notes }}
 
-            ---
+          ---
 
-            ### 📥 Quick Install
+          ### 📥 Quick Install
 
-            ```bash
-            git clone https://github.com/Suydev/isotope-code.git
-            cd isotope-code
-            bash setup.sh
-            ```
+          ```bash
+          git clone https://github.com/Suydev/isotope-code.git
+          cd isotope-code
+          bash setup.sh
+          ```
 
-            ### 📋 What's Changed
-            See [CHANGELOG.md](https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md) for the full history.
+          ### 📋 What's Changed
+          See [CHANGELOG.md](https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md) for the full history.
 
-            ### ❤️ Support
-            UPI: `9699393886@fam` · [isotopeai.in](https://isotopeai.in)
-          draft: false
-          prerelease: ${{ contains(steps.tag.outputs.tag, '-beta') || contains(steps.tag.outputs.tag, '-rc') }}
-          files: isotope-v${{ steps.tag.outputs.version }}.zip
-          generate_release_notes: false
+          ### ❤️ Support
+          UPI: `9699393886@fam` · [isotopeai.in](https://isotopeai.in)
+          EOF
+
+      - name: 🏷️ Ensure release tag points to this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.tag.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f "$TAG" "$GITHUB_SHA"
+          git push --force origin "refs/tags/$TAG"
+
+      - name: 🎉 Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.tag.outputs.tag }}"
+          VERSION="${{ steps.tag.outputs.version }}"
+          ARCHIVE="isotope-v${VERSION}.zip"
+          PRERELEASE_FLAG=()
+          if printf '%s' "$TAG" | grep -Eq -- '(-beta|-rc)'; then
+            PRERELEASE_FLAG=(--prerelease)
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --title "IsotopeAI ${TAG} 🧪" \
+              --notes-file /tmp/release_notes.md \
+              "${PRERELEASE_FLAG[@]}"
+          else
+            gh release create "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "IsotopeAI ${TAG} 🧪" \
+              --notes-file /tmp/release_notes.md \
+              "${PRERELEASE_FLAG[@]}"
+          fi
+          gh release upload "$TAG" "$ARCHIVE" --clobber
+          echo "✅ Release ${TAG} published with ${ARCHIVE}"
