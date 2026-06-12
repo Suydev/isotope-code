@@ -1,115 +1,259 @@
 /**
- * IsotopeAI — Focus Background Import v1.0
+ * IsotopeAI Focus Background Import
  *
- * Injects a floating button in the TOP-RIGHT corner of the Focus tab.
- * Opens a modal with two tabs:
- *   📷 Gallery  — pick any image from device
- *   🎬 Video    — pick an MP4/WebM video
- * Also supports entering a URL directly.
- * Background persists in IndexedDB across page reloads.
+ * Adds image/video import to the existing Focus toolbar instead of placing a
+ * separate fixed button over the app header. Custom media is stored in
+ * IndexedDB; URL images are also written through the native Focus background
+ * settings module when available. Blur follows Settings > Focus Background.
  */
 (function () {
   'use strict';
 
-  /* ── IndexedDB ─────────────────────────────────────────────────────────── */
-  var IDB_NAME  = 'isotope_bg_custom';
+  var IDB_NAME = 'isotope_bg_custom';
   var IDB_STORE = 'media';
+  var CUSTOM_KEY = 'focus_custom';
+  var FOCUS_BG_MODULE = '/assets/focusBackground-t8AknbRg.js';
+
+  var _activeUrl = null;
+  var _activeKind = 'image';
+  var _objectUrl = null;
+  var _styleObs = null;
+  var _focusBgApiPromise = null;
+  var _routeTimer = null;
+  var _modalOpen = false;
+  var _activeTab = 'image';
 
   function openIdb() {
-    return new Promise(function (res, rej) {
-      var r = indexedDB.open(IDB_NAME, 1);
-      r.onupgradeneeded = function () { r.result.createObjectStore(IDB_STORE); };
-      r.onsuccess = function () { res(r.result); };
-      r.onerror   = function () { rej(r.error); };
+    return new Promise(function (resolve, reject) {
+      var req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = function () {
+        if (!req.result.objectStoreNames.contains(IDB_STORE)) req.result.createObjectStore(IDB_STORE);
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
     });
   }
-  function idbPut(key, val) {
+
+  function idbPut(key, value) {
     return openIdb().then(function (db) {
-      return new Promise(function (res, rej) {
+      return new Promise(function (resolve, reject) {
         var tx = db.transaction(IDB_STORE, 'readwrite');
-        tx.objectStore(IDB_STORE).put(val, key);
-        tx.oncomplete = res; tx.onerror = rej;
+        tx.objectStore(IDB_STORE).put(value, key);
+        tx.oncomplete = resolve;
+        tx.onerror = reject;
       });
     });
   }
+
   function idbGet(key) {
     return openIdb().then(function (db) {
-      return new Promise(function (res) {
-        var tx  = db.transaction(IDB_STORE, 'readonly');
+      return new Promise(function (resolve) {
+        var tx = db.transaction(IDB_STORE, 'readonly');
         var req = tx.objectStore(IDB_STORE).get(key);
-        req.onsuccess = function () { res(req.result || null); };
-        req.onerror   = function () { res(null); };
+        req.onsuccess = function () { resolve(req.result || null); };
+        req.onerror = function () { resolve(null); };
       });
     });
   }
 
-  /* ── State ─────────────────────────────────────────────────────────────── */
-  var _blob     = null; // current active blob URL
-  var _styleObs = null;
+  function idbDelete(key) {
+    return openIdb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete(key);
+        tx.oncomplete = resolve;
+        tx.onerror = reject;
+      });
+    });
+  }
 
-  /* ── Toast ─────────────────────────────────────────────────────────────── */
-  function toast(msg, type) {
+  function focusBgApi() {
+    if (!_focusBgApiPromise) {
+      _focusBgApiPromise = import(FOCUS_BG_MODULE).catch(function () { return null; });
+    }
+    return _focusBgApiPromise;
+  }
+
+  function clampBlur(value) {
+    var n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    return Math.min(24, Math.max(0, Math.round(n)));
+  }
+
+  function readNativeBlur() {
+    return focusBgApi().then(function (api) {
+      if (api && typeof api.g === 'function') {
+        return api.g().then(function (cfg) { return clampBlur(cfg && cfg.blurAmount); });
+      }
+      return 0;
+    }).catch(function () {
+      try { return clampBlur(localStorage.getItem('focus-bg-blur')); } catch (e) { return 0; }
+    });
+  }
+
+  function saveNativeImageUrl(url) {
+    return Promise.all([focusBgApi(), readNativeBlur()]).then(function (parts) {
+      var api = parts[0];
+      var blur = parts[1];
+      if (api && typeof api.a === 'function') return api.a({ imageUrl: url, blurAmount: blur });
+      return null;
+    }).catch(function () { return null; });
+  }
+
+  function clearNativeImageUrl() {
+    return focusBgApi().then(function (api) {
+      if (api && typeof api.c === 'function') return api.c();
+      return null;
+    }).catch(function () { return null; });
+  }
+
+  function toast(message, type) {
     var t = document.createElement('div');
-    t.textContent = msg;
+    t.textContent = message;
     t.setAttribute('style', [
       'position:fixed', 'bottom:88px', 'left:50%',
       'transform:translateX(-50%) translateY(8px)',
-      'background:' + (type === 'error' ? 'rgba(239,68,68,0.92)' : 'rgba(9,9,11,0.92)'),
-      'color:#fff', 'padding:10px 20px', 'border-radius:12px',
-      'font-size:13px', 'z-index:2147483646',
-      'border:1px solid rgba(255,255,255,0.10)',
+      'background:' + (type === 'error' ? 'rgba(239,68,68,0.94)' : 'rgba(9,9,11,0.92)'),
+      'color:#fff', 'padding:10px 18px', 'border-radius:12px',
+      'font-size:13px', 'z-index:2147483000',
+      'border:1px solid rgba(255,255,255,0.12)',
       'backdrop-filter:blur(10px)',
       'transition:opacity 0.3s,transform 0.3s',
       'pointer-events:none',
-      'font-family:system-ui,sans-serif', 'font-weight:500',
+      'font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+      'font-weight:600',
     ].join(';'));
     document.body.appendChild(t);
     requestAnimationFrame(function () {
-      t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)';
+      t.style.opacity = '1';
+      t.style.transform = 'translateX(-50%) translateY(0)';
     });
     setTimeout(function () { t.style.opacity = '0'; }, 2400);
-    setTimeout(function () { if (t.parentNode) t.remove(); }, 2800);
+    setTimeout(function () { if (t.parentNode) t.remove(); }, 2850);
   }
 
-  /* ── Apply background to Focus element ─────────────────────────────────── */
+  function isOnFocus() {
+    return /\/focus(\b|$)/i.test(window.location.pathname);
+  }
+
+  function isVisible(el) {
+    if (!el || !document.body.contains(el)) return false;
+    var style = window.getComputedStyle(el);
+    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+    var rect = el.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
   function findFocusBgEl() {
     var candidates = document.querySelectorAll(
       '.fixed.inset-0.z-0.pointer-events-none, [class*="fixed"][class*="inset-0"][class*="z-0"]'
     );
-    for (var i = 0; i < candidates.length; i++) {
+    for (var i = 0; i < candidates.length; i += 1) {
       var el = candidates[i];
+      if (!isVisible(el)) continue;
       if (el.id === 'isotope-bg-image' || el.id === '__bg_dark__') continue;
+      if (el.id === '__iso_focus_bg_layer__' || el.id === '__iso_focus_vid__') continue;
       return el;
     }
     return null;
   }
 
+  function cssUrl(url) {
+    return 'url("' + String(url).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '")';
+  }
+
+  function isSafeImageUrl(url) {
+    return /^blob:/i.test(url) || /^https?:\/\//i.test(url) || /^data:image\//i.test(url);
+  }
+
+  function isSafeVideoUrl(url) {
+    return /^blob:/i.test(url) || /^https?:\/\//i.test(url) || /^data:video\//i.test(url);
+  }
+
+  function prepareTarget(el) {
+    el.style.backgroundImage = 'none';
+    el.style.backgroundSize = '';
+    el.style.backgroundPosition = '';
+    el.style.backgroundRepeat = '';
+    el.style.overflow = 'hidden';
+  }
+
+  function removeImageLayer() {
+    var layer = document.getElementById('__iso_focus_bg_layer__');
+    if (layer && layer.parentNode) layer.parentNode.removeChild(layer);
+  }
+
+  function removeVideoLayer() {
+    var vid = document.getElementById('__iso_focus_vid__');
+    if (vid) {
+      try { vid.pause(); } catch (e) {}
+      vid.removeAttribute('src');
+      vid.load();
+      if (vid.parentNode) vid.parentNode.removeChild(vid);
+    }
+  }
+
+  function applyFilterToMedia(node, blur) {
+    if (!node) return;
+    var amount = clampBlur(blur);
+    node.style.filter = amount > 0 ? 'blur(' + amount + 'px) saturate(1.05)' : 'none';
+    node.style.transform = amount > 0 ? 'scale(1.06) translateZ(0)' : 'translateZ(0)';
+  }
+
+  function refreshBlur() {
+    readNativeBlur().then(function (blur) {
+      applyFilterToMedia(document.getElementById('__iso_focus_bg_layer__'), blur);
+      applyFilterToMedia(document.getElementById('__iso_focus_vid__'), blur);
+    });
+  }
+
+  function observeTarget(el) {
+    if (_styleObs) _styleObs.disconnect();
+    _styleObs = new MutationObserver(function () {
+      if (!_activeUrl || !isOnFocus()) return;
+      if (_activeKind === 'video') {
+        if (!document.getElementById('__iso_focus_vid__')) applyVideoToDom(_activeUrl);
+      } else if (!document.getElementById('__iso_focus_bg_layer__')) {
+        applyToDom(_activeUrl);
+      }
+    });
+    _styleObs.observe(el, { childList: true, attributes: true, attributeFilter: ['style'] });
+  }
+
   function applyToDom(url) {
+    if (!url || !isSafeImageUrl(url)) return false;
     var el = findFocusBgEl();
     if (!el) return false;
-    el.style.backgroundImage    = 'url(' + url + ')';
-    el.style.backgroundSize     = 'cover';
-    el.style.backgroundPosition = 'center';
-    el.style.backgroundRepeat   = 'no-repeat';
-    if (_styleObs) _styleObs.disconnect();
-    _styleObs = new MutationObserver(function (muts) {
-      muts.forEach(function (m) {
-        if (!m.target.style.backgroundImage || m.target.style.backgroundImage === 'none') {
-          m.target.style.backgroundImage    = 'url(' + url + ')';
-          m.target.style.backgroundSize     = 'cover';
-          m.target.style.backgroundPosition = 'center';
-        }
-      });
-    });
-    _styleObs.observe(el, { attributes: true, attributeFilter: ['style'] });
+    prepareTarget(el);
+    removeVideoLayer();
+
+    var layer = document.getElementById('__iso_focus_bg_layer__');
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.id = '__iso_focus_bg_layer__';
+      layer.setAttribute('aria-hidden', 'true');
+    }
+    if (layer.parentNode !== el) el.appendChild(layer);
+    layer.style.cssText = [
+      'position:absolute', 'inset:-32px',
+      'background-size:cover', 'background-position:center', 'background-repeat:no-repeat',
+      'pointer-events:none', 'z-index:0',
+      'will-change:filter,transform,background-image',
+      'transform-origin:center',
+      'background-image:' + cssUrl(url),
+    ].join(';');
+    observeTarget(el);
+    refreshBlur();
     return true;
   }
 
   function applyVideoToDom(url) {
-    // Validate URL protocol to prevent javascript: injection
-    if (!url || (!/^blob:/i.test(url) && !/^https?:/i.test(url) && !/^data:video\//i.test(url))) {
-      return;
-    }
+    if (!url || !isSafeVideoUrl(url)) return false;
+    var el = findFocusBgEl();
+    if (!el) return false;
+    prepareTarget(el);
+    removeImageLayer();
+
     var vid = document.getElementById('__iso_focus_vid__');
     if (!vid) {
       vid = document.createElement('video');
@@ -118,141 +262,166 @@
       vid.setAttribute('loop', '');
       vid.setAttribute('muted', '');
       vid.setAttribute('playsinline', '');
-      vid.style.cssText = [
-        'position:fixed', 'inset:0', 'width:100vw', 'height:100vh',
-        'object-fit:cover', 'z-index:0', 'pointer-events:none',
-      ].join(';');
-      document.body.insertBefore(vid, document.body.firstChild);
+      vid.setAttribute('aria-hidden', 'true');
     }
-    vid.src = url;
+    if (vid.parentNode !== el) el.appendChild(vid);
+    vid.style.cssText = [
+      'position:absolute', 'inset:-32px',
+      'width:calc(100% + 64px)', 'height:calc(100% + 64px)',
+      'max-width:none', 'object-fit:cover',
+      'pointer-events:none', 'z-index:0',
+      'will-change:filter,transform',
+      'transform-origin:center',
+    ].join(';');
+    if (vid.src !== url) vid.src = url;
+    vid.muted = true;
+    vid.loop = true;
+    vid.playsInline = true;
     vid.load();
-    var p = vid.play();
-    if (p && p.catch) p.catch(function () {});
-    vid.style.display = 'block';
+    var play = vid.play();
+    if (play && play.catch) play.catch(function () {});
+    observeTarget(el);
+    refreshBlur();
+    return true;
   }
 
-  function applyBackground(url, isVideo) {
-    if (_blob) URL.revokeObjectURL(_blob);
-    _blob = url;
-    if (isVideo) {
-      applyVideoToDom(url);
-    } else {
-      var attempts = 0;
-      (function retry() {
-        if (!applyToDom(url) && ++attempts < 20) setTimeout(retry, 250);
-      })();
+  function applyBackground(url, isVideo, ownsObjectUrl) {
+    if (_objectUrl && _objectUrl !== url) {
+      try { URL.revokeObjectURL(_objectUrl); } catch (e) {}
     }
+    _objectUrl = ownsObjectUrl ? url : null;
+    _activeUrl = url;
+    _activeKind = isVideo ? 'video' : 'image';
+
+    var attempts = 0;
+    (function retry() {
+      var ok = isVideo ? applyVideoToDom(url) : applyToDom(url);
+      if (!ok && ++attempts < 24) {
+        setTimeout(retry, 220);
+      } else if (!ok) {
+        toast('Open the Focus page first, then apply the background.', 'error');
+      }
+    })();
   }
 
-  /* ── Load saved background ──────────────────────────────────────────────── */
+  function clearBackground() {
+    if (_objectUrl) {
+      try { URL.revokeObjectURL(_objectUrl); } catch (e) {}
+    }
+    _objectUrl = null;
+    _activeUrl = null;
+    _activeKind = 'image';
+    if (_styleObs) {
+      _styleObs.disconnect();
+      _styleObs = null;
+    }
+    removeImageLayer();
+    removeVideoLayer();
+    var el = findFocusBgEl();
+    if (el) el.style.backgroundImage = '';
+    idbDelete(CUSTOM_KEY).catch(function () {});
+    clearNativeImageUrl();
+  }
+
   function loadSaved() {
-    idbGet('focus_custom').then(function (blob) {
-      if (!blob) return;
-      var url = URL.createObjectURL(blob);
-      _blob = url;
-      var isVid = blob.type && blob.type.startsWith('video/');
-      applyBackground(url, isVid);
+    idbGet(CUSTOM_KEY).then(function (saved) {
+      if (!saved) return;
+      if (saved instanceof Blob) {
+        var blobUrl = URL.createObjectURL(saved);
+        applyBackground(blobUrl, !!(saved.type && saved.type.indexOf('video/') === 0), true);
+        return;
+      }
+      if (saved && saved.type === 'url' && saved.url) {
+        applyBackground(saved.url, saved.kind === 'video', false);
+      }
     }).catch(function () {});
   }
-
-  /* ── MODAL ──────────────────────────────────────────────────────────────── */
-  var _modalOpen = false;
-  var _activeTab = 'image'; // 'image' | 'video'
 
   function showModal() {
     if (_modalOpen || document.getElementById('__iso_fbg_modal__')) return;
     _modalOpen = true;
 
-    /* Backdrop */
     var backdrop = document.createElement('div');
     backdrop.id = '__iso_fbg_modal__';
     backdrop.setAttribute('style', [
-      'position:fixed', 'inset:0', 'z-index:2147483644',
-      'background:rgba(0,0,0,0.6)', 'backdrop-filter:blur(18px)',
+      'position:fixed', 'inset:0', 'z-index:2147483001',
+      'background:rgba(0,0,0,0.62)', 'backdrop-filter:blur(18px)',
       'display:flex', 'align-items:center', 'justify-content:center',
-      'opacity:0', 'transition:opacity 0.3s',
-      'font-family:system-ui,-apple-system,sans-serif',
+      'opacity:0', 'transition:opacity 0.25s',
+      'font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
     ].join(';'));
 
-    /* Card */
     var card = document.createElement('div');
     card.setAttribute('style', [
       'width:min(460px,94vw)', 'border-radius:20px', 'overflow:hidden',
       'background:linear-gradient(145deg,rgba(20,20,28,0.98),rgba(12,12,18,0.98))',
       'border:1px solid rgba(255,255,255,0.12)',
       'box-shadow:0 28px 70px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,255,255,0.10)',
-      'transform:translateY(18px) scale(0.97)',
-      'transition:transform 0.35s cubic-bezier(0.22,1,0.36,1)',
+      'transform:translateY(16px) scale(0.98)',
+      'transition:transform 0.28s cubic-bezier(0.22,1,0.36,1)',
     ].join(';'));
 
-    /* Header */
     var hdr = document.createElement('div');
     hdr.setAttribute('style', [
       'padding:18px 22px 14px', 'border-bottom:1px solid rgba(255,255,255,0.07)',
       'display:flex', 'align-items:center', 'justify-content:space-between',
     ].join(';'));
     hdr.innerHTML =
-      '<span style="font-size:15px;font-weight:700;color:rgba(255,255,255,0.94);letter-spacing:-0.02em;">' +
-        '🖼&nbsp; Focus Background' +
-      '</span>' +
-      '<button id="__iso_fbg_close__" style="background:rgba(255,255,255,0.07);' +
-        'border:1px solid rgba(255,255,255,0.10);border-radius:50%;width:26px;height:26px;' +
-        'cursor:pointer;color:rgba(255,255,255,0.55);font-size:13px;display:flex;' +
-        'align-items:center;justify-content:center;padding:0;">✕</button>';
+      '<span style="font-size:15px;font-weight:800;color:rgba(255,255,255,0.94);letter-spacing:-0.02em;">Focus Background</span>' +
+      '<button id="__iso_fbg_close__" aria-label="Close" style="background:rgba(255,255,255,0.07);' +
+      'border:1px solid rgba(255,255,255,0.10);border-radius:50%;width:28px;height:28px;' +
+      'cursor:pointer;color:rgba(255,255,255,0.65);font-size:13px;display:flex;' +
+      'align-items:center;justify-content:center;padding:0;">x</button>';
 
-    /* Tabs */
     var tabBar = document.createElement('div');
     tabBar.setAttribute('style', [
       'display:flex', 'padding:12px 22px 0',
       'gap:6px', 'border-bottom:1px solid rgba(255,255,255,0.07)',
     ].join(';'));
 
-    function mkTab(id, label, icon) {
+    function mkTab(id, label) {
       var t = document.createElement('button');
       t.id = '__iso_tab_' + id + '__';
-      t.innerHTML = icon + ' ' + label;
+      t.textContent = label;
       t.setAttribute('style', [
-        'padding:8px 16px', 'border-radius:10px 10px 0 0',
-        'font-size:13px', 'font-weight:600', 'cursor:pointer',
+        'padding:8px 14px', 'border-radius:10px 10px 0 0',
+        'font-size:13px', 'font-weight:700', 'cursor:pointer',
         'border:1px solid transparent', 'border-bottom:none',
         'transition:all 0.15s', 'margin-bottom:-1px',
         'background:' + (_activeTab === id ? 'rgba(249,115,22,0.18)' : 'transparent'),
-        'color:' + (_activeTab === id ? 'rgba(249,115,22,1)' : 'rgba(255,255,255,0.45)'),
+        'color:' + (_activeTab === id ? 'rgba(249,115,22,1)' : 'rgba(255,255,255,0.48)'),
         'border-color:' + (_activeTab === id ? 'rgba(249,115,22,0.3)' : 'transparent'),
       ].join(';'));
       t.addEventListener('click', function () {
         _activeTab = id;
         renderTabContent();
-        // Update tab styles
         ['image', 'video'].forEach(function (tid) {
           var btn = document.getElementById('__iso_tab_' + tid + '__');
           if (!btn) return;
           var active = tid === id;
-          btn.style.background    = active ? 'rgba(249,115,22,0.18)' : 'transparent';
-          btn.style.color         = active ? 'rgba(249,115,22,1)' : 'rgba(255,255,255,0.45)';
-          btn.style.borderColor   = active ? 'rgba(249,115,22,0.3)' : 'transparent';
+          btn.style.background = active ? 'rgba(249,115,22,0.18)' : 'transparent';
+          btn.style.color = active ? 'rgba(249,115,22,1)' : 'rgba(255,255,255,0.48)';
+          btn.style.borderColor = active ? 'rgba(249,115,22,0.3)' : 'transparent';
         });
       });
       return t;
     }
 
-    tabBar.appendChild(mkTab('image', 'Gallery Image', '📷'));
-    tabBar.appendChild(mkTab('video', 'Video',         '🎬'));
+    tabBar.appendChild(mkTab('image', 'Image'));
+    tabBar.appendChild(mkTab('video', 'Video'));
 
-    /* Body */
     var body = document.createElement('div');
     body.id = '__iso_fbg_body__';
     body.setAttribute('style', 'padding:20px 22px;');
 
-    /* Hidden file inputs */
     var imgInput = document.createElement('input');
-    imgInput.type   = 'file';
+    imgInput.type = 'file';
     imgInput.accept = 'image/*,.jpg,.jpeg,.png,.webp,.avif,.gif,.bmp';
     imgInput.style.display = 'none';
     imgInput.id = '__iso_img_pick__';
 
     var vidInput = document.createElement('input');
-    vidInput.type   = 'file';
+    vidInput.type = 'file';
     vidInput.accept = 'video/*,.mp4,.webm,.mov,.mkv';
     vidInput.style.display = 'none';
     vidInput.id = '__iso_vid_pick__';
@@ -260,27 +429,27 @@
     imgInput.onchange = function () {
       var file = imgInput.files && imgInput.files[0];
       if (!file) return;
-      idbPut('focus_custom', file).catch(function () {});
+      idbPut(CUSTOM_KEY, file).catch(function () {});
       var url = URL.createObjectURL(file);
       closeModal();
-      applyBackground(url, false);
-      toast('🖼 Background applied!');
+      applyBackground(url, false, true);
+      toast('Image background applied.');
     };
 
     vidInput.onchange = function () {
       var file = vidInput.files && vidInput.files[0];
       if (!file) return;
-      idbPut('focus_custom', file).catch(function () {});
+      idbPut(CUSTOM_KEY, file).catch(function () {});
       var url = URL.createObjectURL(file);
       closeModal();
-      applyBackground(url, true);
-      toast('🎬 Video background applied!');
+      applyBackground(url, true, true);
+      toast('Video background applied.');
     };
 
-    /* URL input */
     var urlInput = document.createElement('input');
-    urlInput.type        = 'text';
+    urlInput.type = 'text';
     urlInput.placeholder = 'https://example.com/wallpaper.jpg';
+    urlInput.id = '__iso_url_input__';
     urlInput.setAttribute('style', [
       'width:100%', 'box-sizing:border-box', 'padding:10px 13px',
       'border-radius:10px', 'background:rgba(255,255,255,0.06)',
@@ -288,96 +457,90 @@
       'font-size:13px', 'outline:none', 'transition:border-color 0.2s',
       'margin-top:14px',
     ].join(';'));
-    urlInput.id = '__iso_url_input__';
     urlInput.onfocus = function () { urlInput.style.borderColor = 'rgba(249,115,22,0.5)'; };
-    urlInput.onblur  = function () { urlInput.style.borderColor = 'rgba(255,255,255,0.12)'; };
+    urlInput.onblur = function () { urlInput.style.borderColor = 'rgba(255,255,255,0.12)'; };
 
-    function applyUrl() {
+    function applyImageUrl() {
       var url = urlInput.value.trim();
-      if (!url) { toast('Enter a URL first', 'error'); return; }
-      if (!/^https?:/i.test(url)) { toast('Must start with http:// or https://', 'error'); return; }
+      if (!url) { toast('Enter an image URL first.', 'error'); return; }
+      if (!/^https?:\/\//i.test(url)) { toast('Use an http or https image URL.', 'error'); return; }
+      idbPut(CUSTOM_KEY, { type: 'url', kind: 'image', url: url, savedAt: new Date().toISOString() }).catch(function () {});
+      saveNativeImageUrl(url);
       closeModal();
-      applyBackground(url, false);
-      toast('Background applied!');
+      applyBackground(url, false, false);
+      toast('Image URL applied.');
     }
-    urlInput.onkeydown = function (e) { if (e.key === 'Enter') applyUrl(); };
 
-    /* Render tab body */
+    function applyVideoUrl() {
+      var url = urlInput.value.trim();
+      if (!url) { toast('Enter a video URL first.', 'error'); return; }
+      if (!/^https?:\/\//i.test(url)) { toast('Use an http or https video URL.', 'error'); return; }
+      idbPut(CUSTOM_KEY, { type: 'url', kind: 'video', url: url, savedAt: new Date().toISOString() }).catch(function () {});
+      closeModal();
+      applyBackground(url, true, false);
+      toast('Video URL applied.');
+    }
+
+    urlInput.onkeydown = function (event) {
+      if (event.key === 'Enter') (_activeTab === 'video' ? applyVideoUrl : applyImageUrl)();
+    };
+
     function renderTabContent() {
       var b = document.getElementById('__iso_fbg_body__');
       if (!b) return;
       b.innerHTML = '';
 
       if (_activeTab === 'image') {
-        var importBtn = mkActionBtn('📷 Choose Image from Gallery', 'rgba(249,115,22,0.85)', '#fff');
+        var importBtn = mkActionBtn('Choose image from device', 'rgba(249,115,22,0.88)', '#fff');
         importBtn.addEventListener('click', function () { imgInput.click(); });
         b.appendChild(importBtn);
 
-        var sep = document.createElement('div');
-        sep.innerHTML =
-          '<div style="display:flex;align-items:center;gap:10px;margin:16px 0 4px;color:rgba(255,255,255,0.22);font-size:11px;">' +
-          '<div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div>or URL<div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div></div>';
-        b.appendChild(sep);
-
+        appendDivider(b, 'or URL');
         urlInput.placeholder = 'https://example.com/wallpaper.jpg';
         b.appendChild(urlInput);
 
-        var applyBtn = mkActionBtn('Apply URL', 'rgba(249,115,22,1)', '#fff');
+        var applyBtn = mkActionBtn('Apply image URL', 'rgba(249,115,22,1)', '#fff');
         applyBtn.style.marginTop = '10px';
-        applyBtn.addEventListener('click', applyUrl);
+        applyBtn.addEventListener('click', applyImageUrl);
         b.appendChild(applyBtn);
-
       } else {
-        var vidBtn = mkActionBtn('🎬 Choose Video from Device', 'rgba(99,102,241,0.85)', '#fff');
+        var vidBtn = mkActionBtn('Choose video from device', 'rgba(99,102,241,0.88)', '#fff');
         vidBtn.addEventListener('click', function () { vidInput.click(); });
         b.appendChild(vidBtn);
 
         var note = document.createElement('p');
-        note.textContent = 'Supported: MP4, WebM, MOV. The video will loop silently as your focus background.';
-        note.style.cssText = 'color:rgba(255,255,255,0.35);font-size:11.5px;margin:12px 0 0;line-height:1.5;';
+        note.textContent = 'Supported: MP4, WebM, MOV, MKV. The video loops muted behind the Focus screen.';
+        note.style.cssText = 'color:rgba(255,255,255,0.42);font-size:11.5px;margin:12px 0 0;line-height:1.5;';
         b.appendChild(note);
 
-        var sep2 = document.createElement('div');
-        sep2.innerHTML =
-          '<div style="display:flex;align-items:center;gap:10px;margin:16px 0 4px;color:rgba(255,255,255,0.22);font-size:11px;">' +
-          '<div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div>or URL<div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div></div>';
-        b.appendChild(sep2);
-
+        appendDivider(b, 'or URL');
         urlInput.placeholder = 'https://example.com/loop.mp4';
         b.appendChild(urlInput);
 
-        var vidApply = mkActionBtn('Apply Video URL', 'rgba(99,102,241,1)', '#fff');
+        var vidApply = mkActionBtn('Apply video URL', 'rgba(99,102,241,1)', '#fff');
         vidApply.style.marginTop = '10px';
-        vidApply.addEventListener('click', function () {
-          var url = urlInput.value.trim();
-          if (!url) { toast('Enter a video URL', 'error'); return; }
-          closeModal();
-          applyBackground(url, true);
-          toast('🎬 Video background applied!');
-        });
+        vidApply.addEventListener('click', applyVideoUrl);
         b.appendChild(vidApply);
       }
 
-      /* Clear button */
+      var blurNote = document.createElement('p');
+      blurNote.textContent = 'Blur uses the value from Settings > Focus Background.';
+      blurNote.style.cssText = 'color:rgba(255,255,255,0.36);font-size:11.5px;margin:14px 0 0;line-height:1.5;';
+      b.appendChild(blurNote);
+
       var clearBtn = document.createElement('button');
       clearBtn.textContent = 'Remove current background';
       clearBtn.setAttribute('style', [
-        'display:block', 'width:100%', 'margin-top:16px',
+        'display:block', 'width:100%', 'margin-top:14px',
         'background:none', 'border:none',
-        'color:rgba(255,255,255,0.27)', 'font-size:12px',
-        'cursor:pointer', 'text-align:center', 'padding:4px 0',
+        'color:rgba(255,255,255,0.34)', 'font-size:12px',
+        'cursor:pointer', 'text-align:center', 'padding:5px 0',
         'transition:color 0.15s',
       ].join(';'));
-      clearBtn.onmouseenter = function () { clearBtn.style.color = 'rgba(255,255,255,0.55)'; };
-      clearBtn.onmouseleave = function () { clearBtn.style.color = 'rgba(255,255,255,0.27)'; };
+      clearBtn.onmouseenter = function () { clearBtn.style.color = 'rgba(255,255,255,0.68)'; };
+      clearBtn.onmouseleave = function () { clearBtn.style.color = 'rgba(255,255,255,0.34)'; };
       clearBtn.addEventListener('click', function () {
-        if (_blob) { URL.revokeObjectURL(_blob); _blob = null; }
-        if (_styleObs) { _styleObs.disconnect(); _styleObs = null; }
-        idbPut('focus_custom', null).catch(function () {});
-        var el = findFocusBgEl();
-        if (el) el.style.backgroundImage = '';
-        var vid = document.getElementById('__iso_focus_vid__');
-        if (vid) { vid.pause(); vid.style.display = 'none'; vid.src = ''; }
+        clearBackground();
         closeModal();
         toast('Background cleared.');
       });
@@ -394,27 +557,36 @@
     document.body.appendChild(backdrop);
 
     requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        backdrop.style.opacity = '1';
-        card.style.transform   = 'translateY(0) scale(1)';
-      });
+      backdrop.style.opacity = '1';
+      card.style.transform = 'translateY(0) scale(1)';
     });
 
     document.getElementById('__iso_fbg_close__').onclick = closeModal;
-    backdrop.onclick = function (e) { if (e.target === backdrop) closeModal(); };
+    backdrop.onclick = function (event) { if (event.target === backdrop) closeModal(); };
     document.addEventListener('keydown', escClose);
   }
 
   function closeModal() {
     _modalOpen = false;
-    var m = document.getElementById('__iso_fbg_modal__');
-    if (!m) return;
-    m.style.opacity = '0';
-    setTimeout(function () { if (m.parentNode) m.remove(); }, 320);
+    var modal = document.getElementById('__iso_fbg_modal__');
+    if (!modal) return;
+    modal.style.opacity = '0';
+    setTimeout(function () { if (modal.parentNode) modal.remove(); }, 260);
     document.removeEventListener('keydown', escClose);
   }
 
-  function escClose(e) { if (e.key === 'Escape') closeModal(); }
+  function escClose(event) {
+    if (event.key === 'Escape') closeModal();
+  }
+
+  function appendDivider(parent, label) {
+    var sep = document.createElement('div');
+    sep.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;margin:16px 0 4px;color:rgba(255,255,255,0.24);font-size:11px;">' +
+      '<div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div>' + label +
+      '<div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div></div>';
+    parent.appendChild(sep);
+  }
 
   function mkActionBtn(label, bg, color) {
     var b = document.createElement('button');
@@ -422,110 +594,155 @@
     b.setAttribute('style', [
       'display:flex', 'align-items:center', 'justify-content:center',
       'width:100%', 'padding:12px 18px', 'border-radius:12px',
-      'font-size:14px', 'font-weight:600', 'cursor:pointer',
+      'font-size:14px', 'font-weight:700', 'cursor:pointer',
       'background:' + bg, 'color:' + color, 'border:none',
       'box-shadow:0 4px 16px rgba(0,0,0,0.3)',
       'transition:opacity 0.15s,transform 0.15s',
     ].join(';'));
-    b.onmouseenter = function () { b.style.opacity = '0.88'; b.style.transform = 'translateY(-1px)'; };
-    b.onmouseleave = function () { b.style.opacity = '1';    b.style.transform = 'translateY(0)'; };
+    b.onmouseenter = function () { b.style.opacity = '0.9'; b.style.transform = 'translateY(-1px)'; };
+    b.onmouseleave = function () { b.style.opacity = '1'; b.style.transform = 'translateY(0)'; };
     return b;
   }
 
-  /* ── Floating trigger button (top-right corner) ──────────────────────── */
-  var _btnInjected = false;
-
-  function injectBtn() {
-    if (_btnInjected || document.getElementById('__iso_fbg_btn__')) return;
-    _btnInjected = true;
-
+  function createToolbarButton() {
     var btn = document.createElement('button');
     btn.id = '__iso_fbg_btn__';
-    btn.title = 'Set Focus Background';
+    btn.type = 'button';
+    btn.title = 'Import image or video background';
+    btn.setAttribute('aria-label', 'Import image or video background');
     btn.innerHTML =
-      '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" ' +
-        'stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">' +
-        '<rect x="3" y="3" width="18" height="18" rx="2"/>' +
-        '<circle cx="8.5" cy="8.5" r="1.5"/>' +
-        '<polyline points="21 15 16 10 5 21"/>' +
-      '</svg>' +
-      '<span style="font-size:12px;font-weight:600;">Background</span>';
+      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" ' +
+      'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<rect x="3" y="4" width="18" height="16" rx="2"/>' +
+      '<circle cx="8.5" cy="9.5" r="1.5"/>' +
+      '<path d="M21 15l-4.5-4.5L5 20"/>' +
+      '</svg>';
+    btn.onclick = showModal;
+    return btn;
+  }
+
+  function styleDockedButton(btn) {
+    btn.setAttribute('style', [
+      'position:static', 'z-index:auto',
+      'display:inline-flex', 'align-items:center', 'justify-content:center',
+      'width:34px', 'height:34px', 'min-width:34px',
+      'padding:0', 'border-radius:999px',
+      'background:rgba(255,255,255,0.08)',
+      'border:1px solid rgba(255,255,255,0.12)',
+      'color:rgba(255,255,255,0.82)',
+      'cursor:pointer', 'backdrop-filter:blur(10px)',
+      'box-shadow:none', 'transition:background 0.16s,border-color 0.16s,color 0.16s',
+    ].join(';'));
+    btn.onmouseenter = function () {
+      btn.style.background = 'rgba(249,115,22,0.20)';
+      btn.style.borderColor = 'rgba(249,115,22,0.42)';
+      btn.style.color = 'rgba(255,255,255,0.96)';
+    };
+    btn.onmouseleave = function () {
+      btn.style.background = 'rgba(255,255,255,0.08)';
+      btn.style.borderColor = 'rgba(255,255,255,0.12)';
+      btn.style.color = 'rgba(255,255,255,0.82)';
+    };
+  }
+
+  function styleFallbackButton(btn) {
     btn.setAttribute('style', [
       'position:fixed',
-      'top:14px',      // top-right, below any nav bar
-      'right:16px',
-      'z-index:2147483640',
-      'display:flex', 'align-items:center', 'gap:6px',
-      'padding:7px 13px', 'border-radius:999px',
-      'background:rgba(9,9,11,0.75)',
+      'right:max(16px,env(safe-area-inset-right))',
+      'bottom:calc(76px + env(safe-area-inset-bottom))',
+      'z-index:60',
+      'display:inline-flex', 'align-items:center', 'justify-content:center',
+      'width:38px', 'height:38px', 'padding:0', 'border-radius:999px',
+      'background:rgba(9,9,11,0.82)',
       'border:1px solid rgba(249,115,22,0.4)',
       'color:rgba(249,115,22,0.95)',
       'cursor:pointer', 'backdrop-filter:blur(12px)',
-      'box-shadow:0 4px 16px rgba(0,0,0,0.45)',
-      'transition:all 0.2s',
+      'box-shadow:0 4px 16px rgba(0,0,0,0.36)',
+      'transition:background 0.16s,border-color 0.16s,color 0.16s',
     ].join(';'));
-    btn.onmouseenter = function () {
-      btn.style.background    = 'rgba(249,115,22,0.20)';
-      btn.style.borderColor   = 'rgba(249,115,22,0.7)';
-      btn.style.transform     = 'translateY(-1px)';
-    };
-    btn.onmouseleave = function () {
-      btn.style.background    = 'rgba(9,9,11,0.75)';
-      btn.style.borderColor   = 'rgba(249,115,22,0.4)';
-      btn.style.transform     = 'translateY(0)';
-    };
-    btn.onclick = showModal;
-    document.body.appendChild(btn);
   }
 
-  function removeBtn() {
-    var b = document.getElementById('__iso_fbg_btn__');
-    if (b) { b.remove(); _btnInjected = false; }
-  }
-
-  /* ── Route watcher ──────────────────────────────────────────────────── */
-  function isOnFocus() {
-    return /\/focus(\b|$)/i.test(window.location.pathname);
-  }
-
-  function onRoute() {
-    if (isOnFocus()) {
-      setTimeout(injectBtn, 600);
-      if (_blob) {
-        var a = 0;
-        (function retry() {
-          if (!applyToDom(_blob) && ++a < 20) setTimeout(retry, 300);
-        })();
+  function findControlBar() {
+    var selectors = [
+      'button[title="Picture-in-Picture"]',
+      'button[title="Toggle Zen Mode"]',
+      'button[title="Exit Zen Mode"]',
+      'button[title="Custom Background URL"]'
+    ];
+    for (var i = 0; i < selectors.length; i += 1) {
+      var matches = document.querySelectorAll(selectors[i]);
+      for (var j = 0; j < matches.length; j += 1) {
+        var button = matches[j];
+        if (!isVisible(button) || !button.parentElement) continue;
+        var parent = button.parentElement;
+        if (isVisible(parent) && parent.querySelectorAll('button').length >= 2) return parent;
       }
+    }
+    return null;
+  }
+
+  function insertDockedButton(bar, btn) {
+    var before =
+      bar.querySelector('button[title="Picture-in-Picture"]') ||
+      bar.querySelector('button[title="Toggle Zen Mode"]') ||
+      bar.querySelector('button[title="Exit Zen Mode"]') ||
+      null;
+    if (before && before !== btn) bar.insertBefore(btn, before);
+    else if (btn.parentNode !== bar) bar.appendChild(btn);
+  }
+
+  function syncButtonPlacement() {
+    var btn = document.getElementById('__iso_fbg_btn__');
+    if (!isOnFocus()) {
+      if (btn) btn.remove();
+      return;
+    }
+    if (!btn) btn = createToolbarButton();
+
+    var bar = findControlBar();
+    if (bar) {
+      styleDockedButton(btn);
+      insertDockedButton(bar, btn);
     } else {
-      removeBtn();
+      styleFallbackButton(btn);
+      if (btn.parentNode !== document.body) document.body.appendChild(btn);
     }
   }
 
-  ['pushState', 'replaceState'].forEach(function (m) {
-    var orig = history[m];
-    history[m] = function () { orig.apply(history, arguments); setTimeout(onRoute, 120); };
+  function scheduleRouteWork(delay) {
+    clearTimeout(_routeTimer);
+    _routeTimer = setTimeout(function () {
+      syncButtonPlacement();
+      if (_activeUrl && isOnFocus()) applyBackground(_activeUrl, _activeKind === 'video', false);
+    }, delay || 120);
+  }
+
+  ['pushState', 'replaceState'].forEach(function (method) {
+    var original = history[method];
+    history[method] = function () {
+      var result = original.apply(history, arguments);
+      scheduleRouteWork(140);
+      return result;
+    };
   });
-  window.addEventListener('popstate', function () { setTimeout(onRoute, 120); });
 
-  /* ── DOM observer ────────────────────────────────────────────────────── */
-  new MutationObserver(function () {
-    if (isOnFocus()) {
-      injectBtn();
-      if (_blob) {
-        var el = findFocusBgEl();
-        if (el && !el.style.backgroundImage) applyToDom(_blob);
-      }
-    }
-  }).observe(document.body, { childList: true, subtree: false });
+  window.addEventListener('popstate', function () { scheduleRouteWork(140); });
+  window.addEventListener('storage', function (event) {
+    if (event && event.key === 'focus-bg-blur') refreshBlur();
+  });
 
-  /* ── Init ────────────────────────────────────────────────────────────── */
+  new MutationObserver(function () { scheduleRouteWork(160); })
+    .observe(document.documentElement, { childList: true, subtree: true });
+
+  setInterval(function () {
+    if (isOnFocus() && _activeUrl) refreshBlur();
+  }, 2500);
+
   function init() {
     loadSaved();
-    if (isOnFocus()) setTimeout(injectBtn, 700);
+    scheduleRouteWork(700);
   }
 
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); }
-  else { init(); }
-
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 })();

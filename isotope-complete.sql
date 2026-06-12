@@ -4,10 +4,10 @@
 -- Single authoritative SQL file for a fresh Supabase project.
 -- Fully idempotent: safe to run multiple times on any existing database.
 --
--- Tables (23):
+-- Tables (25):
 --   users, user_profiles, user_points, user_stats_summary, daily_user_stats,
 --   study_sessions_log, user_presence, user_onboarding, user_settings,
---   user_roles, user_inventory, notifications,
+--   user_roles, sync_items, backup_manifests, user_inventory, notifications,
 --   store_items,
 --   groups, group_members, group_chat_messages, group_invites,
 --   group_announcements, group_milestones, group_challenges,
@@ -223,6 +223,51 @@ CREATE TABLE IF NOT EXISTS public.user_roles (
   granted_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_roles_user_role ON public.user_roles(user_id, role);
+
+CREATE TABLE IF NOT EXISTS public.backup_manifests (
+  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          uuid        NOT NULL,
+  bucket           text        NOT NULL,
+  path             text        NOT NULL,
+  kind             text        NOT NULL,
+  content_hash     text        NOT NULL,
+  size_bytes       bigint      NOT NULL DEFAULT 0,
+  collection_counts jsonb      NOT NULL DEFAULT '{}',
+  exported_at      timestamptz,
+  selected_as_best boolean     NOT NULL DEFAULT false,
+  score            integer     NOT NULL DEFAULT 0,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT backup_manifests_path_user_prefix
+    CHECK (split_part(path, '/', 1) = user_id::text)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS backup_manifests_bucket_path_idx
+  ON public.backup_manifests(bucket, path);
+CREATE INDEX IF NOT EXISTS backup_manifests_user_score_idx
+  ON public.backup_manifests(user_id, selected_as_best DESC, score DESC, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.sync_items (
+  id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  entity         text        NOT NULL,
+  entity_id      text        NOT NULL,
+  operation      text        NOT NULL,
+  remote_path    text,
+  bucket         text,
+  content_hash   text,
+  payload_size   bigint,
+  version        integer     NOT NULL DEFAULT 1,
+  status         text        NOT NULL DEFAULT 'pending',
+  last_error     text,
+  deleted_at     timestamptz,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now(),
+  last_synced_at timestamptz,
+  CONSTRAINT sync_items_user_entity_id_unique UNIQUE (user_id, entity, entity_id)
+);
+CREATE INDEX IF NOT EXISTS sync_items_user_id_idx ON public.sync_items(user_id);
+CREATE INDEX IF NOT EXISTS sync_items_status_idx ON public.sync_items(user_id, status);
+CREATE INDEX IF NOT EXISTS sync_items_entity_idx ON public.sync_items(user_id, entity, entity_id);
 
 CREATE TABLE IF NOT EXISTS public.notifications (
   id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -678,6 +723,8 @@ ALTER TABLE public.user_presence                 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_onboarding               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_settings                 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles                    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backup_manifests              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sync_items                    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications                 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.store_items                   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_inventory                ENABLE ROW LEVEL SECURITY;
@@ -776,6 +823,35 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='user_roles' AND policyname='uroles_own_read') THEN
     CREATE POLICY uroles_own_read ON public.user_roles FOR SELECT USING (user_id = (SELECT auth.uid()));
   END IF;
+
+  -- backup_manifests: own user rows; service role bypasses RLS
+  DROP POLICY IF EXISTS backup_manifests_select_own ON public.backup_manifests;
+  DROP POLICY IF EXISTS backup_manifests_insert_own ON public.backup_manifests;
+  DROP POLICY IF EXISTS backup_manifests_update_own ON public.backup_manifests;
+  DROP POLICY IF EXISTS backup_manifests_delete_own ON public.backup_manifests;
+  CREATE POLICY backup_manifests_select_own ON public.backup_manifests
+    FOR SELECT USING (user_id = (SELECT auth.uid()));
+  CREATE POLICY backup_manifests_insert_own ON public.backup_manifests
+    FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()) AND split_part(path, '/', 1) = (SELECT auth.uid())::text);
+  CREATE POLICY backup_manifests_update_own ON public.backup_manifests
+    FOR UPDATE USING (user_id = (SELECT auth.uid()))
+    WITH CHECK (user_id = (SELECT auth.uid()) AND split_part(path, '/', 1) = (SELECT auth.uid())::text);
+  CREATE POLICY backup_manifests_delete_own ON public.backup_manifests
+    FOR DELETE USING (user_id = (SELECT auth.uid()));
+
+  -- sync_items: own user rows
+  DROP POLICY IF EXISTS "sync_items_select_own" ON public.sync_items;
+  DROP POLICY IF EXISTS "sync_items_insert_own" ON public.sync_items;
+  DROP POLICY IF EXISTS "sync_items_update_own" ON public.sync_items;
+  DROP POLICY IF EXISTS "sync_items_delete_own" ON public.sync_items;
+  CREATE POLICY "sync_items_select_own" ON public.sync_items
+    FOR SELECT USING (user_id = (SELECT auth.uid()));
+  CREATE POLICY "sync_items_insert_own" ON public.sync_items
+    FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()));
+  CREATE POLICY "sync_items_update_own" ON public.sync_items
+    FOR UPDATE USING (user_id = (SELECT auth.uid()));
+  CREATE POLICY "sync_items_delete_own" ON public.sync_items
+    FOR DELETE USING (user_id = (SELECT auth.uid()));
 
   -- notifications: own rows
   DROP POLICY IF EXISTS notif_own ON public.notifications;
@@ -1718,6 +1794,10 @@ GRANT EXECUTE ON FUNCTION public.sync_group_member_count()                      
 GRANT EXECUTE ON FUNCTION public.create_community_group(text,text,text,boolean,text,text,text,jsonb) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.check_user_role(uuid,text)                                         TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_my_role()                                                       TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.backup_manifests                                      TO authenticated;
+GRANT ALL ON public.backup_manifests                                                                TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.sync_items                                            TO authenticated;
+GRANT ALL ON public.sync_items                                                                      TO service_role;
 
 -- ── Done ──────────────────────────────────────────────────────────────────────
 -- Verify:

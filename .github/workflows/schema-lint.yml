@@ -147,10 +147,12 @@ jobs:
             isotope-complete.sql > /tmp/schema_test.sql
 
           echo "Running schema against PostgreSQL 16..."
+          set +e
           PSQL_OUT=$(psql -h localhost -U postgres -d isotope_test \
-            -v ON_ERROR_STOP=0 \
-            -f /tmp/schema_test.sql 2>&1) || true
+            -v ON_ERROR_STOP=1 \
+            -f /tmp/schema_test.sql 2>&1)
           EXIT_CODE=$?
+          set -e
 
           echo "$PSQL_OUT" | tail -40
           echo ""
@@ -183,7 +185,7 @@ jobs:
             WHERE schemaname = 'public';
           " || true
 
-          if [ "$ERROR_COUNT" -gt 0 ]; then
+          if [ "$EXIT_CODE" -ne 0 ] || [ "$ERROR_COUNT" -gt 0 ]; then
             echo "❌ isotope-complete.sql must execute cleanly against the Supabase compatibility shim"
             exit 1
           fi

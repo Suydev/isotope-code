@@ -29,7 +29,7 @@ Selection rule:
 Cleanup is preview-first:
 
 - `/__auth/storage/cleanup-preview`
-- `/__auth/storage/cleanup-apply`
+- `/__auth/storage/cleanup-apply` with `confirm:true`
 - `/__admin/storage`
 
 Protected paths:
@@ -39,3 +39,8 @@ Protected paths:
 - selected best backup
 
 The preview reports action, reason, size, hash, path, and bytes freed.
+
+Current limitation:
+
+- Backup cleanup is implemented.
+- Avatar duplicate cleanup still needs a separate avatar-aware pass.

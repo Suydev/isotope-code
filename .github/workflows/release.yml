@@ -50,6 +50,7 @@ jobs:
           node --check scripts/prove-new-browser-restore.mjs
           node --check scripts/validate-storage-cleanup.mjs
           node --check scripts/verify-supabase-security.mjs
+          node --check scripts/compare-remote-assets.mjs
           npm run docs:validate
 
       - name: 📋 Extract changelog section
@@ -144,7 +145,9 @@ jobs:
             --exclude ".git/*" \
             --exclude "node_modules/*" \
             --exclude ".env" \
+            --exclude ".env.*" \
             --exclude ".isotope/*" \
+            --exclude "artifacts/*" \
             --exclude "*.log" \
             --exclude ".github/*" \
             --exclude "screenshots/*"
@@ -167,6 +170,7 @@ jobs:
             scripts/validate-backup-files.mjs
             scripts/validate-storage-cleanup.mjs
             scripts/verify-supabase-security.mjs
+            scripts/compare-remote-assets.mjs
             sql/backup_manifests.sql
             sql/006_security_policy_cleanup.sql
             docs/sync-system.md
@@ -184,6 +188,10 @@ jobs:
             echo "❌ .env included in release"
             exit 1
           fi
+          if find "$TMPDIR" -maxdepth 1 -name '.env.*' | grep -q .; then
+            echo "❌ .env.* included in release"
+            exit 1
+          fi
           PORT=3099 \
           SUPABASE_URL=https://placeholder.supabase.co \
           SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature \
@@ -192,14 +200,14 @@ jobs:
           PID=$!
           trap 'kill "$PID" 2>/dev/null || true; rm -rf "$TMPDIR"' EXIT
           for i in $(seq 1 30); do
-            STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3099/api/health 2>/dev/null || echo 000)"
-            if [ "$STATUS" != "000" ]; then
+            STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3099/__isotope/ping 2>/dev/null || echo 000)"
+            if [ "$STATUS" = "200" ]; then
               echo "Release smoke HTTP $STATUS"
               exit 0
             fi
             sleep 0.5
           done
-          echo "❌ Release archive server did not respond"
+          echo "❌ Release archive server ping did not return 200 (got: $STATUS)"
           exit 1
 
       - name: 🎉 Create GitHub Release

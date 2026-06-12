@@ -94,7 +94,19 @@ function serverCandidateTime(candidate) {
   }));
 }
 
+function serverCandidateMeaningfulTime(candidate) {
+  const time = new Date(candidate?.normalized?.meaningful_data_at || 0).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
 function compareServerCandidates(userId, a, b) {
+  if (a?.valid && b?.valid && a.rich && b.rich) {
+    const dataDelta = serverCandidateMeaningfulTime(a) - serverCandidateMeaningfulTime(b);
+    if (Math.abs(dataDelta) > 10000) return dataDelta > 0 ? 1 : -1;
+    const priorityDelta = pathPriority(userId, a.path) - pathPriority(userId, b.path);
+    if (priorityDelta > 0) return 1;
+    if (priorityDelta < 0) return -1;
+  }
   if (a?.valid && b?.valid && a.rich === b.rich && a.empty === b.empty) {
     const timeDelta = serverCandidateTime(a) - serverCandidateTime(b);
     if (Math.abs(timeDelta) <= 10000) {
@@ -411,6 +423,9 @@ export function createBackupManager(deps) {
     const candidates = best.candidates_internal || [];
     const canonicalHash = candidates.find((c) => c.path === `${userId}/backups/latest.json`)?.hash || null;
     const seenHash = new Map();
+    const backupHistory = candidates.filter((c) => c.path.includes('/backups/history/')).sort((a, b) => -compareBackupCandidates(a, b));
+    const importArchives = candidates.filter((c) => c.path.includes('/imports/') && !c.path.endsWith('/latest.json')).sort((a, b) => -compareBackupCandidates(a, b));
+    const exportArchives = candidates.filter((c) => c.path.includes('/exports/') && !c.path.endsWith('/latest.json')).sort((a, b) => -compareBackupCandidates(a, b));
     const decisions = [];
     for (const candidate of candidates) {
       let action = 'keep';
@@ -419,6 +434,8 @@ export function createBackupManager(deps) {
         reason = 'canonical protected path';
       } else if (candidate.path === selectedPath) {
         reason = 'selected best backup';
+      } else if (candidate.path.includes('/backups/history/') && backupHistory.findIndex((c) => c.path === candidate.path) < 5) {
+        reason = 'backup history keep-latest-5 policy';
       } else if (candidate.hash && canonicalHash && candidate.hash === canonicalHash) {
         action = 'delete';
         reason = 'duplicate of canonical latest';
@@ -429,20 +446,17 @@ export function createBackupManager(deps) {
         action = 'delete';
         reason = `duplicate of ${seenHash.get(candidate.hash)}`;
       } else if (candidate.path.includes('/backups/history/')) {
-        const history = candidates.filter((c) => c.path.includes('/backups/history/')).sort((a, b) => -compareBackupCandidates(a, b));
-        if (history.findIndex((c) => c.path === candidate.path) >= 5) {
+        if (backupHistory.findIndex((c) => c.path === candidate.path) >= 5) {
           action = 'delete';
           reason = 'backup history beyond keep-latest-5 policy';
         }
       } else if (candidate.path.includes('/imports/') && !candidate.path.endsWith('/latest.json')) {
-        const imports = candidates.filter((c) => c.path.includes('/imports/') && !c.path.endsWith('/latest.json')).sort((a, b) => -compareBackupCandidates(a, b));
-        if (imports.findIndex((c) => c.path === candidate.path) >= 3) {
+        if (importArchives.findIndex((c) => c.path === candidate.path) >= 3) {
           action = 'delete';
           reason = 'import archive beyond keep-latest-3 policy';
         }
       } else if (candidate.path.includes('/exports/') && !candidate.path.endsWith('/latest.json')) {
-        const exports = candidates.filter((c) => c.path.includes('/exports/') && !c.path.endsWith('/latest.json')).sort((a, b) => -compareBackupCandidates(a, b));
-        if (exports.findIndex((c) => c.path === candidate.path) >= 3) {
+        if (exportArchives.findIndex((c) => c.path === candidate.path) >= 3) {
           action = 'delete';
           reason = 'export archive beyond keep-latest-3 policy';
         }

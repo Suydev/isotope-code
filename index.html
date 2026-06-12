@@ -17,6 +17,20 @@
       <link rel="manifest" href="/manifest.webmanifest">
       <link rel="stylesheet" crossorigin href="/assets/index-CrO6t5EW.css">
       <link rel="stylesheet" crossorigin href="/assets/vendor-katex-ASjZcBK0.css">
+      <style id="isotope-runtime-ui-fixes">
+        [data-radix-popper-content-wrapper],
+        [data-radix-tooltip-content],
+        [role="tooltip"] {
+          z-index: 2147482000 !important;
+          max-width: min(320px, calc(100vw - 24px)) !important;
+        }
+
+        [data-radix-tooltip-content],
+        [role="tooltip"] {
+          white-space: normal !important;
+          overflow-wrap: anywhere !important;
+        }
+      </style>
       <link rel="modulepreload" crossorigin href="/assets/vendor-react-BfU3Zn2J.js">
       <!-- Boot recovery: handles stale asset cache errors on reload -->
       <script src="/boot-recovery.js" defer></script>
@@ -24,6 +38,9 @@
       <script src="/ux-setup.js" defer></script>
       <!-- Focus background import: gallery image + video picker in Focus tab -->
       <script src="/focus-bg-import.js" defer></script>
+      <!-- Sync safety: normalizes backup formats and restores local stores deterministically -->
+      <script type="module" src="/sync/backup-normalizer.js"></script>
+      <script type="module" src="/sync/local-data-adapter.js"></script>
       <!-- Restore & launch: clears stale data, routes to /onboarding or /dashboard -->
       <script type="module" src="/restore-and-launch.js"></script>
       <!-- Update checker: polls GitHub when online, shows banner if new commit available -->

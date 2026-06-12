@@ -6,6 +6,11 @@ import zlib from 'zlib';
 import crypto from 'crypto';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { createBackupManager } from './server/backup-manager.mjs';
+import {
+  buildCanonicalBackupPayload as normalizeToCanonicalBackupPayload,
+  mergeBackupData as mergeNormalizedBackupData,
+} from './public/sync/backup-normalizer.js';
 
 // ── Simple in-memory rate limiter for auth routes ─────────────────────────────
 const _rateLimiter = new Map(); // ip → { count, resetAt }
@@ -797,6 +802,10 @@ function buildUsernameAuthScript() {
     return /permission denied|policy|not authorized|forbidden|rls|row level security/.test(msg) || (e.__httpStatus === 403);
   }
 
+  function isEmptyOverwriteBlocked(e) {
+    return !!(e && (e.__isEmptyOverwriteBlocked || e.__code === 'BLOCKED_EMPTY_OVERWRITE'));
+  }
+
   function isNetworkError(e) {
     if (!e) return false;
     var msg = String(e.message || e || '').toLowerCase();
@@ -871,13 +880,18 @@ function buildUsernameAuthScript() {
     }
     var d = await r.json().catch(function(){ return {}; });
     if (!r.ok || !d.ok) {
-      var errMsg = d.error || ('Request failed: ' + r.status);
+      var errMsg = d.message || d.error || ('Request failed: ' + r.status);
       var err = new Error(errMsg);
       err.__httpStatus = r.status;
+      err.__code = d.code || null;
+      err.__state = d.state || null;
+      err.__payload = d;
       if (r.status === 401 || /authentication required|please log in|invalid token|jwt|not authenticated|session/i.test(errMsg)) {
         err.__isAuthError = true;
       } else if (r.status === 403 || /permission|policy|forbidden|rls/i.test(errMsg)) {
         err.__isPermissionError = true;
+      } else if (d.code === 'BLOCKED_EMPTY_OVERWRITE') {
+        err.__isEmptyOverwriteBlocked = true;
       }
       throw err;
     }
@@ -902,6 +916,24 @@ function buildUsernameAuthScript() {
     var bytes = text.length;
     var hash = options.hash || await hashText(text);
     var meta = readSyncMetadata();
+    try {
+      var normalizer = window.IsotopeBackupNormalizer || null;
+      if (normalizer && typeof normalizer.normalizeAnyBackup === 'function' && typeof normalizer.isBackupEmpty === 'function') {
+        var normalized = normalizer.normalizeAnyBackup(text || '{}');
+        if (normalizer.isBackupEmpty(normalized)) {
+          var best = await authedJson('/__auth/backup/best', { method: 'GET', timeoutMs: 30000 });
+          if (best && best.selected && best.selected.rich === true && best.selected.empty !== true) {
+            var blocked = new Error('Cloud has richer backup. Restore it before uploading this empty device.');
+            blocked.__code = 'BLOCKED_EMPTY_OVERWRITE';
+            blocked.__isEmptyOverwriteBlocked = true;
+            blocked.__payload = { selected_backup: best.selected, local_counts: normalized.collection_counts, cloud_counts: best.selected.collection_counts };
+            throw blocked;
+          }
+        }
+      }
+    } catch(guardErr) {
+      if (isEmptyOverwriteBlocked(guardErr) || isAuthError(guardErr) || isPermissionError(guardErr)) throw guardErr;
+    }
     if (!options.force && meta.last_uploaded_hash === hash) {
       writeSyncMetadata({
         last_sync_status: 'synced',
@@ -928,7 +960,18 @@ function buildUsernameAuthScript() {
       pending_count: 0,
       last_error: null
     });
-    return { ok: true, bytes: bytes, hash: hash, export_storage: d.export_storage || null, snapshot_storage: d.snapshot_storage || null };
+    return {
+      ok: true,
+      bytes: bytes,
+      hash: d.hash || hash,
+      export_storage: d.export_storage || null,
+      snapshot_storage: d.snapshot_storage || null,
+      canonical_path: d.path || d.latest_path || null,
+      history_path: d.history_path || null,
+      cloud_snapshot_path: d.cloud_snapshot_path || null,
+      collection_counts: d.collection_counts || null,
+      skipped: d.skipped === true,
+    };
   }
 
   async function downloadBackupPayload(options) {
@@ -943,7 +986,7 @@ function buildUsernameAuthScript() {
       last_downloaded_bytes: text.length,
       last_error: null
     });
-    return { ok: true, backup_json: text, hash: hash, bytes: text.length, cloud_snapshot: d.cloud_snapshot || null };
+    return { ok: true, backup_json: text, hash: hash, bytes: text.length, cloud_snapshot: d.cloud_snapshot || null, selected_backup: d.selected_backup || null, collection_counts: d.collection_counts || null };
   }
 
   async function importBackupPayload(backupJson, mode, options) {
@@ -968,20 +1011,32 @@ function buildUsernameAuthScript() {
       pending_count: 0,
       last_error: null
     });
-    return { ok: true, hash: hash, bytes: text.length, import_storage: d.import_storage || null, applied: d.applied || {}, unsupported_collections: d.unsupported_collections || [] };
+    return { ok: true, hash: hash, bytes: text.length, import_storage: d.import_storage || null, applied: d.applied || {}, collection_counts: d.collection_counts || null, restore_required_on_browser: d.restore_required_on_browser === true, unsupported_collections: d.unsupported_collections || [] };
   }
 
   window.__isoRefreshCloudSnapshot = async function(source) {
     var _src = source || 'manual_sync';
     return withSyncLock('snapshot', { force: _src.indexOf('manual') >= 0, autoDebounceMs: 45000, timeoutMs: 60000 }, async function() {
       try {
-        var d = await authedJson('/__auth/snapshot', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ source: _src }),
-          timeoutMs: 60000
-        });
-        var snapshotAt = (d.cloud_snapshot && (d.cloud_snapshot.exported_at || d.cloud_snapshot.downloaded_at)) || new Date().toISOString();
+        var adapter = window.IsotopeLocalDataAdapter || null;
+        var d = null;
+        if (adapter && typeof adapter.buildBackupPayloadFromLocal === 'function') {
+          var payload = await adapter.buildBackupPayloadFromLocal();
+          d = await authedJson('/__auth/backup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ backup_json: JSON.stringify(payload), source: _src }),
+            timeoutMs: 70000
+          });
+        } else {
+          d = await authedJson('/__auth/snapshot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source: _src }),
+            timeoutMs: 60000
+          });
+        }
+        var snapshotAt = (d.cloud_snapshot && (d.cloud_snapshot.exported_at || d.cloud_snapshot.downloaded_at)) || d.synced_at || new Date().toISOString();
         writeSyncMetadata({ last_sync_status: 'synced', last_snapshot_at: snapshotAt, pending_count: 0, last_error: null });
         writeSyncHistory({ op: 'snapshot', status: 'ok', source: _src, at: snapshotAt });
         return { ok: true, snapshot_storage: d.snapshot_storage || null };
@@ -989,6 +1044,9 @@ function buildUsernameAuthScript() {
         if (isAuthError(e)) {
           try { window.__isoSyncAuthBlock(e.message); } catch(_ae) {}
           writeSyncHistory({ op: 'snapshot', status: 'paused_auth', error: e.message, source: _src });
+        } else if (isEmptyOverwriteBlocked(e)) {
+          writeSyncMetadata({ last_sync_status: 'blocked_empty_overwrite', last_error: e.message || 'Cloud has richer backup. Restore it before uploading this empty device.' });
+          writeSyncHistory({ op: 'snapshot', status: 'blocked_empty_overwrite', error: e.message, source: _src });
         } else {
           writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Cloud snapshot upload failed' });
           writeSyncHistory({ op: 'snapshot', status: 'failed', error: e.message || 'Cloud snapshot upload failed', source: _src });
@@ -1014,6 +1072,9 @@ function buildUsernameAuthScript() {
         if (isAuthError(e)) {
           try { window.__isoSyncAuthBlock(e.message); } catch(_ae) {}
           writeSyncHistory({ op: 'upload', status: 'paused_auth', source: source, error: e.message, bytes: bytes, hash: hash });
+        } else if (isEmptyOverwriteBlocked(e)) {
+          writeSyncMetadata({ last_sync_status: 'blocked_empty_overwrite', last_error: e.message || 'Cloud has richer backup. Restore it before uploading this empty device.' });
+          writeSyncHistory({ op: 'upload', status: 'blocked_empty_overwrite', source: source, error: e.message, bytes: bytes, hash: hash });
         } else {
           writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup upload failed' });
           writeSyncHistory({ op: 'upload', status: 'failed', source: source, error: e.message || 'Backup upload failed', bytes: bytes, hash: hash });
@@ -1048,11 +1109,19 @@ function buildUsernameAuthScript() {
       try {
         await yieldToBrowser();
         var result = await importBackupPayload(text, _mode, { hash: hash, force: options.force === true, timeoutMs: options.timeoutMs || 60000 });
+        if (window.IsotopeLocalDataAdapter && typeof window.IsotopeLocalDataAdapter.applyBackupToLocal === 'function') {
+          await window.IsotopeLocalDataAdapter.applyBackupToLocal(text, { hash: hash, source_path: result.import_storage && result.import_storage.latest_path || 'manual_import' });
+        }
         writeSyncHistory({ op: 'import', status: result.skipped ? 'skipped' : 'ok', mode: _mode, source: options.source || 'manual_import', bytes: text.length, hash: hash, detail: result.reason || null });
         return result;
       } catch(e) {
-        writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup import failed' });
-        writeSyncHistory({ op: 'import', status: 'failed', mode: _mode, source: options.source || 'manual_import', error: e.message || 'Backup import failed', bytes: text.length, hash: hash });
+        if (isEmptyOverwriteBlocked(e)) {
+          writeSyncMetadata({ last_sync_status: 'blocked_empty_overwrite', last_error: e.message || 'Cloud has richer backup. Restore it before uploading this empty device.' });
+          writeSyncHistory({ op: 'import', status: 'blocked_empty_overwrite', mode: _mode, source: options.source || 'manual_import', error: e.message || 'Backup import failed', bytes: text.length, hash: hash });
+        } else {
+          writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Backup import failed' });
+          writeSyncHistory({ op: 'import', status: 'failed', mode: _mode, source: options.source || 'manual_import', error: e.message || 'Backup import failed', bytes: text.length, hash: hash });
+        }
         throw e;
       }
     });
@@ -1064,94 +1133,104 @@ function buildUsernameAuthScript() {
       var bytes = 0, hash = null, uploaded = false, uploadSkipped = false, downloaded = false, imported = false;
       try {
         await yieldToBrowser();
-        var backupJson = typeof buildBackup === 'function' ? await buildBackup() : '';
+        var adapter = window.IsotopeLocalDataAdapter || null;
+        var normalizer = window.IsotopeBackupNormalizer || null;
+        var buildLocal = async function() {
+          if (adapter && typeof adapter.buildBackupPayloadFromLocal === 'function') {
+            return JSON.stringify(await adapter.buildBackupPayloadFromLocal());
+          }
+          return typeof buildBackup === 'function' ? String(await buildBackup() || '') : '';
+        };
+        var countLocal = async function(backupText) {
+          if (adapter && typeof adapter.countLocalData === 'function') return await adapter.countLocalData();
+          if (normalizer && typeof normalizer.normalizeAnyBackup === 'function') {
+            return normalizer.normalizeAnyBackup(backupText || '{}').collection_counts || {};
+          }
+          return {};
+        };
+        var localIsEmpty = async function(backupText) {
+          if (adapter && typeof adapter.isLocalWorkspaceEmpty === 'function') return await adapter.isLocalWorkspaceEmpty();
+          if (normalizer && typeof normalizer.isBackupEmpty === 'function') return normalizer.isBackupEmpty(normalizer.normalizeAnyBackup(backupText || '{}'));
+          return false;
+        };
+        var applyCloudBackup = async function(backupText, meta) {
+          if (adapter && typeof adapter.applyBackupToLocal === 'function') {
+            return await adapter.applyBackupToLocal(backupText, meta || {});
+          }
+          if (typeof applyBackup === 'function') {
+            await applyBackup(backupText);
+            try { window.dispatchEvent(new CustomEvent('isotope:sync_refresh', { detail: { source: 'cloud_restore' } })); } catch(_e) {}
+            return { ok: true, fallback_apply: true };
+          }
+          throw new Error('No local restore adapter is available');
+        };
+
+        writeSyncMetadata({ last_sync_status: 'selecting_backup', last_error: null });
+        var backupJson = await buildLocal();
         backupJson = String(backupJson || '');
         bytes = backupJson.length;
         hash = await hashText(backupJson);
 
-        // ── SMART SYNC: compare timestamps before deciding direction ──────────
-        // If the cloud snapshot is newer than our last local sync, download and
-        // apply it FIRST so we don't overwrite remote changes with stale local data.
-        var meta = readSyncMetadata();
-        var localTs = meta.last_snapshot_at ? new Date(meta.last_snapshot_at).getTime() : 0;
-        var cloudIsNewer = false;
-        var cloudData = null;
-        try {
-          cloudData = await authedJson('/__auth/backup/latest', { method: 'GET', timeoutMs: 18000 });
-          var cloudAt = cloudData && cloudData.cloud_snapshot &&
-            (cloudData.cloud_snapshot.exported_at || cloudData.cloud_snapshot.downloaded_at || cloudData.cloud_snapshot.uploaded_at);
-          var cloudTs = cloudAt ? new Date(cloudAt).getTime() : 0;
-          // 10-second tolerance to avoid flip-flopping on clock skew
-          cloudIsNewer = cloudTs > 0 && localTs > 0 ? (cloudTs - localTs > 10000) : false;
-          if (!localTs && cloudTs > 0) cloudIsNewer = true; // first sync: always download first
-        } catch(fetchErr) {
-          // Auth errors must propagate — they are a STOP condition, not non-fatal
-          if (isAuthError(fetchErr)) throw fetchErr;
-          // Network/other errors are non-fatal for smart-sync direction check
-          console.warn('[SmartSync] Could not fetch cloud metadata (non-fatal):', fetchErr && fetchErr.message);
-        }
+        var beforeCounts = await countLocal(backupJson);
+        var emptyLocal = await localIsEmpty(backupJson);
+        var best = await authedJson('/__auth/backup/best', { method: 'GET', timeoutMs: 45000 });
+        var selected = best && best.selected;
+        var cloudRich = !!(selected && selected.rich === true && selected.empty !== true);
 
-        if (cloudIsNewer && cloudData && cloudData.backup_json) {
-          // Cloud is ahead — import cloud data first, then upload merged local state
-          var cloudHash = await hashText(cloudData.backup_json);
-          if (cloudHash !== hash && meta.last_imported_hash !== cloudHash) {
-            await yieldToBrowser();
-            if (typeof applyBackup === 'function') await applyBackup(cloudData.backup_json);
-            writeSyncMetadata({ last_imported_hash: cloudHash, last_imported_bytes: cloudData.backup_json.length });
-            imported = true;
-            downloaded = true;
-            writeSyncHistory({ op: 'smart_download', status: 'ok', source: _src, bytes: cloudData.backup_json.length, hash: cloudHash });
-            // Rebuild local backup after applying cloud data so we upload the merged state
-            try {
-              if (typeof buildBackup === 'function') {
-                backupJson = String(await buildBackup() || '');
-                bytes = backupJson.length;
-                hash = await hashText(backupJson);
-              }
-            } catch(rebuildErr) { /* use original backup if rebuild fails */ }
+        if (emptyLocal && cloudRich) {
+          writeSyncMetadata({ last_sync_status: 'restoring_cloud', last_error: null });
+          var restore = await authedJson('/__auth/restore-best-backup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ promote: true }),
+            timeoutMs: 70000
+          });
+          var cloudBackup = restore.backup_json || '';
+          var cloudHash = restore.backup_hash || await hashText(cloudBackup);
+          await yieldToBrowser();
+          var restoreResult = await applyCloudBackup(cloudBackup, { source_path: selected.path, hash: cloudHash });
+          imported = true;
+          downloaded = true;
+          var afterCounts = await countLocal(cloudBackup);
+          var grew = Number(afterCounts.tasks || 0) > Number(beforeCounts.tasks || 0)
+            || Number(afterCounts.sessions || 0) > Number(beforeCounts.sessions || 0)
+            || Number(afterCounts.subjects || 0) > Number(beforeCounts.subjects || 0)
+            || Number(afterCounts.habits || 0) > Number(beforeCounts.habits || 0)
+            || Number(afterCounts.exams || 0) > Number(beforeCounts.exams || 0)
+            || Number(afterCounts.tests || 0) > Number(beforeCounts.tests || 0)
+            || Number(afterCounts.mockTests || 0) > Number(beforeCounts.mockTests || 0);
+          if (!grew && selected && selected.collection_counts) {
+            throw new Error('Cloud restore did not increase local data counts; upload blocked.');
           }
+          writeSyncMetadata({
+            last_imported_hash: cloudHash,
+            last_imported_bytes: cloudBackup.length,
+            last_restore_message: restoreResult && restoreResult.message || null,
+            last_sync_status: 'verifying_restore'
+          });
+          writeSyncHistory({ op: 'restore_best_cloud_backup', status: 'ok', source: _src, bytes: cloudBackup.length, hash: cloudHash, selected_path: selected.path, counts: afterCounts });
+          backupJson = await buildLocal();
+          backupJson = String(backupJson || '');
+          bytes = backupJson.length;
+          hash = await hashText(backupJson);
         }
-        // ── End smart sync ────────────────────────────────────────────────────
 
+        writeSyncMetadata({ last_sync_status: 'uploading_local', last_error: null });
         var uploadResult = await uploadBackupPayload(backupJson, { hash: hash, force: false, timeoutMs: 65000 });
         uploaded = !uploadResult.skipped;
         uploadSkipped = uploadResult.skipped === true;
 
-        // If upload was skipped (unchanged) and we haven't pulled cloud yet, check for changes
-        if (!uploaded && !downloaded) {
-          var latestMeta = readSyncMetadata();
-          if (cloudData && cloudData.backup_json) {
-            var cHash = await hashText(cloudData.backup_json);
-            if (cHash !== hash && latestMeta.last_imported_hash !== cHash) {
-              await yieldToBrowser();
-              if (typeof applyBackup === 'function') await applyBackup(cloudData.backup_json);
-              writeSyncMetadata({ last_imported_hash: cHash, last_imported_bytes: cloudData.backup_json.length });
-              imported = true;
-              downloaded = true;
-            }
-          } else if (!cloudData) {
-            // Fallback: fetch fresh if we didn't get it above
-            try {
-              var downloadResult = await downloadBackupPayload({ timeoutMs: 45000 });
-              downloaded = !!downloadResult.backup_json;
-              if (downloadResult.backup_json && downloadResult.hash !== hash && latestMeta.last_imported_hash !== downloadResult.hash) {
-                await yieldToBrowser();
-                if (typeof applyBackup === 'function') await applyBackup(downloadResult.backup_json);
-                writeSyncMetadata({ last_imported_hash: downloadResult.hash, last_imported_bytes: downloadResult.bytes || 0 });
-                imported = true;
-              }
-            } catch(dlErr) { /* non-fatal */ }
-          }
-        }
-
-        writeSyncMetadata({ last_sync_status: 'synced', last_error: null, pending_count: 0, last_snapshot_at: readSyncMetadata().last_snapshot_at || new Date().toISOString() });
-        writeSyncHistory({ op: 'manual_sync', status: 'ok', source: _src, bytes: bytes, hash: hash, uploaded: uploaded, upload_skipped: uploadSkipped, downloaded: downloaded, imported: imported });
-        return { ok: true, uploaded: uploaded, upload_skipped: uploadSkipped, downloaded: downloaded, imported: imported, hash: hash, bytes: bytes };
+        writeSyncMetadata({ last_sync_status: 'synced', last_error: null, pending_count: 0, last_snapshot_at: new Date().toISOString() });
+        writeSyncHistory({ op: 'manual_sync', status: 'ok', source: _src, bytes: bytes, hash: hash, uploaded: uploaded, upload_skipped: uploadSkipped, downloaded: downloaded, imported: imported, selected_path: selected && selected.path || null });
+        return { ok: true, uploaded: uploaded, upload_skipped: uploadSkipped, downloaded: downloaded, imported: imported, hash: hash, bytes: bytes, selected_backup: selected || null };
       } catch(e) {
         // Auth errors are a STOP condition — block scheduled syncs immediately
         if (isAuthError(e)) {
           try { window.__isoSyncAuthBlock(e.message); } catch(_ae) {}
           writeSyncHistory({ op: 'manual_sync', status: 'paused_auth', source: _src, bytes: bytes, hash: hash, error: e.message });
+        } else if (isEmptyOverwriteBlocked(e)) {
+          writeSyncMetadata({ last_sync_status: 'blocked_empty_overwrite', last_error: e.message || 'Cloud has richer backup. Restore it before uploading this empty device.' });
+          writeSyncHistory({ op: 'manual_sync', status: 'blocked_empty_overwrite', source: _src, bytes: bytes, hash: hash, error: e.message, selected_backup: e.__payload && (e.__payload.selected_backup || (e.__payload.details && e.__payload.details.selected_backup)) || null });
         } else if (isPermissionError(e)) {
           writeSyncMetadata({ last_sync_status: 'failed_permission', last_error: e.message || 'Storage permission error' });
           writeSyncHistory({ op: 'manual_sync', status: 'failed_permission', source: _src, bytes: bytes, hash: hash, error: e.message });
@@ -1174,7 +1253,11 @@ function buildUsernameAuthScript() {
           var meta = readSyncMetadata();
           if (meta.last_imported_hash !== result.hash) {
             await yieldToBrowser();
-            if (typeof applyBackup === 'function') await applyBackup(result.backup_json);
+            if (window.IsotopeLocalDataAdapter && typeof window.IsotopeLocalDataAdapter.applyBackupToLocal === 'function') {
+              await window.IsotopeLocalDataAdapter.applyBackupToLocal(result.backup_json, { hash: result.hash, source_path: result.selected_backup && result.selected_backup.path || null });
+            } else if (typeof applyBackup === 'function') {
+              await applyBackup(result.backup_json);
+            }
             writeSyncMetadata({ last_imported_hash: result.hash, last_imported_bytes: result.bytes || 0 });
             imported = true;
           }
@@ -1688,22 +1771,18 @@ function buildUsernameAuthScript() {
           return result;
         } else {
           // Fallback: build/apply fns still not registered after polling.
-          // If this is a first sync on a new device (no local snapshot history),
-          // try to bootstrap cloud data into Supabase DB first so the snapshot
-          // upload reflects the correct cloud state.
-          var _fallbackMeta = readSyncMetadata();
-          var _fallbackLocalTs = _fallbackMeta.last_snapshot_at ? new Date(_fallbackMeta.last_snapshot_at).getTime() : 0;
-          if (!_fallbackLocalTs) {
-            try {
-              await authedJson('/__auth/bootstrap', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ source: 'startup_bootstrap_fallback' }),
-                timeoutMs: 45000
-              });
-            } catch(_be) { /* non-fatal — no cloud data yet or network issue */ }
+          // Never upload a profile-only DB snapshot while a rich cloud backup exists.
+          var best = await authedJson('/__auth/backup/best', { method: 'GET', timeoutMs: 45000 });
+          if (best && best.selected && best.selected.rich === true && best.selected.empty !== true) {
+            writeSyncMetadata({
+              last_sync_status: 'blocked_empty_overwrite',
+              last_error: 'Cloud has richer backup. Restore it before uploading this empty device.',
+              pending_count: 1
+            });
+            writeSyncHistory({ op: 'auto_sync', status: 'blocked_empty_overwrite', source: _src, selected_path: best.selected.path });
+            return { ok: false, reason: 'blocked_empty_overwrite', selected_backup: best.selected };
           }
-          // Lightweight DB→Storage snapshot
+          // Lightweight DB→Storage snapshot is only allowed when cloud is empty.
           var d = await authedJson('/__auth/snapshot', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1725,6 +1804,10 @@ function buildUsernameAuthScript() {
           writeSyncMetadata({ last_sync_status: 'failed_permission', last_error: e.message || 'Permission error' });
           writeSyncHistory({ op: 'auto_sync', status: 'failed_permission', source: _src, error: e.message });
           return { ok: false, reason: 'failed_permission', error: e.message };
+        } else if (isEmptyOverwriteBlocked(e)) {
+          writeSyncMetadata({ last_sync_status: 'blocked_empty_overwrite', last_error: e.message || 'Cloud has richer backup. Restore it before uploading this empty device.' });
+          writeSyncHistory({ op: 'auto_sync', status: 'blocked_empty_overwrite', source: _src, error: e.message });
+          return { ok: false, reason: 'blocked_empty_overwrite', error: e.message };
         }
         writeSyncMetadata({ last_sync_status: 'failed', last_error: e.message || 'Auto-sync failed' });
         writeSyncHistory({ op: 'auto_sync', status: 'failed', source: _src, error: e.message || 'Auto-sync failed' });
@@ -3529,9 +3612,12 @@ function getPatchedSettingsBundle() {
     patch('avatar: void 0', 'avatar: null', 'avatar remove sends explicit null');
     patch(
       '} = ae(), l = f(), [z, N] = ne.useState(!1);',
-      '} = ae(), l = f(), __isoMeta = (() => { try { return JSON.parse(localStorage.getItem("isotope_sync_metadata") || "{}") || {} } catch { return {} } })(), __isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !!__isoMeta.last_snapshot_at && !__isoMeta.last_error, [z, N] = ne.useState(!1);',
+      '} = ae(), l = f(), __isoMeta = (() => { try { return JSON.parse(localStorage.getItem("isotope_sync_metadata") || "{}") || {} } catch { return {} } })(), __isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !!__isoMeta.last_snapshot_at && !__isoMeta.last_error, __isoBusyStates = ["syncing","selecting_backup","restoring_cloud","verifying_restore","uploading_local"], __isoDisplayStatus = __isoBusyStates.includes(__isoMeta.last_sync_status) ? "syncing" : (__isoMeta.last_sync_status === "blocked_empty_overwrite" ? "error" : g), [z, N] = ne.useState(!1);',
       'sync status reads snapshot metadata'
     );
+    patch('if (g !== "syncing") {', 'if (__isoDisplayStatus !== "syncing") {', 'sync button treats restore/upload stages as busy');
+    patch('})(g),\n            d = o.icon,', '})(__isoDisplayStatus),\n            d = o.icon,', 'sync icon uses mapped display status');
+    patch('disabled: g === "syncing" || !l', 'disabled: __isoDisplayStatus === "syncing" || !l', 'sync button disabled during detailed busy states');
     patch('label: "Synced manually"', 'label: __isoSnapshotOk ? "Synced" : "Pending"', 'synced label requires snapshot');
     patch(
       'description: "Local data and cloud data were synced successfully."',
@@ -3566,7 +3652,7 @@ function getPatchedSettingsBundle() {
       '}), await Xs(), await (window.__isoImportBackupJSON ? window.__isoImportBackupJSON(C, "merge", { source: "manual_import" }) : Promise.resolve()), b("Backup imported locally and cloud snapshot checked.")',
       'manual import writes supported cloud fields'
     );
-    console.log('[SettingsPatch] ' + applied + '/12 settings patches applied');
+    console.log('[SettingsPatch] ' + applied + '/15 settings patches applied');
     patchedSettingsBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[SettingsPatch] Error:', e.message); patchedSettingsBundle = null; }
   return patchedSettingsBundle;
@@ -3990,6 +4076,43 @@ function isStorageAlreadyExists(res) {
   const text = typeof res?.body === 'string' ? res.body : JSON.stringify(res?.body || {});
   return (res?.status === 400 || res?.status === 409)
     && /already exists|resource exists|duplicate/i.test(text);
+}
+
+let _canonicalBackupManager = null;
+function canonicalBackupManager() {
+  if (!_canonicalBackupManager) {
+    _canonicalBackupManager = createBackupManager({
+      supaStorageDownloadAsUser,
+      supaStorageUploadAsUser,
+      supaStorageListAsUser,
+      supaStorageRemoveAsUser,
+      assertSupaOk,
+      isStorageAlreadyExists,
+      appVersion: (typeof LOCAL_VERSION !== 'undefined' && LOCAL_VERSION.version) ? LOCAL_VERSION.version : 'unknown',
+    });
+  }
+  return _canonicalBackupManager;
+}
+
+function jsonEndpointError(res, error, fallback = 'Request failed', stage = 'unknown') {
+  const code = error?.code || (/auth/i.test(error?.message || '') ? 'AUTH_REQUIRED' : 'UNKNOWN');
+  const status =
+    code === 'AUTH_REQUIRED' ? 401 :
+    code === 'BLOCKED_EMPTY_OVERWRITE' ? 409 :
+    code === 'STORAGE_NOT_FOUND' ? 404 :
+    (/permission|policy|forbidden|rls/i.test(error?.message || '') ? 403 : 500);
+  sendJson(res, status, {
+    ok: false,
+    success: false,
+    code,
+    state: code === 'BLOCKED_EMPTY_OVERWRITE' ? 'blocked_empty_overwrite' : 'failed',
+    stage,
+    retryable: status >= 500,
+    message: error?.payload?.message || error?.message || fallback,
+    error: error?.message || fallback,
+    details: error?.payload || undefined,
+    ...(error?.payload || {}),
+  });
 }
 
 function isOwnedStoragePath(userId, objectPath) {
@@ -5428,9 +5551,24 @@ const server = http.createServer((req, res) => {
           dbBundle.warnings = compactObject({ ...(dbBundle.warnings || {}), cloud_snapshot: e.message || 'cloud snapshot download failed' });
           return null;
         });
+        const bestBackup = await canonicalBackupManager().findBestCloudBackup(userId, userJwt).catch((e) => ({
+          ok: false,
+          code: e.code || 'BACKUP_SCAN_FAILED',
+          error: e.message || 'Best backup scan failed',
+          selected: null,
+          candidates: [],
+        }));
         const bundle = mergeBootstrapBundleWithCloudSnapshot(dbBundle, cloudSnapshot);
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: true, ...bundle }));
+        res.end(JSON.stringify({
+          ok: true,
+          code: 'BOOTSTRAP_OK',
+          ...bundle,
+          best_backup: bestBackup.ok === false ? null : bestBackup.selected,
+          backup_candidates: bestBackup.candidates || [],
+          restore_recommended: !!(bestBackup.selected && bestBackup.selected.rich),
+          backup_warning: bestBackup.warning_if_empty_latest || bestBackup.error || null,
+        }));
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ ok: false, error: e.message || 'Bootstrap failed' }));
@@ -5450,18 +5588,137 @@ const server = http.createServer((req, res) => {
       const auth = await requireUserAuth(req, res);
       if (!auth) return;
       const { userJwt, userId } = auth;
-      const body = await readReqBody(req, 512 * 1024);
+      const body = await readReqBody(req, 12 * 1024 * 1024);
       try {
+        const manager = canonicalBackupManager();
         const source = body && typeof body.source === 'string' ? body.source : 'supabase';
+        if (body?.backup_json) {
+          const backupJson = typeof body.backup_json === 'string' ? body.backup_json : JSON.stringify(body.backup_json);
+          const normalized = manager.normalizeAnyBackup(backupJson, { source_path: 'snapshot_request' });
+          const best = await manager.findBestCloudBackup(userId, userJwt, { includeRaw: true });
+          manager.assertNoEmptyOverwrite(normalized, best);
+          const written = await manager.writeCanonicalBackup(userId, userJwt, normalized, { source_path: 'snapshot_request', source });
+          sendJson(res, 200, {
+            ok: true,
+            success: true,
+            code: 'CANONICAL_SNAPSHOT_WRITTEN',
+            state: 'synced',
+            stage: 'storage_upload',
+            user_id: userId,
+            backup: {
+              bucket: written.bucket,
+              path: written.path,
+              history_path: written.history_path,
+              cloud_snapshot_path: written.cloud_snapshot_path,
+              hash: written.hash,
+              size_bytes: written.size_bytes,
+              collection_counts: written.collection_counts,
+            },
+          });
+          return;
+        }
+        const best = await manager.findBestCloudBackup(userId, userJwt, { includeRaw: true });
+        if (best.selected_internal?.rich) {
+          const err = new Error('Cloud has richer backup. Restore first.');
+          err.code = 'BLOCKED_EMPTY_OVERWRITE';
+          err.payload = {
+            ok: false,
+            code: 'BLOCKED_EMPTY_OVERWRITE',
+            message: 'Cloud has richer backup. Restore first.',
+            selected_backup: best.selected,
+            cloud_counts: best.selected_internal.collection_counts,
+            local_counts: manager.getCollectionCounts({ data: {} }),
+          };
+          throw err;
+        }
         const refreshed = await refreshCloudSnapshotForUser(userId, userJwt, source);
-        sendJson(res, 200, { ok: true, user_id: userId, cloud_snapshot: refreshed.snapshot, snapshot_storage: refreshed.storage });
+        sendJson(res, 200, {
+          ok: true,
+          success: true,
+          code: 'PROFILE_SNAPSHOT_WRITTEN',
+          state: 'synced',
+          stage: 'storage_upload',
+          user_id: userId,
+          cloud_snapshot: refreshed.snapshot,
+          snapshot_storage: refreshed.storage,
+        });
       } catch (e) {
-        sendJson(res, 500, { ok: false, error: e.message || 'Cloud snapshot upload failed' });
+        jsonEndpointError(res, e, 'Cloud snapshot upload failed', 'storage_upload');
       }
     })().catch(e => {
       if (!res.headersSent) {
-        sendJson(res, 500, { ok: false, error: e.message || 'Cloud snapshot upload failed' });
+        jsonEndpointError(res, e, 'Cloud snapshot upload failed', 'storage_upload');
       }
+    });
+    return;
+  }
+
+  // ── /__auth/backup/best GET — inspect all canonical + legacy backups ─────
+  if (req.method === 'GET' && req.url === '/__auth/backup/best') {
+    (async () => {
+      const auth = await requireUserAuth(req, res, { payload: { stage: 'auth' } });
+      if (!auth) return;
+      const { userJwt, userId } = auth;
+      try {
+        const best = await canonicalBackupManager().findBestCloudBackup(userId, userJwt);
+        sendJson(res, 200, {
+          ok: true,
+          success: true,
+          code: 'BEST_BACKUP_SELECTED',
+          state: best.selected?.rich ? 'restore_available' : (best.selected ? 'cloud_empty' : 'no_cloud_backup'),
+          stage: 'storage_scan',
+          selected: best.selected,
+          candidates: best.candidates,
+          local_recommendation: best.local_recommendation,
+          warning_if_empty_latest: best.warning_if_empty_latest,
+        });
+      } catch (e) {
+        jsonEndpointError(res, e, 'Best backup scan failed', 'storage_scan');
+      }
+    })().catch(e => {
+      if (!res.headersSent) jsonEndpointError(res, e, 'Best backup scan failed', 'storage_scan');
+    });
+    return;
+  }
+
+  // ── /__auth/restore-best-backup POST — return payload for browser restore ─
+  if (req.method === 'POST' && req.url === '/__auth/restore-best-backup') {
+    (async () => {
+      const auth = await requireUserAuth(req, res, { payload: { stage: 'auth' } });
+      if (!auth) return;
+      const { userJwt, userId } = auth;
+      const body = await readReqBody(req, 64 * 1024);
+      try {
+        const restored = await canonicalBackupManager().restoreBestBackup(userId, userJwt, {
+          promote: body?.promote !== false,
+        });
+        sendJson(res, 200, {
+          ok: true,
+          success: true,
+          code: 'RESTORE_BEST_BACKUP_READY',
+          state: 'restore_required',
+          stage: 'storage_download',
+          user_id: userId,
+          selected_backup: restored.selected,
+          candidates: restored.candidates,
+          backup_json: restored.backup_json,
+          backup_hash: restored.backup_hash,
+          collection_counts: restored.collection_counts,
+          promoted: restored.promoted ? {
+            path: restored.promoted.path,
+            history_path: restored.promoted.history_path,
+            cloud_snapshot_path: restored.promoted.cloud_snapshot_path,
+            hash: restored.promoted.hash,
+            size_bytes: restored.promoted.size_bytes,
+            collection_counts: restored.promoted.collection_counts,
+          } : null,
+          restore_required_on_browser: true,
+        });
+      } catch (e) {
+        jsonEndpointError(res, e, 'Restore best backup failed', 'storage_download');
+      }
+    })().catch(e => {
+      if (!res.headersSent) jsonEndpointError(res, e, 'Restore best backup failed', 'storage_download');
     });
     return;
   }
@@ -5474,53 +5731,30 @@ const server = http.createServer((req, res) => {
       if (!auth) return;
       const { userJwt, userId } = auth;
       try {
-        const objectPath = `${userId}/exports/latest.json`;
-        const downloaded = await supaStorageDownloadAsUser('user-content', objectPath, userJwt);
-        const missingDetail = Buffer.isBuffer(downloaded.body) ? downloaded.body.toString('utf8') : String(downloaded.body || '');
-        if (downloaded.status === 404 || (downloaded.status === 400 && /not found|does not exist|no such/i.test(missingDetail))) {
-          const cloudSnapshot = await downloadCloudSnapshotForUser(userId, userJwt).catch(() => null);
-          const backupJson = cloudSnapshot ? backupJsonFromCloudSnapshot(cloudSnapshot, userId) : null;
-          if (!backupJson) {
-            res.writeHead(404, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-            res.end(JSON.stringify({ ok: false, success: false, stage: 'storage_upload', error: 'No cloud backup export exists yet' }));
-            return;
-          }
-          parseBackupJsonPayload(backupJson);
-          res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-          res.end(JSON.stringify({
-            ok: true, success: true,
-            user_id: userId,
-            backup_json: backupJson,
-            backup_storage: { bucket: 'user-content', path: `${userId}/cloud-snapshot/latest.json`, source: 'cloud_snapshot_fallback' },
-            cloud_snapshot: cloudSnapshot,
-          }));
-          return;
-        }
-        assertSupaOk(downloaded, 'Cloud backup download');
-        const backupJson = Buffer.isBuffer(downloaded.body) ? downloaded.body.toString('utf8') : String(downloaded.body || '');
-        parseBackupJsonPayload(backupJson);
-        // Also fetch the cloud snapshot so the client smart-sync can compare timestamps.
-        // Without cloud_snapshot, cloudTs = 0 and cloudIsNewer never becomes true on a
-        // new device — the backup is never downloaded even though it exists in storage.
+        const manager = canonicalBackupManager();
+        const restored = await manager.restoreBestBackup(userId, userJwt, { promote: false });
         const cloudSnapshot = await downloadCloudSnapshotForUser(userId, userJwt).catch(() => null);
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({
-          ok: true, success: true,
+        sendJson(res, 200, {
+          ok: true,
+          success: true,
+          code: 'BEST_BACKUP_RETURNED',
+          state: restored.selected?.rich ? 'restore_available' : 'cloud_empty',
+          stage: 'storage_download',
           user_id: userId,
-          backup_json: backupJson,
-          backup_storage: { bucket: 'user-content', path: objectPath },
+          backup_json: restored.backup_json,
+          backup_hash: restored.backup_hash,
+          collection_counts: restored.collection_counts,
+          selected_backup: restored.selected,
+          candidates: restored.candidates,
+          backup_storage: { bucket: 'user-content', path: restored.selected?.path || null, source: 'best_backup_selector' },
           cloud_snapshot: cloudSnapshot,
-        }));
+        });
       } catch (e) {
-        const isStoragePermission = /permission|policy|not authorized|403|forbidden/i.test(e.message || '');
-        const statusCode = isStoragePermission ? 403 : 500;
-        res.writeHead(statusCode, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, success: false, stage: 'storage_upload', error: e.message || 'Cloud backup download failed' }));
+        jsonEndpointError(res, e, 'Cloud backup download failed', 'storage_download');
       }
     })().catch(e => {
       if (!res.headersSent) {
-        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, success: false, stage: 'storage_upload', error: e.message || 'Cloud backup download failed' }));
+        jsonEndpointError(res, e, 'Cloud backup download failed', 'storage_download');
       }
     });
     return;
@@ -5539,19 +5773,41 @@ const server = http.createServer((req, res) => {
       // 3. Build and upload snapshot using user-scoped JWT (anon key + Bearer token = user-scoped client)
       let stage = 'db_read';
       try {
+        const manager = canonicalBackupManager();
         const backupJson = typeof body?.backup_json === 'string' ? body.backup_json : JSON.stringify(body?.backup_json || body || {});
         stage = 'snapshot_build';
-        const parsed = parseBackupJsonPayload(backupJson).parsed;
+        const localNormalized = manager.normalizeAnyBackup(backupJson, { source_path: body?.source_path || 'browser_upload' });
+        if (!localNormalized.valid) throw new Error(localNormalized.reason || 'This file is not a valid Isotope backup.');
+        const best = await manager.findBestCloudBackup(userId, userJwt, { includeRaw: true });
+        manager.assertNoEmptyOverwrite(localNormalized, best);
+
+        const rawHash = crypto.createHash('sha256').update(String(backupJson || '')).digest('hex');
+        let backupToWrite = localNormalized;
+        let state = 'uploading_local';
+        let conflict = null;
+        if (localNormalized.rich && best.selected_internal?.rich && best.selected_internal.hash !== rawHash) {
+          const mergedData = mergeNormalizedBackupData(localNormalized, best.selected_internal.normalized);
+          backupToWrite = normalizeToCanonicalBackupPayload({ data: mergedData }, {
+            exportedAt: new Date().toISOString(),
+            appVersion: (typeof LOCAL_VERSION !== 'undefined' && LOCAL_VERSION.version) ? LOCAL_VERSION.version : 'unknown',
+          });
+          state = 'merged_cloud_and_local';
+          conflict = {
+            selected_backup: best.selected,
+            strategy: 'merge_by_id_newer_fields_preserved',
+          };
+        }
         stage = 'storage_upload';
-        const rawUpload = await uploadRawUserBackupJson(userId, userJwt, backupJson, 'exports');
+        const written = await manager.writeCanonicalBackup(userId, userJwt, backupToWrite, {
+          source_path: body?.source_path || 'browser_upload',
+          source: body?.source || 'manual_export',
+        });
         stage = 'db_read';
-        const applied = await applyBackupProfileToSupabase(userId, userJwt, parsed);
-        const dbBundle = await fetchUserBootstrapBundle(userId, userJwt).catch(() => ({ user_id: userId, warnings: { backup_snapshot: 'DB bundle unavailable' } }));
-        stage = 'snapshot_build';
-        const backupSnapshot = buildCloudSnapshotFromBackupPayload(userId, parsed, dbBundle, 'manual_export');
-        stage = 'storage_upload';
-        const refreshed = await uploadCloudSnapshotForUser(userId, userJwt, backupSnapshot, { history: false });
-        const snapshotPath = `${userId}/cloud-snapshot/latest.json`;
+        const canonicalParsed = JSON.parse(written.backup_json);
+        const applied = await applyBackupProfileToSupabase(userId, userJwt, canonicalParsed).catch((e) => ({
+          profile_applied: false,
+          warning: e.message || 'Profile apply failed; backup storage still succeeded',
+        }));
         const syncedAt = new Date().toISOString();
         stage = 'metadata_update';
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -5559,25 +5815,37 @@ const server = http.createServer((req, res) => {
           ok: true,
           success: true,
           uploaded: true,
+          code: 'CANONICAL_BACKUP_WRITTEN',
+          state,
+          stage: 'storage_upload',
           bucket: 'user-content',
-          path: snapshotPath,
+          path: written.path,
+          latest_path: written.latest_path,
+          history_path: written.history_path,
+          cloud_snapshot_path: written.cloud_snapshot_path,
+          hash: written.hash,
+          size_bytes: written.size_bytes,
+          collection_counts: written.collection_counts,
           synced_at: syncedAt,
           user_id: userId,
-          export_storage: rawUpload,
+          export_storage: null,
           applied,
-          cloud_snapshot: refreshed.snapshot,
-          snapshot_storage: refreshed.storage,
+          cloud_snapshot: null,
+          snapshot_storage: {
+            bucket: 'user-content',
+            latest_path: written.cloud_snapshot_path,
+            latest_status: 'uploaded',
+            uploaded_at: written.exported_at,
+          },
+          selected_backup: best.selected,
+          conflict,
         }));
       } catch (e) {
-        const isStoragePermission = /permission|policy|not authorized|403|forbidden/i.test(e.message || '');
-        const statusCode = isStoragePermission ? 403 : 500;
-        res.writeHead(statusCode, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, success: false, stage, error: e.message || 'Cloud backup failed' }));
+        jsonEndpointError(res, e, 'Cloud backup failed', stage);
       }
     })().catch(e => {
       if (!res.headersSent) {
-        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, success: false, stage: 'storage_upload', error: e.message || 'Cloud backup failed' }));
+        jsonEndpointError(res, e, 'Cloud backup failed', 'storage_upload');
       }
     });
     return;
@@ -5591,33 +5859,122 @@ const server = http.createServer((req, res) => {
       const { userJwt, userId } = auth;
       const body = await readReqBody(req, 12 * 1024 * 1024);
       try {
+        const manager = canonicalBackupManager();
         const backupJson = typeof body?.backup_json === 'string' ? body.backup_json : JSON.stringify(body?.backup_json || {});
-        const parsed = parseBackupJsonPayload(backupJson).parsed;
+        const normalized = manager.normalizeAnyBackup(backupJson, { source_path: 'manual_import' });
+        if (!normalized.valid) throw new Error(normalized.reason || 'This file is not a valid Isotope backup.');
+        const best = await manager.findBestCloudBackup(userId, userJwt, { includeRaw: true });
+        manager.assertNoEmptyOverwrite(normalized, best);
         const importUpload = await uploadRawUserBackupJson(userId, userJwt, backupJson, 'imports');
-        const applied = await applyBackupProfileToSupabase(userId, userJwt, parsed);
-        const dbBundle = await fetchUserBootstrapBundle(userId, userJwt).catch(() => ({ user_id: userId, warnings: { backup_snapshot: 'DB bundle unavailable while saving backup import' } }));
-        const backupSnapshot = buildCloudSnapshotFromBackupPayload(userId, parsed, dbBundle, 'manual_import');
-        const refreshed = await uploadCloudSnapshotForUser(userId, userJwt, backupSnapshot, { history: false });
+        const written = await manager.writeCanonicalBackup(userId, userJwt, normalized, {
+          source_path: importUpload.latest_path || 'manual_import',
+          source: 'manual_import',
+        });
+        const canonicalParsed = JSON.parse(written.backup_json);
+        const applied = await applyBackupProfileToSupabase(userId, userJwt, canonicalParsed).catch((e) => ({
+          profile_applied: false,
+          warning: e.message || 'Profile apply failed; backup storage still succeeded',
+        }));
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({
           ok: true,
+          success: true,
+          code: 'IMPORT_ARCHIVED_AND_PROMOTED',
+          state: 'restore_required',
+          stage: 'storage_upload',
           user_id: userId,
           import_storage: importUpload,
+          canonical_backup: {
+            bucket: written.bucket,
+            path: written.path,
+            history_path: written.history_path,
+            cloud_snapshot_path: written.cloud_snapshot_path,
+            hash: written.hash,
+            size_bytes: written.size_bytes,
+            collection_counts: written.collection_counts,
+          },
           applied,
+          collection_counts: written.collection_counts,
+          restore_required_on_browser: true,
           storage_backed_collections: ['tasks', 'sessions', 'subjects', 'habits', 'dailyLogs', 'tests', 'exams', 'mockTests'],
-          storage_backed_reason: 'These collections are preserved in user-content backup JSON and restored by the compiled browser importer.',
-          cloud_snapshot: refreshed.snapshot,
-          snapshot_storage: refreshed.storage,
+          storage_backed_reason: 'Server archived and promoted the full backup. Browser must apply the returned/imported backup to local stores for UI-visible restore.',
+          cloud_snapshot: null,
+          snapshot_storage: {
+            bucket: 'user-content',
+            latest_path: written.cloud_snapshot_path,
+            latest_status: 'uploaded',
+            uploaded_at: written.exported_at,
+          },
         }));
       } catch (e) {
-        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: e.message || 'Backup import failed' }));
+        jsonEndpointError(res, e, 'Backup import failed', 'storage_upload');
       }
     })().catch(e => {
       if (!res.headersSent) {
-        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: e.message || 'Backup import failed' }));
+        jsonEndpointError(res, e, 'Backup import failed', 'storage_upload');
       }
+    });
+    return;
+  }
+
+  // ── /__auth/storage/cleanup-preview POST — safe user-owned dry run ────────
+  if (req.method === 'POST' && req.url === '/__auth/storage/cleanup-preview') {
+    (async () => {
+      const auth = await requireUserAuth(req, res, { payload: { stage: 'auth' } });
+      if (!auth) return;
+      const { userJwt, userId } = auth;
+      try {
+        const preview = await canonicalBackupManager().cleanupPreview(userId, userJwt);
+        sendJson(res, 200, {
+          ok: true,
+          success: true,
+          code: 'CLEANUP_PREVIEW_READY',
+          state: 'preview',
+          stage: 'storage_scan',
+          ...preview,
+        });
+      } catch (e) {
+        jsonEndpointError(res, e, 'Storage cleanup preview failed', 'storage_scan');
+      }
+    })().catch(e => {
+      if (!res.headersSent) jsonEndpointError(res, e, 'Storage cleanup preview failed', 'storage_scan');
+    });
+    return;
+  }
+
+  // ── /__auth/storage/cleanup-apply POST — explicit user-owned cleanup ──────
+  if (req.method === 'POST' && req.url === '/__auth/storage/cleanup-apply') {
+    (async () => {
+      const auth = await requireUserAuth(req, res, { payload: { stage: 'auth' } });
+      if (!auth) return;
+      const { userJwt, userId } = auth;
+      const body = await readReqBody(req, 64 * 1024);
+      if (body?.confirm !== true) {
+        sendJson(res, 400, {
+          ok: false,
+          success: false,
+          code: 'CONFIRMATION_REQUIRED',
+          state: 'blocked',
+          stage: 'request_validation',
+          message: 'Cleanup apply requires confirm:true after reviewing preview.',
+        });
+        return;
+      }
+      try {
+        const applied = await canonicalBackupManager().cleanupApply(userId, userJwt);
+        sendJson(res, 200, {
+          ok: true,
+          success: true,
+          code: 'CLEANUP_APPLIED',
+          state: 'applied',
+          stage: 'storage_delete',
+          ...applied,
+        });
+      } catch (e) {
+        jsonEndpointError(res, e, 'Storage cleanup apply failed', 'storage_delete');
+      }
+    })().catch(e => {
+      if (!res.headersSent) jsonEndpointError(res, e, 'Storage cleanup apply failed', 'storage_delete');
     });
     return;
   }
@@ -5883,6 +6240,143 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: err.message }));
       }
     });
+    return;
+  }
+
+  // ── /__admin/sync — backup diagnostics and repair console ────────────────
+  if (req.method === 'GET' && req.url.startsWith('/__admin/sync')) {
+    if (!isAdminAuthed(req)) {
+      res.writeHead(401, { 'Content-Type': 'text/plain' }); res.end('Unauthorized'); return;
+    }
+    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Isotope Admin Sync</title>
+<style>
+body{margin:0;background:#10140f;color:#eef2e8;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:1120px;margin:0 auto;padding:28px}a{color:#9ccf7a}.nav{display:flex;gap:14px;margin-bottom:18px}
+.card{background:#182015;border:1px solid #314427;border-radius:18px;padding:20px;margin:14px 0;box-shadow:0 20px 70px #0005}
+input,button{font:inherit;border-radius:12px;border:1px solid #3b5230;padding:10px 12px;background:#0d120b;color:#eef2e8}
+button{background:#d9ff7a;color:#17200e;font-weight:800;cursor:pointer}button.secondary{background:#20301a;color:#e8f8da}
+pre{white-space:pre-wrap;word-break:break-word;background:#0b1009;border:1px solid #27351f;border-radius:14px;padding:14px;max-height:520px;overflow:auto}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.muted{color:#aab8a0}.danger{color:#ffb4a8}
+</style></head><body><main>
+<div class="nav"><a href="/__admin/verify">Verify</a><a href="/__admin/storage">Storage</a><a href="/__admin/roles">Roles</a><a href="/__admin/patch">Patch</a></div>
+<h1>Sync Repair</h1><p class="muted">Inspect best backup candidates, promote the selected rich backup, and preview cleanup. No delete runs from this page without an explicit apply request.</p>
+<div class="card"><label>User ID</label><br><input id="uid" style="width:min(100%,560px)" value="3f56d64e-b1c5-45d6-9ba3-4e204f6bc9df">
+<p><button onclick="repair(true)">Dry-run repair</button> <button class="secondary" onclick="repair(false)">Apply repair</button> <button class="secondary" onclick="cleanupPreview()">Cleanup preview</button></p></div>
+<div class="grid"><div class="card"><h2>Result</h2><pre id="out">Run a dry-run first.</pre></div><div class="card"><h2>Notes</h2><p class="muted">Expected safe repair: rich import or canonical backup wins; profile-only latest loses; canonical latest and cloud-snapshot mirror are rebuilt on apply.</p><p class="danger">Cleanup apply is available through the JSON API only and requires confirm:true.</p></div></div>
+<script>
+async function post(url, body){ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}); const d=await r.json().catch(()=>({ok:false,error:'Bad JSON'})); document.getElementById('out').textContent=JSON.stringify(d,null,2); }
+function user(){ return document.getElementById('uid').value.trim(); }
+function repair(dry_run){ return post('/__admin/sync/repair-user-backup',{user_id:user(),dry_run}); }
+function cleanupPreview(){ return post('/__admin/storage/cleanup-preview',{user_id:user()}); }
+</script></main></body></html>`;
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(html);
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/__admin/sync/repair-user-backup') {
+    if (!isAdminAuthed(req)) { sendJson(res, 401, { ok: false, code: 'AUTH_REQUIRED', error: 'Unauthorized' }); return; }
+    (async () => {
+      const body = await readReqBody(req, 128 * 1024);
+      const userId = String(body?.user_id || '').trim();
+      if (!/^[0-9a-f-]{36}$/i.test(userId)) {
+        sendJson(res, 400, { ok: false, code: 'BAD_USER_ID', error: 'Valid user_id is required' });
+        return;
+      }
+      if (!SUPA_SERVICE_KEY) {
+        sendJson(res, 503, { ok: false, code: 'SERVICE_ROLE_REQUIRED', error: 'Admin repair requires SUPABASE_SERVICE_ROLE_KEY on the server.' });
+        return;
+      }
+      const manager = canonicalBackupManager();
+      const best = await manager.findBestCloudBackup(userId, SUPA_SERVICE_KEY, { includeRaw: true });
+      if (body?.dry_run !== false) {
+        sendJson(res, 200, {
+          ok: true,
+          code: 'REPAIR_DRY_RUN',
+          dry_run: true,
+          selected: best.selected,
+          candidates: best.candidates,
+          planned_writes: best.selected ? [
+            `${userId}/backups/latest.json`,
+            `${userId}/backups/history/{timestamp}-{hash}.json`,
+            `${userId}/cloud-snapshot/latest.json`,
+          ] : [],
+          warning_if_empty_latest: best.warning_if_empty_latest,
+        });
+        return;
+      }
+      const restored = await manager.restoreBestBackup(userId, SUPA_SERVICE_KEY, { promote: true });
+      sendJson(res, 200, {
+        ok: true,
+        code: 'REPAIR_APPLIED',
+        dry_run: false,
+        selected: restored.selected,
+        promoted: restored.promoted ? {
+          path: restored.promoted.path,
+          history_path: restored.promoted.history_path,
+          cloud_snapshot_path: restored.promoted.cloud_snapshot_path,
+          hash: restored.promoted.hash,
+          size_bytes: restored.promoted.size_bytes,
+          collection_counts: restored.promoted.collection_counts,
+        } : null,
+        collection_counts: restored.collection_counts,
+      });
+    })().catch(e => jsonEndpointError(res, e, 'Admin repair failed', 'storage_repair'));
+    return;
+  }
+
+  // ── /__admin/storage — backup cleanup console ─────────────────────────────
+  if (req.method === 'GET' && req.url.startsWith('/__admin/storage')) {
+    if (!isAdminAuthed(req)) {
+      res.writeHead(401, { 'Content-Type': 'text/plain' }); res.end('Unauthorized'); return;
+    }
+    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Isotope Admin Storage</title>
+<style>body{margin:0;background:#111827;color:#eef2ff;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1120px;margin:0 auto;padding:28px}a{color:#93c5fd}.nav{display:flex;gap:14px;margin-bottom:18px}.card{background:#172033;border:1px solid #334155;border-radius:18px;padding:20px;margin:14px 0}input,button{font:inherit;border-radius:12px;border:1px solid #475569;padding:10px 12px;background:#0f172a;color:#eef2ff}button{background:#93c5fd;color:#0f172a;font-weight:800;cursor:pointer}button.danger{background:#fca5a5}pre{white-space:pre-wrap;word-break:break-word;background:#0b1120;border:1px solid #25324a;border-radius:14px;padding:14px;max-height:560px;overflow:auto}.muted{color:#b6c2d3}</style></head><body><main>
+<div class="nav"><a href="/__admin/verify">Verify</a><a href="/__admin/sync">Sync</a><a href="/__admin/roles">Roles</a><a href="/__admin/patch">Patch</a></div>
+<h1>Storage Cleanup</h1><p class="muted">Preview first. Apply requires an explicit confirm flag and never deletes canonical latest or the selected best backup.</p>
+<div class="card"><label>User ID</label><br><input id="uid" style="width:min(100%,560px)" value="3f56d64e-b1c5-45d6-9ba3-4e204f6bc9df">
+<p><button onclick="preview()">Preview cleanup</button> <button class="danger" onclick="applyCleanup()">Apply cleanup</button></p></div>
+<div class="card"><pre id="out">Run preview first.</pre></div>
+<script>
+async function post(url, body){ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}); const d=await r.json().catch(()=>({ok:false,error:'Bad JSON'})); document.getElementById('out').textContent=JSON.stringify(d,null,2); }
+function user(){ return document.getElementById('uid').value.trim(); }
+function preview(){ return post('/__admin/storage/cleanup-preview',{user_id:user()}); }
+function applyCleanup(){ if(!confirm('Apply cleanup for this user after reviewing preview?')) return; return post('/__admin/storage/cleanup-apply',{user_id:user(),confirm:true}); }
+</script></main></body></html>`;
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(html);
+    return;
+  }
+
+  if (req.method === 'POST' && (req.url === '/__admin/storage/cleanup-preview' || req.url === '/__admin/storage/cleanup-apply')) {
+    if (!isAdminAuthed(req)) { sendJson(res, 401, { ok: false, code: 'AUTH_REQUIRED', error: 'Unauthorized' }); return; }
+    (async () => {
+      const body = await readReqBody(req, 128 * 1024);
+      const userId = String(body?.user_id || '').trim();
+      if (!/^[0-9a-f-]{36}$/i.test(userId)) {
+        sendJson(res, 400, { ok: false, code: 'BAD_USER_ID', error: 'Valid user_id is required' });
+        return;
+      }
+      if (!SUPA_SERVICE_KEY) {
+        sendJson(res, 503, { ok: false, code: 'SERVICE_ROLE_REQUIRED', error: 'Admin storage cleanup requires SUPABASE_SERVICE_ROLE_KEY on the server.' });
+        return;
+      }
+      const manager = canonicalBackupManager();
+      if (req.url.endsWith('/cleanup-apply')) {
+        if (body?.confirm !== true) {
+          sendJson(res, 400, { ok: false, code: 'CONFIRMATION_REQUIRED', error: 'Cleanup apply requires confirm:true.' });
+          return;
+        }
+        const applied = await manager.cleanupApply(userId, SUPA_SERVICE_KEY);
+        sendJson(res, 200, { ok: true, code: 'ADMIN_CLEANUP_APPLIED', ...applied });
+        return;
+      }
+      const preview = await manager.cleanupPreview(userId, SUPA_SERVICE_KEY);
+      sendJson(res, 200, { ok: true, code: 'ADMIN_CLEANUP_PREVIEW', ...preview });
+    })().catch(e => jsonEndpointError(res, e, 'Admin storage cleanup failed', 'storage_cleanup'));
     return;
   }
 
@@ -6685,7 +7179,8 @@ function copySQL(){
       ];
 
       // ── Aggregate results ─────────────────────────────────────────────────
-      const allTests = [
+      manualProofChecks.forEach(c => { c.manual = true; });
+      const automatedTests = [
         ...tableChecks.map(c => c.ok),
         ...rpcTests.map(c => c.ok),
         ...rlsChecks.map(c => c.ok),
@@ -6695,15 +7190,18 @@ function copySQL(){
         ...communityChecks.map(c => c.ok),
         ...storageChecks.map(c => c.ok),
         ...integrationChecks.map(c => c.ok),
-        ...manualProofChecks.map(c => c.ok),
       ];
-      const nPass = allTests.filter(Boolean).length;
-      const nFail = allTests.length - nPass;
+      const nPass = automatedTests.filter(Boolean).length;
+      const nFail = automatedTests.length - nPass;
+      const manualProven = manualProofChecks.filter(c => c.ok).length;
+      const manualPending = manualProofChecks.length - manualProven;
       const elapsed = Date.now() - t0;
       function pct(arr) { const p=arr.filter(c=>c.ok).length; return `${p}/${arr.length}`; }
       function rows(arr, cols) {
         return arr.map(c => {
-          const okBadge = `<span class="${c.ok?'ok':'fail'}">${c.ok?'✓ PASS':'✗ FAIL'}</span>`;
+          const okBadge = c.manual && !c.ok
+            ? '<span class="pending">PENDING</span>'
+            : `<span class="${c.ok?'ok':'fail'}">${c.ok?'✓ PASS':'✗ FAIL'}</span>`;
           const name = c.table || c.name;
           if (cols === 'schema') {
             return `<tr><td class="mono">${name}</td><td>${okBadge}</td><td>${(c.cols||[]).map(col=>`<span class="badge">${col}</span>`).join('')}</td><td class="note">${c.note||''}</td></tr>`;
@@ -6741,6 +7239,7 @@ tr:last-child td{border-bottom:none}
 .mono{font-family:'SF Mono',monospace;font-size:10px}
 .ok{background:#052e16;color:#86efac;padding:1px 7px;border-radius:4px;font-size:9px;font-weight:800;letter-spacing:.3px}
 .fail{background:#2d0000;color:#fca5a5;padding:1px 7px;border-radius:4px;font-size:9px;font-weight:800;letter-spacing:.3px}
+.pending{background:#1f2937;color:#93c5fd;padding:1px 7px;border-radius:4px;font-size:9px;font-weight:800;letter-spacing:.3px}
 .note{color:#444;font-size:10px;font-family:'SF Mono',monospace;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .badge{background:#12122a;border:1px solid #1e1e40;border-radius:3px;padding:1px 4px;color:#6366f1;font-family:monospace;font-size:9px;margin:1px 1px 1px 0;display:inline-block}
 .refresh{float:right;font-size:10px;color:#3f3f46;text-decoration:none}
@@ -6752,17 +7251,19 @@ tr:last-child td{border-bottom:none}
 <body><div class="wrap">
 <a class="refresh" href="javascript:location.reload()">↻ Auto-refreshes every 30s</a>
 <h1>🧪 Automated Test Suite</h1>
-<p class="sub">${SUPA_URL} &nbsp;·&nbsp; Ran ${allTests.length} checks in ${elapsed}ms &nbsp;·&nbsp; Server diagnostics are not browser sync proof &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/patch">Patch →</a> &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/roles">Roles →</a></p>
+<p class="sub">${SUPA_URL} &nbsp;·&nbsp; Ran ${automatedTests.length} automated checks in ${elapsed}ms &nbsp;·&nbsp; ${manualProofChecks.length} browser proof slots tracked separately &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/patch">Patch →</a> &nbsp;·&nbsp; <a style="color:#6366f1;text-decoration:none" href="/__admin/roles">Roles →</a></p>
 
 <div class="summary">
-  <div class="pill pill-n"><span class="num">${allTests.length}</span>total tests</div>
-  <div class="pill pill-ok"><span class="num">${nPass}</span>passing</div>
+  <div class="pill pill-n"><span class="num">${automatedTests.length}</span>automated checks</div>
+  <div class="pill pill-ok"><span class="num">${nPass}</span>automated passing</div>
   ${nFail > 0 ? `<div class="pill pill-fail"><span class="num">${nFail}</span>failing</div>` : ''}
-  <div class="pill ${nFail===0?'pill-ok':'pill-fail'}"><span class="num">${nFail===0?'✓':'✗'}</span>${nFail===0?'all clear':'needs fix'}</div>
+  <div class="pill ${nFail===0?'pill-ok':'pill-fail'}"><span class="num">${nFail===0?'✓':'✗'}</span>${nFail===0?'automated clear':'needs fix'}</div>
+  ${manualPending > 0 ? `<div class="pill pill-t"><span class="num">${manualPending}</span>manual proof pending</div>` : `<div class="pill pill-ok"><span class="num">${manualProven}</span>manual proof proven</div>`}
   <div class="pill pill-t"><span class="num">${elapsed}ms</span>run time</div>
 </div>
 
 ${nFail > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4b5fd">Some tests failing</strong><br><span style="color:#555;font-size:11px">Apply the community patch to fix missing tables, columns, or RPCs</span></div><a class="fix" href="/__admin/patch">🚀 Apply Patch</a></div>` : ''}
+${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><strong style="color:#c4b5fd">Automated checks are passing</strong><br><span style="color:#555;font-size:11px">The remaining items need a real browser run. They are proof tasks, not schema/RPC failures.</span></div><a class="fix" href="/__admin/browser-proof">Run Browser Proof</a></div>` : ''}
 
 <section>
   <div class="sec-hdr"><h3>📋 Tables</h3><span class="sec-stat">${pct(tableChecks)} passing</span></div>

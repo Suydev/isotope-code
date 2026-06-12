@@ -22,6 +22,8 @@ const SHELL_URLS = [
   '/icons/maskable-icon-512x512.png',
   '/boot-recovery.js',
   '/restore-and-launch.js',
+  '/sync/backup-normalizer.js',
+  '/sync/local-data-adapter.js',
   '/ux-setup.js',
   '/focus-bg-import.js',
   '/update-checker.js',

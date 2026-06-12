@@ -2909,10 +2909,16 @@ const Gs = () => {
         } = Fs(), {
             isPremium: f,
             isAuthenticated: v
-        } = ae(), l = f(), [z, N] = ne.useState(!1);
+        } = ae(), l = f(), __isoMeta = (() => {
+            try {
+                return JSON.parse(localStorage.getItem("isotope_sync_metadata") || "{}") || {}
+            } catch {
+                return {}
+            }
+        })(), __isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !!__isoMeta.last_snapshot_at && !__isoMeta.last_error, __isoBusyStates = ["syncing", "selecting_backup", "restoring_cloud", "verifying_restore", "uploading_local"], __isoDisplayStatus = __isoBusyStates.includes(__isoMeta.last_sync_status) ? "syncing" : __isoMeta.last_sync_status === "blocked_empty_overwrite" ? "error" : g, [z, N] = ne.useState(!1);
         if (!v) return null;
         const i = async () => {
-                if (g !== "syncing") {
+                if (__isoDisplayStatus !== "syncing") {
                     if (b) {
                         await r();
                         return
@@ -2982,7 +2988,7 @@ const Gs = () => {
                             description: l ? "Manual sync is available when you press the sync button." : "Cloud sync is unavailable on the free plan."
                         }
                 }
-            })(g),
+            })(__isoDisplayStatus),
             d = o.icon,
             p = w => {
                 if (!w) return "Never synced";
@@ -2992,7 +2998,7 @@ const Gs = () => {
             };
         return j ? e.jsx(K.button, {
             onClick: i,
-            disabled: g === "syncing" || !l,
+            disabled: __isoDisplayStatus === "syncing" || !l,
             className: `relative p-2 rounded-lg transition-colors ${o.bgColor} ${o.borderColor} border hover:bg-opacity-20 disabled:opacity-50`,
             whileHover: {
                 scale: 1.05
@@ -3010,7 +3016,7 @@ const Gs = () => {
                 onClick: i,
                 onMouseEnter: () => N(!0),
                 onMouseLeave: () => N(!1),
-                disabled: g === "syncing" || !l,
+                disabled: __isoDisplayStatus === "syncing" || !l,
                 className: `flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${o.bgColor} ${o.borderColor} border hover:bg-opacity-20 disabled:cursor-not-allowed`,
                 whileHover: {
                     scale: 1.02

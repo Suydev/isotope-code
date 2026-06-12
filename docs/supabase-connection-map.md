@@ -34,13 +34,14 @@ This is the current audited connection summary for Supabase-backed features.
 Tables/RPCs/buckets are defined in:
 
 - `isotope-complete.sql`
-- `sql/v3.3.7-sync-schema.sql`
+- current idempotent migrations in `sql/`
 - `sql/backup_manifests.sql`
 - `sql/verify-security.sql`
 
 Run order for fresh setup:
 
 1. `isotope-complete.sql`
-2. `sql/v3.3.7-sync-schema.sql`
-3. `sql/backup_manifests.sql`
-4. `sql/verify-security.sql` for verification queries
+2. Optional compatibility migrations in `sql/` only if upgrading an older install
+3. `sql/verify-security.sql` for verification queries
+
+`isotope-complete.sql` now includes `sync_items` and `backup_manifests` for fresh installs.

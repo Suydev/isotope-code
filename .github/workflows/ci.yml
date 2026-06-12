@@ -108,6 +108,7 @@ jobs:
             scripts/validate-storage-cleanup.mjs
             scripts/verify-supabase-security.mjs
             scripts/validate-docs.mjs
+            scripts/compare-remote-assets.mjs
           )
           for f in "${files[@]}"; do
             node --check "$f"
@@ -217,6 +218,7 @@ jobs:
             scripts/prove-new-browser-restore.mjs
             scripts/validate-storage-cleanup.mjs
             scripts/verify-supabase-security.mjs
+            scripts/compare-remote-assets.mjs
             server/backup-manager.mjs
           )
           for f in "${REQUIRED[@]}"; do
@@ -265,25 +267,13 @@ jobs:
       - name: 📱 Termux simulation — platform detection
         run: |
           set -euo pipefail
-          echo "Simulating Termux environment..."
-          export TERMUX_VERSION="ci-test"
-          export PREFIX="/data/data/com.termux/files/usr"
-
-          # Test that setup.sh correctly detects 'termux' platform when vars are set
-          DETECTED=$(
-            TERMUX_VERSION="$TERMUX_VERSION" PREFIX="$PREFIX" \
-            node -e "
-              const { execSync } = require('child_process');
-              const out = execSync(
-                'bash -c \\'source setup.sh --yes --no-start --termux-ci 2>&1 | head -5 || true\\'',
-                { env: { ...process.env, TERMUX_VERSION: \"ci-test\", PREFIX: \"/data/data/com.termux/files/usr\" }, timeout: 10000 }
-              ).toString().trim();
-              console.log(out);
-            " 2>/dev/null || echo "skipped"
-          )
-          echo "Termux simulation output (first 5 lines):"
-          echo "$DETECTED" | head -5
-          echo "✅ Termux simulation completed (full install requires real Android device)"
+          echo "Checking Termux scripts without running installers..."
+          bash -n setup.sh
+          bash -n install-termux.sh
+          bash -n setup-termux-widget.sh
+          bash -n bin/isotope
+          grep -q 'TERMUX_VERSION' setup.sh install-termux.sh
+          echo "✅ Termux scripts parse and contain Termux detection"
 
       # ── Smoke test ────────────────────────────────────────────────────────────
       - name: 🚀 Smoke test — server starts and responds
@@ -298,13 +288,13 @@ jobs:
           node server.mjs &
           SERVER_PID=$!
 
-          echo "Server PID: $SERVER_PID — polling /api/health..."
+          echo "Server PID: $SERVER_PID — polling /__isotope/ping..."
           STATUS="000"
           for i in $(seq 1 40); do
             sleep 0.5
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-              http://127.0.0.1:3099/api/health 2>/dev/null || echo "000")
-            if [ "$STATUS" != "000" ]; then
+              http://127.0.0.1:3099/__isotope/ping 2>/dev/null || echo "000")
+            if [ "$STATUS" = "200" ]; then
               echo "  HTTP $STATUS after ${i} attempts"
               break
             fi
@@ -315,15 +305,11 @@ jobs:
           wait "$SERVER_PID" 2>/dev/null || true
           echo "Final health status: $STATUS"
 
-          case "$STATUS" in
-            2*|3*|4*|5*)
-              echo "✅ Server started and responded (HTTP $STATUS)"
-              ;;
-            *)
-              echo "❌ Server did not respond (got: $STATUS)"
-              exit 1
-              ;;
-          esac
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Server ping did not return 200 (got: $STATUS)"
+            exit 1
+          fi
+          echo "✅ Server started and ping returned HTTP 200"
 
       # ── Release zip simulation ────────────────────────────────────────────────
       - name: 📦 Release zip — build + verify extract

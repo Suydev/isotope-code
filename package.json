@@ -20,6 +20,7 @@
     "screenshots:demo": "node scripts/capture-screenshots.mjs --demo",
     "docs:validate": "node scripts/validate-docs.mjs",
     "docs:validate:strict": "node scripts/validate-docs.mjs --strict",
+    "assets:compare": "node scripts/compare-remote-assets.mjs",
     "backup:validate": "node scripts/validate-backup-files.mjs",
     "backup:repair:dry-run": "node scripts/repair-user-backup.mjs --dry-run",
     "backup:prove-restore": "node scripts/prove-new-browser-restore.mjs",

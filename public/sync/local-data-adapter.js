@@ -261,6 +261,10 @@ async function hashLocalData() {
   return hashBackup(buildCanonicalBackupPayload({ data: await readAllLocalData() }));
 }
 
+function normalizeLocalStoreData(data) {
+  return getBackupData({ data: data || {} });
+}
+
 async function isLocalWorkspaceEmpty() {
   return isBackupEmpty({ collection_counts: await countLocalData(), size_bytes: 0 });
 }
@@ -288,6 +292,19 @@ async function writeAllLocalData(backupData, options = {}) {
   writeJson('isotope_restore_metadata', meta);
   refreshAllStores();
   return meta;
+}
+
+function writeRestoreMetadata(meta) {
+  const payload = {
+    ...(meta || {}),
+    restored_at: meta?.restored_at || new Date().toISOString(),
+  };
+  writeJson('isotope_restore_metadata', payload);
+  return payload;
+}
+
+function readRestoreMetadata() {
+  return readJson('isotope_restore_metadata', null);
 }
 
 function refreshAllStores() {
@@ -345,10 +362,13 @@ const api = {
   writeCollection,
   refreshAllStores,
   dispatchSyncRefresh,
+  normalizeLocalStoreData,
   validateBackupShape,
   normalizeBackupPayload,
   buildBackupPayloadFromLocal,
   applyBackupToLocal,
+  writeRestoreMetadata,
+  readRestoreMetadata,
 };
 
 if (typeof window !== 'undefined') {
@@ -365,8 +385,11 @@ export {
   writeCollection,
   refreshAllStores,
   dispatchSyncRefresh,
+  normalizeLocalStoreData,
   validateBackupShape,
   normalizeBackupPayload,
   buildBackupPayloadFromLocal,
   applyBackupToLocal,
+  writeRestoreMetadata,
+  readRestoreMetadata,
 };

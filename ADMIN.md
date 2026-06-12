@@ -9,6 +9,8 @@ Complete reference for every admin feature, endpoint, env var, and operational p
 | Panel | URL | Purpose |
 |-------|-----|---------|
 | Test Suite | `/__admin/verify` | Core diagnostics — schema, RPCs, RLS, server health |
+| Sync Repair | `/__admin/sync` | Inspect best backup candidates and promote the safe backup |
+| Storage Cleanup | `/__admin/storage` | Preview backup cleanup and apply only after review |
 | SQL Patch | `/__admin/patch` | Apply community SQL patches to Supabase |
 | Removed Events | `/__admin/events*` | Removed-feature JSON response; Events admin is not active |
 
@@ -52,6 +54,67 @@ Access via:
 Open `/__admin/login` in the browser. You can unlock with `ADMIN_SECRET`, or click **Use Supabase Login** after signing into the app as an allowed admin email or a user with an active `owner`, `admin`, or `super_admin` role in `user_roles`.
 
 **Important:** Never put these values in commits, docs, screenshots, or frontend bundles.
+
+---
+
+## Backup Repair — `/__admin/sync`
+
+Use this page when a user has rich backup data in old paths such as `imports/latest.json` or `exports/latest.json`, or when `cloud-snapshot/latest.json` needs to be rebuilt from a richer backup.
+
+The page can:
+
+- show the selected best backup
+- show all backup candidates
+- show collection counts
+- dry-run repair
+- apply repair by promoting the selected rich backup to:
+  - `{userId}/backups/latest.json`
+  - `{userId}/backups/history/{timestamp}-{hash}.json`
+  - `{userId}/cloud-snapshot/latest.json`
+
+JSON API:
+
+```http
+POST /__admin/sync/repair-user-backup
+```
+
+Body:
+
+```json
+{
+  "user_id": "uuid",
+  "dry_run": true
+}
+```
+
+Set `dry_run` to `false` only after checking the selected backup.
+
+## Storage Cleanup — `/__admin/storage`
+
+Cleanup is preview-first.
+
+Preview:
+
+```http
+POST /__admin/storage/cleanup-preview
+```
+
+Apply:
+
+```http
+POST /__admin/storage/cleanup-apply
+```
+
+Apply body must include:
+
+```json
+{
+  "user_id": "uuid",
+  "confirm": true
+}
+```
+
+Cleanup never deletes canonical latest paths or the selected best backup.
 
 ---
 

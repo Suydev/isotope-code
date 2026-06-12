@@ -8,3 +8,6 @@ build/
 .vite/
 .cache/
 .DS_Store
+.isotope/logs/
+.isotope/tmp/
+artifacts/

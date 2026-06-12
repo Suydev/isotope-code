@@ -8,7 +8,7 @@ create table if not exists public.backup_manifests (
   path text not null,
   kind text not null,
   content_hash text not null,
-  size_bytes bigint not null,
+  size_bytes bigint not null default 0,
   collection_counts jsonb not null default '{}',
   exported_at timestamptz,
   selected_as_best boolean not null default false,
