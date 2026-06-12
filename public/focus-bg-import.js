@@ -23,6 +23,7 @@
   var _routeTimer = null;
   var _modalOpen = false;
   var _activeTab = 'image';
+  var _lastAppliedBlur = 0;
 
   function openIdb() {
     return new Promise(function (resolve, reject) {
@@ -125,8 +126,10 @@
     return focusBgApi().then(function (api) {
       if (api && typeof api.g === 'function') {
         return api.g().then(function (cfg) {
-          var fromApi = clampBlur(cfg && cfg.blurAmount);
-          return fromApi > 0 ? fromApi : readStoredBlur();
+          if (cfg && Object.prototype.hasOwnProperty.call(cfg, 'blurAmount')) {
+            return clampBlur(cfg.blurAmount);
+          }
+          return readStoredBlur();
         });
       }
       return readStoredBlur();
@@ -284,6 +287,18 @@
     });
   }
 
+  function validateVideoDurationIfReadable(url) {
+    return assertVideoDuration(url).then(function (duration) {
+      return { ok: true, duration: duration, unknown: false };
+    }).catch(function (err) {
+      var message = err && err.message ? err.message : '';
+      if (/60 seconds or shorter/i.test(message)) {
+        return { ok: false, message: message, unknown: false };
+      }
+      return { ok: true, duration: null, unknown: true, message: message };
+    });
+  }
+
   function prepareTarget(el) {
     el.style.backgroundImage = 'none';
     el.style.backgroundSize = '';
@@ -310,14 +325,19 @@
   function applyFilterToMedia(node, blur) {
     if (!node) return;
     var amount = clampBlur(blur);
-    node.style.filter = amount > 0 ? 'blur(' + amount + 'px) saturate(1.05)' : 'none';
-    node.style.transform = amount > 0 ? 'scale(1.06) translateZ(0)' : 'translateZ(0)';
+    var filter = amount > 0 ? 'blur(' + amount + 'px) saturate(1.05)' : 'none';
+    var scale = Math.min(1.2, 1 + amount / 120);
+    node.style.filter = filter;
+    node.style.webkitFilter = filter;
+    node.style.transform = amount > 0 ? 'scale(' + scale.toFixed(3) + ') translateZ(0)' : 'translateZ(0)';
   }
 
   function refreshBlur() {
-    readNativeBlur().then(function (blur) {
-      applyFilterToMedia(document.getElementById('__iso_focus_bg_layer__'), blur);
-      applyFilterToMedia(document.getElementById('__iso_focus_vid__'), blur);
+    return readNativeBlur().then(function (blur) {
+      _lastAppliedBlur = clampBlur(blur);
+      applyFilterToMedia(document.getElementById('__iso_focus_bg_layer__'), _lastAppliedBlur);
+      applyFilterToMedia(document.getElementById('__iso_focus_vid__'), _lastAppliedBlur);
+      return _lastAppliedBlur;
     });
   }
 
@@ -389,19 +409,29 @@
       'transform-origin:center',
     ].join(';');
     if (vid.src !== url) vid.src = url;
+    vid.autoplay = true;
     vid.muted = true;
     vid.defaultMuted = true;
     vid.volume = 0;
     vid.loop = true;
     vid.playsInline = true;
     vid.controls = false;
+    vid.setAttribute('autoplay', '');
+    vid.setAttribute('loop', '');
+    vid.setAttribute('muted', '');
+    vid.setAttribute('playsinline', '');
+    vid.setAttribute('disableRemotePlayback', '');
+    vid.setAttribute('controlsList', 'nodownload noplaybackrate noremoteplayback');
     try { vid.disablePictureInPicture = true; } catch (e) {}
     vid.onloadedmetadata = function () {
       var duration = Number(vid.duration);
       if (Number.isFinite(duration) && duration > MAX_VIDEO_SECONDS + 0.25) {
         toast('Video background must be 60 seconds or shorter.', 'error');
         clearBackground();
+        return;
       }
+      var playAfterMeta = vid.play();
+      if (playAfterMeta && playAfterMeta.catch) playAfterMeta.catch(function () {});
     };
     vid.onerror = function () {
       toast('This video could not play. Use MP4 or WebM for best support.', 'error');
@@ -580,7 +610,14 @@
       if (!file) return;
       var url = URL.createObjectURL(file);
       toast('Checking video length...');
-      assertVideoDuration(url).then(function () {
+      validateVideoDurationIfReadable(url).then(function (result) {
+        if (!result.ok) {
+          try { URL.revokeObjectURL(url); } catch (e) {}
+          toast(result.message || 'Use a video under 60 seconds.', 'error');
+          vidInput.value = '';
+          return;
+        }
+        if (result.unknown) toast('Length check unavailable; applying and enforcing after load.');
         idbPut(CUSTOM_KEY, mediaRecord('video', file)).catch(function () {});
         closeModal();
         applyBackground(url, true, true);
@@ -622,7 +659,12 @@
       if (!url) { toast('Enter a video URL first.', 'error'); return; }
       if (!/^https?:\/\//i.test(url)) { toast('Use an http or https video URL.', 'error'); return; }
       toast('Checking video length...');
-      assertVideoDuration(url).then(function () {
+      validateVideoDurationIfReadable(url).then(function (result) {
+        if (!result.ok) {
+          toast(result.message || 'Use a video URL under 60 seconds.', 'error');
+          return;
+        }
+        if (result.unknown) toast('Length check unavailable; applying and enforcing after load.');
         idbPut(CUSTOM_KEY, { type: 'url', kind: 'video', url: url, savedAt: new Date().toISOString() }).catch(function () {});
         closeModal();
         applyBackground(url, true, false);
@@ -881,13 +923,24 @@
   window.addEventListener('storage', function (event) {
     if (event && event.key && /focus-bg-blur$/i.test(event.key)) refreshBlur();
   });
+  window.addEventListener('focus', function () {
+    if (_activeUrl && isOnFocus()) refreshBlur();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && _activeUrl && isOnFocus()) refreshBlur();
+  });
+  window.addEventListener('isotope:sync_refresh', function () {
+    if (_activeUrl && isOnFocus()) refreshBlur();
+  });
+  window.__isoRefreshFocusBgBlur = refreshBlur;
+  window.__isoGetFocusBgBlur = function () { return _lastAppliedBlur; };
 
   new MutationObserver(function () { scheduleRouteWork(160); })
     .observe(document.documentElement, { childList: true, subtree: true });
 
   setInterval(function () {
     if (isOnFocus() && _activeUrl) refreshBlur();
-  }, 2500);
+  }, 850);
 
   function init() {
     loadSaved();
