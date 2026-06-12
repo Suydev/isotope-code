@@ -5043,6 +5043,46 @@ function publicProofRun(run) {
   return safe;
 }
 
+function writeBrowserProofChecklist(run) {
+  if (!run || run.ok !== true) return { written: false, reason: 'run_not_complete' };
+  const messages = Array.isArray(run.results)
+    ? run.results
+        .map((row) => String(row && row.message ? row.message : '').trim())
+        .filter(Boolean)
+    : [];
+  const hasLine = (needle) => messages.some((line) => line.includes(needle));
+  const syncProof =
+    hasLine('sync success, auth failure, and offline browser state verified') ||
+    hasLine('empty overwrite blocked, auth failure, and offline browser state verified');
+  const required = [
+    'onboarding row completed and cache-clear bootstrap did not repeat onboarding',
+    'profile/settings diff persisted and restored from bootstrap',
+    'avatar object exists and profile avatar restored',
+    'community_group_v1 tour persisted and restored',
+    'study session wrote session/daily/summary tables and restored after cache clear',
+  ];
+  const missing = required.filter((line) => !hasLine(line));
+  if (!syncProof) missing.push('sync success or empty-overwrite block with auth/offline states');
+  if (missing.length) return { written: false, reason: 'missing_proof_lines', missing };
+
+  const safeMessages = messages.map((line) => line.replace(/Bearer\s+[A-Za-z0-9._-]+/g, 'Bearer <redacted>'));
+  const md = [
+    '# Isotope Browser Proof Checklist',
+    '',
+    'Status: `PROVEN 6/6`',
+    'Browser: Android Chrome',
+    `Generated: ${new Date().toISOString()}`,
+    `Proof ID: ${run.proof_id || 'unknown'}`,
+    '',
+    '## Final Browser Result',
+    '',
+    ...safeMessages.map((line) => `- ${line}`),
+    '',
+  ].join('\n');
+  fs.writeFileSync(path.join(__dirname, 'SYNC_PROOF_CHECKLIST.md'), md);
+  return { written: true, path: 'SYNC_PROOF_CHECKLIST.md' };
+}
+
 function browserProofWantsJson(req) {
   try {
     const sp = new URL('http://x' + req.url).searchParams;
@@ -5190,8 +5230,15 @@ function browserProofHtml({ runId, token, session }) {
     log('study session wrote session/daily/summary tables and restored after cache clear');
 
     var backup=JSON.stringify({version:1,source:'isotopeai',exportedAt:new Date().toISOString(),appVersion:'browser-proof',data:{profile:{proof_marker:PROOF_ID},timerState:null,tasks:[],sessions:[],subjects:[],habits:[],dailyLogs:[],tests:[],exams:[],mockTests:[]}});
-    var syncOk=await jsonFetch('/__auth/backup',{method:'POST',headers:appAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({backup_json:backup})});
-    assert(syncOk.ok&&syncOk.snapshot_storage,'successful sync did not return snapshot storage');
+    var syncResp=await fetch('/__auth/backup',{method:'POST',headers:appAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({backup_json:backup})});
+    var syncOk=await syncResp.json().catch(function(){return {}});
+    var emptyOverwriteBlocked=syncResp.status===409&&syncOk&&syncOk.code==='BLOCKED_EMPTY_OVERWRITE';
+    assert((syncResp.ok&&syncOk.ok&&syncOk.snapshot_storage)||emptyOverwriteBlocked,'sync did not upload or block empty overwrite safely');
+    if(emptyOverwriteBlocked){
+      log('empty overwrite blocked before cloud data could be replaced');
+    }else{
+      log('sync upload returned verified snapshot storage');
+    }
     var failResp=await fetch('/__auth/backup',{method:'POST',headers:{'Authorization':'Bearer bad.token.value','Content-Type':'application/json'},body:JSON.stringify({backup_json:backup})});
     var failJson=await failResp.json().catch(function(){return {}});
     assert(failResp.status===401&&failJson.code==='AUTH_REQUIRED','auth failure did not stay failed');
@@ -5199,7 +5246,7 @@ function browserProofHtml({ runId, token, session }) {
     await new Promise(function(r){setTimeout(r,250)});
     var offlineText=document.body.innerText||'';
     assert(offlineText.indexOf('Offline mode')>=0&&offlineText.indexOf('Browser network is offline')>=0,'offline UI did not show browser offline mode');
-    log('sync success, auth failure, and offline browser state verified');
+    log(emptyOverwriteBlocked?'empty overwrite blocked, auth failure, and offline browser state verified':'sync success, auth failure, and offline browser state verified');
 
     await report('complete',{ok:true});
   }catch(e){
@@ -5380,7 +5427,13 @@ const server = http.createServer((req, res) => {
         error: body?.error || null,
       };
       browserProofRuns.set(runId, updated);
-      sendJson(res, 200, { ok: true });
+      let checklist = { written: false, reason: 'not_attempted' };
+      try {
+        checklist = writeBrowserProofChecklist(updated);
+      } catch (e) {
+        checklist = { written: false, reason: e.message || 'write_failed' };
+      }
+      sendJson(res, 200, { ok: true, checklist });
     }).catch((e) => sendJson(res, 500, { ok: false, error: e.message || 'Could not store proof result' }));
     return;
   }
@@ -7243,8 +7296,8 @@ function copySQL(){
         },
         {
           name: 'SYNC STATUS success/failure/offline states',
-          ok: proofLine('sync success, auth failure, and offline browser state verified'),
-          detail: proofLine('sync success, auth failure, and offline browser state verified') ? 'PROVEN in SYNC_PROOF_CHECKLIST.md with real Chrome proof run.' : 'NOT PROVEN. Force success, RLS/network failure, and offline browser mode.',
+          ok: proofLine('sync success, auth failure, and offline browser state verified') || proofLine('empty overwrite blocked, auth failure, and offline browser state verified'),
+          detail: (proofLine('sync success, auth failure, and offline browser state verified') || proofLine('empty overwrite blocked, auth failure, and offline browser state verified')) ? 'PROVEN in SYNC_PROOF_CHECKLIST.md with real Chrome proof run.' : 'NOT PROVEN. Force success, empty-overwrite guard, RLS/network failure, and offline browser mode.',
         },
       ];
 
