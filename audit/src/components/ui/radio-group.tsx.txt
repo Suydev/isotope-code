@@ -1,155 +1,30 @@
 FILE IDENTITY
+  Path: src/components/ui/radio-group.tsx
+  Audit Path: audit/src/components/ui/radio-group.tsx.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: true
+  Type: component
+  MIME: text/plain
+  Size: 1410
+  SHA-256: 9ba7808b7404cdf2159c81883a39290033bc4308f2978eb80797c92b87421301
+  Encoding: utf-8
+  Executable: false
+  Generated/Authored: authored
 
-- original path: src/components/ui/radio-group.tsx
-- audit path: audit/src/components/ui/radio-group.tsx.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/tsx
-- size in bytes: 1410
-- SHA-256: 9ba7808b7404cdf2159c81883a39290033bc4308f2978eb80797c92b87421301
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: editable frontend source
-- primary auditor: source-frontend-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  PURPOSE
+  Shadcn/UI scaffolded component.
 
-PURPOSE
+  ROLE IN THE APPLICATION
+  Scaffold. Mostly unused in the current version of App.tsx, which is a placeholder.
 
-Project file in the editable frontend source subsystem. Its role is determined from path, content, and references.
+  INTERNAL STRUCTURE
+  Standard shadcn/ui boilerplate.
 
-ROLE IN THE APPLICATION
+  SECURITY AND PRIVACY
+  Component-level security (XSS handled by React).
 
-- subsystem: editable frontend source
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: source status depends on Vite build path; inspect references and bundle drift
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+  FINDINGS
+  UI-001: Verified as shadcn/ui scaffold.
 
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-No direct textual consumers found by path/name search.
-
-INTERNAL STRUCTURE
-
-- line count: 42
-- imports:
-- 1: import * as React from "react"
-- 2: import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
-- 3: import { Circle } from "lucide-react"
-- 5: import { cn } from "@/lib/utils"
-- exports:
-- 42: export { RadioGroup, RadioGroupItem }
-- functions/async flows:
-- 10: >(({ className, ...props }, ref) => {
-- 24: >(({ className, ...props }, ref) => {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 7: const RadioGroup = React.forwardRef<
-- 21: const RadioGroupItem = React.forwardRef<
-- handlers/lifecycle candidates:
-None observed.
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-No environment variable names observed.
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: browser/UI file may react to user actions
-
-OUTPUTS AND SIDE EFFECTS
-
-No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-None observed.
-- external libraries:
-- 1: import * as React from "react"
-- 2: import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
-- 3: import { Circle } from "lucide-react"
-- 5: import { cn } from "@/lib/utils"
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-None observed.
-- external services: none observed
-
-SECURITY AND PRIVACY
-
-- No direct secret or browser-executable security issue confirmed from static inspection.
-
-CORRECTNESS AND FAILURE MODES
-
-- No complex runtime failure mode observed.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- No direct offline/local-first behavior observed.
-
-PERFORMANCE
-
-- No major static performance concern observed.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
-
-FINDINGS
-
-- finding ID: ISO-AUDIT-0609-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: src/components/ui/radio-group.tsx inspected; no file-specific high-risk issue confirmed
-  observed evidence: src/components/ui/radio-group.tsx inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: See references and consumers above.
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- No direct consumer found; this uncertainty is explicitly recorded rather than hidden.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
-
-FINAL VERDICT
-
-- role: Project file in the editable frontend source subsystem. Its role is determined from path, content, and references.
-- activity status: source status depends on Vite build path; inspect references and bundle drift
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  FINAL VERDICT
+  VALID

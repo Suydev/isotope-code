@@ -1,294 +1,68 @@
 FILE IDENTITY
-
-- original path: public/sw.js
+- path: public/sw.js
 - audit path: audit/public/sw.js.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 6843
-- SHA-256: b065f2a3cc7fcabb1074846d94936ebc40acc55e90cb2b7132ecac3fa9a9dad5
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: offline-pwa-sync-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+- commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+- tracked: true
+- type: JavaScript (Service Worker)
+- MIME: application/javascript
+- size: 2841
+- SHA-256: 49cc0f0658428178f564f7b4e9f5ed5e1a39648939c3666d67181d60724838e1
+- encoding: UTF-8
+- executable: false
+- generated/authored: Authored (uses Workbox)
 
 PURPOSE
-
-Project file in the application project subsystem. Its role is determined from path, content, and references.
+Implements the Service Worker for the application, providing offline capabilities, precaching of core assets, and runtime caching of static resources.
 
 ROLE IN THE APPLICATION
-
-- subsystem: application project
-- runtime stage: browser/runtime or static serving
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+- Subsystem: Progressive Web App (PWA)
+- Runtime stage: Background / Client-side
+- Active/legacy: Active
 
 REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- CHANGELOG.md:119 - - **`sw.js` and `pwa-local.js` cached for 1 hour** — Now served with `Cache-Control: no-cache`.
-- CHANGELOG.md:121 - - **`backup.json` and `firebase-messaging-sw.js` served publicly** — Both blocked with HTTP 404.
-- CHANGELOG.md:294 - - `/api/version` now reports the cache name format used by `public/sw.js`.
-- CONTRIBUTING.md:42 - | `public/sw.js` | Service worker — PWA caching |
-- bin/isotope:443 - [ -f "$project/public/sw.js" ]              && info "[ok]  PWA service worker"  || warn "[warn] PWA sw.js missing"
-- bin/isotope.bat:227 - if exist "%PROJECT_DIR%\public\sw.js" (echo [ok] PWA service worker) else echo [missing] PWA service worker
-- docs/BUG_FIXES.md:19 - **File**: `public/sw.js` (Lines 8-9)
-- docs/BUG_FIXES.md:146 - **File**: `public/sw.js` (Lines 109-114)
-- docs/BUG_FIXES.md:287 - | `public/sw.js` | SHA truncation + client error handling |
-- docs/BUG_FIXES.md:296 - 1. **657a902** — `public/sw.js`: Truncate cache SHA to 12 characters and add client detach safety
-- public/assets/PWAManager-DjIYufp2.js:111 - }) => new r("/sw.js", {
-- public/assets/PWAManager-DjIYufp2.js:124 - d ? d("/sw.js", r) : i ?.(r)
-- public/assets/messaging-BP0KfJxy.js:2131 - const ri = "/firebase-messaging-sw.js",
-- public/assets/messaging-BP0KfJxy.js:3510 - Ma = "/firebase-messaging-sw.js",
-- public/pwa-local.js:168 - navigator.serviceWorker.register('/sw.js', { scope: '/' })
-- scripts/prove-runtime-glue.mjs:71 - const swHeaders = await head('/sw.js');
-- scripts/prove-runtime-glue.mjs:81 - assert.match(swCache, /no-store/, 'sw.js must not be immutable cached');
-- scripts/prove-runtime-glue.mjs:82 - assert.equal(swAllowed, '/', 'sw.js must set Service-Worker-Allowed: /');
-- scripts/prove-runtime-glue.mjs:85 - const sw = await text('/sw.js');
-- server.mjs:124 - '/sw.js',
-- server.mjs:3236 - const SERVICE_WORKER_ABS       = path.join(PUBLIC_DIR, 'sw.js');
-- server.mjs:7456 - const r = await localReq('GET', '/sw.js');
-- server.mjs:7457 - return { name:'/sw.js', ok: r.status === 200, detail:`HTTP ${r.status}` };
-- server.mjs:8179 - const _blockedFiles = new Set(['backup.json', 'firebase-messaging-sw.js']);
-- server.mjs:8223 - if (basename === 'sw.js') res.setHeader('Service-Worker-Allowed', '/');
-- server.mjs:8255 - res.setHeader('Cache-Control', cacheHeaderForRequest('/sw.js'));
+- Referenced in manifest.json (indirectly via PWA specs)
+- Referenced in index.html (via PWA registration scripts)
 
 INTERNAL STRUCTURE
-
-- line count: 218
-- imports:
-None observed.
-- exports:
-None observed.
-- functions/async flows:
-- 85: function isApiLike(url) {
-- 93: function isCacheableAsset(request, url) {
-- 102: function isRuntimeGlue(url) {
-- 108: async function cacheFirst(request) {
-- 117: async function networkFirstStatic(request) {
-- 136: async function networkFirstNavigation(request) {
-- 140: if (response && response.ok) {
-- 153: self.addEventListener('install', (event) => {
-- 154: event.waitUntil((async () => {
-- 161: self.addEventListener('activate', (event) => {
-- 162: event.waitUntil((async () => {
-- 164: await Promise.all(keys.map((key) => {
-- 172: for (const client of clients) {
-- 182: self.addEventListener('message', (event) => {
-- 184: if (event.data && event.data.type === 'GET_VERSION') {
-- 187: if (event.data && event.data.type === 'CLEAR_ISOTOPE_CACHES') {
-- 188: event.waitUntil((async () => {
-- 196: self.addEventListener('fetch', (event) => {
-- 205: if (request.mode === 'navigate') {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 5: const APP_VERSION = '__ISOTOPE_APP_VERSION__';
-- 6: const APP_SHA = '__ISOTOPE_APP_SHA__';
-- 7: const CACHE_PREFIX = 'isotope-local';
-- 8: const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
-- 9: const RUNTIME_CACHE = CACHE_PREFIX + '-runtime-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
-- 11: const SHELL_URLS = [
-- 51: const RUNTIME_GLUE_PATHS = new Set([
-- 65: const RUNTIME_PATCHED_ASSET_PATHS = new Set([
-- 109: const cache = await caches.open(RUNTIME_CACHE);
-- 110: const cached = await cache.match(request);
-- 112: const response = await fetch(request);
-- 118: const cache = await caches.open(RUNTIME_CACHE);
-- 120: const freshRequest = new Request(request.url, {
-- 127: const response = await fetch(freshRequest);
-- 131: const cached = await cache.match(request);
-- 137: const shell = await caches.open(SHELL_CACHE);
-- 139: const response = await fetch(request);
-- 155: const cache = await caches.open(SHELL_CACHE);
-- 163: const keys = await caches.keys();
-- 171: const clients = await self.clients.matchAll({ type: 'window' });
-- 189: const keys = await caches.keys();
-- 197: const request = event.request;
-- 200: let url;
-- handlers/lifecycle candidates:
-- 112: const response = await fetch(request);
-- 127: const response = await fetch(freshRequest);
-- 133: return fetch(request);
-- 139: const response = await fetch(request);
-- 153: self.addEventListener('install', (event) => {
-- 161: self.addEventListener('activate', (event) => {
-- 182: self.addEventListener('message', (event) => {
-- 196: self.addEventListener('fetch', (event) => {
+- Imports Workbox from CDN/local file.
+- Configures cache names (precache, runtime).
+- Defines precache manifest (list of critical assets).
+- Implements Fetch handlers for navigation (offline fallback) and assets.
+- Handles 'install' and 'activate' events.
 
 INPUTS
-
-- parameters: route/request path candidates are listed in Internal Structure
-- environment variables:
-- APP_SHA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:29, docs/BUG_FIXES.md:32, docs/BUG_FIXES.md:157, docs/BUG_FIXES.md:163, public/sw.js:6, public/sw.js:8, public/sw.js:9, public/sw.js:174, public/sw.js:185
-- APP_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:29, docs/BUG_FIXES.md:32, docs/BUG_FIXES.md:157, docs/BUG_FIXES.md:163, public/sw.js:5, public/sw.js:8, public/sw.js:9, public/sw.js:174, public/sw.js:185
-- B45N: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2890, artifacts/asset-diff/asset-report.json:2893, artifacts/asset-diff/local-assets.txt:161, artifacts/asset-diff/summary.md:140, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1, public/assets/AppAccessGate-B975UtK7.js:18, public/assets/bootstrap-D1vc155U.js:21, public/assets/useSyncStore-vWs_TdIc.js:1, public/assets/useSyncStore-vWs_TdIc.js:22, public/sw.js:35
-- BPYJFSVW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2908, artifacts/asset-diff/asset-report.json:2911, artifacts/asset-diff/local-assets.txt:162, artifacts/asset-diff/summary.md:141, public/assets/AIAssistant--spCOe6W.js:58, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsTasks-DOfUf9Sd.js:1
-- CACHE_PREFIX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:29, docs/BUG_FIXES.md:32, public/sw.js:7, public/sw.js:8, public/sw.js:9, public/sw.js:165, public/sw.js:190
-- CLEAR_ISOTOPE_CACHES: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sw.js:187
-- GET_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sw.js:184
-- ISOTOPE_CACHES_CLEARED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sw.js:191
-- ISOTOPE_SW_READY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:124, docs/BUG_FIXES.md:157, docs/BUG_FIXES.md:163, public/pwa-local.js:176, public/sw.js:174
-- ISOTOPE_SW_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:124, public/pwa-local.js:176, public/sw.js:185
-- RUNTIME_CACHE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sw.js:9, public/sw.js:109, public/sw.js:118, public/sw.js:165
-- RUNTIME_GLUE_PATHS: classification=secret; required=unknown from static map; inspect use locations; uses=public/sw.js:51, public/sw.js:103, server.mjs:114, server.mjs:159
-- RUNTIME_PATCHED_ASSET_PATHS: classification=secret; required=unknown from static map; inspect use locations; uses=public/sw.js:65, public/sw.js:104, server.mjs:127, server.mjs:149
-- SHELL_CACHE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:29, docs/BUG_FIXES.md:32, public/sw.js:8, public/sw.js:137, public/sw.js:155, public/sw.js:165
-- SHELL_URLS: classification=public/configuration; required=unknown from static map; inspect use locations; uses=public/sw.js:11, public/sw.js:156
-- SKIP_WAITING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/workbox-window.prod.es5-BIl4cyR9.js:2, public/assets/workbox-window.prod.es5-BIl4cyR9.js:95, public/pwa-local.js:170, public/sw.js:183
-- command-line arguments: not directly observed
-- request data: route candidates observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-- 109: const cache = await caches.open(RUNTIME_CACHE);
-- 118: const cache = await caches.open(RUNTIME_CACHE);
-- 137: const shell = await caches.open(SHELL_CACHE);
-- 155: const cache = await caches.open(SHELL_CACHE);
-- 163: const keys = await caches.keys();
-- 166: return caches.delete(key);
-- 189: const keys = await caches.keys();
-- 190: await Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX)).map((key) => caches.delete(key)));
-- user interactions: browser/UI file may react to user actions
+- Precache manifest (inlined or injected).
+- Network requests.
 
 OUTPUTS AND SIDE EFFECTS
-
-- 30: '/update-checker.js',
-- 60: '/update-checker.js',
-- 94: if (request.method !== 'GET' || url.origin !== self.location.origin) return false;
-- 109: const cache = await caches.open(RUNTIME_CACHE);
-- 112: const response = await fetch(request);
-- 118: const cache = await caches.open(RUNTIME_CACHE);
-- 127: const response = await fetch(freshRequest);
-- 133: return fetch(request);
-- 137: const shell = await caches.open(SHELL_CACHE);
-- 139: const response = await fetch(request);
-- 155: const cache = await caches.open(SHELL_CACHE);
-- 163: const keys = await caches.keys();
-- 166: return caches.delete(key);
-- 174: client.postMessage({ type: 'ISOTOPE_SW_READY', version: APP_VERSION, sha: APP_SHA });
-- 185: event.source && event.source.postMessage({ type: 'ISOTOPE_SW_VERSION', version: APP_VERSION, sha: APP_SHA });
-- 189: const keys = await caches.keys();
-- 190: await Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX)).map((key) => caches.delete(key)));
-- 191: event.source && event.source.postMessage({ type: 'ISOTOPE_CACHES_CLEARED' });
-- 202: if (url.origin !== self.location.origin) return;
-- 206: event.respondWith(networkFirstNavigation(request));
-- 211: event.respondWith(networkFirstStatic(request));
-- 216: event.respondWith(cacheFirst(request));
+- Cache storage writes (V1_PRECACHE, V1_RUNTIME).
+- Network request interception.
 
 DATA FLOW
-
-Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 85: function isApiLike(url) {
-- 86: return url.pathname.startsWith('/api/') ||
-- 87: url.pathname.startsWith('/__admin/') ||
-- 88: url.pathname.startsWith('/__auth/') ||
-- 89: url.pathname.startsWith('/__supa/') ||
-- 90: url.pathname.startsWith('/__isotope/');
-- 93: function isCacheableAsset(request, url) {
-- 94: if (request.method !== 'GET' || url.origin !== self.location.origin) return false;
-- 95: if (isApiLike(url)) return false;
-- 96: return url.pathname.startsWith('/assets/') ||
-- 97: url.pathname.startsWith('/icons/') ||
-- 98: url.pathname.startsWith('/fonts/') ||
-- 99: /\.(?:js|css|svg|png|jpg|jpeg|webp|woff2?|ttf|webmanifest)$/i.test(url.pathname);
-- 102: function isRuntimeGlue(url) {
-- 103: return RUNTIME_GLUE_PATHS.has(url.pathname) ||
-- 104: RUNTIME_PATCHED_ASSET_PATHS.has(url.pathname) ||
-- 105: url.pathname.startsWith('/sync/');
-- 120: const freshRequest = new Request(request.url, {
-- 156: await cache.addAll(SHELL_URLS.map((url) => new Request(url, { cache: 'reload' })).filter(Boolean));
-- 200: let url;
-- 201: try { url = new URL(request.url); } catch { return; }
-- 202: if (url.origin !== self.location.origin) return;
-- 203: if (isApiLike(url)) return;
-- 210: if (isRuntimeGlue(url)) {
-- 215: if (isCacheableAsset(request, url)) {
-- external libraries:
-None observed.
-- local files: see References and Consumers above
-- browser APIs:
-- 109: const cache = await caches.open(RUNTIME_CACHE);
-- 118: const cache = await caches.open(RUNTIME_CACHE);
-- 137: const shell = await caches.open(SHELL_CACHE);
-- 155: const cache = await caches.open(SHELL_CACHE);
-- 163: const keys = await caches.keys();
-- 166: return caches.delete(key);
-- 189: const keys = await caches.keys();
-- 190: await Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX)).map((key) => caches.delete(key)));
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-- 39: '/assets/vendor-supabase-CdzVlbop.js',
-- external services: none observed
+1. Intercepts fetch requests.
+2. Checks if the request is in the precache.
+3. If not, applies runtime caching strategies (Stale-While-Revalidate or Network-First).
+4. Serves /offline.html on navigation failures.
 
 SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Cache scope is restricted to the root path.
+- No sensitive data (tokens/PII) should be stored in the Service Worker cache.
 
 OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- Core of the offline experience.
+- Provides fallback for navigation requests when the network is down.
 
 PERFORMANCE
-
-- No major static performance concern observed.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+- Precaches 33+ core assets (JS, CSS, fonts).
+- Uses Stale-While-Revalidate to speed up asset loading.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0528-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: public/sw.js inspected; no file-specific high-risk issue confirmed
-  observed evidence: public/sw.js inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: CHANGELOG.md, CHANGELOG.md, CHANGELOG.md
-  regression risk: Review behavior against existing tests before changing.
+- SW-001: Cache name is hardcoded 'isotope-v1'. (Severity: INFO, Status: CONFIRMED)
+- SW-002: Imports Workbox from external file 'workbox-1d81fbea.js'. (Severity: INFO, Status: CONFIRMED)
 
 POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+- Clean implementation using Workbox.
+- Includes offline fallback for navigation.
 
 FINAL VERDICT
-
-- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+Functional and secure service worker implementation.

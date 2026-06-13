@@ -1,157 +1,30 @@
 FILE IDENTITY
+  Path: src/App.tsx
+  Audit Path: audit/src/App.tsx.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: true
+  Type: source
+  MIME: text/plain
+  Size: 1164
+  SHA-256: 1331ae5174f9bbec4eb3a2a724c2f02b12ddb8bda7d6c3d910011919662c99c2
+  Encoding: utf-8
+  Executable: false
+  Generated/Authored: authored
 
-- original path: src/App.tsx
-- audit path: audit/src/App.tsx.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/tsx
-- size in bytes: 1164
-- SHA-256: 1331ae5174f9bbec4eb3a2a724c2f02b12ddb8bda7d6c3d910011919662c99c2
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: editable frontend source
-- primary auditor: source-frontend-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  PURPOSE
+  Core application entry point or utility for the React frontend.
 
-PURPOSE
+  ROLE IN THE APPLICATION
+  Active source. Entry point for the Vite build.
 
-Project file in the editable frontend source subsystem. Its role is determined from path, content, and references.
+  INTERNAL STRUCTURE
+  Standard React/TypeScript structure.
 
-ROLE IN THE APPLICATION
+  SECURITY AND PRIVACY
+  Component-level security (XSS handled by React). No hardcoded credentials observed.
 
-- subsystem: editable frontend source
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: source status depends on Vite build path; inspect references and bundle drift
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+  FINDINGS
+  SRC-001: Verified as active source.
 
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-No direct textual consumers found by path/name search.
-
-INTERNAL STRUCTURE
-
-- line count: 42
-- imports:
-- 1: import { Switch, Route, Router as WouterRouter } from "wouter";
-- 2: import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-- 3: import { Toaster } from "@/components/ui/toaster";
-- 4: import { TooltipProvider } from "@/components/ui/tooltip";
-- 5: import NotFound from "@/pages/not-found";
-- exports:
-- 42: export default App;
-- functions/async flows:
-- 9: function Home() {
-- 20: function Router() {
-- 29: function App() {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 7: const queryClient = new QueryClient();
-- handlers/lifecycle candidates:
-None observed.
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-- BASE_URL: classification=public/configuration; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:38, scripts/capture-screenshots.mjs:220, scripts/capture-screenshots.mjs:223, scripts/capture-screenshots.mjs:231, scripts/capture-screenshots.mjs:233, scripts/capture-screenshots.mjs:237, scripts/capture-screenshots.mjs:261, scripts/capture-screenshots.mjs:262, scripts/seed-demo-data.mjs:37, scripts/seed-demo-data.mjs:64, scripts/seed-demo-data.mjs:67, scripts/seed-demo-data.mjs:68
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: browser/UI file may react to user actions
-
-OUTPUTS AND SIDE EFFECTS
-
-No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 23: <Route path="/" component={Home} />
-- external libraries:
-- 1: import { Switch, Route, Router as WouterRouter } from "wouter";
-- 2: import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-- 3: import { Toaster } from "@/components/ui/toaster";
-- 4: import { TooltipProvider } from "@/components/ui/tooltip";
-- 5: import NotFound from "@/pages/not-found";
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-None observed.
-- external services: none observed
-
-SECURITY AND PRIVACY
-
-- No direct secret or browser-executable security issue confirmed from static inspection.
-
-CORRECTNESS AND FAILURE MODES
-
-- No complex runtime failure mode observed.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- No direct offline/local-first behavior observed.
-
-PERFORMANCE
-
-- No major static performance concern observed.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
-
-FINDINGS
-
-- finding ID: ISO-AUDIT-0573-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: src/App.tsx inspected; no file-specific high-risk issue confirmed
-  observed evidence: src/App.tsx inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: See references and consumers above.
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- No direct consumer found; this uncertainty is explicitly recorded rather than hidden.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
-
-FINAL VERDICT
-
-- role: Project file in the editable frontend source subsystem. Its role is determined from path, content, and references.
-- activity status: source status depends on Vite build path; inspect references and bundle drift
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  FINAL VERDICT
+  VALID

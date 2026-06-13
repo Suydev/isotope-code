@@ -1,39 +1,17 @@
 INITIAL SAFETY CAPTURE
-
-Captured at: 2026-06-13T04:50:49.911747+00:00
-Repository: /data/data/com.termux/files/home/isotope
+Captured at: 2026-06-13 (current audit update run)
+Repository: https://github.com/Suydev/isotope-code
 Branch: main
-Commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-
-Working-tree status:
-## main...origin/main [ahead 1]
-
-Source diff stat:
-(no source diff)
-
-Source diff names:
-(none)
-
-Tracked-file count: 422
-Untracked project-file candidates from git: 0
-Ignored-file categories/status:
-!! .env
-!! .isotope/
-!! artifacts/
-!! screenshot
-!! screenshot.zip
-!! screenshots/screenshot.zip
-
-Available repository instruction files:
-./README.md
-./CONTRIBUTING.md
-
-Subagent status:
-- Frontend/PWA/Sync subagent completed with evidence-based observations.
-- Runtime/server, SQL/Supabase, and installer/docs/assets subagents failed due usage limit; lead coordinator performed local read-only analysis.
-
-Safety rules applied:
-- No source files are modified by this audit.
-- Only audit/** is created or modified.
-- .git/**, node_modules/**, audit/**, package caches, editor/OS temp files, and sensitive runtime material are excluded.
-- Real environment values are redacted.
+Current Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1 (tag: v3.3.8)
+Previous Audit Baseline Commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+Commits Since Baseline: 
+  095c2fc - audit
+  a4f114d - fix: restore focus media import behavior
+  573f100 - Update .env.example
+Working-tree status: clean (no uncommitted changes to source files)
+Tracked file count: 422 (non-audit)
+Total tracked files including audit: 874
+Untracked project files: none observed
+Ignored file categories: .env (confirmed in .gitignore), node_modules/, .isotope/tmp/
+Repository instruction files: README.md, ADMIN.md, CONTRIBUTING.md, CHANGELOG.md
+Notes: Audit update run performed 2026-06-13. All audit files updated to reflect commit 095c2fc (v3.3.8).

@@ -1,147 +1,24 @@
 FILE IDENTITY
-
-- original path: .gitignore
-- audit path: audit/.gitignore.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: text/project file
-- MIME type: text/plain
-- size in bytes: 173
-- SHA-256: 5852147263d0e886385ea349d6985edc743fc956dfd1888edc12caf1aad13f38
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: lead-coordinator
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  Path: /tmp/isotope-repo/.gitignore
+  Audit Path: audit/.gitignore.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: Yes
+  Type: Configuration
+  Size: 173 bytes
+  SHA-256: 5852147263d0e886385ea349d6985edc743fc956dfd1888edc12caf1aad13f38
 
 PURPOSE
+  Specifies which files and directories should be ignored by Git.
 
-Project file in the application project subsystem. Its role is determined from path, content, and references.
-
-ROLE IN THE APPLICATION
-
-- subsystem: application project
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
-
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- CHANGELOG.md:256 - | 10 | No secrets staged or committed | ✅ `.env` not tracked; `.gitignore` covers `.env*`; full git history grep found no embedded keys |
-
-INTERNAL STRUCTURE
-
-- line count: 16
-- imports:
-None observed.
-- exports:
-None observed.
-- functions/async flows:
-None observed.
-- classes:
-None observed.
-- constants/mutable state candidates:
-None observed.
-- handlers/lifecycle candidates:
-None observed.
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-No environment variable names observed.
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-None observed.
-- external libraries:
-None observed.
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-None observed.
-- external services: none observed
+KEY SETTINGS
+  - Ignores node_modules, .env files (except .env.example), dist, build, cache, logs, artifacts, and screenshots.
 
 SECURITY AND PRIVACY
-
-- No direct secret or browser-executable security issue confirmed from static inspection.
-
-CORRECTNESS AND FAILURE MODES
-
-- No complex runtime failure mode observed.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- No direct offline/local-first behavior observed.
-
-PERFORMANCE
-
-- No major static performance concern observed.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+  - Correctly ignores `.env` and `.env.*` to prevent accidental commit of secrets.
+  - Specifically allows `.env.example` as a template.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0018-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: .gitignore inspected; no file-specific high-risk issue confirmed
-  observed evidence: .gitignore inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: CHANGELOG.md
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+  - CONFIG-006; Severity: INFO; Evidence: Follows security best practices by ignoring environment files containing secrets.
 
 FINAL VERDICT
-
-- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  - PASS: Securely configured gitignore.

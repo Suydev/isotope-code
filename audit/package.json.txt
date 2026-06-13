@@ -1,209 +1,27 @@
 FILE IDENTITY
-
-- original path: package.json
-- audit path: audit/package.json.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: configuration
-- MIME type: application/json
-- size in bytes: 1577
-- SHA-256: 761fcd2014001be01b0641e376c3ebc2dae92cd8aa6b732c3dad81f200b9e144
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: lead-coordinator
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  Path: /tmp/isotope-repo/package.json
+  Audit Path: audit/package.json.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: Yes
+  Type: Configuration
+  Size: 1577 bytes
+  SHA-256: 761fcd2014001be01b0641e376c3ebc2dae92cd8aa6b732c3dad81f200b9e144
 
 PURPOSE
+  Main package manifest for the IsotopeAI project, defining dependencies, scripts, and project metadata.
 
-Defines Node package metadata, scripts, and direct project dependencies.
-
-ROLE IN THE APPLICATION
-
-- subsystem: application project
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: active core file
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
-
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- .github/labeler.yml:56 - - 'package.json'
-- .github/workflows/ci.yml:187 - package.json
-- .github/workflows/ci.yml:318 - VERSION="$(node -e "process.stdout.write(require('./package.json').version)")"
-- .github/workflows/ci.yml:335 - for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql
-- .github/workflows/dependency-review.yml:7 - - 'package.json'
-- .github/workflows/dependency-review.yml:31 - - name: 📊 Report package.json stats
-- .github/workflows/dependency-review.yml:35 - const p = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-- .github/workflows/regenerate-release.yml:95 - package.json
-- .github/workflows/release.yml:36 - VERSION="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -1)"
-- .github/workflows/release.yml:173 - package.json
-- CHANGELOG.md:206 - - `package.json` version bumped to `3.3.0`.
-- CHANGELOG.md:237 - - `package.json` version bumped to `3.2.0`.
-- CHANGELOG.md:278 - - `package.json` version bumped to `3.1.3`.
-- CHANGELOG.md:286 - - Closed the Replit QA pull request without merging its Vite/workspace `package.json` rewrite.
-- bin/isotope:56 - [ -d "$1" ] && [ -f "$1/server.mjs" ] && [ -f "$1/package.json" ]
-- bin/isotope:293 - if [ -n "$project" ] && [ -f "$project/package.json" ]; then
-- bin/isotope:298 - const v = JSON.parse(fs.readFileSync(path.join(dir,'package.json'),'utf8')).version || 'unknown';
-- bin/isotope:344 - try{process.stdout.write(JSON.parse(fs.readFileSync(path.join(dir,'package.json'),'utf8')).version||'unknown')}catch{process.stdout.write('unknown')}
-- bin/isotope:428 - [ -f "$project/package.json" ] && info "[ok]  package.json"    || warn "[fail] package.json missing"
-- bin/isotope:535 - try { version = JSON.parse(fs.readFileSync(path.join(process.cwd(),'package.json'),'utf8')).version || version; } catch {}
-- bin/isotope.bat:176 - git diff --name-only %LOCAL_SHA% %REMOTE_SHA% | findstr /R /C:"^package.json$" /C:"^package-lock.json$" >nul
-- bin/isotope.bat:210 - for /f %%v in ('node -e "const fs=require('fs');let v='unknown';try{v=JSON.parse(fs.readFileSync('%PROJECT_DIR:\=/%/package.json','utf8')).version}catch{}process.stdout.write(v)"') do echo Version: %%v
-- bin/isotope.bat:224 - if exist "%PROJECT_DIR%\package.json" (echo [ok] package.json) else echo [missing] package.json
-- install.ps1:66 - if ((Test-Path "package.json") -and (HasCommand npm)) {
-- scripts/validate-docs.mjs:9 - *   5. Version number in README/docs matches package.json
-- scripts/validate-docs.mjs:49 - const PKG      = readText('package.json');
-- scripts/validate-docs.mjs:61 - ok(`package.json parsed — version: ${pkgVersion}`);
-- scripts/validate-docs.mjs:63 - error('package.json is not valid JSON');
-- scripts/validate-docs.mjs:66 - error('package.json not found');
-- scripts/validate-docs.mjs:82 - warn(`README version badge (${v}) does not match package.json (${pkgVersion})`);
-- scripts/validate-docs.mjs:84 - ok(`README version badge matches package.json (${pkgVersion})`);
-- scripts/validate-docs.mjs:160 - warn(`docs/index.html version (${docVer}) does not match package.json (${pkgVersion})`);
-- scripts/validate-docs.mjs:162 - ok(`docs/index.html version matches package.json (${pkgVersion})`);
-- scripts/validate-docs.mjs:200 - 'package.json',
-- server.mjs:5314 - const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-- server.mjs:5320 - if (vdata.version) info.version = String(vdata.version); // VERSION overrides package.json
-- setup.bat:80 - if exist package.json (
-- setup.sh:463 - if has npm && [ -f package.json ]; then
-
-INTERNAL STRUCTURE
-
-- line count: 36
-- imports:
-None observed.
-- exports:
-None observed.
-- functions/async flows:
-None observed.
-- classes:
-None observed.
-- constants/mutable state candidates:
-None observed.
-- handlers/lifecycle candidates:
-None observed.
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-- JEE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/feature_request.md:19, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52
-- NEET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:80
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-- https://github.com/Suydev/isotope-code.git
-- https://isotopeai.in
-- browser storage:
-None observed.
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 7: "homepage": "https://isotopeai.in",
-- 10: "url": "https://github.com/Suydev/isotope-code.git"
-- external libraries:
-None observed.
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-- 9: "type": "git",
-- 10: "url": "https://github.com/Suydev/isotope-code.git"
-- 13: "start": "node server.mjs",
-- 14: "dev": "node --env-file=.env --watch server.mjs",
-- 15: "preview": "node server.mjs",
-- 16: "demo:seed": "node scripts/seed-demo-data.mjs",
-- 17: "demo:reset": "node scripts/seed-demo-data.mjs --reset",
-- 18: "screenshots": "node scripts/capture-screenshots.mjs",
-- 19: "screenshots:compress": "node scripts/capture-screenshots.mjs --compress",
-- 20: "screenshots:demo": "node scripts/capture-screenshots.mjs --demo",
-- 21: "docs:validate": "node scripts/validate-docs.mjs",
-- 22: "docs:validate:strict": "node scripts/validate-docs.mjs --strict",
-- 23: "assets:compare": "node scripts/compare-remote-assets.mjs",
-- 24: "backup:validate": "node scripts/validate-backup-files.mjs",
-- 25: "backup:repair:dry-run": "node scripts/repair-user-backup.mjs --dry-run",
-- 26: "backup:prove-restore": "node scripts/prove-new-browser-restore.mjs",
-- 27: "storage:cleanup:dry-run": "node scripts/validate-storage-cleanup.mjs --dry-run",
-- 28: "security:verify": "node scripts/verify-supabase-security.mjs",
-- 29: "test:auth-bridge": "node scripts/test-auth-bridge.mjs",
-- 30: "test:runtime-glue": "node scripts/prove-runtime-glue.mjs",
-- 31: "test:supabase-sync": "node scripts/prove-supabase-sync.mjs"
-- 34: "node": ">=18.0.0"
-- Supabase interfaces:
-- 28: "security:verify": "node scripts/verify-supabase-security.mjs",
-- 31: "test:supabase-sync": "node scripts/prove-supabase-sync.mjs"
-- external services: https://github.com/Suydev/isotope-code.git, https://isotopeai.in
+KEY SETTINGS
+  - version: 3.3.8
+  - type: module
+  - scripts: Extensive set of scripts for dev, seeding, screenshots, validation, and security verification.
+  - engines: node >=18.0.0
 
 SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
-
-PERFORMANCE
-
-- No major static performance concern observed.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+  - No sensitive keys or private URLs found in the file.
+  - Includes a `security:verify` script which points to the `verify-supabase-security.mjs` script.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0270-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: package.json inspected; no file-specific high-risk issue confirmed
-  observed evidence: package.json inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: .github/labeler.yml, .github/workflows/ci.yml, .github/workflows/ci.yml
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+  - CONFIG-001; Severity: INFO; Evidence: Well-organized scripts for project maintenance and auditing.
 
 FINAL VERDICT
-
-- role: Defines Node package metadata, scripts, and direct project dependencies.
-- activity status: active core file
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  - PASS: Standard and well-maintained package.json.

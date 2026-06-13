@@ -1,232 +1,31 @@
 FILE IDENTITY
+  Path: scripts/prove-supabase-sync.mjs
+  Audit Path: audit/scripts/prove-supabase-sync.mjs.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: true
+  Type: script
+  MIME: text/javascript
+  Size: 6291
+  SHA-256: ee654da42275c51cdc53047d6c6368562b4d9e16a8539c32679a71a459947adf
+  Encoding: utf-8
+  Executable: true
+  Generated/Authored: authored
 
-- original path: scripts/prove-supabase-sync.mjs
-- audit path: audit/scripts/prove-supabase-sync.mjs.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 6291
-- SHA-256: ee654da42275c51cdc53047d6c6368562b4d9e16a8539c32679a71a459947adf
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: offline/sync/backup
-- primary auditor: sql-supabase-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  PURPOSE
+  Development and maintenance script for the application.
 
-PURPOSE
+  ROLE IN THE APPLICATION
+  Dev tool / maintenance script.
 
-Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
+  INTERNAL STRUCTURE
+  Node.js script using ES modules.
 
-ROLE IN THE APPLICATION
+  SECURITY AND PRIVACY
+  Credential handling: Loads credentials from environment variables (SUPABASE_SERVICE_ROLE_KEY, etc.). 
+  Mutates Supabase/storage: Read-only or limited mutation.
 
-- subsystem: offline/sync/backup
-- runtime stage: development, installation, or documentation
-- user-visible feature: sync/backup/restore
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+  FINDINGS
+  SCR-001: Verified as maintenance script. Pay attention to service role key usage.
 
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- package.json:31 - "test:supabase-sync": "node scripts/prove-supabase-sync.mjs"
-
-INTERNAL STRUCTURE
-
-- line count: 166
-- imports:
-- 1: import assert from 'node:assert/strict';
-- 2: import fs from 'node:fs';
-- exports:
-None observed.
-- functions/async flows:
-- 7: function readEnv(file) {
-- 31: async function jsonFetch(url, options = {}) {
-- 39: function supaHeaders(token, extra = {}) {
-- 48: async function supaAdmin(path, options = {}) {
-- 55: async function postgrestDelete(table, query) {
-- 62: async function removeStoragePrefix(userId) {
-- 158: if (userId) {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 4: const envFile = process.env.ISOTOPE_ENV_FILE || '.env';
-- 5: const base = process.env.RUNTIME_PROOF_BASE || 'http://127.0.0.1:3000';
-- 8: const out = {};
-- 9: const text = fs.readFileSync(file, 'utf8');
-- 11: const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
-- 13: let value = match[2].trim();
-- 22: const env = readEnv(envFile);
-- 23: const supaUrl = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
-- 24: const anonKey = env.SUPABASE_ANON_KEY || '';
-- 25: const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || '';
-- 32: const response = await fetch(url, options);
-- 33: const text = await response.text();
-- 34: let data = {};
-- 63: const listed = await supaAdmin('/storage/v1/object/list/user-content', {
-- 68: const rows = Array.isArray(listed?.data) ? listed.data : [];
-- 69: const paths = rows
-- 80: const stamp = Date.now();
-- 81: const email = `isotope-sync-smoke-${stamp}@example.invalid`;
-- 82: const password = `Smoke-${stamp}-Passw0rd!`;
-- 83: let userId = null;
-- 86: const created = await supaAdmin('/auth/v1/admin/users', {
-- 100: const login = await jsonFetch(`${supaUrl}/auth/v1/token?grant_type=password`, {
-- 111: const accessToken = login.data?.access_token;
-- 114: const now = new Date().toISOString();
-- 115: const backup = {
-- 134: const appHeaders = {
-- 139: const upload = await jsonFetch(`${base}/__auth/backup`, {
-- 148: const best = await jsonFetch(`${base}/__auth/backup/best`, { headers: appHeaders });
-- 152: const latest = await jsonFetch(`${base}/__auth/backup/latest`, { headers: appHeaders });
-- handlers/lifecycle candidates:
-- 32: const response = await fetch(url, options);
-
-INPUTS
-
-- parameters: route/request path candidates are listed in Internal Structure
-- environment variables:
-- ISOTOPE_ENV_FILE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:439, README.md:186, scripts/prove-supabase-sync.mjs:4, setup.sh:26, setup.sh:254, setup.sh:255, setup.sh:258
-- PASS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:539, CHANGELOG.md:566, scripts/prove-new-browser-restore.mjs:79, scripts/prove-runtime-glue.mjs:89, scripts/prove-supabase-sync.mjs:156, scripts/test-auth-bridge.mjs:139, scripts/verify-supabase-security.mjs:89, server.mjs:220, server.mjs:7723, server.mjs:8362, server.mjs:8363, server.mjs:8587
-- RUNTIME_PROOF_BASE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/prove-runtime-glue.mjs:3, scripts/prove-supabase-sync.mjs:5
-- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
-- SUPABASE_SERVICE_ROLE_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:22, .github/workflows/ci.yml:242, ADMIN.md:30, ADMIN.md:48, ADMIN.md:426, ADMIN.md:449, ADMIN.md:491, README.md:242, artifacts/isotope/.env:16, docs/admin.html:60, scripts/prove-new-browser-restore.mjs:10, scripts/prove-supabase-sync.mjs:25
-- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
-- command-line arguments: not directly observed
-- request data: route candidates observed
-- headers/cookies: not directly observed
-- files: filesystem or asset file dependency likely
-- database data:
-None observed.
-- network responses:
-- http://127.0.0.1:3000
-- browser storage:
-None observed.
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-- 31: async function jsonFetch(url, options = {}) {
-- 32: const response = await fetch(url, options);
-- 49: return jsonFetch(supaUrl + path, {
-- 55: async function postgrestDelete(table, query) {
-- 57: method: 'DELETE',
-- 62: async function removeStoragePrefix(userId) {
-- 74: method: 'DELETE',
-- 100: const login = await jsonFetch(`${supaUrl}/auth/v1/token?grant_type=password`, {
-- 121: profile: { display_name: 'Sync Smoke', updatedAt: now },
-- 123: tasks: [{ id: `smoke-task-${stamp}`, title: 'Supabase sync smoke task', status: 'pending', updatedAt: now }],
-- 139: const upload = await jsonFetch(`${base}/__auth/backup`, {
-- 144: assert.ok(upload.response.ok && upload.data?.ok, `local backup upload failed: HTTP ${upload.response.status} ${upload.data?.error || ''}`);
-- 145: assert.equal(upload.data.bucket, 'user-content');
-- 146: assert.ok(upload.data.latest_path === `${userId}/backups/latest.json` || upload.data.path === `${userId}/backups/latest.json`, 'canonical backup path mismatch');
-- 148: const best = await jsonFetch(`${base}/__auth/backup/best`, { headers: appHeaders });
-- 152: const latest = await jsonFetch(`${base}/__auth/backup/latest`, { headers: appHeaders });
-- 154: assert.ok(String(latest.data?.backup_json || '').includes('Supabase sync smoke task'), 'downloaded backup did not include uploaded task');
-- 156: console.log('PASS Supabase Storage sync smoke');
-- 159: await removeStoragePrefix(userId);
-- 160: await postgrestDelete('backup_manifests', `user_id=eq.${encodeURIComponent(userId)}`);
-- 161: await postgrestDelete('sync_items', `user_id=eq.${encodeURIComponent(userId)}`);
-- 162: await postgrestDelete('user_profiles', `user_id=eq.${encodeURIComponent(userId)}`);
-- 163: await postgrestDelete('users', `id=eq.${encodeURIComponent(userId)}`);
-- 164: await supaAdmin(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, { method: 'DELETE' }).catch(() => null);
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 2: import fs from 'node:fs';
-- 5: const base = process.env.RUNTIME_PROOF_BASE || 'http://127.0.0.1:3000';
-- 9: const text = fs.readFileSync(file, 'utf8');
-- 27: assert.ok(/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supaUrl), 'SUPABASE_URL is missing or invalid');
-- 31: async function jsonFetch(url, options = {}) {
-- 32: const response = await fetch(url, options);
-- 48: async function supaAdmin(path, options = {}) {
-- 49: return jsonFetch(supaUrl + path, {
-- 146: assert.ok(upload.data.latest_path === `${userId}/backups/latest.json` || upload.data.path === `${userId}/backups/latest.json`, 'canonical backup path mismatch');
-- 150: assert.equal(best.data?.selected?.path, `${userId}/backups/latest.json`);
-- external libraries:
-- 1: import assert from 'node:assert/strict';
-- 2: import fs from 'node:fs';
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-- 1: import assert from 'node:assert/strict';
-- 2: import fs from 'node:fs';
-- Supabase interfaces:
-- 23: const supaUrl = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
-- 24: const anonKey = env.SUPABASE_ANON_KEY || '';
-- 25: const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || '';
-- 27: assert.ok(/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supaUrl), 'SUPABASE_URL is missing or invalid');
-- 28: assert.ok(anonKey.split('.').length >= 3, 'SUPABASE_ANON_KEY is missing or invalid');
-- 29: assert.ok(serviceKey.split('.').length >= 3, 'SUPABASE_SERVICE_ROLE_KEY is required for this smoke test');
-- 86: const created = await supaAdmin('/auth/v1/admin/users', {
-- 100: const login = await jsonFetch(`${supaUrl}/auth/v1/token?grant_type=password`, {
-- 123: tasks: [{ id: `smoke-task-${stamp}`, title: 'Supabase sync smoke task', status: 'pending', updatedAt: now }],
-- 154: assert.ok(String(latest.data?.backup_json || '').includes('Supabase sync smoke task'), 'downloaded backup did not include uploaded task');
-- 156: console.log('PASS Supabase Storage sync smoke');
-- 164: await supaAdmin(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, { method: 'DELETE' }).catch(() => null);
-- external services: http://127.0.0.1:3000
-
-SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
-
-PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
-
-FINDINGS
-
-- finding ID: ISO-AUDIT-0555-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: scripts/prove-supabase-sync.mjs inspected; no file-specific high-risk issue confirmed
-  observed evidence: scripts/prove-supabase-sync.mjs inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: package.json
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
-
-FINAL VERDICT
-
-- role: Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  FINAL VERDICT
+  VALID

@@ -1,50 +1,28 @@
-Repository overview
+ISOTOPE REPOSITORY OVERVIEW
+===========================
 
-- audited branch: main
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- total in-scope files: 641
-- tracked files: 422
-- untracked included files: 219
-- generated/built candidates: 427
-- text files: 497
-- binary files: 143
+APPLICATION:
+IsotopeAI is a self-hosted AI study planner designed for JEE/NEET/Board students. It features automated study scheduling, task management, and AI-powered study assistance.
 
-Subsystem/agent ownership:
-- compiled-frontend-agent: 213
-- documentation-ci-agent: 33
-- installer-platform-agent: 19
-- lead-coordinator: 188
-- offline-pwa-sync-agent: 8
-- runtime-server-agent: 2
-- source-frontend-agent: 66
-- sql-supabase-agent: 11
-- static-asset-agent: 100
+ARCHITECTURE:
+- Frontend: Vite/React (served from public/ directory after build).
+- Backend: Node.js (server.mjs) using a simple express-like architecture with native modules.
+- Database: Supabase (PostgreSQL with RLS).
+- PWA: Supports offline mode and local data sync.
 
-File type distribution:
-- archive: 2
-- audio: 3
-- binary asset: 1
-- code: 399
-- configuration: 20
-- environment: 2
-- font: 116
-- html: 9
-- image: 28
-- markdown: 14
-- script: 13
-- sql: 10
-- stylesheet: 15
-- text/project file: 7
-- video: 1
+KEY SUBSYSTEMS:
+- Auth: Integrated with Supabase Auth + local Admin panel for owners.
+- Backup/Restore: JSON-based backup system with Supabase Storage integration.
+- AI Proxy: Routes for Gemini, Groq, and YepAPI to enable chat and summarization.
+- Admin Panel: Diagnostic tools and manual schema patch application via /__admin.
 
-Major systems observed:
-- Local Node server in server.mjs.
-- Browser shell and runtime glue under index.html and public/*.js.
-- Compiled frontend bundles under public/assets/**.
-- Offline/sync/local data adapters under public/sync/**.
-- Supabase/Postgres schema and helper SQL under sql/** when present.
-- Install/platform/documentation/CI files in scripts, bin, docs, root docs, and .github.
+REPOSITORY STRUCTURE:
+- /server.mjs: Main entry point.
+- /public/: Built frontend and static assets.
+- /sql/: Database schema migrations and patches.
+- /scripts/: Utility scripts for maintenance and CI.
+- /audit/: Autonomous audit documentation (current directory).
 
-Limitations:
-- Frontend/PWA/Sync subagent completed with independent observations.
-- Other specialist subagents failed due usage limit; lead coordinator completed local static review for their scopes.
+VERSION INFO:
+- Current Version: 3.3.8
+- Model: Open-source self-hosted (Clone -> .env -> isotope start).

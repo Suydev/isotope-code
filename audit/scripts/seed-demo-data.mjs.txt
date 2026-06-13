@@ -1,280 +1,31 @@
 FILE IDENTITY
+  Path: scripts/seed-demo-data.mjs
+  Audit Path: audit/scripts/seed-demo-data.mjs.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: true
+  Type: script
+  MIME: text/javascript
+  Size: 11371
+  SHA-256: 7ee3925547847d8f35cb3e36723b43dda4831387d02b778eb1d2efd4899df71f
+  Encoding: utf-8
+  Executable: true
+  Generated/Authored: authored
 
-- original path: scripts/seed-demo-data.mjs
-- audit path: audit/scripts/seed-demo-data.mjs.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 11371
-- SHA-256: 7ee3925547847d8f35cb3e36723b43dda4831387d02b778eb1d2efd4899df71f
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: lead-coordinator
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  PURPOSE
+  Development and maintenance script for the application.
 
-PURPOSE
+  ROLE IN THE APPLICATION
+  Dev tool / maintenance script.
 
-Project file in the application project subsystem. Its role is determined from path, content, and references.
+  INTERNAL STRUCTURE
+  Node.js script using ES modules.
 
-ROLE IN THE APPLICATION
+  SECURITY AND PRIVACY
+  Credential handling: Loads credentials from environment variables (SUPABASE_SERVICE_ROLE_KEY, etc.). 
+  Mutates Supabase/storage: Yes.
 
-- subsystem: application project
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+  FINDINGS
+  SCR-001: Verified as maintenance script. Pay attention to service role key usage.
 
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- package.json:16 - "demo:seed": "node scripts/seed-demo-data.mjs",
-- package.json:17 - "demo:reset": "node scripts/seed-demo-data.mjs --reset",
-- scripts/validate-docs.mjs:229 - 'scripts/seed-demo-data.mjs',
-
-INTERNAL STRUCTURE
-
-- line count: 247
-- imports:
-- 25: import { readFileSync, existsSync } from 'fs';
-- 26: import { resolve } from 'path';
-- exports:
-None observed.
-- functions/async flows:
-- 34: .map(a => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=')]; })
-- 47: function loadEnv() {
-- 54: .map(l => {
-- 67: if (!SUPABASE_URL || !SUPABASE_KEY) {
-- 73: async function healthCheck() {
-- 106: const DEMO_STUDY_SESSIONS = (() => {
-- 111: for (let d = 13; d >= 0; d--) {
-- 113: for (let i = 0; i < count; i++) {
-- 144: if (!healthy) {
-- 151: async function apiPost(path, body, label) {
-- 152: if (DRY_RUN) {
-- 164: if (!res.ok) {
-- 175: async function apiGet(path) {
-- 184: for (const s of DEMO_SUBJECTS) {
-- 191: for (const t of DEMO_TASKS) {
-- 205: for (const h of DEMO_HABITS) {
-- 213: if (batchRes) {
-- 240: if (DRY_RUN) {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 28: const RESET_MODE = process.argv.includes('--reset');
-- 29: const DRY_RUN    = process.argv.includes('--dry-run');
-- 31: const argMap = Object.fromEntries(
-- 37: const BASE_URL = argMap.url || process.env.ISOTOPE_URL || 'http://127.0.0.1:3000';
-- 40: const R = '\x1b[0m', G = '\x1b[32m', Y = '\x1b[33m', C = '\x1b[36m', B = '\x1b[1m';
-- 41: const ok   = msg => console.log(`${G}  ✅ ${msg}${R}`);
-- 42: const info = msg => console.log(`${C}  →  ${msg}${R}`);
-- 43: const warn = msg => console.warn(`${Y}  ⚠️  ${msg}${R}`);
-- 44: const dry  = msg => console.log(`${Y}  [dry-run] ${msg}${R}`);
-- 48: const envPath = resolve('.env');
-- 50: const text = readFileSync(envPath, 'utf8');
-- 55: const eq = l.indexOf('=');
-- 56: const k  = l.slice(0, eq).trim();
-- 57: const v  = l.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
-- 63: const env = loadEnv();
-- 64: const SUPABASE_URL  = process.env.SUPABASE_URL  || env.SUPABASE_URL  || '';
-- 65: const SUPABASE_KEY  = process.env.SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || '';
-- 75: const res = await fetch(`${BASE_URL}/api/health`, { signal: AbortSignal.timeout(5000) });
-- 81: const DEMO_PREFIX = '__demo__';
-- 83: const DEMO_SUBJECTS = [
-- 90: const DEMO_TASKS = [
-- 99: const DEMO_HABITS = [
-- 106: const DEMO_STUDY_SESSIONS = (() => {
-- 107: const sessions = [];
-- 108: const subjects = ['Physics', 'Chemistry', 'Mathematics', 'Biology'];
-- 109: const now = Date.now();
-- 110: const DAY  = 86400 * 1000;
-- 112: const count = d === 0 ? 3 : Math.floor(Math.random() * 3) + 1;
-- 114: const subj = subjects[Math.floor(Math.random() * subjects.length)];
-- 115: const dur  = (Math.floor(Math.random() * 60) + 25) * 60; // 25–85 min in seconds
-- 129: const DEMO_EXAM = {
-- 143: const healthy = await healthCheck();
-- 157: const res = await fetch(`${BASE_URL}${path}`, {
-- 163: const data = await res.json().catch(() => ({}));
-- 177: const res = await fetch(`${BASE_URL}${path}`, { signal: AbortSignal.timeout(5000) });
-- 185: const r = await apiPost('/api/subjects', { name: s.name, color: s.color, emoji: s.emoji, demo_id: s.id }, `subject: ${s.name}`);
-- 192: const due = new Date(Date.now() + t.due_days * 86400 * 1000).toISOString().slice(0, 10);
-- 193: const r = await apiPost('/api/tasks', {
-- 206: const r = await apiPost('/api/habits', { name: h.name, icon: h.icon, demo: true }, `habit: ${h.name}`);
-- 212: const batchRes = await apiPost('/api/sessions/batch', { sessions: DEMO_STUDY_SESSIONS }, 'study sessions batch');
-- 217: let seeded = 0;
-- 219: const r = await apiPost('/api/sessions', s, `session: ${s.subject}`);
-- 227: const examRes = await apiPost('/api/exams', DEMO_EXAM, `exam: ${DEMO_EXAM.name}`);
-- handlers/lifecycle candidates:
-- 75: const res = await fetch(`${BASE_URL}/api/health`, { signal: AbortSignal.timeout(5000) });
-- 157: const res = await fetch(`${BASE_URL}${path}`, {
-- 177: const res = await fetch(`${BASE_URL}${path}`, { signal: AbortSignal.timeout(5000) });
-
-INPUTS
-
-- parameters: route/request path candidates are listed in Internal Structure
-- environment variables:
-- AIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/seed-demo-data.mjs:132
-- BASE_URL: classification=public/configuration; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:38, scripts/capture-screenshots.mjs:220, scripts/capture-screenshots.mjs:223, scripts/capture-screenshots.mjs:231, scripts/capture-screenshots.mjs:233, scripts/capture-screenshots.mjs:237, scripts/capture-screenshots.mjs:261, scripts/capture-screenshots.mjs:262, scripts/seed-demo-data.mjs:37, scripts/seed-demo-data.mjs:64, scripts/seed-demo-data.mjs:67, scripts/seed-demo-data.mjs:68
-- DAY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, public/assets/Study-pAdAenIl.js:1685, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8, scripts/seed-demo-data.mjs:110, scripts/seed-demo-data.mjs:119, scripts/seed-demo-data.mjs:120
-- DEMO_EXAM: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/seed-demo-data.mjs:129, scripts/seed-demo-data.mjs:227, scripts/seed-demo-data.mjs:228
-- DEMO_HABITS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/seed-demo-data.mjs:99, scripts/seed-demo-data.mjs:205, scripts/seed-demo-data.mjs:235
-- DEMO_PREFIX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/seed-demo-data.mjs:81, scripts/seed-demo-data.mjs:84, scripts/seed-demo-data.mjs:85, scripts/seed-demo-data.mjs:86, scripts/seed-demo-data.mjs:87
-- DEMO_STUDY_SESSIONS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/seed-demo-data.mjs:106, scripts/seed-demo-data.mjs:211, scripts/seed-demo-data.mjs:212, scripts/seed-demo-data.mjs:214, scripts/seed-demo-data.mjs:218, scripts/seed-demo-data.mjs:236
-- DEMO_SUBJECTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/seed-demo-data.mjs:83, scripts/seed-demo-data.mjs:184, scripts/seed-demo-data.mjs:233
-- DEMO_TASKS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/seed-demo-data.mjs:90, scripts/seed-demo-data.mjs:191, scripts/seed-demo-data.mjs:234
-- DRY_RUN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/prove-new-browser-restore.mjs:56, scripts/repair-user-backup.mjs:42, scripts/seed-demo-data.mjs:29, scripts/seed-demo-data.mjs:140, scripts/seed-demo-data.mjs:152, scripts/seed-demo-data.mjs:240
-- EMAIL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/seed-demo-data.mjs:12, server.mjs:222, server.mjs:223, server.mjs:224, server.mjs:228, server.mjs:321, server.mjs:355, server.mjs:370, server.mjs:378, server.mjs:5471, server.mjs:5717, server.mjs:5720
-- ISOTOPE_URL: classification=public/configuration; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:38, scripts/seed-demo-data.mjs:37
-- JEE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/feature_request.md:19, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52
-- NCERT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:2673, public/assets/App-pJGjDiPw.js:3891, public/assets/Syllabus-DZSnov0t.js:859, public/assets/Syllabus-DZSnov0t.js:2967, public/assets/analyticsWorker-BnmTlfYB.js:6, public/assets/analyticsWorker-BnmTlfYB.js:14, public/assets/index-qd2KF3Jd.js:31, public/assets/index-qd2KF3Jd.js:39, scripts/seed-demo-data.mjs:95
-- PII: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/seed-demo-data.mjs:21
-- PYQ: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:2388, public/assets/App-pJGjDiPw.js:2404, public/assets/App-pJGjDiPw.js:2462, public/assets/App-pJGjDiPw.js:2591, public/assets/App-pJGjDiPw.js:2673, public/assets/App-pJGjDiPw.js:3617, public/assets/App-pJGjDiPw.js:3702, public/assets/App-pJGjDiPw.js:3742, public/assets/App-pJGjDiPw.js:3758, public/assets/App-pJGjDiPw.js:3770, public/assets/App-pJGjDiPw.js:3771, public/assets/App-pJGjDiPw.js:3834
-- RESET_MODE: classification=public/configuration; required=unknown from static map; inspect use locations; uses=scripts/seed-demo-data.mjs:28, scripts/seed-demo-data.mjs:139
-- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
-- SUPABASE_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=scripts/seed-demo-data.mjs:65, scripts/seed-demo-data.mjs:67
-- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
-- command-line arguments: not directly observed
-- request data: route candidates observed
-- headers/cookies: not directly observed
-- files: filesystem or asset file dependency likely
-- database data:
-None observed.
-- network responses:
-- http://127.0.0.1:3000
-- browser storage:
-None observed.
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-- 18: *   - --reset only deletes records with this prefix
-- 41: const ok   = msg => console.log(`${G}  ✅ ${msg}${R}`);
-- 42: const info = msg => console.log(`${C}  →  ${msg}${R}`);
-- 43: const warn = msg => console.warn(`${Y}  ⚠️  ${msg}${R}`);
-- 44: const dry  = msg => console.log(`${Y}  [dry-run] ${msg}${R}`);
-- 75: const res = await fetch(`${BASE_URL}/api/health`, { signal: AbortSignal.timeout(5000) });
-- 76: return res.ok;
-- 137: console.log(`\n${B}IsotopeAI — Demo Data Seeder${R}`);
-- 138: console.log(`  Server   : ${BASE_URL}`);
-- 139: console.log(`  Reset    : ${RESET_MODE}`);
-- 140: console.log(`  Dry-run  : ${DRY_RUN}`);
-- 141: console.log('');
-- 145: warn(`Local server not responding at ${BASE_URL}/api/health`);
-- 157: const res = await fetch(`${BASE_URL}${path}`, {
-- 163: const data = await res.json().catch(() => ({}));
-- 164: if (!res.ok) {
-- 165: warn(`${label} → HTTP ${res.status}: ${JSON.stringify(data).slice(0, 120)}`);
-- 177: const res = await fetch(`${BASE_URL}${path}`, { signal: AbortSignal.timeout(5000) });
-- 178: return await res.json().catch(() => null);
-- 231: console.log('');
-- 232: console.log(`${B}Demo data seeded.${R}`);
-- 233: console.log(`  Subjects : ${DEMO_SUBJECTS.length}`);
-- 234: console.log(`  Tasks    : ${DEMO_TASKS.length}`);
-- 235: console.log(`  Habits   : ${DEMO_HABITS.length}`);
-- 236: console.log(`  Sessions : ${DEMO_STUDY_SESSIONS.length} (last 14 days)`);
-- 237: console.log(`  Exams    : 1`);
-- 238: console.log('');
-- 241: console.log(`${Y}Dry-run complete — no data was written.${R}`);
-- 243: console.log(`Open http://127.0.0.1:3000 to see demo data.`);
-- 244: console.log(`To capture screenshots: npm run screenshots`);
-- 245: console.log(`To reset demo data:     node scripts/seed-demo-data.mjs --reset`);
-- 247: console.log('');
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 8: *   node scripts/seed-demo-data.mjs [--reset] [--user=email] [--url=URL]
-- 13: *   --url=URL       Server base URL (default: http://127.0.0.1:3000)
-- 25: import { readFileSync, existsSync } from 'fs';
-- 26: import { resolve } from 'path';
-- 37: const BASE_URL = argMap.url || process.env.ISOTOPE_URL || 'http://127.0.0.1:3000';
-- 151: async function apiPost(path, body, label) {
-- 153: dry(`POST ${path} — ${label}`);
-- 157: const res = await fetch(`${BASE_URL}${path}`, {
-- 175: async function apiGet(path) {
-- 177: const res = await fetch(`${BASE_URL}${path}`, { signal: AbortSignal.timeout(5000) });
-- 243: console.log(`Open http://127.0.0.1:3000 to see demo data.`);
-- external libraries:
-- 25: import { readFileSync, existsSync } from 'fs';
-- 26: import { resolve } from 'path';
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-- 8: *   node scripts/seed-demo-data.mjs [--reset] [--user=email] [--url=URL]
-- 146: warn(`Start the server first: isotope start   (or node server.mjs)`);
-- 244: console.log(`To capture screenshots: npm run screenshots`);
-- 245: console.log(`To reset demo data:     node scripts/seed-demo-data.mjs --reset`);
-- Supabase interfaces:
-- 12: *   --user=EMAIL    Use this user account (must be a real Supabase auth user)
-- 20: *   - Never writes to the Supabase service role API (uses anon key only)
-- 64: const SUPABASE_URL  = process.env.SUPABASE_URL  || env.SUPABASE_URL  || '';
-- 65: const SUPABASE_KEY  = process.env.SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || '';
-- 67: if (!SUPABASE_URL || !SUPABASE_KEY) {
-- 68: warn('SUPABASE_URL or SUPABASE_ANON_KEY not found in .env');
-- external services: http://127.0.0.1:3000
-
-SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
-
-PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
-
-FINDINGS
-
-- finding ID: ISO-AUDIT-0557-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: scripts/seed-demo-data.mjs inspected; no file-specific high-risk issue confirmed
-  observed evidence: scripts/seed-demo-data.mjs inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: package.json, package.json, scripts/validate-docs.mjs
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
-
-FINAL VERDICT
-
-- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  FINAL VERDICT
+  VALID

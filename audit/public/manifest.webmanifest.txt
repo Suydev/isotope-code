@@ -1,269 +1,53 @@
 FILE IDENTITY
-
-- original path: public/manifest.webmanifest
+- path: public/manifest.webmanifest
 - audit path: audit/public/manifest.webmanifest.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: configuration
-- MIME type: application/manifest+json
-- size in bytes: 1805
+- commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+- tracked: true
+- type: JSON (Web Manifest)
+- MIME: application/manifest+json
+- size: 1805
 - SHA-256: ff0a15401eb6473baf79e2d3dd056e9577a0b754c5b9d0a095c77eae070aae98
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: offline-pwa-sync-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+- encoding: UTF-8
+- executable: false
+- generated/authored: Authored
 
 PURPOSE
-
-Project file in the application project subsystem. Its role is determined from path, content, and references.
+Alternative extension/version of the PWA manifest.
 
 ROLE IN THE APPLICATION
-
-- subsystem: application project
-- runtime stage: browser/runtime or static serving
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+- Subsystem: PWA
+- Runtime stage: Installation
+- Active/legacy: Active
 
 REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/AIWeeklySummary-fVbvFqu3.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/About-DbJqhVWT.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Analytics-D74gQMjN.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/AnalyticsPeriod-CGXbfYQB.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/AnalyticsSubjects-DOh8aXlW.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/AnalyticsTasks-DOfUf9Sd.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/AnalyticsToday-BTdRNTb0.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/App-Bcp_57Ks.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/App-pJGjDiPw.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/AppAccessGate-B975UtK7.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Auth-Cw0VAaCZ.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/ChallengesHub-C50y_K_l.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/ChapterHub-BXRydU0B.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/ChipMultiSelect-BU74OOip.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Community-DIqF5406.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/CommunityHub-gANxZssO.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/CompletionCelebration-ngx4eqoP.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Dashboard-dypAV-0H.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/DashboardHeader-DNuRMna8.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/DemoLauncher-CdcwMBr6.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/EnhancedChallengeCard-BKErZxiW.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/EventsCalendar-COHF8nOK.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/ExamCreateEditModal-BdlzfeFO.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/ExamDetailPage-q_jDT5_x.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/ExamPrimitives-K6hgnm_l.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/ExamTemplateSelectorModal-DsEPEF5X.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Exams-C3jymPwe.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/FAQ-DuTZR-ip.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/FeaturesSection-DQ9ZRk3R.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Focus-BmgY-9vP.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/FocusStore-D5cRXSIr.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/GlobalPresenceBroadcaster-C5JADiwL.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/GlobalQuickActionsModals-BIoAwrDz.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/GlobalTimer-DUR6TMoR.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/GroupChat-j6zM76h9.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/GroupDiscovery-DUcFr2JQ.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/GroupInviteGenerator-B-iMSSXc.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/HeadwayUpdatesButton-DUh668tJ.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/HowItWorks-BS-VN8qB.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/InviteOnlineOnlyRoute-CZgdOWgx.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/IsotopeWrapped2-B4zl9ERi.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Landing-CWRNt7E9.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Leaderboard-BkEBFdG7.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/MarkdownRenderer-CIV1x0Uq.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/MarkdownRendererContent-DBrMkHal.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/MemberProfile-D-l2e-2X.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/MobileAppTeaser-BkZkKuC5.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Navbar-BJMJUymI.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/NetworkRequiredState-O9ZdVBEy.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/NotFound-X23NBnde.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Onboarding-qvAqCBbb.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/OnboardingNavigation-C6kIq5HV.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/PWAManager-DjIYufp2.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/PageLayout-B8yOy6kS.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/PremiumEffects-BX6T03yQ.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/PremiumGate-CX1zS69D.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Pricing-D9PNd5BR.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Privacy-ClP3A1gm.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/QueryProvider-DusNhG9D.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/QuestionMasterCard-DVOBGNnl.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/QuickActionsMenu-ojdsCiqG.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/QuickChatMenu-BUr6NG9I.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/RadioCard-BtzZXn6i.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/RealAnalyticsOverview-bpioXKtW.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/ResetPassword-mBBJZV4T.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/SessionEditModal-CNi_rT0l.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/SessionLogTable-CclRAAwc.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/SettingsLayout-B4OgCkQ5.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/SharedAnalyticsComponents-DMxLJbRk.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/SingleGroup-DU1IhoNK.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Step1Identity-BZBwnoJ8.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Step2Academic-BUGsFsTy.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Step3StudyGoals-CQ0yWK1r.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Step4Preferences-D6oDNUqn.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Step5Community-BvHWgTaf.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Step6Personalization-CNdBQkFI.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Story-TXs13Cjc.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Study-pAdAenIl.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/SubjectCreateModal-DhD_Cwbk.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/SubjectIcon-CyCDqtel.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Subscription-UaefsAtQ.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/SupportMessage-BE7j-Ezd.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/SupportPromptDialog-Bkl24oin.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Syllabus-DZSnov0t.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/SyncListener-BMsBLWig.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/TaskCardModal-DZvd1GWt.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/TaskController-BUyiMYKC.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Tasks-BYRFOrek.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Terms-BXixZPB6.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/Testimonials-CnzXcixO.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/ToolsModal-BMUG81iV.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/WebsiteShowcase-DUy56Ho8.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/WelcomeTeaser-B96rmBi8.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/analyticsWorker-BnmTlfYB.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/bootstrap-D1vc155U.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/demoCommunity-DUJ4Y1zo.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/endOfDay-CZDDeNMb.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/endOfMonth-BISTJu4P.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/focusBackground-t8AknbRg.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/groupCache-DVHvdGlY.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/index-B45N-99N.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/index-BPYJFSVW.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/index-CrO6t5EW.css:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/index-Der0FgF3.css:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/index-L1EjXFqL.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/index-qd2KF3Jd.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/messaging-BP0KfJxy.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/sessionSync-mloIEnTd.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/studyPreferences-BBZvHe-O.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/taskAvailability-B1aDS_ww.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/taskCompletion-DkuS3Ybf.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/useAIStore-B2cv1FZz.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/useChartAnimation-C6FTIqbw.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/useFocusStore-CX_Nyp1h.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/useGroupChallenges-N8BLPr3m.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/useGroupPresence-BmkfUzH6.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/useGroups-vEjDKzZY.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
-- artifacts/asset-diff/remote-assets/useInvites-D9RLFwf8.js:127 - <link rel="manifest" href="/manifest.webmanifest"></head>
+- Referenced in index.html.
 
 INTERNAL STRUCTURE
-
-- line count: 44
-- imports:
-None observed.
-- exports:
-None observed.
-- functions/async flows:
-None observed.
-- classes:
-None observed.
-- constants/mutable state candidates:
-None observed.
-- handlers/lifecycle candidates:
-None observed.
+- Standard manifest fields (name, icons, start_url).
 
 INPUTS
-
-- parameters: not directly observed
-- environment variables:
-No environment variable names observed.
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: browser/UI file may react to user actions
+- N/A
 
 OUTPUTS AND SIDE EFFECTS
-
-No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+- PWA metadata.
 
 DATA FLOW
-
-Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 22: "url": "/dashboard",
-- 29: "url": "/focus",
-- 36: "url": "/analytics",
-- external libraries:
-None observed.
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-- 4: "description": "A downloadable local-server study app with Supabase cloud sync for auth, data, storage, realtime, and community groups.",
-- external services: none observed
+- Similar to manifest.json.
 
 SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Publicly accessible.
 
 OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- PWA support.
 
 PERFORMANCE
-
-- No major static performance concern observed.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+- Small static file.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0517-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: public/manifest.webmanifest inspected; no file-specific high-risk issue confirmed
-  observed evidence: public/manifest.webmanifest inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js, artifacts/asset-diff/remote-assets/AIWeeklySummary-fVbvFqu3.js
-  regression risk: Review behavior against existing tests before changing.
+- MW-001: Redundant with manifest.json but improves compatibility. (Severity: INFO, Status: CONFIRMED)
 
 POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+- Correct MIME type association.
 
 FINAL VERDICT
-
-- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+Good for cross-browser compatibility.

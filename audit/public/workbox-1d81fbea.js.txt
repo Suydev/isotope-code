@@ -1,465 +1,54 @@
 FILE IDENTITY
-
-- original path: public/workbox-1d81fbea.js
+- path: public/workbox-1d81fbea.js
 - audit path: audit/public/workbox-1d81fbea.js.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 41697
-- SHA-256: 101aed3b3c58692971f13a03d0dbc70eefa81e4f6652615089a19d3b7d921be9
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: compiled-frontend-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+- commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+- tracked: true
+- type: JavaScript (Library)
+- MIME: application/javascript
+- size: 18128
+- SHA-256: 017bc7881c15c89816ec31f6e246344237d04a601be2576b5f4481237c154be2
+- encoding: UTF-8
+- executable: false
+- generated/authored: Generated (Minified Workbox core)
 
 PURPOSE
-
-Project file in the application project subsystem. Its role is determined from path, content, and references.
+Provides the Workbox library core, used by the Service Worker (sw.js) to manage caching, routing, and offline strategies.
 
 ROLE IN THE APPLICATION
-
-- subsystem: application project
-- runtime stage: browser/runtime or static serving
-- user-visible feature: indirect or internal
-- whether it is active: active status inferred from path and project role
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+- Subsystem: PWA / Caching
+- Runtime stage: Background (Service Worker Context)
+- Active/legacy: Active
 
 REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-No direct textual consumers found by path/name search.
+- Imported by public/sw.js via importScripts().
 
 INTERNAL STRUCTURE
-
-- line count: 1179
-- imports:
-None observed.
-- exports:
-None observed.
-- functions/async flows:
-- 1: define(["exports"], function(t) {
-- 6: const e = (t, ...e) => {
-- 11: constructor(t, s) {
-- 22: constructor(t, e, s = "GET") {
-- 25: setCatchHandler(t) {
-- 30: constructor(t, e, s) {
-- 33: }) => {
-- 40: constructor() {
-- 46: addFetchListener() {
-- 47: self.addEventListener("fetch", t => {
-- 57: addCacheListener() {
-- 58: self.addEventListener("message", t => {
-- 59: if (t.data && "CACHE_URLS" === t.data.type) {
-- 62: } = t.data, s = Promise.all(e.urlsToCache.map(e => {
-- 105: return c instanceof Promise && (this.o || h) && (c = c.catch(async n => {
-- 131: for (const r of i) {
-- 146: setDefaultHandler(t, e = "GET") {
-- 149: setCatchHandler(t) {
-- 152: registerRoute(t) {
-- 155: unregisterRoute(t) {
-- 167: function h(t, e, n) {
-- 169: if ("string" == typeof t) {
-- 197: function d(t) {
-- 198: t.then(() => {})
-- 202: function y() {
-- 204: for (var e = 1; e < arguments.length; e++) {
-- 218: get(t, e, s) {
-- 219: if (t instanceof IDBTransaction) {
-- 230: function x(t) {
-- 241: function I(t) {
-- 244: const e = new Promise((e, s) => {
-- 245: const n = () => {
-- 248: i = () => {
-- 251: r = () => {
-- 261: function L(t) {
-- 263: const e = new Promise((e, s) => {
-- 264: const n = () => {
-- 267: i = () => {
-- 270: r = () => {
-- 275: return e.then(e => {
-- 277: }).catch(() => {}), D.set(e, t), e
-- 288: function k(t, e) {
-- 310: T = t => {
-- 315: constructor(t) {
-- 318: l(t) {
-- 328: p(t) {
-- 333: e && s.addEventListener("blocked", t => e(t.oldVersion, t)), L(s).then(() => {})
-- 336: async setTimestamp(t, e) {
-- 348: async getTimestamp(t) {
-- 353: async expireEntries(t, e) {
-- 358: for (; n;) {
-- 366: m(t) {
-- 369: async getDb() {
-- 379: return n && a.addEventListener("upgradeneeded", t => {
-- 381: }), s && a.addEventListener("blocked", t => s(t.oldVersion, t.newVersion, t)), o.then(t => {
-- 383: }).catch(() => {}), o
-- 390: constructor(t, e = {}) {
-- 393: async expireEntries() {
-- 402: async updateTimestamp(t) {
-- 405: async isURLExpired(t) {
-- 406: if (this.D) {
-- 413: async delete() {
-- 421: constructor(t = {}) {
-- 424: isResponseCacheable(t) {
-- 438: function S(t, e) {
-- 444: constructor() {
-- 445: this.promise = new Promise((t, e) => {
-- 451: function A(t) {
-- 455: constructor(t, e) {
-- 460: async fetch(t) {
-- 465: if ("navigate" === n.mode && e instanceof FetchEvent && e.preloadResponse) {
-- 499: async fetchAndCachePut(t) {
-- 504: async cacheMatch(t) {
-- 523: async cachePut(t, e) {
-- 563: async getCacheKey(t, e) {
-- 565: if (!this.C[s]) {
-- 577: hasCallback(t) {
-- 582: async runCallbacks(t, e) {
-- 586: if ("function" == typeof e[t]) {
-- 588: n = n => {
-- classes:
-- 10: class s extends Error {
-- 21: class i {
-- 29: class r extends i {
-- 39: class a {
-- 314: class P {
-- 389: class M {
-- 420: class W {
-- 443: class K {
-- 454: class F {
-- 622: class H {
-- 736: class V {
-- 756: class J {
-- 801: class Y extends H {
-- 850: class Z {
-- 967: class et extends i {
-- 1011: t.CacheFirst = class extends H {
-- 1079: }, t.NetworkFirst = class extends H {
-- 1140: }, t.StaleWhileRevalidate = class extends H {
-- constants/mutable state candidates:
-- 6: const e = (t, ...e) => {
-- 7: let s = t;
-- 18: const n = t => t && "object" == typeof t ? t : {
-- 34: const s = t.exec(e.href);
-- 64: const s = new Request(...e);
-- 78: const s = new URL(t.url, location.href);
-- 80: const n = s.origin === location.origin,
-- 90: let a = r && r.handler;
-- 91: const o = t.method;
-- 93: let c;
-- 104: const h = r && r.catchHandler;
-- 130: const i = this.t.get(s.method) || [];
-- 132: let i;
-- 133: const a = r.match({
-- 159: const e = this.t.get(t.method).indexOf(t);
-- 164: let o;
-- 165: const c = () => (o || (o = new a, o.addFetchListener(), o.addCacheListener()), o);
-- 168: let a;
-- 170: const s = new URL(t, location.href);
-- 186: const u = {
-- 200: const p = new Set;
-- 205: var s = arguments[e];
-- 211: let m, g;
-- 212: const R = new WeakMap,
-- 217: let U = {
-- 236: const n = t.call(E(this), e, ...s);
-- 244: const e = new Promise((e, s) => {
-- 245: const n = () => {
-- 258: var e
-- 263: const e = new Promise((e, s) => {
-- 264: const n = () => {
-- 280: const e = I(t);
-- 283: const E = t => D.get(t);
-- 284: const C = ["get", "getKey", "getAll", "getAllKeys", "count"],
-- 291: const s = e.replace(/FromIndex$/, ""),
-- 295: const r = async function(t, ...e) {
-- 296: const r = this.transaction(t, i ? "readwrite" : "readonly");
-- 297: let a = r.store;
-- 309: const B = "cache-entries",
-- 311: const e = new URL(t, location.href);
-- 319: const e = t.createObjectStore(B, {
-- 332: const s = indexedDB.deleteDatabase(t);
-- 337: const s = {
-- 349: const e = await this.getDb(),
-- 354: const s = await this.getDb();
-- 355: let n = await s.transaction(B).store.index("timestamp").openCursor(null, "prev");
-- 356: const i = [];
-- 357: let r = 0;
-- 359: const s = n.value;
-- 362: const a = [];
-- 377: const a = indexedDB.open(t, e),
-- 396: const t = this.D ? Date.now() - 1e3 * this.D : 0,
-- 407: const e = await this._.getTimestamp(t),
-- 425: let e = !0;
-- 432: const j = {
-- 439: const s = new URL(t);
-- 464: let n = A(t);
-- 466: const t = await e.preloadResponse;
-- 469: const i = this.hasCallback("fetchDidFail") ? n.clone() : null;
-- 480: const r = n.clone();
-- 482: let t;
-- 500: const e = await this.fetch(t),
-- 505: const e = A(t);
-- 506: let s;
-- 524: const n = A(t);
-- 525: var i;
-- 527: const r = await this.getCacheKey(n, "write");
-- 531: var a;
-- 532: const o = await this.P(e);
-- 538: const i = S(e.url, s);
-- 540: const r = Object.assign(Object.assign({}, n), {
-- 564: const s = `${t.url} | ${e}`;
-- 566: let n = t;
-- 587: const s = this.T.get(e),
-- 589: const i = Object.assign(Object.assign({}, n), {
-- 602: const t = this.k.splice(0),
-- 611: let e = t,
-- 635: const e = t.event,
-- 647: let i;
-- 674: let i, r;
-- handlers/lifecycle candidates:
-- 47: self.addEventListener("fetch", t => {
-- 58: self.addEventListener("message", t => {
-- 254: t.addEventListener("complete", i), t.addEventListener("error", r), t.addEventListener("abort", r)
-- 273: t.addEventListener("success", i), t.addEventListener("error", r)
-- 333: e && s.addEventListener("blocked", t => e(t.oldVersion, t)), L(s).then(() => {})
-- 379: return n && a.addEventListener("upgradeneeded", t => {
-- 381: }), s && a.addEventListener("blocked", t => s(t.oldVersion, t.newVersion, t)), o.then(t => {
-- 382: r && t.addEventListener("close", () => r()), i && t.addEventListener("versionchange", t => i(t.oldVersion, t.newVersion, t))
-- 460: async fetch(t) {
-- 483: t = await fetch(n, "navigate" === n.mode ? void 0 : this.N.fetchOptions);
-- 500: const e = await this.fetch(t),
-- 526: await (i = 0, new Promise(t => setTimeout(t, i)));
-- 819: n = await e.fetch(new Request(t, {
-- 827: const n = await e.fetch(t);
-- 868: this.addToCacheList(t), this.J || (self.addEventListener("install", this.install), self.addEventListener("activate", this.activate), this.J = !0)
-- 1119: n = setTimeout(async () => {
-- 1161: self.addEventListener("activate", t => {
-- 1169: self.addEventListener("activate", () => self.clients.claim())
+- Minified Workbox modules including routing, strategies, and cache management.
 
 INPUTS
-
-- parameters: route/request path candidates are listed in Internal Structure
-- environment variables:
-- CACHE_URLS: classification=public/configuration; required=unknown from static map; inspect use locations; uses=public/workbox-1d81fbea.js:59
-- NOT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:14, .github/PULL_REQUEST_TEMPLATE.md:15, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125, CHANGELOG.md:96, CHANGELOG.md:269
-- command-line arguments: not directly observed
-- request data: route candidates observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-- https://bit.ly/wb-precache
-- browser storage:
-- 332: const s = indexedDB.deleteDatabase(t);
-- 377: const a = indexedDB.open(t, e),
-- 398: s = await self.caches.open(this.u);
-- 513: s = await caches.match(r, a);
-- 537: } = this.N, u = await self.caches.open(c), l = this.hasCallback("cacheDidUpdate"), f = l ? await async function(t, e, s, n) {
-- 926: const t = await self.caches.open(this.strategy.cacheName),
-- 953: return (await self.caches.open(this.strategy.cacheName)).match(s)
-- 1076: for (const [t, e] of this.et) await self.caches.delete(t), await e.delete();
-- 1164: const s = (await self.caches.keys()).filter(s => s.includes(e) && s.includes(self.registration.scope) && s !== t);
-- 1165: return await Promise.all(s.map(t => self.caches.delete(t))), s
-- user interactions: browser/UI file may react to user actions
+- N/A (Self-contained library).
 
 OUTPUTS AND SIDE EFFECTS
-
-- 34: const s = t.exec(e.href);
-- 35: if (s && (e.origin === location.origin || 0 === s.index)) return s.slice(1)
-- 54: s && t.respondWith(s)
-- 70: t.waitUntil(s), t.ports && t.ports[0] && s.then(() => t.ports[0].postMessage(!0))
-- 78: const s = new URL(t.url, location.href);
-- 80: const n = s.origin === location.origin,
-- 170: const s = new URL(t, location.href);
-- 246: t.removeEventListener("complete", i), t.removeEventListener("error", r), t.removeEventListener("abort", r)
-- 265: t.removeEventListener("success", i), t.removeEventListener("error", r)
-- 285: N = ["put", "add", "delete", "clear"],
-- 311: const e = new URL(t, location.href);
-- 332: const s = indexedDB.deleteDatabase(t);
-- 363: for (const t of i) await s.delete(B, t.id), a.push(t.url);
-- 377: const a = indexedDB.open(t, e),
-- 398: s = await self.caches.open(this.u);
-- 399: for (const t of e) await s.delete(t, this.U);
-- 402: async updateTimestamp(t) {
-- 413: async delete() {
-- 433: cacheWillUpdate: async ({
-- 440: for (const t of e) s.searchParams.delete(t);
-- 460: async fetch(t) {
-- 483: t = await fetch(n, "navigate" === n.mode ? void 0 : this.N.fetchOptions);
-- 500: const e = await this.fetch(t),
-- 513: s = await caches.match(r, a);
-- 529: url: (a = r.url, new URL(String(a), location.href).href.replace(new RegExp(`^${location.origin}`), ""))
-- 537: } = this.N, u = await self.caches.open(c), l = this.hasCallback("cacheDidUpdate"), f = l ? await async function(t, e, s, n) {
-- 554: for (const t of this.iterateCallbacks("cacheDidUpdate")) await t({
-- 613: for (const t of this.iterateCallbacks("cacheWillUpdate"))
-- 666: for (const s of t.iterateCallbacks("handlerWillRespond")) i = await s({
-- 679: await e.runCallbacks("handlerDidRespond", {
-- 709: const e = new URL(t, location.href);
-- 723: const t = new URL(n, location.href);
-- 729: const i = new URL(n, location.href),
-- 730: r = new URL(n, location.href);
-- 738: this.updatedURLs = [], this.notUpdatedURLs = [], this.handlerWillStart = async ({
-- 750: s ? this.notUpdatedURLs.push(t) : this.updatedURLs.push(t)
-- 777: if (n !== self.location.origin) throw new s("cross-origin-copy-response", {
-- 819: n = await e.fetch(new Request(t, {
-- 827: const n = await e.fetch(t);
-- 837: for (const [s, n] of this.plugins.entries()) n !== Y.copyRedirectedCacheableResponsesPlugin && (n === Y.defaultPrecacheCacheabilityPlugin && (t = s), n.cacheWillUpdate && e++);
-- 842: cacheWillUpdate: async ({
-- 846: cacheWillUpdate: async ({
-- 890: console.warn(t)
-- 915: updatedURLs: s,
-- 916: notUpdatedURLs: n
-- 919: updatedURLs: s,
-- 920: notUpdatedURLs: n
-- 926: const t = await self.caches.open(this.strategy.cacheName),
-- 930: for (const i of e) s.has(i.url) || (await t.delete(i), n.push(i.url));
-- 932: deletedURLs: n
-- 943: const e = new URL(t, location.href);
-- 953: return (await self.caches.open(this.strategy.cacheName)).match(s)
-- 979: const r = new URL(t, location.href);
-- 982: for (const s of [...t.searchParams.keys()]) e.some(t => t.test(s)) && t.searchParams.delete(s);
-- 1027: this.cacheWillUpdate = async ({
-- 1043: const a = r.updateTimestamp(e.url);
-- 1048: }, this.cacheDidUpdate = async ({
-- 1053: await s.updateTimestamp(e.url), await s.expireEntries()
-- 1056: }(() => this.deleteCacheAndMetadata())
-- 1075: async deleteCacheAndMetadata() {
-- 1076: for (const [t, e] of this.et) await self.caches.delete(t), await e.delete();
-- 1081: super(t), this.plugins.some(t => "cacheWillUpdate" in t) || this.plugins.unshift(j), this.nt = t.networkTimeoutSeconds || 0
-- 1142: super(t), this.plugins.some(t => "cacheWillUpdate" in t) || this.plugins.unshift(j)
-- 1164: const s = (await self.caches.keys()).filter(s => s.includes(e) && s.includes(self.registration.scope) && s !== t);
-- 1165: return await Promise.all(s.map(t => self.caches.delete(t))), s
+- Exposes workbox global object in the Service Worker context.
 
 DATA FLOW
-
-Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 32: url: e
-- 78: const s = new URL(t.url, location.href);
-- 79: if (!s.protocol.startsWith("http")) return;
-- 88: url: s
-- 96: url: s,
-- 108: url: s,
-- 117: url: s,
-- 125: url: t,
-- 134: url: t,
-- 172: url: t
-- 338: url: t = T(t),
-- 363: for (const t of i) await s.delete(B, t.id), a.push(t.url);
-- 529: url: (a = r.url, new URL(String(a), location.href).href.replace(new RegExp(`^${location.origin}`), ""))
-- 538: const i = S(e.url, s);
-- 539: if (e.url === i) return t.match(e, n);
-- 545: if (i === S(e.url, s)) return t.match(e, n)
-- 564: const s = `${t.url} | ${e}`;
-- 654: url: e.url
-- 712: url: e.href
-- 717: url: n
-- 726: url: t.href
-- 733: url: r.href
-- 749: const t = e.originalRequest.url;
-- 764: const s = (null == e ? void 0 : e.cacheKey) || this.S.getCacheKeyForURL(t.url);
-- 774: if (t.url) {
-- 775: n = new URL(t.url).origin
-- 814: url: t.url
-- 829: url: t.url,
-- 873: "string" == typeof n ? e.push(n) : n && void 0 === n.revision && e.push(n.url);
-- 876: url: i
-- 884: url: i
-- 889: const t = `Workbox is precaching URLs without revision info: ${e.join(", ")}\nThis is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
-- 930: for (const i of e) s.has(i.url) || (await t.delete(i), n.push(i.url));
-- 950: const e = t instanceof Request ? t.url : t,
-- 958: if (!e) throw new s("non-precached-url", {
-- 959: url: t
-- 995: url: r
-- 999: }(s.url, e)) {
-- 1020: url: t.url,
-- 1043: const a = r.updateTimestamp(e.url);
-- 1053: await s.updateTimestamp(e.url), await s.expireEntries()
-- 1107: url: t.url
-- 1155: url: t.url,
-- external libraries:
-None observed.
-- local files: see References and Consumers above
-- browser APIs:
-- 332: const s = indexedDB.deleteDatabase(t);
-- 377: const a = indexedDB.open(t, e),
-- 398: s = await self.caches.open(this.u);
-- 513: s = await caches.match(r, a);
-- 537: } = this.N, u = await self.caches.open(c), l = this.hasCallback("cacheDidUpdate"), f = l ? await async function(t, e, s, n) {
-- 926: const t = await self.caches.open(this.strategy.cacheName),
-- 953: return (await self.caches.open(this.strategy.cacheName)).match(s)
-- 1076: for (const [t, e] of this.et) await self.caches.delete(t), await e.delete();
-- 1164: const s = (await self.caches.keys()).filter(s => s.includes(e) && s.includes(self.registration.scope) && s !== t);
-- 1165: return await Promise.all(s.map(t => self.caches.delete(t))), s
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-None observed.
-- external services: https://bit.ly/wb-precache
+1. Loaded by sw.js.
+2. Provides utility functions for request interception and cache storage.
 
 SECURITY AND PRIVACY
-
-- No direct secret or browser-executable security issue confirmed from static inspection.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Standard library; no specific concerns.
 
 OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- Essential library for implementing reliable offline behavior.
 
 PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Large text/code file; focused tests and decomposition would reduce regression risk.
+- Minified for production use.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0534-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: public/workbox-1d81fbea.js inspected; no file-specific high-risk issue confirmed
-  observed evidence: public/workbox-1d81fbea.js inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: See references and consumers above.
-  regression risk: Review behavior against existing tests before changing.
+- WB-001: Minified third-party library. (Severity: INFO, Status: CONFIRMED)
 
 POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- No direct consumer found; this uncertainty is explicitly recorded rather than hidden.
-
-RECOMMENDED TESTS
-
-- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+- Efficient, industry-standard library for PWA development.
 
 FINAL VERDICT
-
-- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
-- activity status: active status inferred from path and project role
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+Standard Workbox distribution file.

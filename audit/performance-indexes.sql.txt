@@ -1,159 +1,28 @@
 FILE IDENTITY
-
-- original path: performance-indexes.sql
-- audit path: audit/performance-indexes.sql.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: sql
-- MIME type: application/sql
-- size in bytes: 2469
-- SHA-256: e142d79562021c82d8456323b95fec71e5307dfd71c17987256b50cd5cf87adf
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: lead-coordinator
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  Path: /tmp/isotope-repo/performance-indexes.sql
+  Audit Path: audit/performance-indexes.sql.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: Yes
+  Type: SQL Script
+  MIME: text/x-sql
+  Size: 2469 bytes
+  SHA-256: e142d79562021c82d8456323b95fec71e5307dfd71c17987256b50cd5cf87adf
 
 PURPOSE
+  Adds missing foreign key and date column indexes to improve performance for community, group, and event queries.
 
-Project file in the application project subsystem. Its role is determined from path, content, and references.
+SQL OBJECTS DEFINED
+  - Indexes: idx_community_events_creator_id, idx_community_events_host_user_id, idx_community_events_created_at, idx_community_events_updated_at, idx_user_tours_user_id, idx_user_tours_created_at, idx_user_tours_updated_at, idx_user_roles_granted_by, idx_group_invites_created_at, idx_group_challenges_created_at, idx_groups_created_at, idx_groups_updated_at, idx_users_updated_at.
 
-ROLE IN THE APPLICATION
+MIGRATION ORDER AND IDEMPOTENCY
+  - Order: Can be run any time after the main schema is established.
+  - Idempotency: Uses `CREATE INDEX IF NOT EXISTS`, safe to re-run.
 
-- subsystem: application project
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
-
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- CHANGELOG.md:83 - - **14 missing database indexes added** (`performance-indexes.sql`) — Static schema analysis found 14 unindexed foreign-key and date-ordering columns:
-- CHANGELOG.md:93 - - Apply via: `Supabase Dashboard → SQL Editor → run performance-indexes.sql`
-- CHANGELOG.md:96 - - **`performance-indexes.sql`** — New file containing all 14 `CREATE INDEX IF NOT EXISTS` statements. Idempotent and safe to run multiple times. Referenced from admin panel setup guide.
-- CHANGELOG.md:106 - | 5 | 14 missing indexes documented in `performance-indexes.sql` | ✅ new file |
-
-INTERNAL STRUCTURE
-
-- line count: 39
-- imports:
-None observed.
-- exports:
-None observed.
-- functions/async flows:
-None observed.
-- classes:
-None observed.
-- constants/mutable state candidates:
-None observed.
-- handlers/lifecycle candidates:
-None observed.
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-- CREATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/ci.yml:259, .github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, .github/workflows/schema-lint.yml:91
-- DESC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:457, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:185, community-patch-v4.sql:257, community-patch-v4.sql:392, community-patch-v4.sql:393, community-patch-v4.sql:402, community-patch-v4.sql:403, community-patch-v4.sql:424, community-patch-v4.sql:444, community-patch-v4.sql:495, community-patch-v4.sql:509
-- EXISTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:63, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:66, .github/workflows/schema-lint.yml:69, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125
-- INDEX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:64, CHANGELOG.md:96, CHANGELOG.md:174, CHANGELOG.md:420, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:133, community-patch-v4.sql:134, community-patch-v4.sql:135, community-patch-v4.sql:136, community-patch-v4.sql:137, community-patch-v4.sql:138
-- NOT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:14, .github/PULL_REQUEST_TEMPLATE.md:15, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125, CHANGELOG.md:96, CHANGELOG.md:269
-- PAT: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:38, .env.example:39, ADMIN.md:40, ADMIN.md:213, ADMIN.md:220, ADMIN.md:427, ADMIN.md:499, docs/admin.html:118, docs/supabase-connection-map.md:29, performance-indexes.sql:6, scripts/validate-docs.mjs:118, scripts/validate-docs.mjs:119
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-- 18: CREATE INDEX IF NOT EXISTS idx_community_events_updated_at   ON public.community_events (updated_at DESC);
-- 23: CREATE INDEX IF NOT EXISTS idx_user_tours_updated_at         ON public.user_tours (updated_at DESC);
-- 36: CREATE INDEX IF NOT EXISTS idx_groups_updated_at             ON public.groups (updated_at DESC);
-- 38: -- users: updated_at for profile sync delta queries
-- 39: CREATE INDEX IF NOT EXISTS idx_users_updated_at              ON public.users (updated_at DESC);
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-None observed.
-- external libraries:
-None observed.
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-- 5: -- Apply via: Supabase Dashboard → SQL Editor → paste and run this file.
-- external services: none observed
-
-SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
-
-PERFORMANCE
-
-- No major static performance concern observed.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+SECURITY ANALYSIS
+  - N/A: Only adds indexes.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0271-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: performance-indexes.sql inspected; no file-specific high-risk issue confirmed
-  observed evidence: performance-indexes.sql inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: CHANGELOG.md, CHANGELOG.md, CHANGELOG.md
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+  - SQL-009; Severity: INFO; Evidence: Targets foreign keys and frequently sorted date columns, which is a standard performance best practice.
 
 FINAL VERDICT
-
-- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  - PASS: Low-risk, high-benefit performance optimization.

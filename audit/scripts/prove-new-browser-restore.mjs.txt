@@ -1,181 +1,31 @@
 FILE IDENTITY
+  Path: scripts/prove-new-browser-restore.mjs
+  Audit Path: audit/scripts/prove-new-browser-restore.mjs.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: true
+  Type: script
+  MIME: text/javascript
+  Size: 2593
+  SHA-256: 0787252882048ffdc0702b0b4f8a1871db564b1f7c5a969e9914a7f6f00347d4
+  Encoding: utf-8
+  Executable: true
+  Generated/Authored: authored
 
-- original path: scripts/prove-new-browser-restore.mjs
-- audit path: audit/scripts/prove-new-browser-restore.mjs.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 2593
-- SHA-256: 0787252882048ffdc0702b0b4f8a1871db564b1f7c5a969e9914a7f6f00347d4
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: offline/sync/backup
-- primary auditor: lead-coordinator
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  PURPOSE
+  Development and maintenance script for the application.
 
-PURPOSE
+  ROLE IN THE APPLICATION
+  Dev tool / maintenance script.
 
-Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
+  INTERNAL STRUCTURE
+  Node.js script using ES modules.
 
-ROLE IN THE APPLICATION
+  SECURITY AND PRIVACY
+  Credential handling: Loads credentials from environment variables (SUPABASE_SERVICE_ROLE_KEY, etc.). 
+  Mutates Supabase/storage: Read-only or limited mutation.
 
-- subsystem: offline/sync/backup
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+  FINDINGS
+  SCR-001: Verified as maintenance script. Pay attention to service role key usage.
 
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- .github/workflows/ci.yml:107 - scripts/prove-new-browser-restore.mjs
-- .github/workflows/ci.yml:218 - scripts/prove-new-browser-restore.mjs
-- .github/workflows/ci.yml:335 - for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql
-- .github/workflows/regenerate-release.yml:63 - node --check scripts/prove-new-browser-restore.mjs
-- .github/workflows/regenerate-release.yml:101 - scripts/prove-new-browser-restore.mjs
-- .github/workflows/release.yml:60 - node --check scripts/prove-new-browser-restore.mjs
-- .github/workflows/release.yml:177 - scripts/prove-new-browser-restore.mjs
-- docs/sync.html:113 - node scripts/prove-new-browser-restore.mjs
-- package.json:26 - "backup:prove-restore": "node scripts/prove-new-browser-restore.mjs",
-
-INTERNAL STRUCTURE
-
-- line count: 79
-- imports:
-- 2: import { createScriptBackupManager, loadEnv, parseArgs } from './storage-backup-lib.mjs';
-- exports:
-None observed.
-- functions/async flows:
-- 34: if (!best.selected || !best.selected.rich) {
-- 48: if (!blocked) {
-- 55: if (!apply) {
-- 74: if (!restored.promoted || restored.promoted.collection_counts.tasks <= 0 || restored.promoted.collection_counts.sessions <= 0 || restored.promoted.collection_counts.subjects <= 0) {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 4: const args = parseArgs();
-- 5: const userId = args.user || '3f56d64e-b1c5-45d6-9ba3-4e204f6bc9df';
-- 6: const apply = args.apply === true;
-- 8: const env = loadEnv();
-- 9: const manager = createScriptBackupManager(env);
-- 10: const jwt = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
-- 12: const emptyLocalBackup = {
-- 31: const best = await manager.findBestCloudBackup(userId, jwt, { includeRaw: true });
-- 39: const normalizedEmpty = manager.normalizeAnyBackup(emptyLocalBackup, { source_path: 'proof-empty-local' });
-- 40: let blocked = false;
-- 60: const restored = await manager.restoreBestBackup(userId, jwt, { promote: true });
-- handlers/lifecycle candidates:
-None observed.
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-- BLOCKED_EMPTY_OVERWRITE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=README.md:227, docs/index.html:137, docs/index.md:35, docs/sync-system.md:29, docs/sync.html:93, scripts/prove-new-browser-restore.mjs:44, server.mjs:901, server.mjs:988, server.mjs:1052, server.mjs:4452, server.mjs:4459, server.mjs:5603
-- DRY_RUN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/prove-new-browser-restore.mjs:56, scripts/repair-user-backup.mjs:42, scripts/seed-demo-data.mjs:29, scripts/seed-demo-data.mjs:140, scripts/seed-demo-data.mjs:152, scripts/seed-demo-data.mjs:240
-- FAIL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:39, .github/workflows/ci.yml:54, .github/workflows/ci.yml:60, .github/workflows/ci.yml:70, .github/workflows/ci.yml:93, .github/workflows/ci.yml:184, .github/workflows/ci.yml:229, .github/workflows/ci.yml:232, .github/workflows/ci.yml:334, .github/workflows/ci.yml:340, .github/workflows/ci.yml:344, scripts/prove-new-browser-restore.mjs:35
-- PASS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:539, CHANGELOG.md:566, scripts/prove-new-browser-restore.mjs:79, scripts/prove-runtime-glue.mjs:89, scripts/prove-supabase-sync.mjs:156, scripts/test-auth-bridge.mjs:139, scripts/verify-supabase-security.mjs:89, server.mjs:220, server.mjs:7723, server.mjs:8362, server.mjs:8363, server.mjs:8587
-- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
-- SUPABASE_SERVICE_ROLE_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:22, .github/workflows/ci.yml:242, ADMIN.md:30, ADMIN.md:48, ADMIN.md:426, ADMIN.md:449, ADMIN.md:491, README.md:242, artifacts/isotope/.env:16, docs/admin.html:60, scripts/prove-new-browser-restore.mjs:10, scripts/prove-supabase-sync.mjs:25
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-- 32: console.log('best_selected=' + JSON.stringify(best.selected, null, 2));
-- 35: console.error('FAIL expected a rich cloud backup to exist');
-- 45: console.log('empty_overwrite_guard=' + JSON.stringify(error.payload || { code: error.code, message: error.message }, null, 2));
-- 49: console.error('FAIL empty local backup was not blocked');
-- 53: console.log('empty_overwrite_blocked=true');
-- 56: console.log('DRY_RUN restore promotion not applied. Re-run with --apply to promote selected backup to canonical paths.');
-- 61: console.log('restore_best=' + JSON.stringify({
-- 75: console.error('FAIL promoted backup did not preserve rich counts');
-- 79: console.log('PASS new-browser restore server proof passed');
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-None observed.
-- external libraries:
-- 2: import { createScriptBackupManager, loadEnv, parseArgs } from './storage-backup-lib.mjs';
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-- 1: #!/usr/bin/env node
-- Supabase interfaces:
-- 10: const jwt = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
-- external services: none observed
-
-SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- No complex runtime failure mode observed.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
-
-PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
-
-FINDINGS
-
-- finding ID: ISO-AUDIT-0553-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: scripts/prove-new-browser-restore.mjs inspected; no file-specific high-risk issue confirmed
-  observed evidence: scripts/prove-new-browser-restore.mjs inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: .github/workflows/ci.yml, .github/workflows/ci.yml, .github/workflows/ci.yml
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
-
-FINAL VERDICT
-
-- role: Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  FINAL VERDICT
+  VALID

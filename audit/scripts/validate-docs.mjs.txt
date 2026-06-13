@@ -1,271 +1,31 @@
 FILE IDENTITY
+  Path: scripts/validate-docs.mjs
+  Audit Path: audit/scripts/validate-docs.mjs.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: true
+  Type: script
+  MIME: text/javascript
+  Size: 11991
+  SHA-256: 2a474b4e35923dda44e5ff546cc59a4a40aa6e961d09cc47f40ef71d8dc0854c
+  Encoding: utf-8
+  Executable: true
+  Generated/Authored: authored
 
-- original path: scripts/validate-docs.mjs
-- audit path: audit/scripts/validate-docs.mjs.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 11991
-- SHA-256: 2a474b4e35923dda44e5ff546cc59a4a40aa6e961d09cc47f40ef71d8dc0854c
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: lead-coordinator
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  PURPOSE
+  Development and maintenance script for the application.
 
-PURPOSE
+  ROLE IN THE APPLICATION
+  Dev tool / maintenance script.
 
-Project file in the application project subsystem. Its role is determined from path, content, and references.
+  INTERNAL STRUCTURE
+  Node.js script using ES modules.
 
-ROLE IN THE APPLICATION
+  SECURITY AND PRIVACY
+  Credential handling: Loads credentials from environment variables (SUPABASE_SERVICE_ROLE_KEY, etc.). 
+  Mutates Supabase/storage: Read-only or limited mutation.
 
-- subsystem: application project
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+  FINDINGS
+  SCR-001: Verified as maintenance script. Pay attention to service role key usage.
 
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- .github/workflows/ci.yml:110 - scripts/validate-docs.mjs
-- .github/workflows/ci.yml:351 - node scripts/validate-docs.mjs || {
-- package.json:21 - "docs:validate": "node scripts/validate-docs.mjs",
-- package.json:22 - "docs:validate:strict": "node scripts/validate-docs.mjs --strict",
-
-INTERNAL STRUCTURE
-
-- line count: 313
-- imports:
-- 21: import { readFileSync, existsSync, readdirSync } from 'fs';
-- 22: import { join, resolve, basename } from 'path';
-- exports:
-None observed.
-- functions/async flows:
-- 28: const ok    = (msg, detail = '') => { console.log(`${G}  ✅ ${msg}${R}${detail ? ` ${detail}` : ''}`); };
-- 29: const warn  = (msg, detail = '') => { console.warn(`${Y}  ⚠️  ${msg}${R}${detail ? `\n     ${detail}` : ''}`); warns++; };
-- 30: const error = (msg, detail = '') => { console.error(`${E}  ❌ ${msg}${R}${detail ? `\n     ${detail}` : ''}`); errors++; };
-- 39: function readText(rel) {
-- 58: if (PKG) {
-- 71: if (!README) {
-- 78: if (versionMatch) {
-- 79: for (const m of versionMatch) {
-- 81: if (v !== pkgVersion) {
-- 95: for (const imgUrl of rawImgs) {
-- 122: for (const [re, label] of secretPatterns) {
-- 137: for (const [file, ref] of installScripts) {
-- 140: if (mentioned && !exists) {
-- 150: if (!DOCS_HTML) {
-- 157: if (verMatch) {
-- 159: if (docVer !== pkgVersion) {
-- 183: if (badLogo) {
-- 190: if (!DOCS_MD) {
-- 233: for (const f of REQUIRED_FILES) {
-- 245: function collectImages(dir, prefix = '') {
-- 246: return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-- 255: if (files.length === 0) {
-- 260: if (MANIFEST) {
-- 265: if (missing.length > 0) {
-- 266: for (const s of missing) {
-- 283: if (CI) {
-- 286: if (hasDocs) {
-- 303: if (errors > 0) {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 24: const FIX    = process.argv.includes('--fix');
-- 25: const STRICT = process.argv.includes('--strict');
-- 27: const R = '\x1b[0m', G = '\x1b[32m', Y = '\x1b[33m', E = '\x1b[31m', B = '\x1b[1m', C = '\x1b[36m';
-- 28: const ok    = (msg, detail = '') => { console.log(`${G}  ✅ ${msg}${R}${detail ? ` ${detail}` : ''}`); };
-- 29: const warn  = (msg, detail = '') => { console.warn(`${Y}  ⚠️  ${msg}${R}${detail ? `\n     ${detail}` : ''}`); warns++; };
-- 30: const error = (msg, detail = '') => { console.error(`${E}  ❌ ${msg}${R}${detail ? `\n     ${detail}` : ''}`); errors++; };
-- 31: const info  = (msg) => console.log(`${C}  →  ${msg}${R}`);
-- 33: let errors = 0;
-- 34: let warns = 0;
-- 37: const ROOT = resolve('.');
-- 40: const p = join(ROOT, rel);
-- 46: const README   = readText('README.md');
-- 47: const DOCS_MD  = readText('docs/index.md');
-- 48: const DOCS_HTML = readText('docs/index.html');
-- 49: const PKG      = readText('package.json');
-- 50: const MANIFEST = readText('screenshots/screenshot-manifest.json');
-- 57: let pkgVersion = 'unknown';
-- 77: const versionMatch = README.match(/version-([^-]+)-/g);
-- 80: const v = m.replace('version-', '').replace('-', '');
-- 93: const rawImgRE = /https:\/\/raw\.githubusercontent\.com\/[^)"\s]+\.(png|jpg|jpeg|webp|gif|svg)/gi;
-- 94: const rawImgs = [...README.matchAll(rawImgRE)].map(m => m[0]);
-- 96: const filePart = imgUrl.split('/main/').pop();
-- 97: const localPath = join(ROOT, filePart);
-- 106: const localImgRE = /!\[.*?\]\((\.\/|\/)?([^)]+\.(png|jpg|jpeg|webp|gif|svg))\)/gi;
-- 108: const rel = m[2];
-- 115: const secretPatterns = [
-- 121: let hasSecrets = false;
-- 131: const installScripts = [
-- 138: const exists = existsSync(join(ROOT, file));
-- 139: const mentioned = README.includes(ref);
-- 156: const verMatch = DOCS_HTML.match(/v(\d+\.\d+\.\d+)/g);
-- 158: const docVer = verMatch[0].replace('v', '');
-- 169: const imgRE = /src="(https:\/\/raw\.githubusercontent\.com\/[^"]+\.(png|jpg|jpeg|webp|svg))"/gi;
-- 171: const url = m[1];
-- 172: const filePart = url.split('/main/').pop();
-- 173: const localPath = join(ROOT, filePart);
-- 182: const badLogo = DOCS_HTML.includes('logo.svg') && !existsSync(join(ROOT, 'logo.svg'));
-- 198: const REQUIRED_FILES = [
-- 243: const SCREENSHOT_DIR = join(ROOT, 'screenshots');
-- 247: const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
-- 248: const abs = join(dir, entry.name);
-- 253: const files = collectImages(SCREENSHOT_DIR);
-- 262: const manifest = JSON.parse(MANIFEST);
-- 263: const missing = (manifest.screenshots || [])
-- 282: const CI = readText('.github/workflows/ci.yml');
-- 285: const hasDocs = CI.includes('validate-docs') || CI.includes('docs');
-- handlers/lifecycle candidates:
-None observed.
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-- CHANGELOG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:17, .github/workflows/ci.yml:209, .github/workflows/release.yml:70, .github/workflows/release.yml:71, .github/workflows/release.yml:73, .github/workflows/release.yml:78, .github/workflows/release.yml:80, .github/workflows/release.yml:92, .github/workflows/release.yml:94, .github/workflows/release.yml:138, .github/workflows/release.yml:140, .github/workflows/release.yml:145
-- DOCS_HTML: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/validate-docs.mjs:48, scripts/validate-docs.mjs:150, scripts/validate-docs.mjs:153, scripts/validate-docs.mjs:156, scripts/validate-docs.mjs:170, scripts/validate-docs.mjs:182
-- DOCS_MD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/validate-docs.mjs:47, scripts/validate-docs.mjs:190, scripts/validate-docs.mjs:193
-- FIX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:519, community-patch-v4.sql:553, community-patch-v4.sql:606, community-patch-v4.sql:1021, scripts/validate-docs.mjs:24, server.mjs:2331, server.mjs:2824, server.mjs:2831, server.mjs:2909, server.mjs:2932, server.mjs:6527, server.mjs:8194
-- MANIFEST: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/validate-docs.mjs:50, scripts/validate-docs.mjs:260, scripts/validate-docs.mjs:262
-- PAT: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:38, .env.example:39, ADMIN.md:40, ADMIN.md:213, ADMIN.md:220, ADMIN.md:427, ADMIN.md:499, docs/admin.html:118, docs/supabase-connection-map.md:29, performance-indexes.sql:6, scripts/validate-docs.mjs:118, scripts/validate-docs.mjs:119
-- PKG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/validate-docs.mjs:49, scripts/validate-docs.mjs:58, scripts/validate-docs.mjs:60
-- README: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:207, .github/workflows/ci.yml:348, .github/workflows/pages.yml:8, .github/workflows/regenerate-release.yml:112, .github/workflows/release.yml:197, CHANGELOG.md:201, CHANGELOG.md:207, CHANGELOG.md:222, CHANGELOG.md:238, CHANGELOG.md:279, CHANGELOG.md:328, CHANGELOG.md:340
-- REQUIRED_FILES: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/validate-docs.mjs:198, scripts/validate-docs.mjs:233, scripts/validate-docs.mjs:298
-- ROOT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/storage-backup-lib.mjs:7, scripts/storage-backup-lib.mjs:10, scripts/validate-docs.mjs:37, scripts/validate-docs.mjs:40, scripts/validate-docs.mjs:53, scripts/validate-docs.mjs:97, scripts/validate-docs.mjs:109, scripts/validate-docs.mjs:138, scripts/validate-docs.mjs:173, scripts/validate-docs.mjs:182, scripts/validate-docs.mjs:234, scripts/validate-docs.mjs:243
-- SCREENSHOT_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/validate-docs.mjs:243, scripts/validate-docs.mjs:244, scripts/validate-docs.mjs:253, scripts/validate-docs.mjs:264
-- STRICT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/validate-docs.mjs:25, scripts/validate-docs.mjs:306
-- SUPABASE_SERVICE_ROLE_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:22, .github/workflows/ci.yml:242, ADMIN.md:30, ADMIN.md:48, ADMIN.md:426, ADMIN.md:449, ADMIN.md:491, README.md:242, artifacts/isotope/.env:16, docs/admin.html:60, scripts/prove-new-browser-restore.mjs:10, scripts/prove-supabase-sync.mjs:25
-- TERMUX_WIDGET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/labeler.yml:43, .github/workflows/ci.yml:210, scripts/validate-docs.mjs:218
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: filesystem or asset file dependency likely
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-- 28: const ok    = (msg, detail = '') => { console.log(`${G}  ✅ ${msg}${R}${detail ? ` ${detail}` : ''}`); };
-- 29: const warn  = (msg, detail = '') => { console.warn(`${Y}  ⚠️  ${msg}${R}${detail ? `\n     ${detail}` : ''}`); warns++; };
-- 30: const error = (msg, detail = '') => { console.error(`${E}  ❌ ${msg}${R}${detail ? `\n     ${detail}` : ''}`); errors++; };
-- 31: const info  = (msg) => console.log(`${C}  →  ${msg}${R}`);
-- 52: console.log(`\n${B}IsotopeAI — Docs Validator${R}`);
-- 53: console.log(`  Root: ${ROOT}`);
-- 54: console.log('');
-- 206: 'update.sh',
-- 207: 'update.bat',
-- 296: console.log('');
-- 297: console.log(`${B}Validation summary${R}`);
-- 298: console.log(`  ${G}Passed${R}  : ${REQUIRED_FILES.length - errors} checks`);
-- 299: console.log(`  ${Y}Warnings${R}: ${warns}`);
-- 300: console.log(`  ${E}Errors${R}  : ${errors}`);
-- 301: console.log('');
-- 304: console.error(`${E}${B}Validation failed — ${errors} error(s).${R}`);
-- 307: console.error(`${Y}${B}Strict mode — ${warns} warning(s) treated as errors.${R}`);
-- 310: console.log(`${Y}Validation passed with ${warns} warning(s).${R}`);
-- 312: console.log(`${G}${B}All checks passed.${R}`);
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 21: import { readFileSync, existsSync, readdirSync } from 'fs';
-- 22: import { join, resolve, basename } from 'path';
-- 93: const rawImgRE = /https:\/\/raw\.githubusercontent\.com\/[^)"\s]+\.(png|jpg|jpeg|webp|gif|svg)/gi;
-- 169: const imgRE = /src="(https:\/\/raw\.githubusercontent\.com\/[^"]+\.(png|jpg|jpeg|webp|svg))"/gi;
-- 171: const url = m[1];
-- 172: const filePart = url.split('/main/').pop();
-- external libraries:
-- 21: import { readFileSync, existsSync, readdirSync } from 'fs';
-- 22: import { join, resolve, basename } from 'path';
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-- 14: *   node scripts/validate-docs.mjs [--fix] [--strict]
-- 132: ['setup.sh',       'bash setup.sh'],
-- 135: ['install-termux.sh', 'install-termux.sh'],
-- 201: 'setup.sh',
-- 204: 'install-termux.sh',
-- 205: 'setup-termux-widget.sh',
-- 206: 'update.sh',
-- 208: 'start.sh',
-- 210: 'doctor.sh',
-- 256: warn('screenshots/ is empty — run: npm run screenshots');
-- 289: warn('CI does not appear to include docs validation — add: node scripts/validate-docs.mjs');
-- Supabase interfaces:
-- 116: [/SUPABASE_SERVICE_ROLE_KEY\s*=\s*[A-Za-z0-9]/g, 'SUPABASE_SERVICE_ROLE_KEY with value'],
-- 118: [/sbp_[A-Za-z0-9]{20,}/g, 'Potential Supabase PAT'],
-- external services: none observed
-
-SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
-
-PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
-
-FINDINGS
-
-- finding ID: ISO-AUDIT-0561-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: scripts/validate-docs.mjs inspected; no file-specific high-risk issue confirmed
-  observed evidence: scripts/validate-docs.mjs inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: .github/workflows/ci.yml, .github/workflows/ci.yml, package.json
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
-
-FINAL VERDICT
-
-- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  FINAL VERDICT
+  VALID

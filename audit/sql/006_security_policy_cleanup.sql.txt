@@ -1,176 +1,30 @@
 FILE IDENTITY
-
-- original path: sql/006_security_policy_cleanup.sql
-- audit path: audit/sql/006_security_policy_cleanup.sql.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: sql
-- MIME type: application/sql
-- size in bytes: 2965
-- SHA-256: f0a7afcfd169ee3185e15d68c81672986d70a691137c493934dfa86fb6c92e02
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: database schema/migration
-- primary auditor: sql-supabase-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  Path: /tmp/isotope-repo/sql/006_security_policy_cleanup.sql
+  Audit Path: audit/sql/006_security_policy_cleanup.sql.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: Yes
+  Type: SQL Script
+  MIME: text/x-sql
+  Size: 2965 bytes
+  SHA-256: f0a7afcfd169ee3185e15d68c81672986d70a691137c493934dfa86fb6c92e02
 
 PURPOSE
+  Removes legacy permissive profile and avatar policies and replaces them with least-privilege owner-write policies.
 
-Database schema, migration, policy, or validation artifact for Supabase/Postgres behavior.
+SQL OBJECTS DEFINED
+  - RLS Policies: profiles_own (user_profiles), avatars_public_read, avatars_user_insert_own, avatars_user_update_own, avatars_user_delete_own (storage.objects).
 
-ROLE IN THE APPLICATION
+MIGRATION ORDER AND IDEMPOTENCY
+  - Order: Security maintenance/cleanup.
+  - Idempotency: Uses `drop policy if exists` and `create policy`, safe to re-run.
 
-- subsystem: database schema/migration
-- runtime stage: database provisioning/reference
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
-
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- .github/workflows/ci.yml:203 - sql/006_security_policy_cleanup.sql
-- .github/workflows/ci.yml:253 - for f in isotope-complete.sql community-patch-v4.sql sql/006_security_policy_cleanup.sql sql/backup_manifests.sql sql/verify-security.sql performance-patch.sql; do
-- .github/workflows/release.yml:184 - sql/006_security_policy_cleanup.sql
-
-INTERNAL STRUCTURE
-
-- line count: 68
-- imports:
-None observed.
-- exports:
-None observed.
-- functions/async flows:
-None observed.
-- classes:
-None observed.
-- constants/mutable state candidates:
-None observed.
-- handlers/lifecycle candidates:
-None observed.
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-No environment variable names observed.
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-- "avatars_public_read" on storage.objects
-- "avatars_user_delete_own" on storage.objects
-- "avatars_user_insert_own" on storage.objects
-- "avatars_user_update_own" on storage.objects
-- profiles_own on public.user_profiles
-- public.user_profiles
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-- 2: -- Idempotent. Removes legacy permissive profile/avatar policies and recreates
-- 8: drop policy if exists profiles_insert_own on public.user_profiles;
-- 9: drop policy if exists profiles_update_own on public.user_profiles;
-- 23: -- avatars: public read, owner-only write/delete by first path segment.
-- 25: drop policy if exists "Users can upload their own avatar" on storage.objects;
-- 26: drop policy if exists "Users can update their own avatar" on storage.objects;
-- 27: drop policy if exists "Users can delete their own avatar" on storage.objects;
-- 30: drop policy if exists "avatars_auth_insert" on storage.objects;
-- 31: drop policy if exists "avatars_auth_upload" on storage.objects;
-- 33: drop policy if exists "avatars_user_insert_own" on storage.objects;
-- 34: drop policy if exists "avatars_user_update_own" on storage.objects;
-- 35: drop policy if exists "avatars_user_delete_own" on storage.objects;
-- 36: drop policy if exists "avatars_own_update" on storage.objects;
-- 37: drop policy if exists "avatars_own_delete" on storage.objects;
-- 38: drop policy if exists "avatars_owner_update" on storage.objects;
-- 39: drop policy if exists "avatars_owner_delete" on storage.objects;
-- 45: create policy "avatars_user_insert_own" on storage.objects
-- 46: for insert to authenticated
-- 52: create policy "avatars_user_update_own" on storage.objects
-- 53: for update to authenticated
-- 63: create policy "avatars_user_delete_own" on storage.objects
-- 64: for delete to authenticated
-
-DATA FLOW
-
-SQL definitions flow from repository migration/reference files into Supabase/Postgres only when explicitly applied outside this audit.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 23: -- avatars: public read, owner-only write/delete by first path segment.
-- external libraries:
-None observed.
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-None observed.
-- external services: none observed
-
-SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- No complex runtime failure mode observed.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- No direct offline/local-first behavior observed.
-
-PERFORMANCE
-
-- No major static performance concern observed.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+SECURITY ANALYSIS
+  - User Profiles: Restricts access to own row only.
+  - Avatars: Implements strict path-based ownership for storage objects in the `avatars` bucket.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0569-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: sql/006_security_policy_cleanup.sql inspected; no file-specific high-risk issue confirmed
-  observed evidence: sql/006_security_policy_cleanup.sql inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: .github/workflows/ci.yml, .github/workflows/ci.yml, .github/workflows/release.yml
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Run SQL lint/idempotency checks against a disposable local database before applying anywhere.
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+  - SQL-012; Severity: INFO; Evidence: Successfully transitions from potentially permissive legacy policies to strict ownership-based policies.
+  - SQL-013; Severity: INFO; Evidence: Correctly uses `storage.foldername(name)` to enforce path-based security for avatars.
 
 FINAL VERDICT
-
-- role: Database schema, migration, policy, or validation artifact for Supabase/Postgres behavior.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  - PASS: Significantly improves the security posture for profiles and avatars.

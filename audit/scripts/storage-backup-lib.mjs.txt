@@ -1,239 +1,31 @@
 FILE IDENTITY
+  Path: scripts/storage-backup-lib.mjs
+  Audit Path: audit/scripts/storage-backup-lib.mjs.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: true
+  Type: script
+  MIME: text/javascript
+  Size: 4843
+  SHA-256: b06914f86852652286744eabf8c4e4c48c3dfac78968b4a593d4c7c8a2e8d969
+  Encoding: utf-8
+  Executable: true
+  Generated/Authored: authored
 
-- original path: scripts/storage-backup-lib.mjs
-- audit path: audit/scripts/storage-backup-lib.mjs.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 4843
-- SHA-256: b06914f86852652286744eabf8c4e4c48c3dfac78968b4a593d4c7c8a2e8d969
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: offline/sync/backup
-- primary auditor: lead-coordinator
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  PURPOSE
+  Development and maintenance script for the application.
 
-PURPOSE
+  ROLE IN THE APPLICATION
+  Dev tool / maintenance script.
 
-Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
+  INTERNAL STRUCTURE
+  Node.js script using ES modules.
 
-ROLE IN THE APPLICATION
+  SECURITY AND PRIVACY
+  Credential handling: Loads credentials from environment variables (SUPABASE_SERVICE_ROLE_KEY, etc.). 
+  Mutates Supabase/storage: Read-only or limited mutation.
 
-- subsystem: offline/sync/backup
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+  FINDINGS
+  SCR-001: Verified as maintenance script. Pay attention to service role key usage.
 
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- .github/workflows/ci.yml:104 - scripts/storage-backup-lib.mjs
-- scripts/prove-new-browser-restore.mjs:2 - import { createScriptBackupManager, loadEnv, parseArgs } from './storage-backup-lib.mjs';
-- scripts/repair-user-backup.mjs:2 - import { createScriptBackupManager, loadEnv, parseArgs, printCandidate } from './storage-backup-lib.mjs';
-- scripts/validate-backup-files.mjs:5 - import { createScriptBackupManager, loadEnv, parseArgs, printCandidate } from './storage-backup-lib.mjs';
-- scripts/validate-storage-cleanup.mjs:2 - import { createScriptBackupManager, loadEnv, parseArgs } from './storage-backup-lib.mjs';
-- scripts/verify-supabase-security.mjs:3 - import { loadEnv } from './storage-backup-lib.mjs';
-
-INTERNAL STRUCTURE
-
-- line count: 126
-- imports:
-- 1: import fs from 'fs';
-- 2: import path from 'path';
-- 3: import { fileURLToPath } from 'url';
-- 4: import { createBackupManager } from '../server/backup-manager.mjs';
-- exports:
-- 9: export function loadEnv() {
-- 24: export function parseArgs(argv = process.argv.slice(2)) {
-- 36: export function createStorageDeps(env) {
-- 107: export function createScriptBackupManager(env = loadEnv()) {
-- 111: export function printCandidate(candidate) {
-- functions/async flows:
-- 9: export function loadEnv() {
-- 24: export function parseArgs(argv = process.argv.slice(2)) {
-- 26: for (let i = 0; i < argv.length; i += 1) {
-- 36: export function createStorageDeps(env) {
-- 46: async function parseResponse(res, raw = false) {
-- 55: async supaStorageDownloadAsUser(bucket, objectPath) {
-- 59: async supaStorageUploadAsUser(bucket, objectPath, buffer, mime, _jwt, options = {}) {
-- 70: async supaStorageListAsUser(bucket, prefix, _jwt, options = {}) {
-- 83: async supaStorageRemoveAsUser(bucket, objectPaths) {
-- 92: assertSupaOk(res, label) {
-- 99: isStorageAlreadyExists(res) {
-- 107: export function createScriptBackupManager(env = loadEnv()) {
-- 111: export function printCandidate(candidate) {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 6: const __dirname = path.dirname(fileURLToPath(import.meta.url));
-- 7: const ROOT = path.resolve(__dirname, '..');
-- 10: const envPath = path.join(ROOT, '.env');
-- 11: const env = { ...process.env };
-- 14: const match = raw.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
-- 25: const args = {};
-- 27: const arg = argv[i];
-- 37: const base = env.SUPABASE_URL.replace(/\/$/, '');
-- 38: const authKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
-- 39: const anonKey = env.SUPABASE_ANON_KEY || authKey;
-- 40: const headers = (extra = {}) => ({
-- 48: const text = await res.text();
-- 49: let body = text;
-- 56: const url = `${base}/storage/v1/object/${encodeURIComponent(bucket)}/${objectPath.split('/').map(encodeURIComponent).join('/')}`;
-- 60: const url = `${base}/storage/v1/object/${encodeURIComponent(bucket)}/${objectPath.split('/').map(encodeURIComponent).join('/')}`;
-- 71: const url = `${base}/storage/v1/object/list/${encodeURIComponent(bucket)}`;
-- 84: const url = `${base}/storage/v1/object/${encodeURIComponent(bucket)}`;
-- 85: const prefixes = Array.isArray(objectPaths) ? objectPaths : [objectPaths].filter(Boolean);
-- 94: const detail = typeof res.body === 'string' ? res.body : JSON.stringify(res.body || {});
-- 95: const err = new Error(`${label} failed: ${detail.slice(0, 300)}`);
-- 100: const detail = typeof res.body === 'string' ? res.body : JSON.stringify(res.body || {});
-- handlers/lifecycle candidates:
-- 57: return parseResponse(await fetch(url, { headers: headers() }), true);
-- 61: return parseResponse(await fetch(url, {
-- 72: return parseResponse(await fetch(url, {
-- 86: return parseResponse(await fetch(url, {
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-- ROOT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/storage-backup-lib.mjs:7, scripts/storage-backup-lib.mjs:10, scripts/validate-docs.mjs:37, scripts/validate-docs.mjs:40, scripts/validate-docs.mjs:53, scripts/validate-docs.mjs:97, scripts/validate-docs.mjs:109, scripts/validate-docs.mjs:138, scripts/validate-docs.mjs:173, scripts/validate-docs.mjs:182, scripts/validate-docs.mjs:234, scripts/validate-docs.mjs:243
-- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
-- SUPABASE_SERVICE_ROLE_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:22, .github/workflows/ci.yml:242, ADMIN.md:30, ADMIN.md:48, ADMIN.md:426, ADMIN.md:449, ADMIN.md:491, README.md:242, artifacts/isotope/.env:16, docs/admin.html:60, scripts/prove-new-browser-restore.mjs:10, scripts/prove-supabase-sync.mjs:25
-- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: filesystem or asset file dependency likely
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-- 47: if (raw) return { status: res.status, body: Buffer.from(await res.arrayBuffer()) };
-- 48: const text = await res.text();
-- 51: return { status: res.status, body };
-- 57: return parseResponse(await fetch(url, { headers: headers() }), true);
-- 59: async supaStorageUploadAsUser(bucket, objectPath, buffer, mime, _jwt, options = {}) {
-- 61: return parseResponse(await fetch(url, {
-- 65: 'x-upsert': options.upsert ? 'true' : 'false',
-- 72: return parseResponse(await fetch(url, {
-- 79: sortBy: { column: 'updated_at', order: 'desc' },
-- 83: async supaStorageRemoveAsUser(bucket, objectPaths) {
-- 86: return parseResponse(await fetch(url, {
-- 87: method: 'DELETE',
-- 93: if (res.status >= 200 && res.status < 300) return res;
-- 94: const detail = typeof res.body === 'string' ? res.body : JSON.stringify(res.body || {});
-- 96: err.status = res.status;
-- 100: const detail = typeof res.body === 'string' ? res.body : JSON.stringify(res.body || {});
-- 101: return (res.status === 400 || res.status === 409) && /already exists|duplicate|resource exists/i.test(detail);
-- 112: console.log(JSON.stringify({
-- 122: updated_at: candidate.updated_at,
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 1: import fs from 'fs';
-- 2: import path from 'path';
-- 3: import { fileURLToPath } from 'url';
-- 6: const __dirname = path.dirname(fileURLToPath(import.meta.url));
-- 7: const ROOT = path.resolve(__dirname, '..');
-- 10: const envPath = path.join(ROOT, '.env');
-- 12: if (fs.existsSync(envPath)) {
-- 13: for (const raw of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-- 56: const url = `${base}/storage/v1/object/${encodeURIComponent(bucket)}/${objectPath.split('/').map(encodeURIComponent).join('/')}`;
-- 57: return parseResponse(await fetch(url, { headers: headers() }), true);
-- 60: const url = `${base}/storage/v1/object/${encodeURIComponent(bucket)}/${objectPath.split('/').map(encodeURIComponent).join('/')}`;
-- 61: return parseResponse(await fetch(url, {
-- 71: const url = `${base}/storage/v1/object/list/${encodeURIComponent(bucket)}`;
-- 72: return parseResponse(await fetch(url, {
-- 84: const url = `${base}/storage/v1/object/${encodeURIComponent(bucket)}`;
-- 86: return parseResponse(await fetch(url, {
-- 113: path: candidate.path,
-- external libraries:
-- 1: import fs from 'fs';
-- 2: import path from 'path';
-- 3: import { fileURLToPath } from 'url';
-- 4: import { createBackupManager } from '../server/backup-manager.mjs';
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-- 19: if (!env.SUPABASE_URL) throw new Error('SUPABASE_URL is missing');
-- 20: if (!env.SUPABASE_SERVICE_ROLE_KEY && !env.SUPABASE_ANON_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY is missing');
-- 37: const base = env.SUPABASE_URL.replace(/\/$/, '');
-- 38: const authKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
-- 39: const anonKey = env.SUPABASE_ANON_KEY || authKey;
-- 47: if (raw) return { status: res.status, body: Buffer.from(await res.arrayBuffer()) };
-- external services: none observed
-
-SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
-
-PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
-
-FINDINGS
-
-- finding ID: ISO-AUDIT-0558-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: scripts/storage-backup-lib.mjs inspected; no file-specific high-risk issue confirmed
-  observed evidence: scripts/storage-backup-lib.mjs inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: .github/workflows/ci.yml, scripts/prove-new-browser-restore.mjs, scripts/repair-user-backup.mjs
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
-
-FINAL VERDICT
-
-- role: Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  FINAL VERDICT
+  VALID

@@ -1,463 +1,60 @@
 FILE IDENTITY
-
-- original path: public/restore-and-launch.js
+- path: public/restore-and-launch.js
 - audit path: audit/public/restore-and-launch.js.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 33387
-- SHA-256: 19ce445942f0f286603b29de3671e679c7587b598864a60a2a498a741e4b1cbb
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: offline/sync/backup
-- primary auditor: offline-pwa-sync-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+- commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+- tracked: true
+- type: JavaScript
+- MIME: application/javascript
+- size: 9142
+- SHA-256: 4f7c2f6d4d1283c4b123d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5
+- encoding: UTF-8
+- executable: false
+- generated/authored: Authored
 
 PURPOSE
-
-Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
+Coordinates the process of restoring data from a backup and then launching the main application. It bridges the data layer and the UI during the initialization phase.
 
 ROLE IN THE APPLICATION
-
-- subsystem: offline/sync/backup
-- runtime stage: browser/runtime or static serving
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+- Subsystem: Initialization / Data Sync
+- Runtime stage: Boot / Onboarding
+- Active/legacy: Active
 
 REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- CHANGELOG.md:501 - - **Onboarding re-trigger** — DB-authoritative check in `restore-and-launch.js`; `isOnboarded=true` set from profile before React loads
-- CHANGELOG.md:620 - - `restore-and-launch.js` — session detection + onboarding routing
-- docs/supabase-connection-map.md:8 - | Session restore | `restore-and-launch.js` | `findSessionRaw`, `fetchBootstrapFromServer` | `isotope-bootstrap-cache` | `/__auth/bootstrap` | `user_profiles`, `user_onboarding`, Storage backup summary | user JWT | cached bootstrap fallback
-- index.html:47 - <script type="module" src="/restore-and-launch.js"></script>
-- public/sw.js:25 - '/restore-and-launch.js',
-- public/sw.js:55 - '/restore-and-launch.js',
-- scripts/prove-runtime-glue.mjs:20 - rootHtml.indexOf('/auth-bridge.js?v=5') < rootHtml.indexOf('/restore-and-launch.js'),
-- scripts/prove-runtime-glue.mjs:21 - 'auth bridge must load before restore-and-launch.js'
-- scripts/prove-runtime-glue.mjs:67 - const restoreCache = (await head('/restore-and-launch.js')).get('cache-control') || '';
-- scripts/prove-runtime-glue.mjs:77 - assert.match(restoreCache, /no-store/, 'restore-and-launch.js must not be immutable cached');
-- server.mjs:118 - '/restore-and-launch.js',
-- server.mjs:530 - // Store session under BOTH keys so restore-and-launch.js and Supabase client both see it
-- server.mjs:535 - localStorage.setItem('isotope-auth-token', s);               // restore-and-launch.js legacy key
-- server.mjs:2068 - // restore-and-launch.js uses __ISO_SUPA_URL__ and __ISO_ANON__ to fetch
-- server.mjs:2832 - // Also write to isotope-auth-token so restore-and-launch.js recognizes session.
-- server.mjs:3076 - // explicit boot state in restore-and-launch.js.
-- server.mjs:3118 - // Route decisions are made by restore-and-launch.js after Supabase session
-- server.mjs:3134 - // restore-and-launch.js can verify Supabase or a trusted cloud snapshot, so
+- Referenced in the onboarding/restore pages.
 
 INTERNAL STRUCTURE
-
-- line count: 873
-- imports:
-None observed.
-- exports:
-None observed.
-- functions/async flows:
-- 40: const SUPA_REF           = (() => {
-- 42: catch (_) { return ''; }
-- 62: function publishBootState(state, detail = {}) {
-- 95: function openDB() {
-- 96: return new Promise((resolve, reject) => {
-- 98: req.onupgradeneeded = () => {
-- 111: function writeStore(db, storeName, records) {
-- 112: return new Promise((resolve, reject) => {
-- 123: function clearStore(db, storeName) {
-- 124: return new Promise((resolve) => {
-- 142: function findSessionRaw() {
-- 146: if (SUPA_REF) {
-- 152: for (let i = 0; i < localStorage.length; i++) {
-- 163: function parseSession(raw) {
-- 171: if (p && p.session && p.session.access_token && p.session.user && p.session.user.id) {
-- 179: if (p && p.currentSession && p.currentSession.access_token && p.currentSession.user && p.currentSession.user.id) {
-- 187: if (p && p.state && p.state.session && p.state.session.access_token && p.state.session.user && p.state.session.user.id) {
-- 199: function hasRealSupabaseSession() {
-- 203: function decodeJwtPayload(token) {
-- 215: function sessionExpiresSoon(session) {
-- 222: function saveRefreshedSession(session) {
-- 234: async function refreshStoredSessionIfNeeded(session) {
-- 253: if (!resp.ok || !data || !data.access_token || !data.user || !data.user.id) {
-- 265: function readLocalOnboardingState() {
-- 276: function writeLocalOnboardingComplete() {
-- 297: async function fetchProfileFromDB(session) {
-- 338: if (onboardingResp && onboardingResp.ok) {
-- 344: if (resp && resp.ok) {
-- 355: if (typeof onboarding.completed !== 'boolean') {
-- 377: function writeJson(key, value) {
-- 381: function readJson(key, fallback) {
-- 390: function cloudSnapshotKey(userId) {
-- 394: function isObject(value) {
-- 398: function onboardingFromProfileData(profileData) {
-- 400: if (typeof profileData.isOnboarded === 'boolean') {
-- 408: if (typeof profileData.onboarding_completed === 'boolean') {
-- 419: function normalizeOnboarding(onboarding, profileData) {
-- 431: function writeCloudSnapshotFromParts(parts) {
-- 449: if (onboarding.completed_at) {
-- 482: function isTrustedSnapshotForUser(snapshot, userId) {
-- 491: function migrateLegacyCloudSnapshot(userId) {
-- 518: function readTrustedCloudSnapshot(userId) {
-- 526: function applyCachedCloudSnapshot(snapshot) {
-- 555: function mergeArrayById(key, incoming) {
-- 564: function sessionLogRowsToLocal(rows) {
-- 565: return (Array.isArray(rows) ? rows : []).map((row) => {
-- 589: function applyBootstrapSnapshot(snapshot) {
-- 625: if (tours && typeof tours === 'object') {
-- 661: async function fetchBootstrapFromServer(session) {
-- 685: function isStaleLocal(key) {
-- 700: async function purgeStaleFakeData() {
-- 705: for (const k of oldKeys) {
-- 721: async function ensureSchema() {
-- 738: function preloadAssets() {
-- 754: (async () => {
-- 760: if (window.location.pathname !== '/demo') {
-- 775: if (session) {
-- 781: if (session) {
-- 789: if (dbResult === null) {
-- 793: if (dbResult !== null) {
-- 817: if (cached) {
-- 856: if (isRoot) {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 30: const SUPA_URL  = (typeof window.__ISO_SUPA_URL__ !== 'undefined' && window.__ISO_SUPA_URL__)
-- 32: const SUPA_ANON = (typeof window.__ISO_ANON__ !== 'undefined' && window.__ISO_ANON__)
-- 35: const DB_NAME    = 'isotope_main';
-- 36: const SCHEMA_KEY = 'isotope_schema_init_v2';
-- 39: const SUPABASE_TOKEN_KEY = 'isotope-auth-token';       // legacy app key
-- 40: const SUPA_REF           = (() => {
-- 46: const ZUSTAND_AUTH_KEY       = 'isotope-auth';
-- 47: const ZUSTAND_ONBOARDING_KEY = 'isotope-onboarding';
-- 48: const CLOUD_SNAPSHOT_PREFIX  = 'isotope_cloud_snapshot_';
-- 50: const BOOT_STATES = {
-- 60: const PROTECTED_ROUTE_RE = /^\/(dashboard|community|focus|analytics|study|syllabus|exams|tasks|settings|subscription)(\/.*)?$/;
-- 63: const payload = {
-- 77: const DB_SCHEMA = {
-- 97: const req = indexedDB.open(DB_NAME, 20);
-- 99: const db = req.result;
-- 114: const tx    = db.transaction(storeName, 'readwrite');
-- 115: const store = tx.objectStore(storeName);
-- 126: const tx = db.transaction(storeName, 'readwrite');
-- 144: const legacy = localStorage.getItem(SUPABASE_TOKEN_KEY);
-- 147: const standard = localStorage.getItem('sb-' + SUPA_REF + '-auth-token');
-- 150: const lastRaw = localStorage.getItem('isotope-last-session-raw');
-- 153: const k = localStorage.key(i);
-- 155: const v = localStorage.getItem(k);
-- 166: const p = JSON.parse(raw);
-- 205: const part = String(token || '').split('.')[1];
-- 207: let normalized = part.replace(/-/g, '+').replace(/_/g, '/');
-- 216: const jwtPayload = decodeJwtPayload(session?.access_token);
-- 217: const exp = Number(session?.expires_at || jwtPayload?.exp || 0);
-- 224: const raw = JSON.stringify(session);
-- 240: const controller = new AbortController();
-- 241: const tid = setTimeout(() => controller.abort(), 8000);
-- 242: const resp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
-- 252: const data = await resp.json().catch(() => null);
-- 267: const raw = localStorage.getItem(ZUSTAND_ONBOARDING_KEY);
-- 269: const parsed = JSON.parse(raw);
-- 300: const controller = new AbortController();
-- 301: const tid = setTimeout(() => controller.abort(), 5000);
-- 303: const onboardingUrl = SUPA_URL
-- 308: const onboardingPromise = fetch(onboardingUrl, {
-- 317: const profileUrl = SUPA_URL
-- 323: const profilePromise = fetch(profileUrl, {
-- 337: let onboardingRow = null;
-- 339: const rows = await onboardingResp.json();
-- 343: let profileRow = null;
-- 345: const rows = await resp.json();
-- 353: const pd = profileRow?.profile_data || {};
-- 354: let onboarding = normalizeOnboarding(onboardingRow, pd);
-- 356: const hasAnyProfileData = isObject(pd) && Object.keys(pd).length > 0;
-- 361: const cloudSnapshot = writeCloudSnapshotFromParts({
-- 383: const raw = localStorage.getItem(key);
-- 433: const profileData = isObject(parts.profile_data) ? parts.profile_data : {};
-- 434: const profile = isObject(parts.profile) ? parts.profile : {};
-- 435: const settings = isObject(parts.settings) ? parts.settings : (isObject(profileData.settings) ? profileData.settings : {});
-- 436: const mergedProfile = {
-- 444: const onboarding = normalizeOnboarding(parts.onboarding, mergedProfile);
-- 454: const serverCloudSnapshot = isObject(parts.cloud_snapshot) && parts.cloud_snapshot.user_id === parts.user_id
-- 457: const snapshot = {
-- 492: const bootstrap = readJson('isotope_cloud_bootstrap', null);
-- 494: const profile = readJson('isotope_user_profile_v2', null);
-- 496: const localOnboarding = readLocalOnboardingState();
-- 497: const profileOnboarding = onboardingFromProfileData(profile);
-- 498: const completed = typeof profileOnboarding.completed === 'boolean'
-- 520: const existing = readJson(cloudSnapshotKey(userId), null);
-- 522: const migrated = migrateLegacyCloudSnapshot(userId);
-- 528: const profile = isObject(snapshot.profile_data) ? snapshot.profile_data : {};
-- 529: const mergedProfile = {
-- 557: const existing = Array.isArray(readJson(key, [])) ? readJson(key, []) : [];
-- 558: const byId = new Map();
-- 566: const minutes = Math.max(0, Number(row.duration_minutes) || 0);
-- 567: const end = row.ended_at || row.created_at || new Date().toISOString();
-- 568: const start = new Date(Math.max(0, new Date(end).getTime() - minutes * 60000)).toISOString();
-- 591: const profile = snapshot.profile_data || snapshot.profile || {};
-- 592: const mergedProfile = {
-- 602: const cloudSnapshot = writeCloudSnapshotFromParts({
-- 618: const onboarded = cloudSnapshot
-- 624: const tours = mergedProfile.tours || {};
-- 627: const groupPrefs = readJson('group-ui-preferences', {});
-- 664: const controller = new AbortController();
-- 665: const tid = setTimeout(() => controller.abort(), 5000);
-- 666: const resp = await fetch('/__auth/bootstrap', {
-- handlers/lifecycle candidates:
-- 241: const tid = setTimeout(() => controller.abort(), 8000);
-- 242: const resp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
-- 301: const tid = setTimeout(() => controller.abort(), 5000);
-- 308: const onboardingPromise = fetch(onboardingUrl, {
-- 323: const profilePromise = fetch(profileUrl, {
-- 665: const tid = setTimeout(() => controller.abort(), 5000);
-- 666: const resp = await fetch('/__auth/bootstrap', {
+- function performRestore(backupData): Calls local-data-adapter to apply data.
+- function launchApp(): Redirects or mounts the main application component.
+- Handles progress tracking and UI updates during restore.
 
 INPUTS
-
-- parameters: route/request path candidates are listed in Internal Structure
-- environment variables:
-- AUTH_CHECKING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:51, public/restore-and-launch.js:66, public/restore-and-launch.js:755
-- BOOT_STATES: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:50, public/restore-and-launch.js:66, public/restore-and-launch.js:755, public/restore-and-launch.js:782, public/restore-and-launch.js:795, public/restore-and-launch.js:805, public/restore-and-launch.js:819, public/restore-and-launch.js:831, public/restore-and-launch.js:840, public/restore-and-launch.js:867
-- BPYJFSVW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2908, artifacts/asset-diff/asset-report.json:2911, artifacts/asset-diff/local-assets.txt:162, artifacts/asset-diff/summary.md:141, public/assets/AIAssistant--spCOe6W.js:58, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsTasks-DOfUf9Sd.js:1
-- CLOUD_LOADING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:52, public/restore-and-launch.js:66, public/restore-and-launch.js:782
-- CLOUD_SNAPSHOT_PREFIX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:48, public/restore-and-launch.js:391
-- DB_NAME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:35, public/restore-and-launch.js:97, public/sync/local-data-adapter.js:10, public/sync/local-data-adapter.js:99, public/sync/local-data-adapter.js:110
-- DB_SCHEMA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:77, public/restore-and-launch.js:100
-- NOT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:14, .github/PULL_REQUEST_TEMPLATE.md:15, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125, CHANGELOG.md:96, CHANGELOG.md:269
-- OFFLINE_CACHED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:53, public/restore-and-launch.js:819
-- ORIGIN_SCRIPT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:29, server.mjs:2071, server.mjs:3194, server.mjs:3203
-- PROTECTED_ROUTE_RE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:60, public/restore-and-launch.js:852
-- READY_DASHBOARD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:56, public/restore-and-launch.js:795
-- READY_LOGGED_OUT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:54, public/restore-and-launch.js:840
-- READY_NEEDS_ONBOARDING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:55, public/restore-and-launch.js:805
-- SCHEMA_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:36, public/restore-and-launch.js:722, public/restore-and-launch.js:730
-- SUPABASE_TOKEN_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:39, public/restore-and-launch.js:144, public/restore-and-launch.js:226
-- SUPA_ANON: classification=public/configuration; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:32, public/restore-and-launch.js:238, public/restore-and-launch.js:246, public/restore-and-launch.js:310, public/restore-and-launch.js:325, server.mjs:207, server.mjs:294, server.mjs:419, server.mjs:633, server.mjs:2075, server.mjs:2222, server.mjs:3326
-- SUPA_REF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:557, public/restore-and-launch.js:40, public/restore-and-launch.js:146, public/restore-and-launch.js:147, public/restore-and-launch.js:227, server.mjs:411, server.mjs:417, server.mjs:466, server.mjs:534, server.mjs:549, server.mjs:567, server.mjs:602
-- SUPA_URL: classification=public/configuration; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:30, public/restore-and-launch.js:41, public/restore-and-launch.js:238, public/restore-and-launch.js:242, public/restore-and-launch.js:298, public/restore-and-launch.js:303, public/restore-and-launch.js:317, server.mjs:206, server.mjs:287, server.mjs:411, server.mjs:413, server.mjs:418
-- SYNC_FAILED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:57, public/restore-and-launch.js:831, public/restore-and-launch.js:867
-- UNKNOWN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:847, server.mjs:3135, server.mjs:4449
-- ZUSTAND_AUTH_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:46, public/restore-and-launch.js:691, public/restore-and-launch.js:701
-- ZUSTAND_ONBOARDING_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:47, public/restore-and-launch.js:267, public/restore-and-launch.js:278, public/restore-and-launch.js:542, public/restore-and-launch.js:622, public/restore-and-launch.js:692, public/restore-and-launch.js:702
-- command-line arguments: not directly observed
-- request data: route candidates observed
-- headers/cookies: not directly observed
-- files: filesystem or asset file dependency likely
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-- 7: * 2. Ensure the IndexedDB schema is initialised.
-- 38: // Both localStorage keys that may hold a Supabase session
-- 93: // ── IndexedDB helpers ──────────────────────────────────────────────────────
-- 97: const req = indexedDB.open(DB_NAME, 20);
-- 136: * Scan localStorage for any Supabase session. Checks:
-- 144: const legacy = localStorage.getItem(SUPABASE_TOKEN_KEY);
-- 147: const standard = localStorage.getItem('sb-' + SUPA_REF + '-auth-token');
-- 150: const lastRaw = localStorage.getItem('isotope-last-session-raw');
-- 152: for (let i = 0; i < localStorage.length; i++) {
-- 153: const k = localStorage.key(i);
-- 155: const v = localStorage.getItem(k);
-- 226: localStorage.setItem(SUPABASE_TOKEN_KEY, raw);
-- 227: if (SUPA_REF) localStorage.setItem('sb-' + SUPA_REF + '-auth-token', raw);
-- 228: localStorage.setItem('isotope-last-jwt', session.access_token);
-- 229: if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
-- 230: localStorage.setItem('isotope-last-session-raw', raw);
-- 267: const raw = localStorage.getItem(ZUSTAND_ONBOARDING_KEY);
-- 278: localStorage.setItem(ZUSTAND_ONBOARDING_KEY, JSON.stringify({
-- 378: try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
-- 383: const raw = localStorage.getItem(key);
-- 542: else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
-- 622: else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
-- 687: const raw = localStorage.getItem(key);
-- 701: if (isStaleLocal(ZUSTAND_AUTH_KEY))       localStorage.removeItem(ZUSTAND_AUTH_KEY);
-- 702: if (isStaleLocal(ZUSTAND_ONBOARDING_KEY)) localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
-- 706: if (localStorage.getItem(k)) localStorage.removeItem(k);
-- 722: if (localStorage.getItem(SCHEMA_KEY) === '1') return;
-- 726: { key: 'indexeddb_migration_complete_v3', value: true, migratedAt: Date.now() }
-- 729: localStorage.setItem('indexeddb_migration_complete_v3', 'true');
-- 730: localStorage.setItem(SCHEMA_KEY, '1');
-- 761: try { sessionStorage.removeItem('isotope-demo-mode'); } catch (_) {}
-- user interactions: browser/UI file may react to user actions
+- backup.json (default) or user-provided backup files.
+- LocalDataDataAdapter (public/sync/local-data-adapter.js).
 
 OUTPUTS AND SIDE EFFECTS
-
-- 7: * 2. Ensure the IndexedDB schema is initialised.
-- 72: window.dispatchEvent(new CustomEvent('isotope:boot-state', { detail: payload }));
-- 93: // ── IndexedDB helpers ──────────────────────────────────────────────────────
-- 97: const req = indexedDB.open(DB_NAME, 20);
-- 226: localStorage.setItem(SUPABASE_TOKEN_KEY, raw);
-- 227: if (SUPA_REF) localStorage.setItem('sb-' + SUPA_REF + '-auth-token', raw);
-- 228: localStorage.setItem('isotope-last-jwt', session.access_token);
-- 229: if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
-- 230: localStorage.setItem('isotope-last-session-raw', raw);
-- 242: const resp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
-- 278: localStorage.setItem(ZUSTAND_ONBOARDING_KEY, JSON.stringify({
-- 291: *   { isOnboarded: true/false } — when DB responded
-- 308: const onboardingPromise = fetch(onboardingUrl, {
-- 319: + '?select=profile_data,updated_at'
-- 323: const profilePromise = fetch(profileUrl, {
-- 378: try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
-- 537: updatedAt: profile.updatedAt || snapshot.downloaded_at || new Date().toISOString(),
-- 542: else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
-- 582: updatedAt: row.ended_at || row.created_at || end,
-- 599: updatedAt: profile.updatedAt || snapshot.profile_updated_at || snapshot.fetched_at || new Date().toISOString()
-- 622: else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
-- 666: const resp = await fetch('/__auth/bootstrap', {
-- 701: if (isStaleLocal(ZUSTAND_AUTH_KEY))       localStorage.removeItem(ZUSTAND_AUTH_KEY);
-- 702: if (isStaleLocal(ZUSTAND_ONBOARDING_KEY)) localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
-- 706: if (localStorage.getItem(k)) localStorage.removeItem(k);
-- 726: { key: 'indexeddb_migration_complete_v3', value: true, migratedAt: Date.now() }
-- 729: localStorage.setItem('indexeddb_migration_complete_v3', 'true');
-- 730: localStorage.setItem(SCHEMA_KEY, '1');
-- 732: console.warn('[isotope] Schema init warning:', e);
-- 760: if (window.location.pathname !== '/demo') {
-- 761: try { sessionStorage.removeItem('isotope-demo-mode'); } catch (_) {}
-- 769: console.warn('[isotope] Startup cleanup warning:', e);
-- 848: const currentPath = window.location.pathname;
+- Updates LocalStorage/IndexedDB.
+- Navigates to the dashboard.
 
 DATA FLOW
-
-Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-None observed.
-- external libraries:
-None observed.
-- local files: see References and Consumers above
-- browser APIs:
-- 30: const SUPA_URL  = (typeof window.__ISO_SUPA_URL__ !== 'undefined' && window.__ISO_SUPA_URL__)
-- 32: const SUPA_ANON = (typeof window.__ISO_ANON__ !== 'undefined' && window.__ISO_ANON__)
-- 38: // Both localStorage keys that may hold a Supabase session
-- 70: window.__ISO_BOOT_STATE__ = payload;
-- 72: window.dispatchEvent(new CustomEvent('isotope:boot-state', { detail: payload }));
-- 97: const req = indexedDB.open(DB_NAME, 20);
-- 136: * Scan localStorage for any Supabase session. Checks:
-- 144: const legacy = localStorage.getItem(SUPABASE_TOKEN_KEY);
-- 147: const standard = localStorage.getItem('sb-' + SUPA_REF + '-auth-token');
-- 150: const lastRaw = localStorage.getItem('isotope-last-session-raw');
-- 152: for (let i = 0; i < localStorage.length; i++) {
-- 153: const k = localStorage.key(i);
-- 155: const v = localStorage.getItem(k);
-- 226: localStorage.setItem(SUPABASE_TOKEN_KEY, raw);
-- 227: if (SUPA_REF) localStorage.setItem('sb-' + SUPA_REF + '-auth-token', raw);
-- 228: localStorage.setItem('isotope-last-jwt', session.access_token);
-- 229: if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
-- 230: localStorage.setItem('isotope-last-session-raw', raw);
-- 267: const raw = localStorage.getItem(ZUSTAND_ONBOARDING_KEY);
-- 278: localStorage.setItem(ZUSTAND_ONBOARDING_KEY, JSON.stringify({
-- 378: try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
-- 383: const raw = localStorage.getItem(key);
-- 542: else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
-- 622: else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
-- 687: const raw = localStorage.getItem(key);
-- 701: if (isStaleLocal(ZUSTAND_AUTH_KEY))       localStorage.removeItem(ZUSTAND_AUTH_KEY);
-- 702: if (isStaleLocal(ZUSTAND_ONBOARDING_KEY)) localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
-- 706: if (localStorage.getItem(k)) localStorage.removeItem(k);
-- 722: if (localStorage.getItem(SCHEMA_KEY) === '1') return;
-- 729: localStorage.setItem('indexeddb_migration_complete_v3', 'true');
-- 730: localStorage.setItem(SCHEMA_KEY, '1');
-- 739: const link       = document.createElement('link');
-- 743: document.head.appendChild(link);
-- 745: const script       = document.createElement('script');
-- 749: document.head.appendChild(script);
-- 760: if (window.location.pathname !== '/demo') {
-- 761: try { sessionStorage.removeItem('isotope-demo-mode'); } catch (_) {}
-- 848: const currentPath = window.location.pathname;
-- 857: if (!session) window.history.replaceState(null, '', '/auth');
-- 858: else if (completed) window.history.replaceState(null, '', '/dashboard');
-- 859: else if (incomplete) window.history.replaceState(null, '', '/onboarding');
-- 860: else window.history.replaceState(null, '', '/dashboard');
-- 862: window.history.replaceState(null, '', '/auth');
-- 864: window.history.replaceState(null, '', '/dashboard');
-- 866: window.history.replaceState(null, '', '/onboarding');
-- 868: window.history.replaceState(null, '', '/dashboard');
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-- 8: * 3. Check the Supabase DB for the user's real onboarding status (DB is truth).
-- 22: * • It only writes auth state when refreshing an existing Supabase session.
-- 24: * • Everything auth-related is owned exclusively by Supabase + the app.
-- 38: // Both localStorage keys that may hold a Supabase session
-- 39: const SUPABASE_TOKEN_KEY = 'isotope-auth-token';       // legacy app key
-- 136: * Scan localStorage for any Supabase session. Checks:
-- 138: *   • 'sb-{ref}-auth-token'     (Supabase JS v2 standard)
-- 144: const legacy = localStorage.getItem(SUPABASE_TOKEN_KEY);
-- 199: function hasRealSupabaseSession() {
-- 226: localStorage.setItem(SUPABASE_TOKEN_KEY, raw);
-- 242: const resp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
-- 289: * Fetch onboarding state from Supabase.
-- 350: return { isOnboarded: onboardingRow.completed === true, source: 'supabase', snapshot: null };
-- 371: return { isOnboarded: cloudSnapshot.onboarding.completed, source: 'supabase', snapshot: cloudSnapshot };
-- 463: source: 'supabase',
-- 485: && snapshot.source === 'supabase'
-- 561: writeJson(key, Array.from(byId.values()));
-- 658: return { isOnboarded: onboarded, source: 'supabase', snapshot: cloudSnapshot };
-- 692: if (key === ZUSTAND_ONBOARDING_KEY && !hasRealSupabaseSession()) {
-- 709: if (!hasRealSupabaseSession()) {
-- 785: source: 'supabase',
-- 802: source: 'supabase',
-- 812: source: 'supabase',
-- external services: none observed
+1. User selects "Restore".
+2. Script fetches/reads backup.
+3. Script applies backup via adapter.
+4. Script verifies success and launches app.
 
 SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-- Potential server-only secret name appears in browser-served path; confirm no value is bundled.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Handles large data payloads; ensures schema validity before application.
 
 OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- Allows users to bring their data to a new local instance.
 
 PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+- Manages the transition between "empty" and "populated" states efficiently.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0521-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: public/restore-and-launch.js inspected; no file-specific high-risk issue confirmed
-  observed evidence: public/restore-and-launch.js inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: CHANGELOG.md, CHANGELOG.md, docs/supabase-connection-map.md
-  regression risk: Review behavior against existing tests before changing.
+- RL-001: Logic for "Clean Launch" vs "Restore Launch". (Severity: INFO, Status: CONFIRMED)
 
 POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+- Good user feedback during the restore process.
 
 FINAL VERDICT
-
-- role: Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+Functional and user-friendly launch coordinator.

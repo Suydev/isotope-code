@@ -1,167 +1,28 @@
 FILE IDENTITY
-
-- original path: vite.config.ts
-- audit path: audit/vite.config.ts.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/typescript
-- size in bytes: 1761
-- SHA-256: 51bf274ad0697b292f45c630ebd1061f62013882bd386bf0a65daffe7afb4d13
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: source-frontend-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  Path: /tmp/isotope-repo/vite.config.ts
+  Audit Path: audit/vite.config.ts.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: Yes
+  Type: Configuration
+  Size: 1761 bytes
+  SHA-256: 51bf274ad0697b292f45c630ebd1061f62013882bd386bf0a65daffe7afb4d13
 
 PURPOSE
+  Configuration for the Vite bundler, defining plugins, aliases, and server settings.
 
-Project file in the application project subsystem. Its role is determined from path, content, and references.
-
-ROLE IN THE APPLICATION
-
-- subsystem: application project
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
-
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- .github/labeler.yml:51 - - 'vite.config.ts'
-
-INTERNAL STRUCTURE
-
-- line count: 75
-- imports:
-- 1: import { defineConfig } from "vite";
-- 2: import react from "@vitejs/plugin-react";
-- 3: import tailwindcss from "@tailwindcss/vite";
-- 4: import path from "path";
-- 5: import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
-- exports:
-- 29: export default defineConfig({
-- functions/async flows:
-- 9: if (!rawPort) {
-- 23: if (!basePath) {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 7: const rawPort = process.env.PORT;
-- 15: const port = Number(rawPort);
-- 21: const basePath = process.env.BASE_PATH;
-- handlers/lifecycle candidates:
-None observed.
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-- BASE_PATH: classification=secret; required=unknown from static map; inspect use locations; uses=vite.config.ts:21, vite.config.ts:25
-- NODE_ENV: classification=public/configuration; required=optional/defaulted; uses=.github/workflows/ci.yml:286, vite.config.ts:35
-- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
-- REPL_ID: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=server.mjs:5330, vite.config.ts:36
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 4: import path from "path";
-- 40: root: path.resolve(import.meta.dirname, ".."),
-- 51: "@": path.resolve(import.meta.dirname, "src"),
-- 52: "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
-- 56: root: path.resolve(import.meta.dirname),
-- 58: outDir: path.resolve(import.meta.dirname, "dist/public"),
-- 66: fs: {
-- external libraries:
-- 1: import { defineConfig } from "vite";
-- 2: import react from "@vitejs/plugin-react";
-- 3: import tailwindcss from "@tailwindcss/vite";
-- 4: import path from "path";
-- 5: import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-None observed.
-- external services: none observed
+KEY SETTINGS
+  - base: basePath (from process.env.BASE_PATH)
+  - plugins: react, tailwindcss, runtimeErrorOverlay, and replit-specific plugins in non-prod environments.
+  - resolve.alias: @ -> src, @assets -> attached_assets.
+  - server.port: from process.env.PORT.
+  - build.outDir: dist/public.
 
 SECURITY AND PRIVACY
-
-- No direct secret or browser-executable security issue confirmed from static inspection.
-
-CORRECTNESS AND FAILURE MODES
-
-- No complex runtime failure mode observed.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- No direct offline/local-first behavior observed.
-
-PERFORMANCE
-
-- No major static performance concern observed.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+  - Validates that PORT and BASE_PATH environment variables are provided.
+  - No hardcoded secrets.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0640-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: vite.config.ts inspected; no file-specific high-risk issue confirmed
-  observed evidence: vite.config.ts inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: .github/labeler.yml
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+  - CONFIG-003; Severity: INFO; Evidence: Includes validation for required environment variables.
 
 FINAL VERDICT
-
-- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  - PASS: Well-configured Vite setup with proper environment variable handling.

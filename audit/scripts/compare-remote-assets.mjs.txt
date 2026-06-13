@@ -1,243 +1,31 @@
 FILE IDENTITY
+  Path: scripts/compare-remote-assets.mjs
+  Audit Path: audit/scripts/compare-remote-assets.mjs.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: true
+  Type: script
+  MIME: text/javascript
+  Size: 5895
+  SHA-256: c3da4c99019ac6d57e685a6a6b17b8870d6572786893237cce8826a934076c2c
+  Encoding: utf-8
+  Executable: true
+  Generated/Authored: authored
 
-- original path: scripts/compare-remote-assets.mjs
-- audit path: audit/scripts/compare-remote-assets.mjs.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 5895
-- SHA-256: c3da4c99019ac6d57e685a6a6b17b8870d6572786893237cce8826a934076c2c
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: lead-coordinator
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  PURPOSE
+  Development and maintenance script for the application.
 
-PURPOSE
+  ROLE IN THE APPLICATION
+  Dev tool / maintenance script.
 
-Project file in the application project subsystem. Its role is determined from path, content, and references.
+  INTERNAL STRUCTURE
+  Node.js script using ES modules.
 
-ROLE IN THE APPLICATION
+  SECURITY AND PRIVACY
+  Credential handling: Loads credentials from environment variables (SUPABASE_SERVICE_ROLE_KEY, etc.). 
+  Mutates Supabase/storage: Read-only or limited mutation.
 
-- subsystem: application project
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+  FINDINGS
+  SCR-001: Verified as maintenance script. Pay attention to service role key usage.
 
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- .github/workflows/ci.yml:111 - scripts/compare-remote-assets.mjs
-- .github/workflows/ci.yml:221 - scripts/compare-remote-assets.mjs
-- .github/workflows/regenerate-release.yml:66 - node --check scripts/compare-remote-assets.mjs
-- .github/workflows/regenerate-release.yml:106 - scripts/compare-remote-assets.mjs
-- .github/workflows/release.yml:63 - node --check scripts/compare-remote-assets.mjs
-- .github/workflows/release.yml:182 - scripts/compare-remote-assets.mjs
-- package.json:23 - "assets:compare": "node scripts/compare-remote-assets.mjs",
-
-INTERNAL STRUCTURE
-
-- line count: 165
-- imports:
-- 2: import { createHash } from 'node:crypto';
-- 3: import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-- 4: import path from 'node:path';
-- 5: import { fileURLToPath } from 'node:url';
-- exports:
-None observed.
-- functions/async flows:
-- 16: function sha256(buffer) {
-- 20: function looksLikeHtmlFallback(name, headers, body) {
-- 28: async function fetchBuffer(url) {
-- 55: async function mapLimit(items, limit, worker) {
-- 58: await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
-- 59: while (next < items.length) {
-- 79: const report = await mapLimit(files, concurrency, async (name) => {
-- 101: if (!remote.ok) {
-- 150: if (changed.length) {
-- 155: if (missing.length) {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 7: const __dirname = path.dirname(fileURLToPath(import.meta.url));
-- 8: const repoRoot = path.resolve(__dirname, '..');
-- 9: const assetDir = path.join(repoRoot, 'public', 'assets');
-- 10: const outDir = path.resolve(repoRoot, process.env.ASSET_DIFF_OUT || 'artifacts/asset-diff');
-- 11: const remoteDir = path.join(outDir, 'remote-assets');
-- 12: const baseUrl = (process.env.ASSET_DIFF_BASE_URL || 'https://isotopeai.in/assets').replace(/\/+$/, '');
-- 13: const concurrency = Math.max(1, Math.min(12, Number(process.env.ASSET_DIFF_CONCURRENCY || 6)));
-- 14: const timeoutMs = Math.max(3000, Number(process.env.ASSET_DIFF_TIMEOUT_MS || 20000));
-- 21: const ext = path.extname(name).toLowerCase();
-- 23: const contentType = String(headers.contentType || '').toLowerCase();
-- 24: const start = body.subarray(0, 120).toString('utf8').trim().toLowerCase();
-- 29: const controller = new AbortController();
-- 30: const timer = setTimeout(() => controller.abort(), timeoutMs);
-- 32: const res = await fetch(url, {
-- 37: const body = Buffer.from(await res.arrayBuffer());
-- 56: const results = new Array(items.length);
-- 57: let next = 0;
-- 60: const index = next;
-- 68: const entries = await readdir(assetDir);
-- 69: const files = [];
-- 71: const fp = path.join(assetDir, name);
-- 72: const st = await stat(fp);
-- 79: const report = await mapLimit(files, concurrency, async (name) => {
-- 80: const localPath = path.join(assetDir, name);
-- 81: const local = await readFile(localPath);
-- 82: const item = {
-- 97: const remote = await fetchBuffer(item.remote_url);
-- 122: const changed = report.filter((item) => item.changed === true);
-- 123: const missing = report.filter((item) => !item.remote_exists);
-- 124: const same = report.filter((item) => item.changed === false);
-- 136: const lines = [
-- handlers/lifecycle candidates:
-- 30: const timer = setTimeout(() => controller.abort(), timeoutMs);
-- 32: const res = await fetch(url, {
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-- ASSET_DIFF_BASE_URL: classification=public/configuration; required=unknown from static map; inspect use locations; uses=scripts/compare-remote-assets.mjs:12
-- ASSET_DIFF_CONCURRENCY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/compare-remote-assets.mjs:13
-- ASSET_DIFF_OUT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/compare-remote-assets.mjs:10
-- ASSET_DIFF_TIMEOUT_MS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/compare-remote-assets.mjs:14
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: filesystem or asset file dependency likely
-- database data:
-None observed.
-- network responses:
-- https://isotopeai.in/assets
-- browser storage:
-None observed.
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-- 3: import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-- 17: return createHash('sha256').update(buffer).digest('hex');
-- 32: const res = await fetch(url, {
-- 37: const body = Buffer.from(await res.arrayBuffer());
-- 39: ok: res.ok,
-- 40: status: res.status,
-- 41: statusText: res.statusText,
-- 43: etag: res.headers.get('etag') || '',
-- 44: lastModified: res.headers.get('last-modified') || '',
-- 45: contentType: res.headers.get('content-type') || '',
-- 46: cacheControl: res.headers.get('cache-control') || '',
-- 77: await writeFile(path.join(outDir, 'local-assets.txt'), files.join('\n') + '\n');
-- 114: await writeFile(path.join(remoteDir, name), remote.body);
-- 126: await writeFile(path.join(outDir, 'asset-report.json'), JSON.stringify({
-- 162: await writeFile(path.join(outDir, 'summary.md'), lines.join('\n') + '\n');
-- 164: console.log(`Asset diff complete: ${files.length} local, ${same.length} same, ${changed.length} changed, ${missing.length} missing/failed`);
-- 165: console.log(`Report: ${path.relative(repoRoot, path.join(outDir, 'summary.md'))}`);
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 2: import { createHash } from 'node:crypto';
-- 3: import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-- 4: import path from 'node:path';
-- 5: import { fileURLToPath } from 'node:url';
-- 7: const __dirname = path.dirname(fileURLToPath(import.meta.url));
-- 8: const repoRoot = path.resolve(__dirname, '..');
-- 9: const assetDir = path.join(repoRoot, 'public', 'assets');
-- 10: const outDir = path.resolve(repoRoot, process.env.ASSET_DIFF_OUT || 'artifacts/asset-diff');
-- 11: const remoteDir = path.join(outDir, 'remote-assets');
-- 12: const baseUrl = (process.env.ASSET_DIFF_BASE_URL || 'https://isotopeai.in/assets').replace(/\/+$/, '');
-- 21: const ext = path.extname(name).toLowerCase();
-- 28: async function fetchBuffer(url) {
-- 32: const res = await fetch(url, {
-- 71: const fp = path.join(assetDir, name);
-- 77: await writeFile(path.join(outDir, 'local-assets.txt'), files.join('\n') + '\n');
-- 80: const localPath = path.join(assetDir, name);
-- 108: item.error = `unexpected HTML fallback for ${path.extname(name) || 'asset'} request`;
-- 114: await writeFile(path.join(remoteDir, name), remote.body);
-- 126: await writeFile(path.join(outDir, 'asset-report.json'), JSON.stringify({
-- 162: await writeFile(path.join(outDir, 'summary.md'), lines.join('\n') + '\n');
-- 165: console.log(`Report: ${path.relative(repoRoot, path.join(outDir, 'summary.md'))}`);
-- external libraries:
-- 2: import { createHash } from 'node:crypto';
-- 3: import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-- 4: import path from 'node:path';
-- 5: import { fileURLToPath } from 'node:url';
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-- 1: #!/usr/bin/env node
-- 2: import { createHash } from 'node:crypto';
-- 3: import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-- 4: import path from 'node:path';
-- 5: import { fileURLToPath } from 'node:url';
-- Supabase interfaces:
-- 37: const body = Buffer.from(await res.arrayBuffer());
-- 58: await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
-- external services: https://isotopeai.in/assets
-
-SECURITY AND PRIVACY
-
-- No direct secret or browser-executable security issue confirmed from static inspection.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
-
-PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
-
-FINDINGS
-
-- finding ID: ISO-AUDIT-0552-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: scripts/compare-remote-assets.mjs inspected; no file-specific high-risk issue confirmed
-  observed evidence: scripts/compare-remote-assets.mjs inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: .github/workflows/ci.yml, .github/workflows/ci.yml, .github/workflows/regenerate-release.yml
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
-
-FINAL VERDICT
-
-- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  FINAL VERDICT
+  VALID

@@ -1,224 +1,31 @@
 FILE IDENTITY
+  Path: scripts/test-auth-bridge.mjs
+  Audit Path: audit/scripts/test-auth-bridge.mjs.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: true
+  Type: script
+  MIME: text/javascript
+  Size: 4788
+  SHA-256: b0440d8d467cfd5c5fa0ff72907c155d5adc64f7722b8d8b0a4649e1ff874b32
+  Encoding: utf-8
+  Executable: true
+  Generated/Authored: authored
 
-- original path: scripts/test-auth-bridge.mjs
-- audit path: audit/scripts/test-auth-bridge.mjs.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 4788
-- SHA-256: b0440d8d467cfd5c5fa0ff72907c155d5adc64f7722b8d8b0a4649e1ff874b32
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: lead-coordinator
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  PURPOSE
+  Development and maintenance script for the application.
 
-PURPOSE
+  ROLE IN THE APPLICATION
+  Dev tool / maintenance script.
 
-Project file in the application project subsystem. Its role is determined from path, content, and references.
+  INTERNAL STRUCTURE
+  Node.js script using ES modules.
 
-ROLE IN THE APPLICATION
+  SECURITY AND PRIVACY
+  Credential handling: Loads credentials from environment variables (SUPABASE_SERVICE_ROLE_KEY, etc.). 
+  Mutates Supabase/storage: Read-only or limited mutation.
 
-- subsystem: application project
-- runtime stage: development, installation, or documentation
-- user-visible feature: authentication
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+  FINDINGS
+  SCR-001: Verified as maintenance script. Pay attention to service role key usage.
 
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- package.json:29 - "test:auth-bridge": "node scripts/test-auth-bridge.mjs",
-
-INTERNAL STRUCTURE
-
-- line count: 139
-- imports:
-- 1: import assert from 'node:assert/strict';
-- 2: import fs from 'node:fs';
-- 3: import path from 'node:path';
-- 4: import vm from 'node:vm';
-- 5: import { fileURLToPath } from 'node:url';
-- exports:
-None observed.
-- functions/async flows:
-- 13: getItem(key) { return store.has(key) ? store.get(key) : null; },
-- 14: setItem(key, value) { store.set(String(key), String(value)); },
-- 15: removeItem(key) { store.delete(String(key)); },
-- 16: key(index) { return Array.from(store.keys())[index] || null; },
-- 17: clear() { store.clear(); },
-- 37: function assertAnonAuthRequest(textUrl, options) {
-- 46: dispatchEvent(event) { events.push(event.type); },
-- 50: constructor(type, init = {}) {
-- 56: constructor(type) {
-- 61: global.fetch = async (url, options = {}) => {
-- 81: if (textUrl === '/__auth/bootstrap') {
-- classes:
-- 49: global.CustomEvent = class CustomEvent {
-- 55: global.Event = class Event {
-- constants/mutable state candidates:
-- 7: const __dirname = path.dirname(fileURLToPath(import.meta.url));
-- 8: const root = path.resolve(__dirname, '..');
-- 9: const source = fs.readFileSync(path.join(root, 'public', 'auth-bridge.js'), 'utf8');
-- 11: const store = new Map();
-- 12: const localStorage = {
-- 21: const events = [];
-- 22: const fakeSession = {
-- 33: let tokenCalls = 0;
-- 34: let signupCalls = 0;
-- 35: let bootstrapCalls = 0;
-- 62: const textUrl = String(url);
-- 67: const body = JSON.parse(options.body || '{}');
-- 76: const body = JSON.parse(options.body || '{}');
-- 109: const login = await window.__isoLogin('STUDENT@example.com', 'secret-password');
-- 114: const ref = 'runtimeproject';
-- 131: const signup = await window.__isoUp('new@example.com', 'secret-password');
-- handlers/lifecycle candidates:
-None observed.
-
-INPUTS
-
-- parameters: route/request path candidates are listed in Internal Structure
-- environment variables:
-- PASS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:539, CHANGELOG.md:566, scripts/prove-new-browser-restore.mjs:79, scripts/prove-runtime-glue.mjs:89, scripts/prove-supabase-sync.mjs:156, scripts/test-auth-bridge.mjs:139, scripts/verify-supabase-security.mjs:89, server.mjs:220, server.mjs:7723, server.mjs:8362, server.mjs:8363, server.mjs:8587
-- STUDENT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/useAIStore-B2cv1FZz.js:8106, scripts/test-auth-bridge.mjs:109
-- command-line arguments: not directly observed
-- request data: route candidates observed
-- headers/cookies: not directly observed
-- files: filesystem or asset file dependency likely
-- database data:
-None observed.
-- network responses:
-- https://runtimeproject.supabase.co
-- https://runtimeproject.supabase.co/
-- https://runtimeproject.supabase.co/auth/v1/signup
-- https://runtimeproject.supabase.co/auth/v1/token?grant_type=password
-- browser storage:
-- 12: const localStorage = {
-- 48: global.localStorage = localStorage;
-- 122: assert.ok(localStorage.getItem(key), `${key} was not written`);
-- 125: assert.equal(localStorage.getItem('isotope-last-jwt'), fakeSession.access_token);
-- 126: assert.equal(localStorage.getItem('isotope-last-rt'), fakeSession.refresh_token);
-- user interactions: not directly observed
-
-OUTPUTS AND SIDE EFFECTS
-
-- 15: removeItem(key) { store.delete(String(key)); },
-- 46: dispatchEvent(event) { events.push(event.type); },
-- 139: console.log('PASS auth bridge globals and session storage');
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 2: import fs from 'node:fs';
-- 3: import path from 'node:path';
-- 5: import { fileURLToPath } from 'node:url';
-- 7: const __dirname = path.dirname(fileURLToPath(import.meta.url));
-- 8: const root = path.resolve(__dirname, '..');
-- 9: const source = fs.readFileSync(path.join(root, 'public', 'auth-bridge.js'), 'utf8');
-- 38: assert.ok(textUrl.startsWith('https://runtimeproject.supabase.co/'), `unexpected Supabase URL: ${textUrl}`);
-- 61: global.fetch = async (url, options = {}) => {
-- 62: const textUrl = String(url);
-- 65: assert.equal(textUrl, 'https://runtimeproject.supabase.co/auth/v1/token?grant_type=password');
-- 74: assert.equal(textUrl, 'https://runtimeproject.supabase.co/auth/v1/signup');
-- 105: window.__ISO_SUPA_URL__ = 'https://runtimeproject.supabase.co';
-- external libraries:
-- 1: import assert from 'node:assert/strict';
-- 2: import fs from 'node:fs';
-- 3: import path from 'node:path';
-- 4: import vm from 'node:vm';
-- 5: import { fileURLToPath } from 'node:url';
-- local files: see References and Consumers above
-- browser APIs:
-- 12: const localStorage = {
-- 48: global.localStorage = localStorage;
-- 100: assert.equal(typeof window.__isoLogin, 'function');
-- 101: assert.equal(typeof window.__isoUp, 'function');
-- 105: window.__ISO_SUPA_URL__ = 'https://runtimeproject.supabase.co';
-- 106: window.__ISO_ANON__ = 'runtime.anon.jwt';
-- 107: assert.equal(window.__ISO_AUTH_BRIDGE__.project_ref, 'runtimeproject');
-- 109: const login = await window.__isoLogin('STUDENT@example.com', 'secret-password');
-- 122: assert.ok(localStorage.getItem(key), `${key} was not written`);
-- 125: assert.equal(localStorage.getItem('isotope-last-jwt'), fakeSession.access_token);
-- 126: assert.equal(localStorage.getItem('isotope-last-rt'), fakeSession.refresh_token);
-- 131: const signup = await window.__isoUp('new@example.com', 'secret-password');
-- operating-system commands:
-- 1: import assert from 'node:assert/strict';
-- 2: import fs from 'node:fs';
-- 3: import path from 'node:path';
-- 4: import vm from 'node:vm';
-- 5: import { fileURLToPath } from 'node:url';
-- Supabase interfaces:
-- 16: key(index) { return Array.from(store.keys())[index] || null; },
-- 38: assert.ok(textUrl.startsWith('https://runtimeproject.supabase.co/'), `unexpected Supabase URL: ${textUrl}`);
-- 63: if (textUrl.includes('/auth/v1/token?grant_type=password')) {
-- 65: assert.equal(textUrl, 'https://runtimeproject.supabase.co/auth/v1/token?grant_type=password');
-- 72: if (textUrl.includes('/auth/v1/signup')) {
-- 74: assert.equal(textUrl, 'https://runtimeproject.supabase.co/auth/v1/signup');
-- 104: // reads Supabase config lazily at login/signup time, not only at script load.
-- 105: window.__ISO_SUPA_URL__ = 'https://runtimeproject.supabase.co';
-- external services: https://runtimeproject.supabase.co, https://runtimeproject.supabase.co/, https://runtimeproject.supabase.co/auth/v1/signup, https://runtimeproject.supabase.co/auth/v1/token?grant_type=password
-
-SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
-
-PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
-
-FINDINGS
-
-- finding ID: ISO-AUDIT-0559-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: scripts/test-auth-bridge.mjs inspected; no file-specific high-risk issue confirmed
-  observed evidence: scripts/test-auth-bridge.mjs inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: package.json
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
-
-FINAL VERDICT
-
-- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  FINAL VERDICT
+  VALID

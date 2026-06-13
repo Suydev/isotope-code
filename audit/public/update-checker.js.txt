@@ -1,321 +1,61 @@
 FILE IDENTITY
-
-- original path: public/update-checker.js
+- path: public/update-checker.js
 - audit path: audit/public/update-checker.js.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 13177
+- commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+- tracked: true
+- type: JavaScript
+- MIME: application/javascript
+- size: 13177
 - SHA-256: d4d48db151132ac4ef7be0b541f4ce3c9f2fd337de701ebe694076e7f99f8090
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: likely minified/generated
-- primary subsystem: installer/platform
-- primary auditor: installer-platform-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+- encoding: UTF-8
+- executable: false
+- generated/authored: Authored
 
 PURPOSE
-
-Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+Polls the local server to check for software updates and displays a notification banner if a new version is available.
 
 ROLE IN THE APPLICATION
-
-- subsystem: installer/platform
-- runtime stage: browser/runtime or static serving
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: likely minified/generated
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+- Subsystem: Maintenance / Update
+- Runtime stage: Background (Post-launch)
+- Active/legacy: Active
 
 REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- CONTRIBUTING.md:43 - | `public/update-checker.js` | In-app update banner |
-- docs/BUG_FIXES.md:41 - **File**: `public/update-checker.js` (Line 212-213)
-- docs/BUG_FIXES.md:62 - **File**: `public/update-checker.js` (Line 203)
-- docs/BUG_FIXES.md:86 - **File**: `public/update-checker.js` (Line 208)
-- docs/BUG_FIXES.md:176 - **File**: `public/update-checker.js` (Line 129-130)
-- docs/BUG_FIXES.md:288 - | `public/update-checker.js` | Dismissal logic + error logging + timer cleanup |
-- docs/BUG_FIXES.md:297 - 2. **a848d3a** — `public/update-checker.js`: Fix update dismissal logic, add error logging, and prevent timer leaks
-- index.html:49 - <script src="/update-checker.js" defer></script>
-- public/sw.js:30 - '/update-checker.js',
-- public/sw.js:60 - '/update-checker.js',
-- server.mjs:123 - '/update-checker.js',
-- server.mjs:7645 - ok: fileContains('public/update-checker.js', "fetch('/api/version'") && fileContains('public/update-checker.js', 'clearStaleFlags'),
+- Injected in index.html.
 
 INTERNAL STRUCTURE
-
-- line count: 262
-- imports:
-None observed.
-- exports:
-None observed.
-- functions/async flows:
-- 20: function escHtml(str) {
-- 24: function platformHint() {
-- 34: function injectStyles() {
-- 55: function copyCommand(btn) {
-- 57: function set(ok) {
-- 61: setTimeout(function () { btn.textContent = old; }, 1400);
-- 63: if (navigator.clipboard && navigator.clipboard.writeText) {
-- 80: function showDialog() {
-- 81: if (typeof window.__isoShowUpdateDialog === 'function') {
-- 102: if (!css) {
-- 116: function buildBanner(sha, message) {
-- 141: setTimeout(function () { if (b.parentNode) b.remove(); }, 300);
-- 144: requestAnimationFrame(function () {
-- 145: requestAnimationFrame(function () { b.classList.add('iso-banner-visible'); });
-- 149: function clearStaleFlags() {
-- 155: function hideBanner() {
-- 159: setTimeout(function () { if (old.parentNode) old.remove(); }, 300);
-- 162: function localServerPreflight() {
-- 163: if (!navigator.onLine || window.__isoLocalServerOffline === true) {
-- 182: function runCheck() {
-- 196: if (!data || !data.hasUpdate || !data.latest) {
-- 197: if (data && data.hasUpdate === false) {
-- 216: function startPolling() {
-- 236: if (detail.serverOnline === false || detail.browserOnline === false) {
-- 252: function init() {
-- 257: if (document.readyState === 'loading') {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 8: var POLL_INTERVAL = 10 * 60 * 1000;
-- 9: var BANNER_ID = '__iso_update_banner__';
-- 10: var DISMISS_KEY = '__iso_update_dismissed__';
-- 11: var STALE_UPDATE_KEYS = [
-- 18: var timer = null;
-- 25: var ua = navigator.userAgent || '';
-- 36: var s = document.createElement('style');
-- 56: var cmd = 'isotope update';
-- 59: var old = btn.textContent;
-- 68: var t = document.createElement('textarea');
-- 86: var old = document.getElementById('__iso_update_modal__');
-- 88: var wrap = document.createElement('div');
-- 101: var css = document.getElementById('__iso_update_modal_css__');
-- 109: var close = function () { if (wrap.parentNode) wrap.remove(); };
-- 117: var existing = document.getElementById(BANNER_ID);
-- 121: var shortSha = sha ? sha.slice(0, 7) : '';
-- 122: var shortMsg = message ? message.slice(0, 72) + (message.length > 72 ? '...' : '') : 'New version available';
-- 123: var b = document.createElement('div');
-- 156: var old = document.getElementById(BANNER_ID);
-- 203: var dismissed = '';
-- 206: var existing = document.getElementById(BANNER_ID);
-- 235: var detail = event && event.detail || {};
-- handlers/lifecycle candidates:
-- 61: setTimeout(function () { btn.textContent = old; }, 1400);
-- 110: wrap.querySelector('.iso-copy').addEventListener('click', function () { copyCommand(this); });
-- 111: wrap.querySelector('.iso-later').addEventListener('click', close);
-- 112: wrap.querySelector('.iso-update-x').addEventListener('click', close);
-- 113: wrap.querySelector('.iso-update-backdrop').addEventListener('click', close);
-- 137: b.querySelector('.iso-btn-command').addEventListener('click', showDialog);
-- 138: b.querySelector('.iso-btn-dismiss').addEventListener('click', function () {
-- 141: setTimeout(function () { if (b.parentNode) b.remove(); }, 300);
-- 159: setTimeout(function () { if (old.parentNode) old.remove(); }, 300);
-- 169: return fetch('/api/version', { cache: 'no-store' })
-- 187: return fetch('/api/check-update', { cache: 'no-store' });
-- 218: timer = setInterval(runCheck, POLL_INTERVAL);
-- 224: window.addEventListener('online', function () {
-- 228: window.addEventListener('offline', function () {
-- 234: window.addEventListener('isotope:local-status', function (event) {
-- 245: document.addEventListener('visibilitychange', function () {
-- 248: window.addEventListener('beforeunload', function () {
-- 254: setTimeout(runCheck, 4000);
-- 258: document.addEventListener('DOMContentLoaded', init);
+- Polling interval (300,000ms = 5 minutes).
+- localServerPreflight(): Checks if server is alive.
+- runCheck(): Fetches /api/check-update.
+- buildBanner(): DOM manipulation to show update UI.
 
 INPUTS
-
-- parameters: route/request path candidates are listed in Internal Structure
-- environment variables:
-- BANNER_ID: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/update-checker.js:9, public/update-checker.js:39, public/update-checker.js:41, public/update-checker.js:42, public/update-checker.js:43, public/update-checker.js:44, public/update-checker.js:45, public/update-checker.js:46, public/update-checker.js:47, public/update-checker.js:48, public/update-checker.js:49, public/update-checker.js:50
-- DISMISS_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=public/pwa-local.js:6, public/pwa-local.js:46, public/pwa-local.js:56, public/pwa-local.js:64, public/update-checker.js:10, public/update-checker.js:12, public/update-checker.js:139, public/update-checker.js:204
-- POLL_INTERVAL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/update-checker.js:8, public/update-checker.js:218
-- STALE_UPDATE_KEYS: classification=secret; required=unknown from static map; inspect use locations; uses=public/update-checker.js:11, public/update-checker.js:151
-- command-line arguments: not directly observed
-- request data: route candidates observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-- https://github.com/Suydev/isotope-code
-- browser storage:
-- 139: try { localStorage.setItem(DISMISS_KEY, sha); } catch (e) {}
-- 151: STALE_UPDATE_KEYS.forEach(function (key) { localStorage.removeItem(key); });
-- 204: try { dismissed = localStorage.getItem(DISMISS_KEY) || ''; } catch (e) {}
-- user interactions: browser/UI file may react to user actions
+- /api/version
+- /api/check-update
+- localStorage (dismissal flags).
 
 OUTPUTS AND SIDE EFFECTS
-
-- 2: * Isotope local-server update checker.
-- 9: var BANNER_ID = '__iso_update_banner__';
-- 10: var DISMISS_KEY = '__iso_update_dismissed__';
-- 11: var STALE_UPDATE_KEYS = [
-- 13: 'update_available',
-- 14: 'isotope_update_available',
-- 15: '__iso_update_available__',
-- 16: '__isotope_update_available__'
-- 27: return 'Android/Termux: run isotope update in Termux. If Termux Widget shortcuts are installed, tap isotope-update from your home screen.';
-- 29: if (/Windows/i.test(ua)) return 'Windows: open Command Prompt or PowerShell and run isotope update. If missing, run setup.bat again.';
-- 30: if (/Macintosh|Mac OS/i.test(ua)) return 'macOS: open Terminal and run isotope update. If missing, run bash setup.sh again.';
-- 31: return 'Linux/Termux: open a terminal and run isotope update. If missing, run bash setup.sh again.';
-- 35: if (document.getElementById('__iso_update_styles__')) return;
-- 37: s.id = '__iso_update_styles__';
-- 56: var cmd = 'isotope update';
-- 75: t.remove();
-- 81: if (typeof window.__isoShowUpdateDialog === 'function') {
-- 82: window.__isoShowUpdateDialog();
-- 86: var old = document.getElementById('__iso_update_modal__');
-- 87: if (old) old.remove();
-- 89: wrap.id = '__iso_update_modal__';
-- 91: '<div class="iso-update-backdrop"></div>' +
-- 92: '<section class="iso-update-dialog" role="dialog" aria-modal="true" aria-labelledby="iso-update-title">' +
-- 93: '<button class="iso-update-x" type="button" aria-label="Close">x</button>' +
-- 94: '<h2 id="iso-update-title">Update available</h2>' +
-- 95: '<p>A new version of Isotope is available. Because this app runs locally on your device, update must be applied through the local command system.</p>' +
-- 96: '<label>Run this command</label><pre><code>isotope update</code></pre>' +
-- 97: '<p class="iso-update-hint">' + escHtml(platformHint()) + '</p>' +
-- 98: '<p class="iso-update-hint">After update, run <code>isotope start</code> if the server did not restart automatically.</p>' +
-- 99: '<div class="iso-update-actions"><button class="iso-copy" type="button">Copy command</button><button class="iso-later" type="button">Later</button><a class="iso-docs" href="https://github.com/Suydev/isotope-code" target="_blank" rel="noopener">Docs</a></div>' 
-- 101: var css = document.getElementById('__iso_update_modal_css__');
-- 104: css.id = '__iso_update_modal_css__';
-- 105: css.textContent = '#__iso_update_modal__{position:fixed;inset:0;z-index:2147483647;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f4f4f5;display:flex;align-items:center;justify-content:center}#__iso_update_modal__ .iso-update-backdro
-- 109: var close = function () { if (wrap.parentNode) wrap.remove(); };
-- 112: wrap.querySelector('.iso-update-x').addEventListener('click', close);
-- 113: wrap.querySelector('.iso-update-backdrop').addEventListener('click', close);
-- 118: if (existing) existing.remove();
-- 130: '<span class="iso-tag">Update</span>',
-- 134: '<button class="iso-btn-command" type="button">Update command</button>',
-- 139: try { localStorage.setItem(DISMISS_KEY, sha); } catch (e) {}
-- 140: b.classList.remove('iso-banner-visible');
-- 141: setTimeout(function () { if (b.parentNode) b.remove(); }, 300);
-- 143: document.body.insertBefore(b, document.body.firstChild);
-- 151: STALE_UPDATE_KEYS.forEach(function (key) { localStorage.removeItem(key); });
-- 158: old.classList.remove('iso-banner-visible');
-- 159: setTimeout(function () { if (old.parentNode) old.remove(); }, 300);
-- 169: return fetch('/api/version', { cache: 'no-store' })
-- 187: return fetch('/api/check-update', { cache: 'no-store' });
-- 191: if (!r.ok) throw new Error('update check unavailable');
-- 196: if (!data || !data.hasUpdate || !data.latest) {
-- 197: if (data && data.hasUpdate === false) {
-- 211: console.warn('[IsotopeUpdateChecker] Error:', err.message);
-- 221: window.__isoShowUpdateCommand = showDialog;
-- 222: window.__isoApplyUpdate = showDialog;
+- DOM updates (injects banner).
+- Console warnings.
 
 DATA FLOW
-
-Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 99: '<div class="iso-update-actions"><button class="iso-copy" type="button">Copy command</button><button class="iso-later" type="button">Later</button><a class="iso-docs" href="https://github.com/Suydev/isotope-code" target="_blank" rel="noopener">Docs</a></div>' 
-- external libraries:
-None observed.
-- local files: see References and Consumers above
-- browser APIs:
-- 25: var ua = navigator.userAgent || '';
-- 35: if (document.getElementById('__iso_update_styles__')) return;
-- 36: var s = document.createElement('style');
-- 52: document.head.appendChild(s);
-- 63: if (navigator.clipboard && navigator.clipboard.writeText) {
-- 64: navigator.clipboard.writeText(cmd).then(function () { set(true); }).catch(function () { set(false); });
-- 68: var t = document.createElement('textarea');
-- 72: document.body.appendChild(t);
-- 74: document.execCommand('copy');
-- 81: if (typeof window.__isoShowUpdateDialog === 'function') {
-- 82: window.__isoShowUpdateDialog();
-- 86: var old = document.getElementById('__iso_update_modal__');
-- 88: var wrap = document.createElement('div');
-- 101: var css = document.getElementById('__iso_update_modal_css__');
-- 103: css = document.createElement('style');
-- 106: document.head.appendChild(css);
-- 108: document.body.appendChild(wrap);
-- 117: var existing = document.getElementById(BANNER_ID);
-- 123: var b = document.createElement('div');
-- 139: try { localStorage.setItem(DISMISS_KEY, sha); } catch (e) {}
-- 143: document.body.insertBefore(b, document.body.firstChild);
-- 151: STALE_UPDATE_KEYS.forEach(function (key) { localStorage.removeItem(key); });
-- 156: var old = document.getElementById(BANNER_ID);
-- 163: if (!navigator.onLine || window.__isoLocalServerOffline === true) {
-- 164: window.__isoLocalServerOffline = true;
-- 175: window.__isoLocalServerOffline = true;
-- 186: window.__isoLocalServerOffline = false;
-- 204: try { dismissed = localStorage.getItem(DISMISS_KEY) || ''; } catch (e) {}
-- 206: var existing = document.getElementById(BANNER_ID);
-- 221: window.__isoShowUpdateCommand = showDialog;
-- 222: window.__isoApplyUpdate = showDialog;
-- 224: window.addEventListener('online', function () {
-- 228: window.addEventListener('offline', function () {
-- 230: window.__isoLocalServerOffline = true;
-- 234: window.addEventListener('isotope:local-status', function (event) {
-- 245: document.addEventListener('visibilitychange', function () {
-- 246: if (!document.hidden && navigator.onLine) runCheck();
-- 248: window.addEventListener('beforeunload', function () {
-- 257: if (document.readyState === 'loading') {
-- 258: document.addEventListener('DOMContentLoaded', init);
-- operating-system commands:
-- 30: if (/Macintosh|Mac OS/i.test(ua)) return 'macOS: open Terminal and run isotope update. If missing, run bash setup.sh again.';
-- 31: return 'Linux/Termux: open a terminal and run isotope update. If missing, run bash setup.sh again.';
-- Supabase interfaces:
-None observed.
-- external services: https://github.com/Suydev/isotope-code
+1. Timer triggers check.
+2. Script pings local server.
+3. If update exists, banner is shown.
 
 SECURITY AND PRIVACY
-
-- No direct secret or browser-executable security issue confirmed from static inspection.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Communicates only with localhost/127.0.0.1.
 
 OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- Suspends polling when offline.
 
 PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+- Low impact due to long polling interval.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0532-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: public/update-checker.js inspected; no file-specific high-risk issue confirmed
-  observed evidence: public/update-checker.js inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: CONTRIBUTING.md, docs/BUG_FIXES.md, docs/BUG_FIXES.md
-  regression risk: Review behavior against existing tests before changing.
+- UC-001: Direct DOM manipulation for banner injection. (Severity: INFO, Status: CONFIRMED)
 
 POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+- Graceful failure when server is offline.
 
 FINAL VERDICT
-
-- role: Platform, installation, launch, update, or diagnostic script for running Isotope locally.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+Functional update notification system.

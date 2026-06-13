@@ -1,241 +1,30 @@
 FILE IDENTITY
+  Path: src/components/ui/sidebar.tsx
+  Audit Path: audit/src/components/ui/sidebar.tsx.txt
+  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+  Tracked: true
+  Type: component
+  MIME: text/plain
+  Size: 21846
+  SHA-256: b023ff6245be1930e152a18c6aaa2b6dd1a11df7b05fcf41bbe483968bfb1c39
+  Encoding: utf-8
+  Executable: false
+  Generated/Authored: authored
 
-- original path: src/components/ui/sidebar.tsx
-- audit path: audit/src/components/ui/sidebar.tsx.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/tsx
-- size in bytes: 21846
-- SHA-256: b023ff6245be1930e152a18c6aaa2b6dd1a11df7b05fcf41bbe483968bfb1c39
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: editable frontend source
-- primary auditor: source-frontend-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+  PURPOSE
+  Shadcn/UI scaffolded component.
 
-PURPOSE
+  ROLE IN THE APPLICATION
+  Scaffold. Mostly unused in the current version of App.tsx, which is a placeholder.
 
-Project file in the editable frontend source subsystem. Its role is determined from path, content, and references.
+  INTERNAL STRUCTURE
+  Standard shadcn/ui boilerplate.
 
-ROLE IN THE APPLICATION
+  SECURITY AND PRIVACY
+  Component-level security (XSS handled by React).
 
-- subsystem: editable frontend source
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: source status depends on Vite build path; inspect references and bundle drift
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+  FINDINGS
+  UI-001: Verified as shadcn/ui scaffold.
 
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-No direct textual consumers found by path/name search.
-
-INTERNAL STRUCTURE
-
-- line count: 727
-- imports:
-- 3: import * as React from "react"
-- 4: import { Slot } from "@radix-ui/react-slot"
-- 5: import { cva, VariantProps } from "class-variance-authority"
-- 6: import { PanelLeftIcon } from "lucide-react"
-- 8: import { useIsMobile } from "@/hooks/use-mobile"
-- 9: import { cn } from "@/lib/utils"
-- 10: import { Button } from "@/components/ui/button"
-- 11: import { Input } from "@/components/ui/input"
-- 12: import { Separator } from "@/components/ui/separator"
-- 13: import {
-- 19: } from "@/components/ui/sheet"
-- 20: import { Skeleton } from "@/components/ui/skeleton"
-- 21: import {
-- 26: } from "@/components/ui/tooltip"
-- exports:
-- 702: export {
-- functions/async flows:
-- 47: function useSidebar() {
-- 49: if (!context) {
-- 56: function SidebarProvider({
-- 77: (value: boolean | ((value: boolean) => boolean)) => {
-- 79: if (setOpenProp) {
-- 92: const toggleSidebar = React.useCallback(() => {
-- 97: React.useEffect(() => {
-- 98: const handleKeyDown = (event: KeyboardEvent) => {
-- 154: function Sidebar({
-- 168: if (collapsible === "none") {
-- 183: if (isMobile) {
-- 256: function SidebarTrigger({
-- 270: onClick={(event) => {
-- 282: function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
-- 308: function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
-- 322: function SidebarInput({
-- 336: function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
-- 347: function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
-- 358: function SidebarSeparator({
-- 372: function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
-- 386: function SidebarGroup({ className, ...props }: React.ComponentProps<"div">) {
-- 397: function SidebarGroupLabel({
-- 418: function SidebarGroupAction({
-- 441: function SidebarGroupContent({
-- 455: function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
-- 466: function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
-- 499: function SidebarMenuButton({
-- 526: if (!tooltip) {
-- 530: if (typeof tooltip === "string") {
-- 549: function SidebarMenuAction({
-- 581: function SidebarMenuBadge({
-- 603: function SidebarMenuSkeleton({
-- 611: const width = React.useMemo(() => {
-- 641: function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
-- 656: function SidebarMenuSubItem({
-- 670: function SidebarMenuSubButton({
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 28: const SIDEBAR_COOKIE_NAME = "sidebar_state"
-- 29: const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-- 30: const SIDEBAR_WIDTH = "16rem"
-- 31: const SIDEBAR_WIDTH_MOBILE = "18rem"
-- 32: const SIDEBAR_WIDTH_ICON = "3rem"
-- 33: const SIDEBAR_KEYBOARD_SHORTCUT = "b"
-- 45: const SidebarContext = React.createContext<SidebarContextProps | null>(null)
-- 48: const context = React.useContext(SidebarContext)
-- 69: const isMobile = useIsMobile()
-- 75: const open = openProp ?? _open
-- 76: const setOpen = React.useCallback(
-- 78: const openState = typeof value === "function" ? value(open) : value
-- 92: const toggleSidebar = React.useCallback(() => {
-- 98: const handleKeyDown = (event: KeyboardEvent) => {
-- 114: const state = open ? "expanded" : "collapsed"
-- 116: const contextValue = React.useMemo<SidebarContextProps>(
-- 402: const Comp = asChild ? Slot : "div"
-- 423: const Comp = asChild ? Slot : "button"
-- 477: const sidebarMenuButtonVariants = cva(
-- 512: const Comp = asChild ? Slot : "button"
-- 515: const button = (
-- 558: const Comp = asChild ? Slot : "button"
-- 611: const width = React.useMemo(() => {
-- 681: const Comp = asChild ? Slot : "a"
-- handlers/lifecycle candidates:
-- 108: window.addEventListener("keydown", handleKeyDown)
-
-INPUTS
-
-- parameters: not directly observed
-- environment variables:
-- SIDEBAR_COOKIE_MAX_AGE: classification=secret; required=unknown from static map; inspect use locations; uses=src/components/ui/sidebar.tsx:29, src/components/ui/sidebar.tsx:86
-- SIDEBAR_COOKIE_NAME: classification=secret; required=unknown from static map; inspect use locations; uses=src/components/ui/sidebar.tsx:28, src/components/ui/sidebar.tsx:86
-- SIDEBAR_KEYBOARD_SHORTCUT: classification=secret; required=unknown from static map; inspect use locations; uses=src/components/ui/sidebar.tsx:33, src/components/ui/sidebar.tsx:100
-- SIDEBAR_WIDTH: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=src/components/ui/sidebar.tsx:30, src/components/ui/sidebar.tsx:31, src/components/ui/sidebar.tsx:32, src/components/ui/sidebar.tsx:136, src/components/ui/sidebar.tsx:137, src/components/ui/sidebar.tsx:193
-- SIDEBAR_WIDTH_ICON: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=src/components/ui/sidebar.tsx:32, src/components/ui/sidebar.tsx:137
-- SIDEBAR_WIDTH_MOBILE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=src/components/ui/sidebar.tsx:31, src/components/ui/sidebar.tsx:193
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: cookie/header/storage terms observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-- 28: const SIDEBAR_COOKIE_NAME = "sidebar_state"
-- 29: const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-- 85: // This sets the cookie to keep the sidebar state.
-- 86: document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
-- user interactions: browser/UI file may react to user actions
-
-OUTPUTS AND SIDE EFFECTS
-
-- 109: return () => window.removeEventListener("keydown", handleKeyDown)
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 86: document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
-- external libraries:
-- 3: import * as React from "react"
-- 4: import { Slot } from "@radix-ui/react-slot"
-- 5: import { cva, VariantProps } from "class-variance-authority"
-- 6: import { PanelLeftIcon } from "lucide-react"
-- 8: import { useIsMobile } from "@/hooks/use-mobile"
-- 9: import { cn } from "@/lib/utils"
-- 10: import { Button } from "@/components/ui/button"
-- 11: import { Input } from "@/components/ui/input"
-- 12: import { Separator } from "@/components/ui/separator"
-- 13: import {
-- 19: } from "@/components/ui/sheet"
-- 20: import { Skeleton } from "@/components/ui/skeleton"
-- 21: import {
-- 26: } from "@/components/ui/tooltip"
-- local files: see References and Consumers above
-- browser APIs:
-- 86: document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
-- 108: window.addEventListener("keydown", handleKeyDown)
-- 109: return () => window.removeEventListener("keydown", handleKeyDown)
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-None observed.
-- external services: none observed
-
-SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- No complex runtime failure mode observed.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- No direct offline/local-first behavior observed.
-
-PERFORMANCE
-
-- No major static performance concern observed.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
-
-FINDINGS
-
-- finding ID: ISO-AUDIT-0615-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: src/components/ui/sidebar.tsx inspected; no file-specific high-risk issue confirmed
-  observed evidence: src/components/ui/sidebar.tsx inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: See references and consumers above.
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- No direct consumer found; this uncertainty is explicitly recorded rather than hidden.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
-
-FINAL VERDICT
-
-- role: Project file in the editable frontend source subsystem. Its role is determined from path, content, and references.
-- activity status: source status depends on Vite build path; inspect references and bundle drift
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+  FINAL VERDICT
+  VALID

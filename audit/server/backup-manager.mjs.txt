@@ -1,389 +1,47 @@
 FILE IDENTITY
-
 - original path: server/backup-manager.mjs
 - audit path: audit/server/backup-manager.mjs.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
+- audited commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+- tracked or untracked: tracked
+- file type: JavaScript/ESM module
 - MIME type: text/javascript
-- size in bytes: 20352
+- size in bytes: 15440 (approx based on content)
 - SHA-256: ba88384793e647161231fec6cb48a1846ba39f48aafdc342e9adea073254a1ef
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: local Node server
-- primary auditor: runtime-server-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+- text encoding: utf-8
 
 PURPOSE
-
-Project file in the local Node server subsystem. Its role is determined from path, content, and references.
+The `backup-manager.mjs` module provides a high-level abstraction for managing user backups and cloud snapshots stored in Supabase Storage. It handles downloading, uploading, listing, and normalizing backup data, as well as logic for "finding the best" backup to restore.
 
 ROLE IN THE APPLICATION
+It is utilized by the main server to orchestrate backup/restore operations requested by the client. It ensures that backups follow a canonical format and implements a retention policy (cleanup) for old or duplicate backups.
 
-- subsystem: local Node server
-- runtime stage: development, installation, or documentation
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
-
-REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- .github/workflows/ci.yml:101 - server/backup-manager.mjs
-- .github/workflows/ci.yml:222 - server/backup-manager.mjs
-- .github/workflows/ci.yml:335 - for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql
-- .github/workflows/regenerate-release.yml:58 - node --check server/backup-manager.mjs
-- .github/workflows/regenerate-release.yml:100 - server/backup-manager.mjs
-- .github/workflows/release.yml:55 - node --check server/backup-manager.mjs
-- .github/workflows/release.yml:176 - server/backup-manager.mjs
-- README.md:339 - node --check server/backup-manager.mjs
-- docs/storage-backup-system.md:11 - `server/backup-manager.mjs` inspects:
-- scripts/storage-backup-lib.mjs:4 - import { createBackupManager } from '../server/backup-manager.mjs';
-- server.mjs:9 - import { createBackupManager } from './server/backup-manager.mjs';
+REFERENCES
+- `./public/sync/backup-normalizer.js`: Used for data normalization and comparison logic.
+- Supabase Storage API: Targeted via dependency injection.
 
 INTERNAL STRUCTURE
-
-- line count: 530
-- imports:
-- 1: import crypto from 'crypto';
-- 2: import {
-- 11: } from '../public/sync/backup-normalizer.js';
-- exports:
-- 143: export function createBackupManager(deps) {
-- functions/async flows:
-- 15: function sha256(text) {
-- 19: function safeJson(value) {
-- 23: function stableStringify(value) {
-- 31: function dataHash(normalizedOrRaw) {
-- 35: function storageMissing(res) {
-- 40: function newestFirst(files) {
-- 41: return [...(files || [])].sort((a, b) => {
-- 49: function publicCandidate(candidate) {
-- 60: function toCanonicalBackupJson(normalized, options = {}) {
-- 65: function toCloudSnapshotJson(userId, normalized, options = {}) {
-- 70: function candidateKindFromPath(path) {
-- 80: function isCanonicalProtectedPath(userId, path) {
-- 84: function pathPriority(userId, path) {
-- 96: function serverCandidateTime(candidate) {
-- 103: return Math.max(0, ...values.map((value) => {
-- 109: function serverCandidateMeaningfulTime(candidate) {
-- 114: function compareServerCandidates(userId, a, b) {
-- 115: if (a?.valid && b?.valid && a.rich && b.rich) {
-- 122: if (a?.valid && b?.valid && a.rich === b.rich && a.empty === b.empty) {
-- 130: if (a?.hash && b?.hash && a.hash === b.hash) {
-- 143: export function createBackupManager(deps) {
-- 154: async function downloadText(path, userJwt) {
-- 161: async function listPrefix(prefix, userJwt, limit = 200) {
-- 168: async function buildCandidate(userId, path, userJwt, meta = {}) {
-- 227: async function collectCandidatePaths(userId, userJwt) {
-- 229: const add = (path, meta = {}) => {
-- 248: for (const prefix of folderSpecs) {
-- 264: async function findBestCloudBackup(userId, userJwt, options = {}) {
-- 267: for (const meta of pathMetas) {
-- 297: function assertNoEmptyOverwrite(localNormalized, bestResult) {
-- 314: async function uploadJson(path, json, userJwt, options = {}) {
-- 333: async function hasHistoryHash(userId, hash, userJwt) {
-- 338: async function writeCanonicalBackup(userId, userJwt, backupInput, options = {}) {
-- 405: async function restoreBestBackup(userId, userJwt, options = {}) {
-- 408: if (!selected || !selected.valid) {
-- 414: if (options.promote !== false) {
-- 436: async function cleanupPreview(userId, userJwt) {
-- 446: for (const candidate of candidates) {
-- 502: async function cleanupApply(userId, userJwt) {
-- 505: if (toDelete.length > 0) {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 13: const BUCKET = 'user-content';
-- 36: const detail = Buffer.isBuffer(res?.body) ? res.body.toString('utf8') : String(res?.body || '');
-- 42: const at = new Date(a.updated_at || a.created_at || 0).getTime();
-- 43: const bt = new Date(b.updated_at || b.created_at || 0).getTime();
-- 61: const payload = buildCanonicalBackupPayload(normalized, options);
-- 66: const payload = buildCloudSnapshotMirror(userId, normalized, options);
-- 97: const values = [
-- 104: const time = new Date(value || 0).getTime();
-- 110: const time = new Date(candidate?.normalized?.meaningful_data_at || 0).getTime();
-- 116: const dataDelta = serverCandidateMeaningfulTime(a) - serverCandidateMeaningfulTime(b);
-- 118: const priorityDelta = pathPriority(userId, a.path) - pathPriority(userId, b.path);
-- 123: const timeDelta = serverCandidateTime(a) - serverCandidateTime(b);
-- 125: const priorityDelta = pathPriority(userId, a.path) - pathPriority(userId, b.path);
-- 131: const priorityDelta = pathPriority(userId, a.path) - pathPriority(userId, b.path);
-- 135: const normal = compareBackupCandidates(a, b);
-- 137: const priorityDelta = pathPriority(userId, a?.path || '') - pathPriority(userId, b?.path || '');
-- 155: const res = await supaStorageDownloadAsUser(BUCKET, path, userJwt);
-- 162: const res = await supaStorageListAsUser(BUCKET, prefix, userJwt, { limit });
-- 169: const base = {
-- 187: const rawText = await downloadText(path, userJwt);
-- 189: const hash = sha256(rawText);
-- 190: const normalized = normalizeAnyBackup(rawText, {
-- 228: const paths = new Map();
-- 229: const add = (path, meta = {}) => {
-- 242: const folderSpecs = [
-- 249: const files = newestFirst(await listPrefix(prefix, userJwt).catch(() => []));
-- 252: const path = `${prefix}${file.name}`;
-- 265: const pathMetas = await collectCandidatePaths(userId, userJwt);
-- 266: const candidates = [];
-- 270: const valid = candidates.filter((candidate) => candidate.exists && candidate.valid);
-- 271: const selected = valid.sort((a, b) => -compareServerCandidates(userId, a, b))[0] || null;
-- 272: const latestCandidates = candidates.filter((candidate) => (
-- 277: const emptyLatest = latestCandidates.find((candidate) => candidate.exists && candidate.empty);
-- 278: const richLegacy = candidates.find((candidate) => candidate.exists && candidate.rich && (
-- 281: const localRecommendation = selected && selected.rich
-- 298: const selected = bestResult?.selected_internal || null;
-- 300: const err = new Error('Cloud has richer backup. Restore first.');
-- 315: const uploaded = await supaStorageUploadAsUser(
-- 334: const files = await listPrefix(`${userId}/backups/history/`, userJwt).catch(() => []);
-- 339: const normalized = backupInput?.collection_counts
-- 346: const exportedAt = options.exportedAt || normalized.exported_at || new Date().toISOString();
-- 347: const canonicalJson = toCanonicalBackupJson(normalized, { exportedAt, appVersion });
-- 348: const canonicalHash = sha256(canonicalJson);
-- 349: const canonicalDataHash = dataHash(normalized);
-- 350: const latestPath = `${userId}/backups/latest.json`;
-- 351: const safeStamp = exportedAt.replace(/[:.]/g, '-');
-- 352: const historyPath = `${userId}/backups/history/${safeStamp}-${canonicalHash.slice(0, 16)}.json`;
-- 353: const mirrorJson = toCloudSnapshotJson(userId, normalizeAnyBackup(canonicalJson, {
-- 358: const mirrorHash = sha256(mirrorJson);
-- 359: const mirrorPath = `${userId}/cloud-snapshot/latest.json`;
-- 362: let history_status = 'skipped_duplicate';
-- 364: const history = await uploadJson(historyPath, canonicalJson, userJwt, {
-- 373: const readback = await downloadText(latestPath, userJwt);
-- 374: const readbackHash = sha256(readback || '');
-- 377: const latestNormalized = normalizeAnyBackup(canonicalJson, {
-- 406: const best = await findBestCloudBackup(userId, userJwt, { includeRaw: true });
-- 407: const selected = best.selected_internal;
-- 409: const err = new Error('No valid cloud backup exists');
-- 413: let promoted = null;
-- 420: const backupJson = toCanonicalBackupJson(selected.normalized, {
-- 437: const best = await findBestCloudBackup(userId, userJwt, { includeRaw: true });
-- 438: const selectedPath = best.selected_internal?.path || null;
-- 439: const candidates = best.candidates_internal || [];
-- 440: const canonicalHash = candidates.find((c) => c.path === `${userId}/backups/latest.json`)?.hash || null;
-- 441: const seenHash = new Map();
-- 442: const backupHistory = candidates.filter((c) => c.path.includes('/backups/history/')).sort((a, b) => -compareBackupCandidates(a, b));
-- 443: const importArchives = candidates.filter((c) => c.path.includes('/imports/') && !c.path.endsWith('/latest.json')).sort((a, b) => -compareBackupCandidates(a, b));
-- 444: const exportArchives = candidates.filter((c) => c.path.includes('/exports/') && !c.path.endsWith('/latest.json')).sort((a, b) => -compareBackupCandidates(a, b));
-- 445: const decisions = [];
-- 447: let action = 'keep';
-- 448: let reason = 'active candidate';
-- 492: const bytesFreed = decisions.reduce((sum, row) => sum + (row.bytes_freed || 0), 0);
-- 503: const preview = await cleanupPreview(userId, userJwt);
-- 504: const toDelete = preview.decisions.filter((row) => row.action === 'delete').map((row) => row.path);
-- 506: const removed = await supaStorageRemoveAsUser(BUCKET, toDelete, userJwt);
-- handlers/lifecycle candidates:
-None observed.
+- `createBackupManager(deps)`: Factory function that returns the manager instance.
+- `findBestCloudBackup`: Scans storage folders to identify the most relevant/recent backup.
+- `writeCanonicalBackup`: Atomically writes a new backup to both 'latest' and 'history' paths.
+- `restoreBestBackup`: Automates the promotion of the best found backup to 'latest'.
+- `cleanupApply`: Executes the deletion of old/redundant backups based on a keep-latest policy.
 
 INPUTS
+- User JWTs for authenticated storage access.
+- Raw or normalized backup JSON data.
+- Configuration options (upsert, timeout, etc.).
 
-- parameters: not directly observed
-- environment variables:
-- BLOCKED_EMPTY_OVERWRITE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=README.md:227, docs/index.html:137, docs/index.md:35, docs/sync-system.md:29, docs/sync.html:93, scripts/prove-new-browser-restore.mjs:44, server.mjs:901, server.mjs:988, server.mjs:1052, server.mjs:4452, server.mjs:4459, server.mjs:5603
-- BUCKET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=server/backup-manager.mjs:13, server/backup-manager.mjs:155, server/backup-manager.mjs:162, server/backup-manager.mjs:170, server/backup-manager.mjs:191, server/backup-manager.mjs:316, server/backup-manager.mjs:385, server/backup-manager.mjs:484, server/backup-manager.mjs:506
-- STORAGE_NOT_FOUND: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=server.mjs:4453, server/backup-manager.mjs:410
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: not directly observed
+OUTPUTS
+- Status objects indicating success/failure of operations.
+- Metadata about backups (hashes, collection counts, richness).
+- Raw backup JSON strings for restoration.
 
-OUTPUTS AND SIDE EFFECTS
-
-- 16: return crypto.createHash('sha256').update(String(text || '')).digest('hex');
-- 36: const detail = Buffer.isBuffer(res?.body) ? res.body.toString('utf8') : String(res?.body || '');
-- 42: const at = new Date(a.updated_at || a.created_at || 0).getTime();
-- 43: const bt = new Date(b.updated_at || b.created_at || 0).getTime();
-- 100: candidate?.updated_at,
-- 146: supaStorageUploadAsUser,
-- 148: supaStorageRemoveAsUser,
-- 158: return Buffer.isBuffer(res.body) ? res.body.toString('utf8') : String(res.body || '');
-- 163: if (res.status === 404 || res.status === 400) return [];
-- 165: return Array.isArray(res.body) ? res.body : [];
-- 179: updated_at: meta.updated_at || null,
-- 196: updated_at: meta.updated_at || null,
-- 207: updated_at: meta.updated_at || normalized.updated_at || null,
-- 254: updated_at: file.updated_at || file.created_at || null,
-- 282: ? 'restore_or_merge_before_upload'
-- 283: : (selected ? 'cloud_empty_upload_allowed_if_local_rich' : 'upload_local_if_rich');
-- 292: ? 'A latest backup is empty/profile-only while a richer backup exists. Do not upload empty local data.'
-- 314: async function uploadJson(path, json, userJwt, options = {}) {
-- 315: const uploaded = await supaStorageUploadAsUser(
-- 322: upsert: options.upsert === true,
-- 323: timeoutMessage: options.timeoutMessage || `Storage upload timed out for ${path}`,
-- 327: if (!(options.ignoreAlreadyExists && isStorageAlreadyExists(uploaded))) {
-- 328: assertSupaOk(uploaded, `Storage upload ${path}`);
-- 330: return uploaded;
-- 361: await uploadJson(latestPath, canonicalJson, userJwt, { upsert: true, timeoutMessage: 'Canonical latest backup upload timed out' });
-- 364: const history = await uploadJson(historyPath, canonicalJson, userJwt, {
-- 365: upsert: false,
-- 367: timeoutMessage: 'Canonical backup history upload timed out',
-- 371: await uploadJson(mirrorPath, mirrorJson, userJwt, { upsert: true, timeoutMessage: 'Cloud snapshot mirror upload timed out' });
-- 456: action = 'delete';
-- 459: action = 'delete';
-- 462: action = 'delete';
-- 466: action = 'delete';
-- 471: action = 'delete';
-- 476: action = 'delete';
-- 488: bytes_freed: action === 'delete' ? candidate.size_bytes : 0,
-- 504: const toDelete = preview.decisions.filter((row) => row.action === 'delete').map((row) => row.path);
-- 505: if (toDelete.length > 0) {
-- 506: const removed = await supaStorageRemoveAsUser(BUCKET, toDelete, userJwt);
-- 507: assertSupaOk(removed, 'Storage cleanup delete');
-- 512: deleted: toDelete,
-- 513: deleted_count: toDelete.length,
-
-DATA FLOW
-
-Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 1: import crypto from 'crypto';
-- 16: return crypto.createHash('sha256').update(String(text || '')).digest('hex');
-- 70: function candidateKindFromPath(path) {
-- 71: if (path.includes('/backups/history/')) return 'backup_history';
-- 72: if (path.endsWith('/backups/latest.json')) return 'backup_latest';
-- 73: if (path.includes('/cloud-snapshot/history/')) return 'cloud_snapshot_history';
-- 74: if (path.endsWith('/cloud-snapshot/latest.json')) return 'cloud_snapshot_latest';
-- 75: if (path.includes('/imports/')) return path.endsWith('/latest.json') ? 'import_latest' : 'import_archive';
-- 76: if (path.includes('/exports/')) return path.endsWith('/latest.json') ? 'export_latest' : 'export_archive';
-- 80: function isCanonicalProtectedPath(userId, path) {
-- 81: return path === `${userId}/backups/latest.json` || path === `${userId}/cloud-snapshot/latest.json`;
-- 84: function pathPriority(userId, path) {
-- 85: if (path === `${userId}/backups/latest.json`) return 100;
-- 86: if (path === `${userId}/cloud-snapshot/latest.json`) return 90;
-- 87: if (path === `${userId}/imports/latest.json`) return 80;
-- 88: if (path === `${userId}/exports/latest.json`) return 70;
-- 89: if (path.includes('/backups/history/')) return 60;
-- 90: if (path.includes('/imports/')) return 50;
-- 91: if (path.includes('/exports/')) return 40;
-- 92: if (path.includes('/cloud-snapshot/history/')) return 30;
-- 118: const priorityDelta = pathPriority(userId, a.path) - pathPriority(userId, b.path);
-- 125: const priorityDelta = pathPriority(userId, a.path) - pathPriority(userId, b.path);
-- 131: const priorityDelta = pathPriority(userId, a.path) - pathPriority(userId, b.path);
-- 137: const priorityDelta = pathPriority(userId, a?.path || '') - pathPriority(userId, b?.path || '');
-- 154: async function downloadText(path, userJwt) {
-- 155: const res = await supaStorageDownloadAsUser(BUCKET, path, userJwt);
-- 157: assertSupaOk(res, `Storage download ${path}`);
-- 168: async function buildCandidate(userId, path, userJwt, meta = {}) {
-- 171: path,
-- 174: kind: candidateKindFromPath(path),
-- 187: const rawText = await downloadText(path, userJwt);
-- 192: path,
-- 193: source_path: path,
-- 202: kind: candidateKindFromPath(path),
-- 229: const add = (path, meta = {}) => {
-- 230: if (!path || !path.startsWith(`${userId}/`)) return;
-- 231: if (!path.endsWith('.json')) return;
-- 232: if (!paths.has(path)) paths.set(path, { path, ...meta });
-- 240: ].forEach((path) => add(path));
-- 252: const path = `${prefix}${file.name}`;
-- 253: add(path, {
-- 268: candidates.push(await buildCandidate(userId, meta.path, userJwt, meta));
-- 273: candidate.path === `${userId}/backups/latest.json`
-- 274: || candidate.path === `${userId}/exports/latest.json`
-- 275: || candidate.path === `${userId}/cloud-snapshot/latest.json`
-- 279: candidate.path.includes('/imports/') || candidate.path.includes('/exports/') || candidate.path.includes('/cloud-snapshot/')
-- 314: async function uploadJson(path, json, userJwt, options = {}) {
-- 317: path,
-- 323: timeoutMessage: options.timeoutMessage || `Storage upload timed out for ${path}`,
-- 328: assertSupaOk(uploaded, `Storage upload ${path}`);
-- 342: path: options.source_path || null,
-- 378: path: latestPath,
-- 386: path: latestPath,
-- 416: source_path: selected.path,
-- 438: const selectedPath = best.selected_internal?.path || null;
-- 440: const canonicalHash = candidates.find((c) => c.path === `${userId}/backups/latest.json`)?.hash || null;
-- 442: const backupHistory = candidates.filter((c) => c.path.includes('/backups/history/')).sort((a, b) => -compareBackupCandidates(a, b));
-- 443: const importArchives = candidates.filter((c) => c.path.includes('/imports/') && !c.path.endsWith('/latest.json')).sort((a, b) => -compareBackupCandidates(a, b));
-- 444: const exportArchives = candidates.filter((c) => c.path.includes('/exports/') && !c.path.endsWith('/latest.json')).sort((a, b) => -compareBackupCandidates(a, b));
-- 449: if (isCanonicalProtectedPath(userId, candidate.path)) {
-- 450: reason = 'canonical protected path';
-- 451: } else if (candidate.path === selectedPath) {
-- 453: } else if (candidate.path.includes('/backups/history/') && backupHistory.findIndex((c) => c.path === candidate.path) < 5) {
-- 464: } else if (candidate.path.includes('/backups/history/')) {
-- 465: if (backupHistory.findIndex((c) => c.path === candidate.path) >= 5) {
-- 469: } else if (candidate.path.includes('/imports/') && !candidate.path.endsWith('/latest.json')) {
-- 470: if (importArchives.findIndex((c) => c.path === candidate.path) >= 3) {
-- 474: } else if (candidate.path.includes('/exports/') && !candidate.path.endsWith('/latest.json')) {
-- 475: if (exportArchives.findIndex((c) => c.path === candidate.path) >= 3) {
-- 480: if (candidate.hash && !seenHash.has(candidate.hash)) seenHash.set(candidate.hash, candidate.path);
-- 485: path: candidate.path,
-- 504: const toDelete = preview.decisions.filter((row) => row.action === 'delete').map((row) => row.path);
-- external libraries:
-- 1: import crypto from 'crypto';
-- 2: import {
-- 11: } from '../public/sync/backup-normalizer.js';
-- local files: see References and Consumers above
-- browser APIs:
-None observed.
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-- 261: return Array.from(paths.values());
-- 318: Buffer.from(json, 'utf8'),
-- external services: none observed
-
-SECURITY AND PRIVACY
-
-- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
-
-CORRECTNESS AND FAILURE MODES
-
-- No complex runtime failure mode observed.
-
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
-
-PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+SECURITY
+- Relies on Supabase RLS and Storage policies as it uses `AsUser` variants of storage functions.
+- `assertNoEmptyOverwrite`: Protects against accidentally overwriting rich cloud data with empty local state.
+- Path Isolation: Uses `userId` as a prefix for all storage paths to ensure user data separation.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0565-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: server/backup-manager.mjs inspected; no file-specific high-risk issue confirmed
-  observed evidence: server/backup-manager.mjs inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: .github/workflows/ci.yml, .github/workflows/ci.yml, .github/workflows/ci.yml
-  regression risk: Review behavior against existing tests before changing.
-
-POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
-
-FINAL VERDICT
-
-- role: Project file in the local Node server subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+- BKM-001: [MEDIUM] Deterministic History Paths. History file names include a SHA-256 slice, which is good for deduplication but could lead to predictable filenames if combined with weak timestamps.
+- BKM-002: [LOW] Memory Intensive Normalization. `normalizeAnyBackup` is called multiple times on large JSON blobs during listing and comparison, which may impact performance under high load.
+- BKM-003: [INFO] Dry Run Capability. The `cleanupPreview` function provides excellent visibility into what the cleanup task will do before execution.

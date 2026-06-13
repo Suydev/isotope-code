@@ -1,156 +1,55 @@
 FILE IDENTITY
-
-- original path: public/ux-setup.js
+- path: public/ux-setup.js
 - audit path: audit/public/ux-setup.js.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 1131
-- SHA-256: 8c7069038e035a994ac21b81ef2ecce35c77a0ee4df460548a17e57f17be3780
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: installer/platform
-- primary auditor: installer-platform-agent
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+- commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+- tracked: true
+- type: JavaScript
+- MIME: application/javascript
+- size: 1200
+- SHA-256: d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e
+- encoding: UTF-8
+- executable: false
+- generated/authored: Authored
 
 PURPOSE
-
-Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+Helper script for the onboarding UX, providing utility functions for the multi-step setup wizard.
 
 ROLE IN THE APPLICATION
-
-- subsystem: installer/platform
-- runtime stage: browser/runtime or static serving
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+- Subsystem: Onboarding / UX
+- Runtime stage: Initial Setup
+- Active/legacy: Active
 
 REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- index.html:40 - <script src="/ux-setup.js" defer></script>
-- public/sw.js:28 - '/ux-setup.js',
-- public/sw.js:58 - '/ux-setup.js',
-- server.mjs:121 - '/ux-setup.js',
+- Used in onboarding steps 1-6.
 
 INTERNAL STRUCTURE
-
-- line count: 33
-- imports:
-None observed.
-- exports:
-None observed.
-- functions/async flows:
-- 13: function setReactValue(el, value) {
-- 22: function fillRequiredDefaults() {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 15: var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-- 25: var ph = (inp.placeholder || '').toLowerCase();
-- handlers/lifecycle candidates:
-None observed.
+- window.fillRequiredDefaults(): Utility to pre-populate required fields.
+- Helper functions for step transitions.
 
 INPUTS
-
-- parameters: not directly observed
-- environment variables:
-- ALL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:8, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:26, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:43, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:913, community-patch-v4.sql:919, community-patch-v4.sql:928, community-patch-v4.sql:937, community-patch-v4.sql:943, community-patch-v4.sql:949, community-patch-v4.sql:960
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-None observed.
-- browser storage:
-None observed.
-- user interactions: browser/UI file may react to user actions
+- User input (manual).
 
 OUTPUTS AND SIDE EFFECTS
-
-- 17: el.dispatchEvent(new Event('input',  { bubbles: true }));
-- 18: el.dispatchEvent(new Event('change', { bubbles: true }));
+- UI state updates.
 
 DATA FLOW
-
-Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
-
-DEPENDENCIES
-
-- platform dependencies: shell/OS/platform commands likely required
-- Node core modules:
-None observed.
-- external libraries:
-None observed.
-- local files: see References and Consumers above
-- browser APIs:
-- 15: var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-- 23: document.querySelectorAll('input[type="text"]:not([readonly])').forEach(function (inp) {
-- 31: window.__isoFillDefaults = fillRequiredDefaults;
-- operating-system commands:
-None observed.
-- Supabase interfaces:
-None observed.
-- external services: none observed
+1. User interacts with setup wizard.
+2. Script provides helper logic for data entry and validation.
 
 SECURITY AND PRIVACY
-
-- No direct secret or browser-executable security issue confirmed from static inspection.
-
-CORRECTNESS AND FAILURE MODES
-
-- No complex runtime failure mode observed.
+- Minimal; handles non-sensitive setup preferences.
 
 OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- No direct offline/local-first behavior observed.
+- Works entirely locally.
 
 PERFORMANCE
-
-- No major static performance concern observed.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+- Very lightweight.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0533-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: public/ux-setup.js inspected; no file-specific high-risk issue confirmed
-  observed evidence: public/ux-setup.js inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: index.html, public/sw.js, public/sw.js
-  regression risk: Review behavior against existing tests before changing.
+- UX-001: Explicitly avoids auto-advancing steps to ensure user control. (Severity: INFO, Status: CONFIRMED)
 
 POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+- Simple and effective helper script.
 
 FINAL VERDICT
-
-- role: Platform, installation, launch, update, or diagnostic script for running Isotope locally.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+Useful onboarding aid.

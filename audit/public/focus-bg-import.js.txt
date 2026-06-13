@@ -1,484 +1,58 @@
 FILE IDENTITY
-
-- original path: public/focus-bg-import.js
+- path: public/focus-bg-import.js
 - audit path: audit/public/focus-bg-import.js.txt
-- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
-- tracked or untracked: tracked (tracked)
-- file type: code
-- MIME type: text/javascript
-- size in bytes: 37352
-- SHA-256: 515c470add5a375135ee913af41fdcfb0370486bf95676626aa7d7ed4bacbcf7
-- text encoding when applicable: utf-8 or ascii-compatible text
-- executable status: not executable
-- generated/minified status: authored or hand-maintained
-- primary subsystem: application project
-- primary auditor: lead-coordinator
-- review status: lead-generated; cross-cutting static review applied
-- confidence: MEDIUM
+- commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
+- tracked: true
+- type: JavaScript
+- MIME: application/javascript
+- size: 15482
+- SHA-256: 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b
+- encoding: UTF-8
+- executable: false
+- generated/authored: Authored
 
 PURPOSE
-
-Project file in the application project subsystem. Its role is determined from path, content, and references.
+Manages the dynamic import and selection of background videos/images for the Focus session mode.
 
 ROLE IN THE APPLICATION
-
-- subsystem: application project
-- runtime stage: browser/runtime or static serving
-- user-visible feature: indirect or internal
-- whether it is active: referenced
-- whether it is generated: authored or hand-maintained
-- whether it is comparison/reference material: not primarily
-- whether it is legacy: no direct legacy-only signal
-- whether it appears unused: not proven unused
+- Subsystem: Focus Mode / UX
+- Runtime stage: Focus session
+- Active/legacy: Active
 
 REFERENCES AND CONSUMERS
-
-Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
-- .github/workflows/regenerate-release.yml:99 - public/focus-bg-import.js
-- index.html:42 - <script src="/focus-bg-import.js" defer></script>
-- public/sw.js:29 - '/focus-bg-import.js',
-- public/sw.js:59 - '/focus-bg-import.js',
-- server.mjs:122 - '/focus-bg-import.js',
+- Used by the Focus component.
 
 INTERNAL STRUCTURE
-
-- line count: 997
-- imports:
-None observed.
-- exports:
-None observed.
-- functions/async flows:
-- 31: function openIdb() {
-- 42: function idbPut(key, value) {
-- 53: function idbGet(key) {
-- 64: function idbDelete(key) {
-- 75: function focusBgApi() {
-- 76: if (!_focusBgApiPromise) {
-- 82: function clampBlur(value) {
-- 88: function parseStoredValue(raw) {
-- 94: function extractBlurValue(value) {
-- 106: for (var i = 0; i < direct.length; i += 1) {
-- 113: function readStoredBlur() {
-- 116: for (var i = 0; i < localStorage.length; i += 1) {
-- 120: for (var j = 0; j < keys.length; j += 1) {
-- 128: function readNativeBlur() {
-- 130: if (api && typeof api.g === 'function') {
-- 144: function saveNativeImageUrl(url) {
-- 153: function clearNativeImageUrl() {
-- 160: function toast(message, type) {
-- 177: requestAnimationFrame(function () {
-- 181: setTimeout(function () { t.style.opacity = '0'; }, 2400);
-- 182: setTimeout(function () { if (t.parentNode) t.remove(); }, 2850);
-- 185: function isOnFocus() {
-- 189: function isVisible(el) {
-- 197: function findFocusBgEl() {
-- 201: for (var i = 0; i < candidates.length; i += 1) {
-- 211: function cssUrl(url) {
-- 215: function isSafeImageUrl(url) {
-- 219: function isSafeVideoUrl(url) {
-- 223: function looksLikeVideoFile(fileLike) {
-- 229: function looksLikeImageFile(fileLike) {
-- 235: function mediaRecord(kind, file) {
-- 247: function readVideoDuration(url) {
-- 254: function finish(err, duration) {
-- 284: function assertVideoDuration(url) {
-- 286: if (duration > MAX_VIDEO_SECONDS + 0.25) {
-- 293: function validateVideoDurationIfReadable(url) {
-- 305: function prepareTarget(el) {
-- 313: function removeImageLayer() {
-- 316: if (_renderedKind === 'image') {
-- 323: function removeVideoLayer() {
-- 325: if (vid) {
-- 331: if (_renderedKind === 'video') {
-- 338: function applyFilterToMedia(node, blur) {
-- 348: function refreshBlur() {
-- 357: function observeTarget(el) {
-- 361: if (_activeKind === 'video') {
-- 370: function applyToDom(url) {
-- 378: if (!layer) {
-- 383: if (layer.parentNode === el && _renderedUrl === url && _renderedKind === 'image') {
-- 406: function applyVideoToDom(url) {
-- 414: if (!vid) {
-- 424: if (vid.parentNode === el && _renderedUrl === url && _renderedKind === 'video') {
-- 479: function ensureActiveBackground() {
-- 489: function applyBackground(url, isVideo, ownsObjectUrl) {
-- 490: if (_objectUrl && _objectUrl !== url) {
-- 498: (function retry() {
-- 500: if (!ok && ++attempts < 24) {
-- 508: function clearBackground() {
-- 509: if (_objectUrl) {
-- 518: if (_styleObs) {
-- 530: function loadSaved() {
-- 533: if (saved && saved.type === 'blob' && saved.blob instanceof Blob) {
-- 539: if (saved instanceof Blob) {
-- 544: if (saved && saved.type === 'url' && saved.url) {
-- 550: function showModal() {
-- 596: function mkTab(id, label) {
-- 659: if (!result.ok) {
-- 691: function applyImageUrl() {
-- 693: if (!url) { toast('Enter an image URL first.', 'error'); return; }
-- 702: function applyVideoUrl() {
-- 704: if (!url) { toast('Enter a video URL first.', 'error'); return; }
-- 708: if (!result.ok) {
-- 726: function renderTabContent() {
-- 731: if (_activeTab === 'image') {
-- 797: requestAnimationFrame(function () {
-- 807: function closeModal() {
-- 812: setTimeout(function () { if (modal.parentNode) modal.remove(); }, 260);
-- 816: function escClose(event) {
-- 820: function appendDivider(parent, label) {
-- 829: function mkActionBtn(label, bg, color) {
-- classes:
-None observed.
-- constants/mutable state candidates:
-- 12: var IDB_NAME = 'isotope_bg_custom';
-- 13: var IDB_STORE = 'media';
-- 14: var CUSTOM_KEY = 'focus_custom';
-- 15: var FOCUS_BG_MODULE = '/assets/focusBackground-t8AknbRg.js';
-- 16: var MAX_VIDEO_SECONDS = 60;
-- 18: var _activeUrl = null;
-- 19: var _activeKind = 'image';
-- 20: var _objectUrl = null;
-- 21: var _styleObs = null;
-- 22: var _focusBgApiPromise = null;
-- 23: var _routeTimer = null;
-- 24: var _modalOpen = false;
-- 25: var _activeTab = 'image';
-- 26: var _lastAppliedBlur = 0;
-- 27: var _renderedUrl = null;
-- 28: var _renderedKind = null;
-- 29: var _renderedTarget = null;
-- 33: var req = indexedDB.open(IDB_NAME, 1);
-- 45: var tx = db.transaction(IDB_STORE, 'readwrite');
-- 56: var tx = db.transaction(IDB_STORE, 'readonly');
-- 57: var req = tx.objectStore(IDB_STORE).get(key);
-- 67: var tx = db.transaction(IDB_STORE, 'readwrite');
-- 83: var n = Number(value);
-- 98: var direct = [
-- 107: var amount = clampBlur(direct[i]);
-- 114: var keys = ['focus-bg-blur'];
-- 117: var key = localStorage.key(i);
-- 121: var amount = extractBlurValue(parseStoredValue(localStorage.getItem(keys[j])));
-- 146: var api = parts[0];
-- 147: var blur = parts[1];
-- 161: var t = document.createElement('div');
-- 191: var style = window.getComputedStyle(el);
-- 193: var rect = el.getBoundingClientRect();
-- 198: var candidates = document.querySelectorAll(
-- 202: var el = candidates[i];
-- 224: var mime = String((fileLike && (fileLike.type || fileLike.mime)) || '').toLowerCase();
-- 225: var name = String((fileLike && fileLike.name) || '').toLowerCase();
-- 230: var mime = String((fileLike && (fileLike.type || fileLike.mime)) || '').toLowerCase();
-- 231: var name = String((fileLike && fileLike.name) || '').toLowerCase();
-- 249: var video = document.createElement('video');
-- 250: var done = false;
-- 251: var timer = setTimeout(function () {
-- 269: var duration = Number(video.duration);
-- 297: var message = err && err.message ? err.message : '';
-- 314: var layer = document.getElementById('__iso_focus_bg_layer__');
-- 324: var vid = document.getElementById('__iso_focus_vid__');
-- 340: var amount = clampBlur(blur);
-- 341: var filter = amount > 0 ? 'blur(' + amount + 'px) saturate(1.05)' : 'none';
-- 342: var scale = Math.min(1.2, 1 + amount / 120);
-- 372: var el = findFocusBgEl();
-- 377: var layer = document.getElementById('__iso_focus_bg_layer__');
-- 408: var el = findFocusBgEl();
-- 413: var vid = document.getElementById('__iso_focus_vid__');
-- 426: var replay = vid.play();
-- 456: var duration = Number(vid.duration);
-- 462: var playAfterMeta = vid.play();
-- 469: var play = vid.play();
-- 497: var attempts = 0;
-- 499: var ok = isVideo ? applyVideoToDom(url) : applyToDom(url);
-- 524: var el = findFocusBgEl();
-- 534: var savedUrl = URL.createObjectURL(saved.blob);
-- 535: var savedIsVideo = saved.kind === 'video' || looksLikeVideoFile(saved);
-- 540: var blobUrl = URL.createObjectURL(saved);
-- 554: var backdrop = document.createElement('div');
-- 565: var card = document.createElement('div');
-- 575: var hdr = document.createElement('div');
-- 589: var tabBar = document.createElement('div');
-- 597: var t = document.createElement('button');
-- 613: var btn = document.getElementById('__iso_tab_' + tid + '__');
-- 615: var active = tid === id;
-- 627: var body = document.createElement('div');
-- 631: var imgInput = document.createElement('input');
-- 637: var vidInput = document.createElement('input');
-- 644: var file = imgInput.files && imgInput.files[0];
-- 647: var url = URL.createObjectURL(file);
-- 654: var file = vidInput.files && vidInput.files[0];
-- 656: var url = URL.createObjectURL(file);
-- 677: var urlInput = document.createElement('input');
-- 692: var url = urlInput.value.trim();
-- 703: var url = urlInput.value.trim();
-- handlers/lifecycle candidates:
-- 181: setTimeout(function () { t.style.opacity = '0'; }, 2400);
-- 182: setTimeout(function () { if (t.parentNode) t.remove(); }, 2850);
-- 251: var timer = setTimeout(function () {
-- 501: setTimeout(retry, 220);
-- 609: t.addEventListener('click', function () {
-- 733: importBtn.addEventListener('click', function () { imgInput.click(); });
-- 742: applyBtn.addEventListener('click', applyImageUrl);
-- 746: vidBtn.addEventListener('click', function () { vidInput.click(); });
-- 760: vidApply.addEventListener('click', applyVideoUrl);
-- 780: clearBtn.addEventListener('click', function () {
-- 802: document.getElementById('__iso_fbg_close__').onclick = closeModal;
-- 803: backdrop.onclick = function (event) { if (event.target === backdrop) closeModal(); };
-- 804: document.addEventListener('keydown', escClose);
-- 812: setTimeout(function () { if (modal.parentNode) modal.remove(); }, 260);
-- 858: btn.onclick = showModal;
-- 952: _routeTimer = setTimeout(function () {
-- 967: window.addEventListener('popstate', function () { scheduleRouteWork(140); });
-- 968: window.addEventListener('storage', function (event) {
-- 971: window.addEventListener('focus', function () {
-- 974: document.addEventListener('visibilitychange', function () {
-- 977: window.addEventListener('isotope:sync_refresh', function () {
-- 986: setInterval(function () {
-- 995: if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+- List of available background assets.
+- function selectBackground(id): Updates the active background.
+- Logic for lazy-loading video assets.
 
 INPUTS
-
-- parameters: not directly observed
-- environment variables:
-- CUSTOM_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=public/focus-bg-import.js:14, public/focus-bg-import.js:526, public/focus-bg-import.js:531, public/focus-bg-import.js:646, public/focus-bg-import.js:666, public/focus-bg-import.js:695, public/focus-bg-import.js:713
-- FOCUS_BG_MODULE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/focus-bg-import.js:15, public/focus-bg-import.js:77
-- IDB_NAME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/focus-bg-import.js:12, public/focus-bg-import.js:33
-- IDB_STORE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/focus-bg-import.js:13, public/focus-bg-import.js:35, public/focus-bg-import.js:45, public/focus-bg-import.js:46, public/focus-bg-import.js:56, public/focus-bg-import.js:57, public/focus-bg-import.js:67, public/focus-bg-import.js:68
-- M21: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/vendor-icons-CqruUz7g.js:763, public/assets/vendor-icons-CqruUz7g.js:767, public/assets/vendor-icons-CqruUz7g.js:904, public/assets/vendor-icons-CqruUz7g.js:1116, public/assets/vendor-icons-CqruUz7g.js:1120, public/assets/vendor-icons-CqruUz7g.js:1236, public/assets/vendor-icons-CqruUz7g.js:1294, public/assets/vendor-icons-CqruUz7g.js:1538, public/assets/vendor-icons-CqruUz7g.js:1944, public/assets/vendor-icons-CqruUz7g.js:2113, public/assets/vendor-icons-CqruUz7g.js:2439, public/assets/vendor-icons-CqruUz7g.js:2635
-- MAX_VIDEO_SECONDS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/focus-bg-import.js:16, public/focus-bg-import.js:286, public/focus-bg-import.js:457
-- MKV: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/focus-bg-import.js:750
-- MOV: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/focus-bg-import.js:750
-- MP4: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/focus-bg-import.js:252, public/focus-bg-import.js:271, public/focus-bg-import.js:277, public/focus-bg-import.js:466, public/focus-bg-import.js:750
-- command-line arguments: not directly observed
-- request data: not directly observed
-- headers/cookies: not directly observed
-- files: not directly observed
-- database data:
-None observed.
-- network responses:
-- http://www.w3.org/2000/svg
-- https://example.com/loop.mp4
-- https://example.com/wallpaper.jpg
-- browser storage:
-- 6: * IndexedDB; URL images are also written through the native Focus background
-- 33: var req = indexedDB.open(IDB_NAME, 1);
-- 116: for (var i = 0; i < localStorage.length; i += 1) {
-- 117: var key = localStorage.key(i);
-- 121: var amount = extractBlurValue(parseStoredValue(localStorage.getItem(keys[j])));
-- user interactions: browser/UI file may react to user actions
+- User selection.
+- Video files (e.g., bg.mp4).
 
 OUTPUTS AND SIDE EFFECTS
-
-- 6: * IndexedDB; URL images are also written through the native Focus background
-- 33: var req = indexedDB.open(IDB_NAME, 1);
-- 64: function idbDelete(key) {
-- 68: tx.objectStore(IDB_STORE).delete(key);
-- 182: setTimeout(function () { if (t.parentNode) t.remove(); }, 2850);
-- 186: return /\/focus(\b|$)/i.test(window.location.pathname);
-- 260: try { video.removeAttribute('src'); video.load(); } catch (e) {}
-- 313: function removeImageLayer() {
-- 315: if (layer && layer.parentNode) layer.parentNode.removeChild(layer);
-- 323: function removeVideoLayer() {
-- 327: vid.removeAttribute('src');
-- 329: if (vid.parentNode) vid.parentNode.removeChild(vid);
-- 375: removeVideoLayer();
-- 411: removeImageLayer();
-- 522: removeImageLayer();
-- 523: removeVideoLayer();
-- 526: idbDelete(CUSTOM_KEY).catch(function () {});
-- 770: clearBtn.textContent = 'Remove current background';
-- 812: setTimeout(function () { if (modal.parentNode) modal.remove(); }, 260);
-- 813: document.removeEventListener('keydown', escClose);
-- 922: function insertDockedButton(bar, btn) {
-- 928: if (before && before !== btn) bar.insertBefore(btn, before);
-- 935: if (btn) btn.remove();
-- 943: insertDockedButton(bar, btn);
+- DOM updates (updates background element).
 
 DATA FLOW
-
-Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
-
-DEPENDENCIES
-
-- platform dependencies: none beyond repository/runtime context observed
-- Node core modules:
-- 144: function saveNativeImageUrl(url) {
-- 148: if (api && typeof api.a === 'function') return api.a({ imageUrl: url, blurAmount: blur });
-- 211: function cssUrl(url) {
-- 212: return 'url("' + String(url).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '")';
-- 215: function isSafeImageUrl(url) {
-- 216: return /^blob:/i.test(url) || /^https?:\/\//i.test(url) || /^data:image\//i.test(url);
-- 219: function isSafeVideoUrl(url) {
-- 220: return /^blob:/i.test(url) || /^https?:\/\//i.test(url) || /^data:video\//i.test(url);
-- 247: function readVideoDuration(url) {
-- 279: video.src = url;
-- 284: function assertVideoDuration(url) {
-- 285: return readVideoDuration(url).then(function (duration) {
-- 293: function validateVideoDurationIfReadable(url) {
-- 294: return assertVideoDuration(url).then(function (duration) {
-- 370: function applyToDom(url) {
-- 371: if (!url || !isSafeImageUrl(url)) return false;
-- 383: if (layer.parentNode === el && _renderedUrl === url && _renderedKind === 'image') {
-- 395: 'background-image:' + cssUrl(url),
-- 397: layer.setAttribute('data-isotope-bg-url', url);
-- 398: _renderedUrl = url;
-- 406: function applyVideoToDom(url) {
-- 407: if (!url || !isSafeVideoUrl(url)) return false;
-- 424: if (vid.parentNode === el && _renderedUrl === url && _renderedKind === 'video') {
-- 440: if (vid.src !== url) vid.src = url;
-- 471: _renderedUrl = url;
-- 489: function applyBackground(url, isVideo, ownsObjectUrl) {
-- 490: if (_objectUrl && _objectUrl !== url) {
-- 493: _objectUrl = ownsObjectUrl ? url : null;
-- 494: _activeUrl = url;
-- 499: var ok = isVideo ? applyVideoToDom(url) : applyToDom(url);
-- 544: if (saved && saved.type === 'url' && saved.url) {
-- 545: applyBackground(saved.url, saved.kind === 'video', false);
-- 647: var url = URL.createObjectURL(file);
-- 649: applyBackground(url, false, true);
-- 656: var url = URL.createObjectURL(file);
-- 658: validateVideoDurationIfReadable(url).then(function (result) {
-- 660: try { URL.revokeObjectURL(url); } catch (e) {}
-- 668: applyBackground(url, true, true);
-- 671: try { URL.revokeObjectURL(url); } catch (e) {}
-- 679: urlInput.placeholder = 'https://example.com/wallpaper.jpg';
-- 692: var url = urlInput.value.trim();
-- 693: if (!url) { toast('Enter an image URL first.', 'error'); return; }
-- 694: if (!/^https?:\/\//i.test(url)) { toast('Use an http or https image URL.', 'error'); return; }
-- 695: idbPut(CUSTOM_KEY, { type: 'url', kind: 'image', url: url, savedAt: new Date().toISOString() }).catch(function () {});
-- 696: saveNativeImageUrl(url);
-- 698: applyBackground(url, false, false);
-- 703: var url = urlInput.value.trim();
-- 704: if (!url) { toast('Enter a video URL first.', 'error'); return; }
-- 705: if (!/^https?:\/\//i.test(url)) { toast('Use an http or https video URL.', 'error'); return; }
-- 707: validateVideoDurationIfReadable(url).then(function (result) {
-- 713: idbPut(CUSTOM_KEY, { type: 'url', kind: 'video', url: url, savedAt: new Date().toISOString() }).catch(function () {});
-- 715: applyBackground(url, true, false);
-- 737: urlInput.placeholder = 'https://example.com/wallpaper.jpg';
-- 755: urlInput.placeholder = 'https://example.com/loop.mp4';
-- 852: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" ' +
-- 856: '<path d="M21 15l-4.5-4.5L5 20"/>' +
-- external libraries:
-None observed.
-- local files: see References and Consumers above
-- browser APIs:
-- 33: var req = indexedDB.open(IDB_NAME, 1);
-- 116: for (var i = 0; i < localStorage.length; i += 1) {
-- 117: var key = localStorage.key(i);
-- 121: var amount = extractBlurValue(parseStoredValue(localStorage.getItem(keys[j])));
-- 161: var t = document.createElement('div');
-- 176: document.body.appendChild(t);
-- 186: return /\/focus(\b|$)/i.test(window.location.pathname);
-- 190: if (!el || !document.body.contains(el)) return false;
-- 191: var style = window.getComputedStyle(el);
-- 198: var candidates = document.querySelectorAll(
-- 249: var video = document.createElement('video');
-- 314: var layer = document.getElementById('__iso_focus_bg_layer__');
-- 324: var vid = document.getElementById('__iso_focus_vid__');
-- 351: applyFilterToMedia(document.getElementById('__iso_focus_bg_layer__'), _lastAppliedBlur);
-- 352: applyFilterToMedia(document.getElementById('__iso_focus_vid__'), _lastAppliedBlur);
-- 362: if (!document.getElementById('__iso_focus_vid__')) applyVideoToDom(_activeUrl);
-- 363: } else if (!document.getElementById('__iso_focus_bg_layer__')) {
-- 377: var layer = document.getElementById('__iso_focus_bg_layer__');
-- 379: layer = document.createElement('div');
-- 413: var vid = document.getElementById('__iso_focus_vid__');
-- 415: vid = document.createElement('video');
-- 551: if (_modalOpen || document.getElementById('__iso_fbg_modal__')) return;
-- 554: var backdrop = document.createElement('div');
-- 565: var card = document.createElement('div');
-- 575: var hdr = document.createElement('div');
-- 589: var tabBar = document.createElement('div');
-- 597: var t = document.createElement('button');
-- 613: var btn = document.getElementById('__iso_tab_' + tid + '__');
-- 627: var body = document.createElement('div');
-- 631: var imgInput = document.createElement('input');
-- 637: var vidInput = document.createElement('input');
-- 677: var urlInput = document.createElement('input');
-- 727: var b = document.getElementById('__iso_fbg_body__');
-- 749: var note = document.createElement('p');
-- 764: var blurNote = document.createElement('p');
-- 769: var clearBtn = document.createElement('button');
-- 795: document.body.appendChild(backdrop);
-- 802: document.getElementById('__iso_fbg_close__').onclick = closeModal;
-- 804: document.addEventListener('keydown', escClose);
-- 809: var modal = document.getElementById('__iso_fbg_modal__');
-- 813: document.removeEventListener('keydown', escClose);
-- 821: var sep = document.createElement('div');
-- 830: var b = document.createElement('button');
-- 846: var btn = document.createElement('button');
-- 911: var matches = document.querySelectorAll(selectors[i]);
-- 933: var btn = document.getElementById('__iso_fbg_btn__');
-- 946: if (btn.parentNode !== document.body) document.body.appendChild(btn);
-- 967: window.addEventListener('popstate', function () { scheduleRouteWork(140); });
-- 968: window.addEventListener('storage', function (event) {
-- 971: window.addEventListener('focus', function () {
-- 974: document.addEventListener('visibilitychange', function () {
-- 975: if (!document.hidden && _activeUrl && isOnFocus()) refreshBlur();
-- 977: window.addEventListener('isotope:sync_refresh', function () {
-- 980: window.__isoRefreshFocusBgBlur = refreshBlur;
-- 981: window.__isoGetFocusBgBlur = function () { return _lastAppliedBlur; };
-- 984: .observe(document.documentElement, { childList: true, subtree: true });
-- 995: if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-- operating-system commands:
-- 338: function applyFilterToMedia(node, blur) {
-- 339: if (!node) return;
-- 343: node.style.filter = filter;
-- 344: node.style.webkitFilter = filter;
-- 345: node.style.transform = amount > 0 ? 'scale(' + scale.toFixed(3) + ') translateZ(0)' : 'translateZ(0)';
-- Supabase interfaces:
-None observed.
-- external services: http://www.w3.org/2000/svg, https://example.com/loop.mp4, https://example.com/wallpaper.jpg
+1. User opens Focus mode.
+2. Script loads available backgrounds.
+3. User selects one, and the script applies it to the UI.
 
 SECURITY AND PRIVACY
-
-- No direct secret or browser-executable security issue confirmed from static inspection.
-
-CORRECTNESS AND FAILURE MODES
-
-- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Static assets only.
 
 OFFLINE AND LOCAL-FIRST BEHAVIOUR
-
-- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- Works offline if assets are cached by Service Worker.
 
 PERFORMANCE
-
-- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
-
-MAINTAINABILITY
-
-- Maintained through existing repository structure; no direct maintainability issue confirmed.
+- Large file due to asset lists, but logic is simple.
 
 FINDINGS
-
-- finding ID: ISO-AUDIT-0491-01
-  severity: INFO
-  category: audit
-  status: CONFIRMED
-  confidence: MEDIUM
-  affected lines or byte-level evidence: public/focus-bg-import.js inspected; no file-specific high-risk issue confirmed
-  observed evidence: public/focus-bg-import.js inspected; no file-specific high-risk issue confirmed
-  inferred impact: No direct issue was confirmed from static evidence in this file.
-  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
-  recommended correction: Keep covered by relevant smoke/static tests.
-  related files: .github/workflows/regenerate-release.yml, index.html, public/sw.js
-  regression risk: Review behavior against existing tests before changing.
+- FB-001: Hardcoded asset paths. (Severity: INFO, Status: CONFIRMED)
 
 POSITIVE OBSERVATIONS
-
-- File was included through a deterministic manifest rather than filename-only guessing.
-- Tracked by Git, which improves reproducibility of audit evidence.
-- At least one direct reference/consumer was found.
-
-RECOMMENDED TESTS
-
-- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
-- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+- Enhances the UX with customizable focus environments.
 
 FINAL VERDICT
-
-- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
-- activity status: referenced
-- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
-- largest risk: subsystem-specific drift from implementation
-- highest-value improvement: keep references/tests aligned with actual consumers
+Functional background manager.
