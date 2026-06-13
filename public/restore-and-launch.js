@@ -857,7 +857,7 @@ function preloadAssets() {
     if (!session) window.history.replaceState(null, '', '/auth');
     else if (completed) window.history.replaceState(null, '', '/dashboard');
     else if (incomplete) window.history.replaceState(null, '', '/onboarding');
-    else window.history.replaceState(null, '', '/dashboard');
+    else window.history.replaceState(null, '', '/onboarding'); // unknown state → onboarding (safe default)
   } else if (!session && (isProtectedPath || isOnboardingPath)) {
     window.history.replaceState(null, '', '/auth');
   } else if (session && completed && isOnboardingPath) {

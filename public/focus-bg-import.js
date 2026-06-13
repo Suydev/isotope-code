@@ -726,7 +726,7 @@
     function renderTabContent() {
       var b = document.getElementById('__iso_fbg_body__');
       if (!b) return;
-      b.innerHTML = '';
+      while (b.firstChild) b.removeChild(b.firstChild);
 
       if (_activeTab === 'image') {
         var importBtn = mkActionBtn('Choose image from device', 'linear-gradient(135deg,#f97316,#facc15)', '#111827');
@@ -818,12 +818,16 @@
   }
 
   function appendDivider(parent, label) {
-    var sep = document.createElement('div');
-    sep.innerHTML =
-      '<div style="display:flex;align-items:center;gap:10px;margin:16px 0 4px;color:rgba(255,255,255,0.24);font-size:11px;">' +
-      '<div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div>' + label +
-      '<div style="flex:1;height:1px;background:rgba(255,255,255,0.07);"></div></div>';
-    parent.appendChild(sep);
+    var outer = document.createElement('div');
+    outer.style.cssText = 'display:flex;align-items:center;gap:10px;margin:16px 0 4px;color:rgba(255,255,255,0.24);font-size:11px;';
+    var lineL = document.createElement('div');
+    lineL.style.cssText = 'flex:1;height:1px;background:rgba(255,255,255,0.07);';
+    var lineR = document.createElement('div');
+    lineR.style.cssText = 'flex:1;height:1px;background:rgba(255,255,255,0.07);';
+    outer.appendChild(lineL);
+    outer.appendChild(document.createTextNode(label));
+    outer.appendChild(lineR);
+    parent.appendChild(outer);
   }
 
   function mkActionBtn(label, bg, color) {
@@ -983,9 +987,9 @@
   new MutationObserver(function () { scheduleRouteWork(160); })
     .observe(document.documentElement, { childList: true, subtree: true });
 
-  setInterval(function () {
-    if (isOnFocus() && _activeUrl) refreshBlur();
-  }, 850);
+  // setInterval removed: the MutationObserver above already triggers
+  // scheduleRouteWork on DOM changes, which calls refreshBlur when on the
+  // Focus page. Polling every 850 ms was redundant and wasteful on battery.
 
   function init() {
     loadSaved();
