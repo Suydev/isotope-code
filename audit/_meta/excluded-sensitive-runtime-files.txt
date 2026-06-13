@@ -1,0 +1,22 @@
+Sensitive runtime categories excluded without content inspection:
+- .isotope/tmp/**
+- cookie jars and admin/browser-proof cookie files
+- authentication dumps and temporary login responses
+- runtime logs that may contain tokens
+- process IDs and temporary curl output
+
+Observed excluded paths/categories:
+- .isotope/tmp/ping.txt
+- .isotope/tmp/curl.err
+- .isotope/tmp/admin-verify.html
+- .isotope/tmp/ping-3100.txt
+- .isotope/tmp/curl-3100.err
+- .isotope/tmp/admin-login.html
+- .isotope/tmp/admin-cookie.txt
+- .isotope/tmp/admin-verify-auth.html
+- .isotope/tmp/browser-proof-login.txt
+- .isotope/tmp/browser-proof-cookie.txt
+- .isotope/tmp/browser-proof-page.html
+- .isotope/tmp/vengeance-path.txt
+- .isotope/tmp/release-run
+- .isotope/tmp/release-run/logs.zip

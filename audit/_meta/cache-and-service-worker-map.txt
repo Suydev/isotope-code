@@ -1,0 +1,651 @@
+Cache and service-worker map
+
+- .github/PULL_REQUEST_TEMPLATE.md:18: - [ ] Sync proof: browser action → Supabase row → cache clear → login → data restored ✓
+- .github/workflows/welcome.yml:81: - [ ] Sync proof: browser action → Supabase row → cache clear → login → data restored
+- .gitignore:9: .cache/
+- ADMIN.md:306: ### Runtime login bridge and cache troubleshooting
+- ADMIN.md:323: For cache/load-order proof against a running server, run:
+- ADMIN.md:335: If a stale PWA cache serves old runtime JavaScript, clear browser caches and reload:
+- ADMIN.md:338: caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload())
+- ADMIN.md:402: | `PWAManager` bundle | Service-worker activation reload routed through `window.__isoReloadGuard()` |
+- CHANGELOG.md:74: ## [3.3.5] — 2026-06-07 — Performance: speed probe fixed, health cache, pre-gzip bundles, 14 DB indexes
+- CHANGELOG.md:77: - **CRITICAL: `/api/health?_=<timestamp>` speed probe returned HTTP 404** — The network speed probe fired by the app at every session used a cache-busting query-string (`?_=Date.now()`). The API health handler matched `req.url === '/api/health'` (exact string)
+- CHANGELOG.md:81: - **Health endpoint caching (15 s TTL)** — `/api/health` previously made 3 concurrent Supabase HTTP round-trips on every call (REST, Auth, Storage), taking 200–600 ms. Results are now cached for 15 seconds; subsequent calls return in <1 ms. The cache is only p
+- CHANGELOG.md:82: - **Pre-gzip bundle cache** — 10 major JS bundles (App, Auth, Focus, Onboarding, SingleGroup, Leaderboard, Settings, AppAccessGate, SessionSync, Invites) are gzip-compressed once at server startup and stored in memory (`_gzipCache`). All subsequent requests fo
+- CHANGELOG.md:104: | 3 | Health endpoint cached at 15 s TTL | ✅ <1 ms on cache hit |
+- CHANGELOG.md:105: | 4 | 10 bundles pre-gzip'd at startup | ✅ `_gzipCache` Map |
+- CHANGELOG.md:111: ## [3.3.4] — 2026-06-07 — YepAPI removed; security headers; syntax fix; API 404s; SW cache
+- CHANGELOG.md:119: - **`sw.js` and `pwa-local.js` cached for 1 hour** — Now served with `Cache-Control: no-cache`.
+- CHANGELOG.md:293: - Added a serve-time PWA manager patch so service-worker activation reloads go through a one-shot reload guard.
+- CHANGELOG.md:294: - `/api/version` now reports the cache name format used by `public/sw.js`.
+- CHANGELOG.md:353: ## [2.8.2] — 2026-06-04 — Community loading, event data, and local cache fixes
+- CHANGELOG.md:361: - Service worker runtime caches are smaller, old runtime caches are deleted on activation, and `/sounds/` is no longer cached to avoid large mobile cache growth.
+- CHANGELOG.md:568: - Service worker cache bypass for patched bundles
+- CONTRIBUTING.md:31: 5. **Test sync end-to-end**: browser action → Supabase row/storage → clear browser cache → login again → data restores
+- README.md:296: ### Runtime Login Bridge And Cache Troubleshooting
+- README.md:321: If a stale PWA or browser cache is serving old runtime files, clear runtime caches from the browser console:
+- README.md:324: caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload())
+- artifacts/asset-diff/asset-report.json:23: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:41: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:59: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:77: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:95: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:113: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:131: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:149: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:167: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:185: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:203: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:221: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:239: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:257: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:275: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:293: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:311: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:329: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:347: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:365: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:383: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:401: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:419: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:437: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:455: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:473: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:491: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:509: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:527: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:545: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:563: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:581: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:599: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:617: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:635: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:653: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:671: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:689: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:707: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:725: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:743: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:761: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:779: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:797: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:815: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:833: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:851: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:869: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:887: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:905: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:923: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:941: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:959: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:977: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:995: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1013: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1031: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1049: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1067: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1085: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1103: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1121: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1139: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1157: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1175: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1193: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1211: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1229: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1247: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1265: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1283: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1301: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1319: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1337: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1355: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1373: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1391: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1409: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1427: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/asset-report.json:1445: "cacheControl": "public, max-age=31536000, immutable"
+- artifacts/asset-diff/local-assets.txt:160: groupCache-DVHvdGlY.js
+- artifacts/asset-diff/remote-assets/utils-D8mZnxMk.js:1: import{f as Pe}from"./vendor-charts-CFLJvnG7.js";const Ge=(e,t)=>{const o=new Array(e.length+t.length);for(let r=0;r<e.length;r++)o[r]=e[r];for(let r=0;r<t.length;r++)o[e.length+r]=t[r];return o},Te=(e,t)=>({classGroupId:e,validator:t}),xe=(e=new Map,t=null,o)
+- artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:20: */var Zf;function aP(){if(Zf)return hu;Zf=1;var e=lc(),t=iP();function r(s,c){return s===c&&(s!==0||1/s===1/c)||s!==s&&c!==c}var n=typeof Object.is=="function"?Object.is:r,i=t.useSyncExternalStore,a=e.useRef,o=e.useEffect,u=e.useMemo,l=e.useDebugValue;return h
+- artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50: A`,",",",0,0,",",",",","Z"])),S.x,S.y,a,a,+(c<0),O.x,O.y,n,n,+(_>180),+(c>0),x.x,x.y,a,a,+(c<0),P.x,P.y)}else b+=de(bv||(bv=xr(["L",",","Z"])),t,r);return b},Q1={cx:0,cy:0,innerRadius:0,outerRadius:0,startAngle:0,endAngle:0,cornerRadius:0,forceCornerRadius:!1,
+- artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:60: */var Bh;function v$(){if(Bh)return dl;Bh=1;var e=lc();function t(l,s){return l===s&&(l!==0||1/l===1/s)||l!==l&&s!==s}var r=typeof Object.is=="function"?Object.is:t,n=e.useSyncExternalStore,i=e.useRef,a=e.useEffect,o=e.useMemo,u=e.useDebugValue;return dl.useSy
+- artifacts/asset-diff/remote-assets/vendor-query-Rjz85D0S.js:1: import{r as v,j as N,b as At}from"./vendor-react-BfU3Zn2J.js";var A=class{constructor(){this.listeners=new Set,this.subscribe=this.subscribe.bind(this)}subscribe(t){return this.listeners.add(t),this.onSubscribe(),()=>{this.listeners.delete(t),this.onUnsubscrib
+- artifacts/asset-diff/remote-assets/vendor-query-Rjz85D0S.js:4: color: hsl(${Math.max(0,Math.min(120-120*g,120))}deg 100% 31%);`,s?.key)}return s?.onChange&&!(r&&s.skipInitialOnChange)&&s.onChange(n),r=!1,n}return o.updateDeps=a=>{i=a},o}function dt(t,e){if(t===void 0)throw new Error("Unexpected undefined");return t}const 
+- artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:17: */var rs;function n1(){if(rs)return G;rs=1;var A=Symbol.for("react.transitional.element"),F=Symbol.for("react.portal"),B=Symbol.for("react.fragment"),m=Symbol.for("react.strict_mode"),Z=Symbol.for("react.profiler"),k=Symbol.for("react.consumer"),ol=Symbol.for(
+- artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:41: */var _s;function v1(){if(_s)return Ee;_s=1;var A=i1(),F=di(),B=Hs();function m(l){var t="https://react.dev/errors/"+l;if(1<arguments.length){t+="?args[]="+encodeURIComponent(arguments[1]);for(var u=2;u<arguments.length;u++)t+="&args[]="+encodeURIComponent(arg
+- artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:48: `+a.stack}}var Vn=Object.prototype.hasOwnProperty,Ln=A.unstable_scheduleCallback,Kn=A.unstable_cancelCallback,Cs=A.unstable_shouldYield,qs=A.unstable_requestPaint,lt=A.unstable_now,Ys=A.unstable_getCurrentPriorityLevel,gi=A.unstable_ImmediatePriority,ri=A.unst
+- artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:49: `).replace(_o,"")}function Gv(l,t){return t=Bv(t),Bv(l)===t}function vl(l,t,u,a,e,n){switch(u){case"children":typeof a=="string"?t==="body"||t==="textarea"&&a===""||$u(l,a):(typeof a=="number"||typeof a=="bigint")&&t!=="body"&&$u(l,""+a);break;case"className":
+- artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:18: ${o.stack}`:"unknown"}}}}}const XS=((e={})=>{const t=e.limit??zS;return{name:qS,processEvent(n,r){return YS(t,e.saveZodIssuesAsAttachment,n,r)}}}),Kx=XS,Yx=e=>({name:"ThirdPartyErrorsFilter",setup(t){t.on("beforeEnvelope",n=>{kn(n,(r,o)=>{if(o==="event"){const
+- artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490: Error:`,o)}}function g0(){return r0(e=>{oo("cls",{metric:e}),Bp=e},{reportAllChanges:!0})}function _0(){return f0(e=>{oo("lcp",{metric:e}),Up=e},{reportAllChanges:!0})}function y0(){return h0(e=>{oo("ttfb",{metric:e}),Hp=e})}function S0(){return u0(e=>{oo("inp
+- artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:491: `).reduce((n,r)=>{const[o,s]=r.split(": ");return s&&(n[o.toLowerCase()]=s),n},{}):{}}const Ui=[],Ko=new Map,Bn=new Map,aI=60;function cI(){if(so()&&Oe()){const t=uI();return()=>{t()}}return()=>{}}const Ta={click:"click",pointerdown:"click",pointerup:"click",m
+- artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:26: })`):new Error(`WebSocket not available: ${t}`)}this._setupConnectionHandlers()}}endpointURL(){return this._appendParams(this.endPoint,Object.assign({},this.params,{vsn:this.vsn}))}disconnect(e,t){if(!this.isDisconnecting())if(this._setConnectionState("disconn
+- artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:42: ${v}`}class A extends Error{constructor({message:e,code:t,cause:r,name:n}){var i;super(e,{cause:r}),this.__isWebAuthnError=!0,this.name=(i=n??(r instanceof Error?r.name:void 0))!==null&&i!==void 0?i:"Unknown Error",this.code=t}}class Ce extends A{constructor(e
+- artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:43: `);const k=await S.signMessage(new TextEncoder().encode(g),"utf8");if(!k||!(k instanceof Uint8Array))throw new Error("@supabase/auth-js: Wallet signMessage() API returned an recognized value");_=k}}try{const{data:p,error:v}=await E(this.fetch,"POST",`${this.ur
+- artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6: `)};if(I===0){var C=l.slice(p+1,g).concat(K({children:[h],className:m.properties.className})),k=y(C,w);d.push(k)}else if(I===F.length-1){var P=l[g+1]&&l[g+1].children&&l[g+1].children[0],B={type:"text",value:"".concat(x)};if(P){var Y=K({children:[B],className:
+- artifacts/asset-diff/remote-assets/workbox-window.prod.es5-BIl4cyR9.js:2: In order to be iterable, non-array objects must have a [Symbol.iterator]() method.`)}function w(n,r){return w=Object.setPrototypeOf?Object.setPrototypeOf.bind():function(t,o){return t.__proto__=o,t},w(n,r)}function W(n){var r=(function(t,o){if(typeof t!="objec
+- artifacts/asset-diff/summary.md:139: | groupCache-DVHvdGlY.js | 200 | unexpected HTML fallback for .js request |
+- bin/isotope:556: if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+- bin/isotope.bat:156: git diff --cached --quiet
+- bin/isotope.bat:238: echo WARN: Server is not responding on port %PORT_VALUE%. You may see a cached offline page.
+- community-patch-v4.sql:334: -- JS-read columns — drop if currently GENERATED (immutable), then add as plain
+- docs/BUG_FIXES.md:17: ### 1. Service Worker Cache SHA Not Truncated
+- docs/BUG_FIXES.md:22: - Cache name used full SHA: `isotope-local-shell-3.1.2-{full-sha}`
+- docs/BUG_FIXES.md:23: - On app updates, the new cache name wouldn't match old format
+- docs/BUG_FIXES.md:24: - Cache reuse failed, causing duplicate cache entries
+- docs/BUG_FIXES.md:29: const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA;
+- docs/BUG_FIXES.md:32: const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
+- docs/BUG_FIXES.md:35: **Impact**: Consistent cache naming, proper cleanup of old caches on activation
+- docs/BUG_FIXES.md:122: navigator.serviceWorker.addEventListener('message', function (event) {
+- docs/BUG_FIXES.md:223: 2. Open app in browser (cached shell)
+- docs/BUG_FIXES.md:241: ### ✅ Cache Consistency
+- docs/BUG_FIXES.md:244: 2. DevTools → Application → Cache Storage
+- docs/BUG_FIXES.md:245: 3. Verify cache name format: isotope-local-shell-X.X.X-{12-char-sha}
+- docs/BUG_FIXES.md:246: 4. Verify old caches are deleted
+- docs/BUG_FIXES.md:273: - Cache storage grows slower (consistent naming)
+- docs/BUG_FIXES.md:277: - ✅ Existing cache entries cleaned automatically on SW activation
+- docs/BUG_FIXES.md:296: 1. **657a902** — `public/sw.js`: Truncate cache SHA to 12 characters and add client detach safety
+- docs/supabase-connection-map.md:5: | Feature | UI/component | Frontend function/store | Local cache | Server endpoint | Supabase object | Auth type | Offline behavior | Sync behavior | Status | Fix/test required |
+- docs/supabase-connection-map.md:7: | Auth | `Auth-Cw0VAaCZ.js` patched by `server.mjs` | `window.__isoLogin`, `window.__isoUp` | Supabase session keys, `isotope-auth-token` | `/__auth/login`, `/__auth/signup` | `auth.users`, `public.users` | anon + user JWT | cached session restored | bootstrap
+- docs/supabase-connection-map.md:8: | Session restore | `restore-and-launch.js` | `findSessionRaw`, `fetchBootstrapFromServer` | `isotope-bootstrap-cache` | `/__auth/bootstrap` | `user_profiles`, `user_onboarding`, Storage backup summary | user JWT | cached bootstrap fallback | recommends restor
+- docs/supabase-connection-map.md:9: | Onboarding | `Onboarding-qvAqCBbb.js` patched | `__isoCompleteOnboarding` | `isotope-onboarding` | `/__auth/profile` | `user_onboarding`, `user_profiles` | user JWT | local cache | profile patch | working | E2E |
+- docs/supabase-connection-map.md:14: | Daily stats | Analytics bundles | local analytics stores | `isotope_daily_logs_v2`, cloud stats cache | `/__auth/bootstrap`, RPC | `daily_user_stats` | user JWT | local analytics | bootstrap + RPC | partial | stats reconciliation |
+- docs/supabase-connection-map.md:23: | Cloud snapshot | app/auth script | `__isoRefreshCloudSnapshot` | cloud snapshot cache | `/__auth/snapshot` | `cloud-snapshot/latest.json` | user JWT | pending | blocked if empty would overwrite rich | fixed | endpoint test |
+- docs/supabase-connection-map.md:25: | Groups/community | Community bundles | group hooks | group cache | `/__supa/*`, RPCs | `groups`, `group_members`, chat/invites/challenges | user JWT/service proxy in admin mode | online-required | Supabase realtime/REST | untested in this pass | Phase 19 ful
+- docs/supabase-connection-map.md:26: | Notifications | notification store | Supabase/local store | `useNotificationStore` | `/__supa/*` | `notifications` | user JWT | local cache | REST/realtime | untested | notification test |
+- index.html:37: <!-- Boot recovery: handles stale asset cache errors on reload -->
+- performance-patch.sql:53: -- SECURITY DEFINER function.  Postgres can cache this result per statement,
+- public/assets/App-pJGjDiPw.js:5914: cached: e,
+- public/assets/App-pJGjDiPw.js:5966: cached: t,
+- public/assets/App-pJGjDiPw.js:6177: this.userDataCache = new Map, this.userDataInFlight = new Map
+- public/assets/App-pJGjDiPw.js:6181: this.userDataCache.delete(e), x.removeItem(`${Me}${e}`);
+- public/assets/App-pJGjDiPw.js:6184: this.userDataCache.clear(), (async () => {
+- public/assets/App-pJGjDiPw.js:6210: return !s ?.expiresAt || s.expiresAt <= Date.now() ? (await x.removeItem(`${Me}${e}`), null) : (this.userDataCache.set(e, {
+- public/assets/App-pJGjDiPw.js:6223: this.userDataCache.set(e, s), x.setItem(`${Me}${e}`, JSON.stringify(s))
+- public/assets/App-pJGjDiPw.js:6497: t ?.forceFresh && !s && this.userDataCache.delete(e);
+- public/assets/App-pJGjDiPw.js:6498: const r = this.userDataCache.get(e);
+- public/assets/App-pJGjDiPw.js:7974: s = t ? "This screen is not cached offline yet" : "The app needs a refresh",
+- public/assets/App-pJGjDiPw.js:7975: r = t ? "Your saved data is still on this device, but this route bundle was not available in the offline cache. Reconnect once, let the app refresh, and this signed-in screen will open offline next time." : "A page bundle failed to load. Refresh once to pick u
+- public/assets/App-pJGjDiPw.js:7989: children: t ? "Offline cache missing" : "Refresh required"
+- public/assets/AppAccessGate-B975UtK7.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-CrO6t5EW.css", "asset
+- public/assets/AppAccessGate-B975UtK7.js:381: st = new Set(["isotope-auth", "isotope-onboarding", "isotope-notifications", "isotope-tools-storage", "ai-storage", "isotope-quotes", "sidebar-storage", "group-ui-preferences", "isotope-query-cache", "isotope-auth-token", "isotope:pending_session_sync", "isoto
+- public/assets/AppAccessGate-B975UtK7.js:760: eyebrow: "Cached offline mode",
+- public/assets/AppAccessGate-B975UtK7.js:766: if ((Y === "readyDashboard" || Y === "offlineCached" && G) && s === "private") return r.jsx(z, {
+- public/assets/AppAccessGate-B975UtK7.js:770: if ((Y === "readyNeedsOnboarding" || Y === "offlineCached" && U) && s !== "private") return r.jsx(z, {
+- public/assets/Community-DIqF5406.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-query-Rjz85D0S.js","assets/App-pJGjDiPw.js","assets/vendor-supaba
+- public/assets/CommunityHub-gANxZssO.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/sessionSync-mloIEnTd.js","assets/App-pJGjDiPw.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-supabase-DAiUAuun.js","assets/vendor-moti
+- public/assets/CommunityHub-gANxZssO.js:2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a as ae,f as G}from"./timeFormat-CMPo-BX2.j
+- public/assets/EventsCalendar-COHF8nOK.js:1: import{r,j as e}from"./vendor-react-BfU3Zn2J.js";import{m as i}from"./vendor-motion-Cp_NPzpZ.js";import{j as h,P as p,w as o,am as b,U as l,C as g,aF as f,a as u}from"./vendor-icons-CqruUz7g.js";const k=({onNavigate:d})=>{const[w,j]=r.useState("upcoming"),[n,c
+- public/assets/GlobalPresenceBroadcaster-C5JADiwL.js:1: import{f as u}from"./vendor-react-BfU3Zn2J.js";import{u as C,h as F}from"./App-pJGjDiPw.js";import{h as P,u as w}from"./useFocusStore-CX_Nyp1h.js";import{b as E}from"./useGroups-vEjDKzZY.js";import{u as O}from"./useGroupPresence-BmkfUzH6.js";import"./index-BPY
+- public/assets/GroupChat-j6zM76h9.js:21: } from "./groupCache-DVHvdGlY.js";
+- public/assets/GroupDiscovery-DUcFr2JQ.js:1: import{j as e,r as a}from"./vendor-react-BfU3Zn2J.js";import{u as I,a as L,b as M,c as T}from"./useGroups-vEjDKzZY.js";import{P as $}from"./PremiumGate-CX1zS69D.js";import{G as J}from"./GroupInviteGenerator-B-iMSSXc.js";import{w as R,x as U}from"./App-pJGjDiPw
+- public/assets/PWAManager-DjIYufp2.js:100: if ("serviceWorker" in navigator) {
+- public/assets/PWAManager-DjIYufp2.js:156: updateServiceWorker: r
+- public/assets/PWAManager-DjIYufp2.js:161: if (!("serviceWorker" in navigator)) return;
+- public/assets/PWAManager-DjIYufp2.js:165: o || (o = !0, navigator.serviceWorker.removeEventListener("controllerchange", i), s())
+- public/assets/PWAManager-DjIYufp2.js:167: navigator.serviceWorker.addEventListener("controllerchange", i)
+- public/assets/PWAManager-DjIYufp2.js:186: updateServiceWorker: f
+- public/assets/QueryProvider-DusNhG9D.js:34: o = "isotope-query-cache",
+- public/assets/QueryProvider-DusNhG9D.js:44: return e.length <= c ? e : (console.warn(`[QueryProvider] Skipped persisted query cache write because payload was ${Math.round(e.length/1024)} KiB. Budget is ${Math.round(c/1024)} KiB.`), null)
+- public/assets/QueryProvider-DusNhG9D.js:81: console.error("[QueryProvider] Failed to persist query cache:", m)
+- public/assets/QueryProvider-DusNhG9D.js:96: console.error("[QueryProvider] Failed to parse cached query data:", t), await i.removeItem(o);
+- public/assets/QuickChatMenu-BUr6NG9I.js:33: import "./groupCache-DVHvdGlY.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:3345: children: "Deletes only this browser's local IndexedDB cache and signs you out. Cloud data in your account is not deleted."
+- public/assets/SingleGroup-DU1IhoNK.js:1: import{f as ge,j as e,r as g}from"./vendor-react-BfU3Zn2J.js";import{d as Ft,e as qt,a as Bt,f as Ht,g as Kt}from"./useGroups-vEjDKzZY.js";import{u as we,a as Ce,b as Se,d as Vt}from"./vendor-query-Rjz85D0S.js";import{u as q,j as R,s as j,o as He,q as Ke,P as 
+- public/assets/groupCache-DVHvdGlY.js:72: console.warn("[groupCache] Cache write failed, clearing old entries and retrying:", a), O();
+- public/assets/groupCache-DVHvdGlY.js:81: console.warn("[groupCache] Cache write retry failed:", u)
+- public/assets/index-qd2KF3Jd.js:18: */var cm;function Cg(){if(cm)return qn;cm=1;var u=_g(),i=vg(),c=bg();function r(t){var e="https://react.dev/errors/"+t;if(1<arguments.length){e+="?args[]="+encodeURIComponent(arguments[1]);for(var a=2;a<arguments.length;a++)e+="&args[]="+encodeURIComponent(arg
+- public/assets/index-qd2KF3Jd.js:25: `+l.stack}}var Es=Object.prototype.hasOwnProperty,Ms=u.unstable_scheduleCallback,_s=u.unstable_cancelCallback,Wm=u.unstable_shouldYield,Pm=u.unstable_requestPaint,se=u.unstable_now,$m=u.unstable_getCurrentPriorityLevel,no=u.unstable_ImmediatePriority,io=u.unst
+- public/assets/index-qd2KF3Jd.js:26: `).replace(Gh,"")}function Cd(t,e){return e=_d(e),_d(t)===e}function dt(t,e,a,l,n,s){switch(a){case"children":typeof l=="string"?e==="body"||e==="textarea"&&l===""||fl(t,l):(typeof l=="number"||typeof l=="bigint")&&e!=="body"&&fl(t,""+l);break;case"className":
+- public/assets/index-qd2KF3Jd.js:31: `).trim():u.replace(/\s+/g," ").trim()}function c0(u,i){if(!i||i<=0)return u;const c=Array.from(u.matchAll(/\S+/g));if(c.length<=i)return u;const r=c[i]?.index??u.length;return u.slice(0,r).trim()}function o0(u,i){return u.length<=i?u:u.slice(0,i).trim()}funct
+- public/assets/messaging-BP0KfJxy.js:1229: this.container = t, this._heartbeatsCache = null;
+- public/assets/messaging-BP0KfJxy.js:1231: this._storage = new gr(n), this._heartbeatsCachePromise = this._storage.read().then(r => (this._heartbeatsCache = r, r))
+- public/assets/messaging-BP0KfJxy.js:1237: if (this._heartbeatsCache ?.heartbeats == null && (this._heartbeatsCache = await this._heartbeatsCachePromise, this._heartbeatsCache ?.heartbeats == null) || this._heartbeatsCache.lastSentHeartbeatDate === r || this._heartbeatsCache.heartbeats.some(i => i.date
+- public/assets/messaging-BP0KfJxy.js:1238: if (this._heartbeatsCache.heartbeats.push({
+- public/assets/messaging-BP0KfJxy.js:1241: }), this._heartbeatsCache.heartbeats.length > fr) {
+- public/assets/messaging-BP0KfJxy.js:1242: const i = mr(this._heartbeatsCache.heartbeats);
+- public/assets/messaging-BP0KfJxy.js:1243: this._heartbeatsCache.heartbeats.splice(i, 1)
+- public/assets/messaging-BP0KfJxy.js:1245: return this._storage.overwrite(this._heartbeatsCache)
+- public/assets/messaging-BP0KfJxy.js:1252: if (this._heartbeatsCache === null && await this._heartbeatsCachePromise, this._heartbeatsCache ?.heartbeats == null || this._heartbeatsCache.heartbeats.length === 0) return "";
+- public/assets/messaging-BP0KfJxy.js:1257: } = hr(this._heartbeatsCache.heartbeats),
+- public/assets/messaging-BP0KfJxy.js:1262: return this._heartbeatsCache.lastSentHeartbeatDate = t, r.length > 0 ? (this._heartbeatsCache.heartbeats = r, await this._storage.overwrite(this._heartbeatsCache)) : (this._heartbeatsCache.heartbeats = [], this._storage.overwrite(this._heartbeatsCache)), i
+- public/assets/messaging-BP0KfJxy.js:2346: "failed-service-worker-registration": "We are unable to register the default service worker. {$browserErrorMessage}",
+- public/assets/messaging-BP0KfJxy.js:2352: "use-sw-after-get-token": "The useServiceWorker() method may only be called once and must be called before calling getToken() to ensure your service worker is used.",
+- public/assets/messaging-BP0KfJxy.js:2353: "invalid-sw-registration": "The input to useServiceWorker() must be a ServiceWorkerRegistration.",
+- public/assets/messaging-BP0KfJxy.js:2711: e.swRegistration = await navigator.serviceWorker.register(ri, {
+- public/assets/messaging-BP0KfJxy.js:2715: throw d.create("failed-service-worker-registration", {
+- public/assets/messaging-BP0KfJxy.js:2747: if (!(t instanceof ServiceWorkerRegistration)) throw d.create("invalid-sw-registration");
+- public/assets/messaging-BP0KfJxy.js:2789: return await Bi(e, t ?.vapidKey), await Ni(e, t ?.serviceWorkerRegistration), Ei(e)
+- public/assets/messaging-BP0KfJxy.js:2870: return navigator.serviceWorker.addEventListener("message", n => Fi(t, n)), t
+- public/assets/messaging-BP0KfJxy.js:2904: return typeof window < "u" && de() && nt() && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && "fetch" in window && ServiceWorkerRegistration.prototype.hasOwnProperty("showNotification") && PushSubscription.prototype.hasOw
+- public/assets/messaging-BP0KfJxy.js:3507: jt = async () => !Da() || typeof Notification > "u" || !("serviceWorker" in navigator) || typeof PushManager > "u" ? !1 : (ne || (ne = Bt().catch(() => !1)), ne),
+- public/assets/messaging-BP0KfJxy.js:3516: Ra = async () => typeof window > "u" || !("serviceWorker" in navigator) ? null : (re || (re = navigator.serviceWorker.register(Ma, {
+- public/assets/messaging-BP0KfJxy.js:3535: serviceWorkerRegistration: n
+- public/assets/sessionSync-mloIEnTd.js:1: import{J as S,K as E,L as d,M as l,u as A,i as D,s as p,m as y,N as m,k as g}from"./App-pJGjDiPw.js";import{a as n}from"./QueryProvider-DusNhG9D.js";import{G as u,C as c}from"./groupCache-DVHvdGlY.js";import"./index-BPYJFSVW.js";import"./vendor-react-BfU3Zn2J.
+- public/assets/useFocusStore-CX_Nyp1h.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/sessionSync-mloIEnTd.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-supabase-DAiUAuun.js", "
+- public/assets/useGroups-vEjDKzZY.js:17: } from "./groupCache-DVHvdGlY.js";
+- public/assets/useNotificationStore-BS4df28T.js:162: "serviceWorker" in navigator && navigator.serviceWorker.controller ? await (await navigator.serviceWorker.ready).showNotification(i, d) : typeof Notification < "u" && new Notification(i, d)
+- public/assets/utils-D8mZnxMk.js:228: cache: $e(e.cacheSize),
+- public/assets/utils-D8mZnxMk.js:298: return o = qe(f), r = o.cache.get, i = o.cache.set, d = u, u(c)
+- public/assets/utils-D8mZnxMk.js:420: cacheSize: 500,
+- public/assets/vendor-charts-BN-djq5a.js:9: */var ff;function jx(){if(ff)return U;ff=1;var e=Symbol.for("react.transitional.element"),t=Symbol.for("react.portal"),r=Symbol.for("react.fragment"),n=Symbol.for("react.strict_mode"),i=Symbol.for("react.profiler"),a=Symbol.for("react.consumer"),o=Symbol.for("
+- public/assets/vendor-charts-BN-djq5a.js:36: */var ud;function wP(){if(ud)return Pu;ud=1;var e=ni(),t=xP();function r(s,c){return s===c&&(s!==0||1/s===1/c)||s!==s&&c!==c}var n=typeof Object.is=="function"?Object.is:r,i=t.useSyncExternalStore,a=e.useRef,o=e.useEffect,u=e.useMemo,l=e.useDebugValue;return P
+- public/assets/vendor-charts-BN-djq5a.js:66: A`,",",",0,0,",",",",","Z"])),A.x,A.y,a,a,+(c<0),O.x,O.y,n,n,+(k>180),+(c>0),x.x,x.y,a,a,+(c<0),P.x,P.y)}else b+=we(Iv||(Iv=Er(["L",",","Z"])),t,r);return b},hE={cx:0,cy:0,innerRadius:0,outerRadius:0,startAngle:0,endAngle:0,cornerRadius:0,forceCornerRadius:!1,
+- public/assets/vendor-charts-BN-djq5a.js:84: */var Zh;function T$(){if(Zh)return xl;Zh=1;var e=ni();function t(l,s){return l===s&&(l!==0||1/l===1/s)||l!==l&&s!==s}var r=typeof Object.is=="function"?Object.is:t,n=e.useSyncExternalStore,i=e.useRef,a=e.useEffect,o=e.useMemo,u=e.useDebugValue;return xl.useSy
+- public/assets/vendor-charts-CFLJvnG7.js:2624: return o.clearCache = () => {
+- public/assets/vendor-charts-CFLJvnG7.js:3563: immutableCheck: n = !0,
+- public/assets/vendor-charts-CFLJvnG7.js:13066: lC(this, "cache", new Map), this.maxSize = t
+- public/assets/vendor-charts-CFLJvnG7.js:13069: var r = this.cache.get(t);
+- public/assets/vendor-charts-CFLJvnG7.js:13070: return r !== void 0 && (this.cache.delete(t), this.cache.set(t, r)), r
+- public/assets/vendor-charts-CFLJvnG7.js:13073: if (this.cache.has(t)) this.cache.delete(t);
+- public/assets/vendor-charts-CFLJvnG7.js:13074: else if (this.cache.size >= this.maxSize) {
+- public/assets/vendor-charts-CFLJvnG7.js:13075: var n = this.cache.keys().next().value;
+- public/assets/vendor-charts-CFLJvnG7.js:13076: n != null && this.cache.delete(n)
+- public/assets/vendor-charts-CFLJvnG7.js:13078: this.cache.set(t, r)
+- public/assets/vendor-charts-CFLJvnG7.js:13081: this.cache.clear()
+- public/assets/vendor-charts-CFLJvnG7.js:13084: return this.cache.size
+- public/assets/vendor-charts-CFLJvnG7.js:13136: cacheSize: 2e3,
+- public/assets/vendor-charts-CFLJvnG7.js:13137: enableCache: !0
+- public/assets/vendor-charts-CFLJvnG7.js:13140: Tp = new fC(Yb.cacheSize),
+- public/assets/vendor-charts-CFLJvnG7.js:13183: if (!Yb.enableCache) return Dp(t, r);
+- public/assets/vendor-charts-CFLJvnG7.js:22317: immutableCheck: !["commonjs", "es6", "production"].includes((i = "es6") !== null && i !== void 0 ? i : "")
+- public/assets/vendor-query-Rjz85D0S.js:327: i = t.getMutationCache().getAll().flatMap(u => s(u) ? [Wt(u)] : []),
+- public/assets/vendor-query-Rjz85D0S.js:331: a = t.getQueryCache().getAll().flatMap(u => n(u) ? [Bt(u, o, r)] : []);
+- public/assets/vendor-query-Rjz85D0S.js:340: const i = t.getMutationCache(),
+- public/assets/vendor-query-Rjz85D0S.js:341: n = t.getQueryCache(),
+- public/assets/vendor-query-Rjz85D0S.js:591: super(), this.#o = !1, this.#a = t.defaultOptions, this.setOptions(t.options), this.observers = [], this.#n = t.client, this.#s = this.#n.getQueryCache(), this.queryKey = t.queryKey, this.queryHash = t.queryHash, this.#t = at(this.options), this.state = t.stat
+- public/assets/vendor-query-Rjz85D0S.js:928: this.#S(), this.#e.setOptions(this.options), e._defaulted && !_(this.options, e) && this.#t.getQueryCache().notify({
+- public/assets/vendor-query-Rjz85D0S.js:939: const e = this.#t.getQueryCache().build(this.#t, t),
+- public/assets/vendor-query-Rjz85D0S.js:964: s = this.#t.getQueryCache().build(this.#t, e);
+- public/assets/vendor-query-Rjz85D0S.js:1122: const t = this.#t.getQueryCache().build(this.#t, this.options);
+- public/assets/vendor-query-Rjz85D0S.js:1134: }), this.#t.getQueryCache().notify({
+- public/assets/vendor-query-Rjz85D0S.js:1329: super(), this.#t = t.client, this.mutationId = t.mutationId, this.#s = t.mutationCache, this.#e = [], this.state = t.state || xt(), this.setOptions(t.options), this.scheduleGc()
+- public/assets/vendor-query-Rjz85D0S.js:1507: mutationCache: this,
+- public/assets/vendor-query-Rjz85D0S.js:1606: this.options = this.#t.defaultMutationOptions(t), _(this.options, e) || this.#t.getMutationCache().notify({
+- public/assets/vendor-query-Rjz85D0S.js:1625: return this.#n = e, this.#s ?.removeObserver(this), this.#s = this.#t.getMutationCache().build(this.#t, this.options), this.#s.addObserver(this), this.#s.execute(t)
+- public/assets/vendor-query-Rjz85D0S.js:1743: this.#t = t.queryCache || new ce, this.#e = t.mutationCache || new he, this.#s = t.defaultOptions || {}, this.#n = new Map, this.#i = new Map, this.#a = 0
+- public/assets/vendor-query-Rjz85D0S.js:1870: getQueryCache() {
+- public/assets/vendor-query-Rjz85D0S.js:1873: getMutationCache() {
+- public/assets/vendor-query-Rjz85D0S.js:1995: const a = !r.getQueryCache().get(o.queryHash),
+- public/assets/vendor-query-Rjz85D0S.js:2009: query: r.getQueryCache().get(o.queryHash),
+- public/assets/vendor-query-Rjz85D0S.js:2012: return r.getDefaultOptions().queries ?._experimental_afterQuery ?.(o, c), o.experimental_prefetchInRender && !I && Se(c, i) && (a ? ht(o, u, n) : r.getQueryCache().get(o.queryHash) ?.promise) ?.catch(C).finally(() => {
+- public/assets/vendor-query-Rjz85D0S.js:2081: const e = t.queryClient.getQueryCache().subscribe(i => {
+- public/assets/vendor-query-Rjz85D0S.js:2084: s = t.queryClient.getMutationCache().subscribe(i => {
+- public/assets/vendor-query-Rjz85D0S.js:2272: this.unsubs = [], this.scrollElement = null, this.targetWindow = null, this.isScrolling = !1, this.measurementsCache = [], this.itemSizeCache = new Map, this.laneAssignments = new Map, this.pendingMeasuredCacheIndexes = [], this.prevLanes = void 0, this.lanesC
+- public/assets/vendor-query-Rjz85D0S.js:2321: initialMeasurementsCache: [],
+- public/assets/vendor-query-Rjz85D0S.js:2351: this.scrollElement = i, this.scrollElement && "ownerDocument" in this.scrollElement ? this.targetWindow = this.scrollElement.ownerDocument.defaultView : this.targetWindow = ((s = this.scrollElement) == null ? void 0 : s.window) ?? null, this.elementsCache.forE
+- public/assets/vendor-query-Rjz85D0S.js:2372: }, this.getMeasurementOptions = T(() => [this.options.count, this.options.paddingStart, this.options.scrollMargin, this.options.getItemKey, this.options.enabled, this.options.lanes], (s, i, n, r, o, a) => (this.prevLanes !== void 0 && this.prevLanes !== a && (
+- public/assets/vendor-query-Rjz85D0S.js:2385: }), this.getMeasurements = T(() => [this.getMeasurementOptions(), this.itemSizeCache], ({
+- public/assets/vendor-query-Rjz85D0S.js:2393: if (!o) return this.measurementsCache = [], this.itemSizeCache.clear(), this.laneAssignments.clear(), [];
+- public/assets/vendor-query-Rjz85D0S.js:2396: this.lanesChangedFlag && (this.lanesChangedFlag = !1, this.lanesSettling = !0, this.measurementsCache = [], this.itemSizeCache.clear(), this.laneAssignments.clear(), this.pendingMeasuredCacheIndexes = []), this.measurementsCache.length === 0 && (this.measureme
+- public/assets/vendor-query-Rjz85D0S.js:2397: this.itemSizeCache.set(l.key, l.size)
+- public/assets/vendor-query-Rjz85D0S.js:2399: const c = this.lanesSettling ? 0 : this.pendingMeasuredCacheIndexes.length > 0 ? Math.min(...this.pendingMeasuredCacheIndexes) : 0;
+- public/assets/vendor-query-Rjz85D0S.js:2400: this.pendingMeasuredCacheIndexes = [], this.lanesSettling && this.measurementsCache.length === s && (this.lanesSettling = !1);
+- public/assets/vendor-query-Rjz85D0S.js:2401: const h = this.measurementsCache.slice(0, c),
+- public/assets/vendor-query-Rjz85D0S.js:2432: return this.measurementsCache = h, h
+- public/assets/vendor-query-Rjz85D0S.js:2463: r = this.measurementsCache[n];
+- public/assets/vendor-query-Rjz85D0S.js:2466: a = this.elementsCache.get(o);
+- public/assets/vendor-query-Rjz85D0S.js:2467: a !== s && (a && this.observer.unobserve(a), this.observer.observe(s), this.elementsCache.set(o, s)), s.isConnected && this.resizeItem(n, this.options.measureElement(s, i, this))
+- public/assets/vendor-query-Rjz85D0S.js:2469: const n = this.measurementsCache[s];
+- public/assets/vendor-query-Rjz85D0S.js:2471: const r = this.itemSizeCache.get(n.key) ?? n.size,
+- public/assets/vendor-query-Rjz85D0S.js:2476: }), this.pendingMeasuredCacheIndexes.push(n.index), this.itemSizeCache = new Map(this.itemSizeCache.set(n.key, i)), this.notify(!1))
+- public/assets/vendor-query-Rjz85D0S.js:2479: this.elementsCache.forEach((i, n) => {
+- public/assets/vendor-query-Rjz85D0S.js:2480: i.isConnected || (this.observer.unobserve(i), this.elementsCache.delete(n))
+- public/assets/vendor-query-Rjz85D0S.js:2507: const n = this.measurementsCache[s];
+- public/assets/vendor-query-Rjz85D0S.js:2517: }, this.isDynamicMode = () => this.elementsCache.size > 0, this.scrollToOffset = (s, {
+- public/assets/vendor-query-Rjz85D0S.js:2589: this.itemSizeCache = new Map, this.laneAssignments = new Map, this.notify(!1)
+- public/assets/vendor-react-BfU3Zn2J.js:317: return $.H.useMemoCache(v)
+- public/assets/vendor-react-BfU3Zn2J.js:319: }, G.cache = function(v) {
+- public/assets/vendor-react-BfU3Zn2J.js:323: }, G.cacheSignal = function() {
+- public/assets/vendor-react-BfU3Zn2J.js:401: }, G.unstable_useCacheRefresh = function() {
+- public/assets/vendor-react-BfU3Zn2J.js:402: return $.H.useCacheRefresh()
+- public/assets/vendor-react-BfU3Zn2J.js:1021: Zu = Symbol.for("react.memo_cache_sentinel"),
+- public/assets/vendor-react-BfU3Zn2J.js:3050: return l !== null ? l : hl.pooledCache
+- public/assets/vendor-react-BfU3Zn2J.js:3632: n.lastEffect = null, n.events = null, n.stores = null, n.memoCache != null && (n.memoCache.index = 0)
+- public/assets/vendor-react-BfU3Zn2J.js:3701: memoCache: null
+- public/assets/vendor-react-BfU3Zn2J.js:3721: if (u !== null && (t = u.memoCache), t == null) {
+- public/assets/vendor-react-BfU3Zn2J.js:3723: a !== null && (a = a.updateQueue, a !== null && (a = a.memoCache, a != null && (t = {
+- public/assets/vendor-react-BfU3Zn2J.js:3733: }), u === null && (u = ln(), Q.updateQueue = u), u.memoCache = t, u = t.data[t.index], u === void 0)
+- public/assets/vendor-react-BfU3Zn2J.js:4267: cache: Hf()
+- public/assets/vendor-react-BfU3Zn2J.js:4369: useMemoCache: El,
+- public/assets/vendor-react-BfU3Zn2J.js:4370: useCacheRefresh: El
+- public/assets/vendor-react-BfU3Zn2J.js:4490: useMemoCache: wf,
+- public/assets/vendor-react-BfU3Zn2J.js:4491: useCacheRefresh: function() {
+- public/assets/vendor-react-BfU3Zn2J.js:4540: useMemoCache: wf,
+- public/assets/vendor-react-BfU3Zn2J.js:4541: useCacheRefresh: dy
+- public/assets/vendor-react-BfU3Zn2J.js:4578: useMemoCache: wf,
+- public/assets/vendor-react-BfU3Zn2J.js:4579: useCacheRefresh: dy
+- public/assets/vendor-react-BfU3Zn2J.js:4783: _retryCache: null,
+- public/assets/vendor-react-BfU3Zn2J.js:4795: cachePool: null
+- public/assets/vendor-react-BfU3Zn2J.js:4796: }, l !== null && Ke(t, n !== null ? n.cachePool : null), n !== null ? q0(t, n) : Qf(), Y0(t);
+- public/assets/vendor-react-BfU3Zn2J.js:4798: } else n !== null ? (Ke(t, n.cachePool), q0(t, n), cu(), t.memoizedState = null) : (l !== null && Ke(t, null), Qf(), cu());
+- public/assets/vendor-react-BfU3Zn2J.js:4806: _retryCache: null,
+- public/assets/vendor-react-BfU3Zn2J.js:4818: cachePool: n
+- public/assets/vendor-react-BfU3Zn2J.js:4926: cachePool: O0()
+- public/assets/vendor-react-BfU3Zn2J.js:4980: }), a.subtreeFlags = i.subtreeFlags & 65011712, d !== null ? c = Yt(d, c) : (c = pu(c, e, u, null), c.flags |= 2), c.return = t, a.return = t, a.sibling = c, t.child = a, le(null, a), a = t.child, c = l.child.memoizedState, c === null ? c = sc(u) : (e = c.cach
+- public/assets/vendor-react-BfU3Zn2J.js:4985: cachePool: e
+- public/assets/vendor-react-BfU3Zn2J.js:5092: Vl(t, t.stateNode.containerInfo), uu(t, Ml, l.memoizedState.cache), Ru();
+- public/assets/vendor-react-BfU3Zn2J.js:5123: uu(t, Ml, l.memoizedState.cache)
+- public/assets/vendor-react-BfU3Zn2J.js:5167: if (a = f.cache, uu(t, Ml, a), a !== n.cache && Rf(t, [Ml], u, !0), $a(), a = f.element, n.isDehydrated)
+- public/assets/vendor-react-BfU3Zn2J.js:5171: cache: f.cache
+- public/assets/vendor-react-BfU3Zn2J.js:5232: return Nu(t), a = Bl(Ml), l === null ? (e = Cf(), e === null && (e = hl, n = Hf(), e.pooledCache = n, n.refCount++, n !== null && (e.pooledCacheLanes |= u), e = n), t.memoizedState = {
+- public/assets/vendor-react-BfU3Zn2J.js:5234: cache: e
+- public/assets/vendor-react-BfU3Zn2J.js:5237: cache: a
+- public/assets/vendor-react-BfU3Zn2J.js:5238: }, t.memoizedState = e, t.lanes === 0 && (t.memoizedState = t.updateQueue.baseState = e), uu(t, Ml, a)) : (a = n.cache, uu(t, Ml, a), a !== e.cache && Rf(t, [Ml], u, !0))), Gl(l, t, t.pendingProps.children, u), t.child;
+- public/assets/vendor-react-BfU3Zn2J.js:5310: return u = t.stateNode, a = null, l !== null && (a = l.memoizedState.cache), t.memoizedState.cache !== a && (t.flags |= 2048), Xt(Ml), Tl(), u.pendingContext && (u.context = u.pendingContext, u.pendingContext = null), (l === null || l.child === null) && (ea(t)
+- public/assets/vendor-react-BfU3Zn2J.js:5436: return ft(t), (t.flags & 128) !== 0 ? (t.lanes = u, t) : (u = a !== null, l = l !== null && l.memoizedState !== null, u && (a = t.child, e = null, a.alternate !== null && a.alternate.memoizedState !== null && a.alternate.memoizedState.cachePool !== null && (e 
+- public/assets/vendor-react-BfU3Zn2J.js:5466: return ft(t), jf(), a = t.memoizedState !== null, l !== null ? l.memoizedState !== null !== a && (t.flags |= 8192) : a && (t.flags |= 8192), a ? (u & 536870912) !== 0 && (t.flags & 128) === 0 && (rl(t), t.subtreeFlags & 6 && (t.flags |= 8192)) : rl(t), u = t.u
+- public/assets/vendor-react-BfU3Zn2J.js:5468: return u = null, l !== null && (u = l.memoizedState.cache), t.memoizedState.cache !== u && (t.flags |= 2048), Xt(Ml), rl(t), null;
+- public/assets/vendor-react-BfU3Zn2J.js:6010: return l = l.stateNode, t = l._retryCache, t === null && (t = l._retryCache = new $y), t;
+- public/assets/vendor-react-BfU3Zn2J.js:6380: l !== null && l.memoizedState !== null && l.memoizedState.cachePool !== null && (u = l.memoizedState.cachePool.pool), l = null, t.memoizedState !== null && t.memoizedState.cachePool !== null && (l = t.memoizedState.cachePool.pool), l !== u && (l != null && l.r
+- public/assets/vendor-react-BfU3Zn2J.js:6384: l = null, t.alternate !== null && (l = t.alternate.memoizedState.cache), t = t.memoizedState.cache, t !== l && (t.refCount++, l != null && Va(l))
+- public/assets/vendor-react-BfU3Zn2J.js:6404: At(l, t, u, a), e & 2048 && (l = null, t.alternate !== null && (l = t.alternate.memoizedState.cache), t = t.memoizedState.cache, t !== l && (t.refCount++, l != null && Va(l)));
+- public/assets/vendor-react-BfU3Zn2J.js:6596: if (u.memoizedState !== null && u.memoizedState.cachePool !== null) {
+- public/assets/vendor-react-BfU3Zn2J.js:6597: var a = u.memoizedState.cachePool.pool;
+- public/assets/vendor-react-BfU3Zn2J.js:6602: Va(u.memoizedState.cache)
+- public/assets/vendor-react-BfU3Zn2J.js:6622: getCacheForType: function(l) {
+- public/assets/vendor-react-BfU3Zn2J.js:6627: cacheSignal: function() {
+- public/assets/vendor-react-BfU3Zn2J.js:7189: (l.pooledCacheLanes &= t) === 0 && (t = l.pooledCache, t != null && (l.pooledCache = null, Va(t)))
+- public/assets/vendor-react-BfU3Zn2J.js:7242: var a = l.pingCache;
+- public/assets/vendor-react-BfU3Zn2J.js:7244: a = l.pingCache = new fo;
+- public/assets/vendor-react-BfU3Zn2J.js:7252: var a = l.pingCache;
+- public/assets/vendor-react-BfU3Zn2J.js:7279: a = l.stateNode._retryCache;
+- public/assets/vendor-react-BfU3Zn2J.js:8727: case "serviceworker":
+- public/assets/vendor-react-BfU3Zn2J.js:8740: case "serviceworker":
+- public/assets/vendor-react-BfU3Zn2J.js:9104: this.tag = 1, this.containerInfo = l, this.pingCache = this.current = this.pendingChildren = null, this.timeoutHandle = -1, this.callbackNode = this.next = this.pendingContext = this.context = this.cancelPendingCommit = null, this.callbackPriority = 0, this.ex
+- public/assets/vendor-react-BfU3Zn2J.js:9108: return l = new $o(l, t, u, f, i, d, g, E, c), t = 1, n === !0 && (t |= 24), n = et(3, null, null, t), l.current = n, n.stateNode = l, t = Hf(), t.refCount++, l.pooledCache = t, t.refCount++, n.memoizedState = {
+- public/assets/vendor-react-BfU3Zn2J.js:9111: cache: t
+- public/assets/vendor-sentry-VzeXdCeF.js:5829: Pb = "gen_ai.usage.cache_creation_input_tokens",
+- public/assets/vendor-sentry-VzeXdCeF.js:5830: Lb = "gen_ai.usage.cache_read_input_tokens",
+- public/assets/vendor-sentry-VzeXdCeF.js:6349: n.id && (t.responseId = n.id), n.model && (t.responseModel = n.model), n.stop_reason && t.finishReasons.push(n.stop_reason), n.usage && (typeof n.usage.input_tokens == "number" && (t.promptTokens = n.usage.input_tokens), typeof n.usage.cache_creation_input_tok
+- public/assets/vendor-sentry-VzeXdCeF.js:6401: }), pc(t, e.promptTokens, e.completionTokens, e.cacheCreationInputTokens, e.cacheReadInputTokens), t.setAttributes({
+- public/assets/vendor-sentry-VzeXdCeF.js:6419: cacheCreationInputTokens: void 0,
+- public/assets/vendor-sentry-VzeXdCeF.js:6420: cacheReadInputTokens: void 0,
+- public/assets/vendor-sentry-VzeXdCeF.js:6431: }), pc(t, r.promptTokens, r.completionTokens, r.cacheCreationInputTokens, r.cacheReadInputTokens), t.setAttributes({
+- public/assets/vendor-sentry-VzeXdCeF.js:6451: cacheCreationInputTokens: void 0,
+- public/assets/vendor-sentry-VzeXdCeF.js:6452: cacheReadInputTokens: void 0,
+- public/assets/vendor-sentry-VzeXdCeF.js:6559: }), "usage" in t && t.usage && pc(e, t.usage.input_tokens, t.usage.output_tokens, t.usage.cache_creation_input_tokens, t.usage.cache_read_input_tokens))
+- public/assets/vendor-sentry-VzeXdCeF.js:7046: i > 0 && qe(t, Mn, i), r.cache_creation_input_tokens !== void 0 && qe(t, Pb, r.cache_creation_input_tokens), r.cache_read_input_tokens !== void 0 && qe(t, Lb, r.cache_read_input_tokens)
+- public/assets/vendor-sentry-VzeXdCeF.js:10881: }), To(e, t, "secureConnection", n, "TLS/SSL"), To(e, t, "fetch", n, "cache"), To(e, t, "domainLookup", n, "DNS"), W0(e, t, n)
+- public/assets/vendor-sentry-VzeXdCeF.js:11764: const KI = ["EventTarget", "Window", "Node", "ApplicationCache", "AudioTrackList", "BroadcastChannel", "ChannelMergerNode", "CryptoOperation", "EventSource", "FileReader", "HTMLUnknownElement", "IDBDatabase", "IDBRequest", "IDBTransaction", "KeyOperation", "Me
+- public/assets/vendor-supabase-DAiUAuun.js:2574: cacheControl: "3600",
+- public/assets/vendor-supabase-DAiUAuun.js:2594: typeof Blob < "u" && r instanceof Blob ? (i = new FormData, i.append("cacheControl", a.cacheControl), l && i.append("metadata", this.encodeMetadata(l)), i.append("", r)) : typeof FormData < "u" && r instanceof FormData ? (i = r, i.has("cacheControl") || i.appe
+- public/assets/vendor-supabase-DAiUAuun.js:2639: typeof Blob < "u" && r instanceof Blob ? (l = new FormData, l.append("cacheControl", c.cacheControl), l.append("", r)) : typeof FormData < "u" && r instanceof FormData ? (l = r, l.append("cacheControl", c.cacheControl)) : (l = r, u["cache-control"] = `max-age=
+- public/assets/vendor-supabase-DAiUAuun.js:5768: get jwks_cached_at() {
+- public/assets/vendor-supabase-DAiUAuun.js:5770: return (t = (e = se[this.storageKey]) === null || e === void 0 ? void 0 : e.cachedAt) !== null && t !== void 0 ? t : Number.MIN_SAFE_INTEGER
+- public/assets/vendor-supabase-DAiUAuun.js:5772: set jwks_cached_at(e) {
+- public/assets/vendor-supabase-DAiUAuun.js:5774: cachedAt: e
+- public/assets/vendor-supabase-DAiUAuun.js:5791: }, this.jwks_cached_at = Number.MIN_SAFE_INTEGER), this.mfa = {
+- public/assets/vendor-supabase-DAiUAuun.js:7975: if (r = this.jwks.keys.find(o => o.kid === e), r && this.jwks_cached_at + sn > n) return r;
+- public/assets/vendor-supabase-DAiUAuun.js:7983: return !i.keys || i.keys.length === 0 || (this.jwks = i, this.jwks_cached_at = n, r = i.keys.find(o => o.kid === e), !r) ? null : r
+- public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6: `)};if(I===0){var C=l.slice(p+1,g).concat(K({children:[h],className:m.properties.className})),k=y(C,w);d.push(k)}else if(I===F.length-1){var P=l[g+1]&&l[g+1].children&&l[g+1].children[0],B={type:"text",value:"".concat(x)};if(P){var Y=K({children:[B],className:
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:123: v = s !== navigator.serviceWorker.controller;
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:149: }), e.sn = c, e.nn = a, navigator.serviceWorker.addEventListener("message", e.gn), e
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:167: return i.mn = !!navigator.serviceWorker.controller, i.dn = i.pn(), l(i.bn(), (function(u) {
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:177: })).then((function() {}))), i.hn && (i.rn.resolve(i.hn), i.an.add(i.hn)), i.fn.addEventListener("updatefound", i.cn), navigator.serviceWorker.addEventListener("controllerchange", i.yn), i.fn
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:202: var c = navigator.serviceWorker.controller;
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:215: return l(navigator.serviceWorker.register(c.sn, c.nn), (function(a) {
+- public/auth-bridge.js:76: cache: 'no-store'
+- public/auth-bridge.js:88: cache: 'no-store'
+- public/auth-bridge.js:92: localStorage.setItem('isotope-bootstrap-cache', JSON.stringify({
+- public/auth-bridge.js:94: cached_at: Date.now(),
+- public/boot-recovery.js:3: var CACHE_RECOVERY_KEY = 'isotope-runtime-cache-recovery-v1';
+- public/boot-recovery.js:46: function clearCaches() {
+- public/boot-recovery.js:47: if (typeof caches === 'undefined' || typeof caches.keys !== 'function') {
+- public/boot-recovery.js:50: return caches.keys().then(function(keys) {
+- public/boot-recovery.js:54: .map(function(key) { return caches.delete(key); }),
+- public/boot-recovery.js:59: function clearCachesAndReload() {
+- public/boot-recovery.js:60: if (recoveryStarted || readSessionValue(CACHE_RECOVERY_KEY) === '1') {
+- public/boot-recovery.js:64: writeSessionValue(CACHE_RECOVERY_KEY, '1');
+- public/boot-recovery.js:65: console.info('Isotope runtime cache cleared; reloading.');
+- public/boot-recovery.js:66: return clearCaches()
+- public/boot-recovery.js:74: window.__isoClearCachesAndReload = clearCachesAndReload;
+- public/boot-recovery.js:81: function refreshServiceWorkers() {
+- public/boot-recovery.js:84: !navigator.serviceWorker ||
+- public/boot-recovery.js:85: typeof navigator.serviceWorker.getRegistrations !== 'function'
+- public/boot-recovery.js:90: return navigator.serviceWorker
+- public/boot-recovery.js:123: refreshServiceWorkers().finally(reload);
+- public/boot-recovery.js:133: clearCachesAndReload();
+- public/boot-recovery.js:161: if (isRuntimeGlueError(message)) clearCachesAndReload();
+- public/manifest.webmanifest:35: "description": "Open cached analytics screens when available",
+- public/offline.html:50: <p>The cached app shell was not available for this page. Start the local server and open the app once to refresh the offline cache.</p>
+- public/pwa-local.js:157: fetch('/api/version', { cache: 'no-store' })
+- public/pwa-local.js:166: function registerServiceWorker() {
+- public/pwa-local.js:167: if (!('serviceWorker' in navigator)) return;
+- public/pwa-local.js:168: navigator.serviceWorker.register('/sw.js', { scope: '/' })
+- public/pwa-local.js:174: navigator.serviceWorker.addEventListener('message', function (event) {
+- public/pwa-local.js:217: registerServiceWorker();
+- public/restore-and-launch.js:13: *                                                 → /dashboard cached/offline
+- public/restore-and-launch.js:15: *                                                 → /onboarding cached/offline
+- public/restore-and-launch.js:53: OFFLINE_CACHED: 'offlineCached',
+- public/restore-and-launch.js:370: applyCachedCloudSnapshot(cloudSnapshot);
+- public/restore-and-launch.js:526: function applyCachedCloudSnapshot(snapshot) {
+- public/restore-and-launch.js:549: source: 'cached_cloud_snapshot',
+- public/restore-and-launch.js:552: return { isOnboarded: snapshot.onboarding.completed, source: 'cache', snapshot };
+- public/restore-and-launch.js:667: cache: 'no-store',
+- public/restore-and-launch.js:816: const cached = readTrustedCloudSnapshot(session.user.id);
+- public/restore-and-launch.js:817: if (cached) {
+- public/restore-and-launch.js:818: applyCachedCloudSnapshot(cached);
+- public/restore-and-launch.js:819: bootDecision = publishBootState(BOOT_STATES.OFFLINE_CACHED, {
+- public/restore-and-launch.js:821: cached: true,
+- public/restore-and-launch.js:823: state: cached.onboarding.completed ? 'completed' : 'incomplete',
+- public/restore-and-launch.js:824: completed: cached.onboarding.completed,
+- public/restore-and-launch.js:825: completed_at: cached.onboarding.completed_at || null,
+- public/restore-and-launch.js:827: source: 'cached_cloud_snapshot',
+- public/restore-and-launch.js:828: snapshotDownloadedAt: cached.downloaded_at || null,
+- public/restore-and-launch.js:835: error: 'Cloud state unavailable and no trusted cached cloud snapshot exists.',
+- public/sw.js:7: const CACHE_PREFIX = 'isotope-local';
+- public/sw.js:8: const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
+- public/sw.js:9: const RUNTIME_CACHE = CACHE_PREFIX + '-runtime-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
+- public/sw.js:93: function isCacheableAsset(request, url) {
+- public/sw.js:108: async function cacheFirst(request) {
+- public/sw.js:109: const cache = await caches.open(RUNTIME_CACHE);
+- public/sw.js:110: const cached = await cache.match(request);
+- public/sw.js:111: if (cached) return cached;
+- public/sw.js:113: if (response && response.ok) cache.put(request, response.clone());
+- public/sw.js:118: const cache = await caches.open(RUNTIME_CACHE);
+- public/sw.js:125: cache: 'no-store',
+- public/sw.js:128: if (response && response.ok) await cache.put(request, response.clone());
+- public/sw.js:131: const cached = await cache.match(request);
+- public/sw.js:132: if (cached) return cached;
+- public/sw.js:137: const shell = await caches.open(SHELL_CACHE);
+- public/sw.js:147: new Response('Isotope is offline and the app shell is not cached yet.', {
+- public/sw.js:155: const cache = await caches.open(SHELL_CACHE);
+- public/sw.js:156: await cache.addAll(SHELL_URLS.map((url) => new Request(url, { cache: 'reload' })).filter(Boolean));
+- public/sw.js:163: const keys = await caches.keys();
+- public/sw.js:165: if (key.startsWith(CACHE_PREFIX) && key !== SHELL_CACHE && key !== RUNTIME_CACHE) {
+- public/sw.js:166: return caches.delete(key);
+- public/sw.js:187: if (event.data && event.data.type === 'CLEAR_ISOTOPE_CACHES') {
+- public/sw.js:189: const keys = await caches.keys();
+- public/sw.js:190: await Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX)).map((key) => caches.delete(key)));
+- public/sw.js:191: event.source && event.source.postMessage({ type: 'ISOTOPE_CACHES_CLEARED' });
+- public/sw.js:215: if (isCacheableAsset(request, url)) {
+- public/sw.js:216: event.respondWith(cacheFirst(request));
+- public/update-checker.js:169: return fetch('/api/version', { cache: 'no-store' })
+- public/update-checker.js:187: return fetch('/api/check-update', { cache: 'no-store' });
+- public/workbox-1d81fbea.js:57: addCacheListener() {
+- public/workbox-1d81fbea.js:59: if (t.data && "CACHE_URLS" === t.data.type) {
+- public/workbox-1d81fbea.js:62: } = t.data, s = Promise.all(e.urlsToCache.map(e => {
+- public/workbox-1d81fbea.js:165: const c = () => (o || (o = new a, o.addFetchListener(), o.addCacheListener()), o);
+- public/workbox-1d81fbea.js:188: precache: "precache-v2",
+- public/workbox-1d81fbea.js:194: f = t => t || l(u.precache),
+- public/workbox-1d81fbea.js:309: const B = "cache-entries",
+- public/workbox-1d81fbea.js:322: e.createIndex("cacheName", "cacheName", {
+- public/workbox-1d81fbea.js:340: cacheName: this.u,
+- public/workbox-1d81fbea.js:360: s.cacheName === this.u && (t && s.timestamp < t || e && r >= e ? i.push(n.value) : r++), n = await n.continue()
+- public/workbox-1d81fbea.js:398: s = await self.caches.open(this.u);
+- public/workbox-1d81fbea.js:418: self["workbox:cacheable-response:7.3.0"] && _()
+- public/workbox-1d81fbea.js:424: isResponseCacheable(t) {
+- public/workbox-1d81fbea.js:433: cacheWillUpdate: async ({
+- public/workbox-1d81fbea.js:499: async fetchAndCachePut(t) {
+- public/workbox-1d81fbea.js:502: return this.waitUntil(this.cachePut(t, s)), e
+- public/workbox-1d81fbea.js:504: async cacheMatch(t) {
+- public/workbox-1d81fbea.js:508: cacheName: n,
+- public/workbox-1d81fbea.js:510: } = this.N, r = await this.getCacheKey(e, "read"), a = Object.assign(Object.assign({}, i), {
+- public/workbox-1d81fbea.js:511: cacheName: n
+- public/workbox-1d81fbea.js:513: s = await caches.match(r, a);
+- public/workbox-1d81fbea.js:514: for (const t of this.iterateCallbacks("cachedResponseWillBeUsed")) s = await t({
+- public/workbox-1d81fbea.js:515: cacheName: n,
+- public/workbox-1d81fbea.js:517: cachedResponse: s,
+- public/workbox-1d81fbea.js:523: async cachePut(t, e) {
+- public/workbox-1d81fbea.js:527: const r = await this.getCacheKey(n, "write");
+- public/workbox-1d81fbea.js:528: if (!e) throw new s("cache-put-with-no-response", {
+- public/workbox-1d81fbea.js:535: cacheName: c,
+- public/workbox-1d81fbea.js:537: } = this.N, u = await self.caches.open(c), l = this.hasCallback("cacheDidUpdate"), f = l ? await async function(t, e, s, n) {
+- public/workbox-1d81fbea.js:554: for (const t of this.iterateCallbacks("cacheDidUpdate")) await t({
+- public/workbox-1d81fbea.js:555: cacheName: c,
+- public/workbox-1d81fbea.js:563: async getCacheKey(t, e) {
+- public/workbox-1d81fbea.js:567: for (const t of this.iterateCallbacks("cacheKeyWillBeUsed")) n = A(await t({
+- public/workbox-1d81fbea.js:613: for (const t of this.iterateCallbacks("cacheWillUpdate"))
+- public/workbox-1d81fbea.js:624: this.cacheName = w(t.cacheName), this.plugins = t.plugins || [], this.fetchOptions = t.fetchOptions, this.matchOptions = t.matchOptions
+- public/workbox-1d81fbea.js:705: if (!t) throw new s("add-to-cache-list-unexpected-type", {
+- public/workbox-1d81fbea.js:711: cacheKey: e.href,
+- public/workbox-1d81fbea.js:719: if (!n) throw new s("add-to-cache-list-unexpected-type", {
+- public/workbox-1d81fbea.js:725: cacheKey: t.href,
+- public/workbox-1d81fbea.js:732: cacheKey: i.href,
+- public/workbox-1d81fbea.js:743: }, this.cachedResponseWillBeUsed = async ({
+- public/workbox-1d81fbea.js:746: cachedResponse: s
+- public/workbox-1d81fbea.js:758: precacheController: t
+- public/workbox-1d81fbea.js:760: this.cacheKeyWillBeUsed = async ({
+- public/workbox-1d81fbea.js:764: const s = (null == e ? void 0 : e.cacheKey) || this.S.getCacheKeyForURL(t.url);
+- public/workbox-1d81fbea.js:803: t.cacheName = f(t.cacheName), super(t), this.K = !1 !== t.fallbackToNetwork, this.plugins.push(Y.copyRedirectedCacheableResponsesPlugin)
+- public/workbox-1d81fbea.js:806: const s = await e.cacheMatch(t);
+- public/workbox-1d81fbea.js:812: if (!this.K) throw new s("missing-precache-entry", {
+- public/workbox-1d81fbea.js:813: cacheName: this.cacheName,
+- public/workbox-1d81fbea.js:821: })), s && a && "no-cors" !== t.mode && (this.H(), await e.cachePut(t, n.clone()))
+- public/workbox-1d81fbea.js:828: if (!await e.cachePut(t, n.clone())) throw new s("bad-precaching-response", {
+- public/workbox-1d81fbea.js:837: for (const [s, n] of this.plugins.entries()) n !== Y.copyRedirectedCacheableResponsesPlugin && (n === Y.defaultPrecacheCacheabilityPlugin && (t = s), n.cacheWillUpdate && e++);
+- public/workbox-1d81fbea.js:838: 0 === e ? this.plugins.push(Y.defaultPrecacheCacheabilityPlugin) : e > 1 && null !== t && this.plugins.splice(t, 1)
+- public/workbox-1d81fbea.js:841: Y.defaultPrecacheCacheabilityPlugin = {
+- public/workbox-1d81fbea.js:842: cacheWillUpdate: async ({
+- public/workbox-1d81fbea.js:845: }, Y.copyRedirectedCacheableResponsesPlugin = {
+- public/workbox-1d81fbea.js:846: cacheWillUpdate: async ({
+- public/workbox-1d81fbea.js:852: cacheName: t,
+- public/workbox-1d81fbea.js:857: cacheName: f(t),
+- public/workbox-1d81fbea.js:859: precacheController: this
+- public/workbox-1d81fbea.js:867: precache(t) {
+- public/workbox-1d81fbea.js:868: this.addToCacheList(t), this.J || (self.addEventListener("install", this.install), self.addEventListener("activate", this.activate), this.J = !0)
+- public/workbox-1d81fbea.js:870: addToCacheList(t) {
+- public/workbox-1d81fbea.js:875: cacheKey: t,
+- public/workbox-1d81fbea.js:878: if (this.$.has(i) && this.$.get(i) !== t) throw new s("add-to-cache-list-conflicting-entries", {
+- public/workbox-1d81fbea.js:883: if (this.V.has(t) && this.V.get(t) !== n.integrity) throw new s("add-to-cache-list-conflicting-integrities", {
+- public/workbox-1d81fbea.js:889: const t = `Workbox is precaching URLs without revision info: ${e.join(", ")}\nThis is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
+- public/workbox-1d81fbea.js:903: cache: i,
+- public/workbox-1d81fbea.js:908: cacheKey: s
+- public/workbox-1d81fbea.js:926: const t = await self.caches.open(this.strategy.cacheName),
+- public/workbox-1d81fbea.js:936: getURLsToCacheKeys() {
+- public/workbox-1d81fbea.js:939: getCachedURLs() {
+- public/workbox-1d81fbea.js:942: getCacheKeyForURL(t) {
+- public/workbox-1d81fbea.js:946: getIntegrityForCacheKey(t) {
+- public/workbox-1d81fbea.js:949: async matchPrecache(t) {
+- public/workbox-1d81fbea.js:951: s = this.getCacheKeyForURL(e);
+- public/workbox-1d81fbea.js:953: return (await self.caches.open(this.strategy.cacheName)).match(s)
+- public/workbox-1d81fbea.js:957: const e = this.getCacheKeyForURL(t);
+- public/workbox-1d81fbea.js:958: if (!e) throw new s("non-precached-url", {
+- public/workbox-1d81fbea.js:962: cacheKey: e
+- scripts/compare-remote-assets.mjs:46: cacheControl: res.headers.get('cache-control') || '',
+- scripts/prove-runtime-glue.mjs:6: const response = await fetch(base + pathname, { cache: 'no-store' });
+- scripts/prove-runtime-glue.mjs:12: const response = await fetch(base + pathname, { method: 'HEAD', cache: 'no-store' });
+- scripts/prove-runtime-glue.mjs:66: const authBridgeCache = (await head('/auth-bridge.js')).get('cache-control') || '';
+- scripts/prove-runtime-glue.mjs:67: const restoreCache = (await head('/restore-and-launch.js')).get('cache-control') || '';
+- scripts/prove-runtime-glue.mjs:68: const appBundleCache = (await head('/assets/App-pJGjDiPw.js')).get('cache-control') || '';
+- scripts/prove-runtime-glue.mjs:69: const syncStoreCache = (await head('/assets/useSyncStore-vWs_TdIc.js')).get('cache-control') || '';
+- scripts/prove-runtime-glue.mjs:70: const settingsCache = (await head('/assets/SettingsLayout-B4OgCkQ5.js')).get('cache-control') || '';
+- scripts/prove-runtime-glue.mjs:72: const swCache = swHeaders.get('cache-control') || '';
+- scripts/prove-runtime-glue.mjs:73: const swAllowed = swHeaders.get('service-worker-allowed') || '';
+- scripts/prove-runtime-glue.mjs:74: const assetCache = (await head('/assets/index-CrO6t5EW.css')).get('cache-control') || '';
+- scripts/prove-runtime-glue.mjs:76: assert.match(authBridgeCache, /no-store/, 'auth-bridge.js must not be immutable cached');
+- scripts/prove-runtime-glue.mjs:77: assert.match(restoreCache, /no-store/, 'restore-and-launch.js must not be immutable cached');
+- scripts/prove-runtime-glue.mjs:78: assert.match(appBundleCache, /no-store/, 'runtime-patched App bundle must not be immutable cached');
+- scripts/prove-runtime-glue.mjs:79: assert.match(syncStoreCache, /no-store/, 'runtime-patched sync store bundle must not be immutable cached');
+- scripts/prove-runtime-glue.mjs:80: assert.match(settingsCache, /no-store/, 'runtime-patched Settings bundle must not be immutable cached');
+- scripts/prove-runtime-glue.mjs:81: assert.match(swCache, /no-store/, 'sw.js must not be immutable cached');
+- scripts/prove-runtime-glue.mjs:82: assert.equal(swAllowed, '/', 'sw.js must set Service-Worker-Allowed: /');
+- scripts/prove-runtime-glue.mjs:83: assert.match(assetCache, /immutable/, 'hashed assets should remain immutable');
+- scripts/prove-runtime-glue.mjs:89: console.log('PASS runtime glue load order and cache headers');
+- scripts/test-auth-bridge.mjs:42: assert.equal(options.cache, 'no-store');
+- scripts/verify-supabase-security.mjs:67: return res.status === 404 || /Could not find the table|schema cache|relation .* does not exist/i.test(text);
+- server.mjs:111: const NO_STORE_CACHE = 'no-cache, no-store, must-revalidate';
+- server.mjs:112: const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
+- server.mjs:113: const SHORT_CACHE = 'no-cache';
+- server.mjs:157: function cacheHeaderForRequest(pathname) {
+- server.mjs:159: if (RUNTIME_GLUE_PATHS.has(clean) || clean.startsWith('/sync/')) return NO_STORE_CACHE;
+- server.mjs:160: if (isRuntimePatchedAsset(clean)) return NO_STORE_CACHE;
+- server.mjs:161: if (clean.endsWith('.html')) return NO_STORE_CACHE;
+- server.mjs:162: if (clean.startsWith('/assets/') && isHashedStaticAsset(clean)) return IMMUTABLE_CACHE;
+- server.mjs:163: return SHORT_CACHE;
+- server.mjs:354: res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+- server.mjs:369: res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+- server.mjs:373: res.writeHead(403, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+- server.mjs:864: function cacheCloudSnapshot(snapshot, userId) {
+- server.mjs:993: if (d.cloud_snapshot && d.user_id) cacheCloudSnapshot(d.cloud_snapshot, d.user_id);
+- server.mjs:1487: cacheCloudSnapshot(snapshot, d.user_id);
+- server.mjs:1524: // Cloud sync: fetch the DB bundle plus real Storage snapshot and populate local cache.
+- server.mjs:1538: // Cache the bootstrap result — used as offline/restart fallback
+- server.mjs:1540: localStorage.setItem('isotope-bootstrap-cache', JSON.stringify({
+- server.mjs:1541: ok: true, cached_at: Date.now(), user_id: d.user_id,
+- server.mjs:1558: localStorage.setItem('isotope-bootstrap-cache', JSON.stringify({
+- server.mjs:1559: ok: true, cached_at: Date.now(), user_id: d2.user_id,
+- server.mjs:1568: // 5xx / network issue — use cached bootstrap if available
+- server.mjs:1569: var cached = null;
+- server.mjs:1570: try { cached = JSON.parse(localStorage.getItem('isotope-bootstrap-cache') || 'null'); } catch(e) {}
+- server.mjs:1571: if (cached && cached.ok && cached.profile) {
+- server.mjs:1572: // Cache is good — apply it (session stays valid, app works offline)
+- server.mjs:1573: return applyProfileSnapshot(cached);
+- server.mjs:1578: var offlineCache = null;
+- server.mjs:1579: try { offlineCache = JSON.parse(localStorage.getItem('isotope-bootstrap-cache') || 'null'); } catch(e) {}
+- server.mjs:1580: if (offlineCache && offlineCache.ok && offlineCache.profile) {
+- server.mjs:1581: return applyProfileSnapshot(offlineCache);
+- server.mjs:1836: // Result cached for 2 minutes so rapid calls don't re-probe.
+- server.mjs:1837: var _speedCache = null;
+- server.mjs:1840: if (_speedCache && Date.now() - _speedCache.measuredAt < 120000) return _speedCache;
+- server.mjs:1843: var r = await fetch('/api/health?_=' + Date.now(), { cache: 'no-store' });
+- server.mjs:1848: _speedCache = { bps: Math.round(bps), label: label, ms: ms, measuredAt: Date.now() };
+- server.mjs:1849: localStorage.setItem('isotope_net_speed', JSON.stringify(_speedCache));
+- server.mjs:1850: return _speedCache;
+- server.mjs:1852: _speedCache = { bps: 0, label: 'unknown', measuredAt: Date.now() };
+- server.mjs:1853: return _speedCache;
+- server.mjs:2048: // Measure speed in the background immediately — result cached for later.
+- server.mjs:2215: //    Query stale cache.
+- server.mjs:3143: // ── Reload guard — prevents repeated service-worker activation reloads ───────
+- server.mjs:3656: // Warm up caches — deferred to after server.listen() so port opens immediately
+- server.mjs:3773: const to = 'async function N(){return{total_hours:0,weekly_hours:0,monthly_hours:0,daily_hours:0,total_sessions:0,last_session_at:null,source:"local-cache-disabled"}}';
+- server.mjs:5207: 'Cache-Control': 'no-store',
+- server.mjs:5366: // Cache GitHub response for 10 min to avoid rate-limit
+- server.mjs:5367: let _ghCache = null;
+- server.mjs:5368: let _ghCacheTs = 0;
+- server.mjs:5371: // ── Performance caches ────────────────────────────────────────────────────────
+- server.mjs:5372: let _healthCache = null;    // last successful health payload
+- server.mjs:5373: let _healthCacheAt = 0;
+- server.mjs:5374: const HEALTH_CACHE_TTL = 15_000; // 15 s — reduces 200-600 ms Supabase round-trips to <1 ms
+- server.mjs:5375: const _gzipCache = new Map(); // abs file path → pre-gzip'd Buffer (populated at startup)
+- server.mjs:5426: 'onboarding row completed and cache-clear bootstrap did not repeat onboarding',
+- server.mjs:5430: 'study session wrote session/daily/summary tables and restored after cache clear',
+- server.mjs:5537: async function clearBrowserStorageAndLogin(){ try{ var ks=await caches.keys(); await Promise.all(ks.map(function(k){return caches.delete(k)})); }catch(e){} try{ indexedDB.deleteDatabase('isotope_main'); }catch(e){} try{ localStorage.clear(); sessionStorage.cle
+- server.mjs:5538: async function bootstrap(){ return jsonFetch('/__auth/bootstrap',{headers:appAuthHeaders({'Cache-Control':'no-store'})}); }
+- server.mjs:5552: log('onboarding row completed and cache-clear bootstrap did not repeat onboarding');
+- server.mjs:5562: assert(boot.profile_data&&boot.profile_data.proof_marker===marker,'profile/settings did not restore after cache clear');
+- server.mjs:5575: assert(boot.profile_data&&(boot.profile_data.avatar_path===avatarPath),'avatar did not restore after cache clear');
+- server.mjs:5583: assert(boot.profile_data&&boot.profile_data.tours&&boot.profile_data.tours.community_group_v1===true,'tour state did not restore after cache clear');
+- server.mjs:5598: log('study session wrote session/daily/summary tables and restored after cache clear');
+- server.mjs:5675: 'Set-Cookie': 'iso_admin=' + encodeURIComponent(adminCookieValue()) + '; Path=/__admin; HttpOnly; SameSite=Strict; Max-Age=86400',
+- server.mjs:5676: 'Cache-Control': 'no-store'
+- server.mjs:5681: res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+- server.mjs:5686: res.writeHead(405, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+- server.mjs:5692: res.writeHead(404, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+- server.mjs:5725: res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+- server.mjs:5745: res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+- server.mjs:5752: res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+- server.mjs:5770: res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+- server.mjs:5822: const jsonOk = (obj) => { const b = JSON.stringify(obj); res.writeHead(200, {'Content-Type':'application/json','Content-Length':String(b.length),'Cache-Control':'no-store'}); res.end(b); };
+- server.mjs:5825: res.writeHead(502, {'Content-Type':'application/json','Content-Length':String(b.length),'Cache-Control':'no-store'});
+- server.mjs:5895: if (_healthCache && (now - _healthCacheAt) < HEALTH_CACHE_TTL) {
+- server.mjs:5896: res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Health-Cached': '1' });
+- server.mjs:5897: res.end(JSON.stringify(_healthCache));
+- server.mjs:5921: if (ok) { _healthCache = payload; _healthCacheAt = Date.now(); }
+- server.mjs:5922: res.writeHead(ok ? 200 : 503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+- server.mjs:5925: res.writeHead(503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+- src/components/ui/sidebar.tsx:86: document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+
+Known specialist observation:
+- Runtime glue and /sync/ are intended network-first; hashed assets are intended cache-first where service-worker code matches that policy.

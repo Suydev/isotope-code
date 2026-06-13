@@ -1,0 +1,201 @@
+FILE IDENTITY
+
+- original path: public/assets/FocusStore-D5cRXSIr.js
+- audit path: audit/public/assets/FocusStore-D5cRXSIr.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 22486
+- SHA-256: 5b34f19369f1840ecf50f99617b25801fcff871528414ac21ee55d60e616a218
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:604 - "file": "FocusStore-D5cRXSIr.js",
+- artifacts/asset-diff/asset-report.json:607 - "remote_url": "https://isotopeai.in/assets/FocusStore-D5cRXSIr.js",
+- artifacts/asset-diff/local-assets.txt:34 - FocusStore-D5cRXSIr.js
+- artifacts/asset-diff/summary.md:70 - | FocusStore-D5cRXSIr.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/Community-DIqF5406.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-query-Rjz85D0S.js","assets/App-pJGjDiPw.js","
+- public/assets/Community-DIqF5406.js:2 - import{_ as s}from"./index-BPYJFSVW.js";import{j as e,f as _,r as t}from"./vendor-react-BfU3Zn2J.js";import{c as w}from"./App-pJGjDiPw.js";import{S as N,D as k}from"./DashboardHeader-DNuRMna8.js";import{m as o,A as E}from"./vendor-motion-Cp
+- public/sw.js:80 - '/assets/FocusStore-D5cRXSIr.js',
+- server.mjs:142 - '/assets/FocusStore-D5cRXSIr.js',
+- server.mjs:3234 - const STORE_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'FocusStore-D5cRXSIr.js');
+
+INTERNAL STRUCTURE
+
+- line count: 10
+- imports:
+- 1: import{j as e,r as v}from"./vendor-react-BfU3Zn2J.js";import{u as _,a as q,b as C}from"./vendor-query-Rjz85D0S.js";import{u as N,s as c}from"./App-pJGjDiPw.js";import{m as b}from"./vendor-motion-Cp_NPzpZ.js";import{S as 
+- exports:
+None observed.
+- functions/async flows:
+- 1: import{j as e,r as v}from"./vendor-react-BfU3Zn2J.js";import{u as _,a as q,b as C}from"./vendor-query-Rjz85D0S.js";import{u as N,s as c}from"./App-pJGjDiPw.js";import{m as b}from"./vendor-motion-Cp_NPzpZ.js";import{S as 
+- 7: `,children:h?e.jsx(S,{className:"w-4 h-4 animate-spin"}):e.jsxs(e.Fragment,{children:[!o&&!n&&e.jsx(E,{className:"w-3 h-3"}),o?"Buy Now":"Get"]})})]})]})]})},j=({title:r,subtitle:s,actionLabel:i="View All",onAction:a,chi
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BPYJFSVW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2908, artifacts/asset-diff/asset-report.json:2911, artifacts/asset-diff/local-assets.txt:162, artifacts/asset-diff/summary.md:141, public/assets/AIAssistant--spCOe6W.js:58, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsTasks-DOfUf9Sd.js:1
+- GSM: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/FocusStore-D5cRXSIr.js:7
+- IITB: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/FocusStore-D5cRXSIr.js:7
+- IITD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/FocusStore-D5cRXSIr.js:7
+- INR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/FUNDING.yml:1, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:106, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:106, artifacts/asset-diff/remote-assets/AIWeeklySummary-fVbvFqu3.js:106, artifacts/asset-diff/remote-assets/About-DbJqhVWT.js:106, artifacts/asset-diff/remote-assets/Analytics-D74gQMjN.js:106, artifacts/asset-diff/remote-assets/AnalyticsPeriod-CGXbfYQB.js:106, artifacts/asset-diff/remote-assets/AnalyticsSubjects-DOh8aXlW.js:106, artifacts/asset-diff/remote-assets/AnalyticsTasks-DOfUf9Sd.js:106, artifacts/asset-diff/remote-assets/AnalyticsToday-BTdRNTb0.js:106, artifacts/asset-diff/remote-assets/App-Bcp_57Ks.js:106, artifacts/asset-diff/remote-assets/App-pJGjDiPw.js:106
+- JEE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/feature_request.md:19, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52
+- NEW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:1119, community-patch-v4.sql:1120, community-patch-v4.sql:1121, community-patch-v4.sql:1123, community-patch-v4.sql:1124, community-patch-v4.sql:1130, community-patch-v4.sql:1144, community-patch-v4.sql:1147, community-patch-v4.sql:1151, community-patch-v4.sql:1154, community-patch-v4.sql:1156, community-patch-v4.sql:1983
+- PDF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:267, ADMIN.md:268, public/assets/ChapterHub-BXRydU0B.js:12, public/assets/FocusStore-D5cRXSIr.js:7, public/assets/useAIStore-B2cv1FZz.js:3677
+- PGRST116: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:1, public/assets/App-pJGjDiPw.js:4957, public/assets/App-pJGjDiPw.js:7649, public/assets/FocusStore-D5cRXSIr.js:1, public/assets/MemberProfile-D-l2e-2X.js:1, public/assets/useLeaderboard-BpvH5FXA.js:1, public/assets/vendor-supabase-DAiUAuun.js:739
+- PTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/FocusStore-D5cRXSIr.js:1, public/assets/FocusStore-D5cRXSIr.js:7
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+- store_items
+- user_inventory
+- user_points
+- network responses:
+- https://grainy-gradients.vercel.app/noise.svg
+- https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=1000
+- https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&q=80&w=1000
+- https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=1000
+- https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=400
+- https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1000
+- https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=1000
+- https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=1000
+- https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=1000
+- https://images.unsplash.com/photo-1585336261022-680e295ce3fe?auto=format&fit=crop&q=80&w=1000
+- https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&q=80&w=1000
+- https://images.unsplash.com/photo-1628155930542-3c7a64e2c833?auto=format&fit=crop&q=80&w=1000
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 1: import{j as e,r as v}from"./vendor-react-BfU3Zn2J.js";import{u as _,a as q,b as C}from"./vendor-query-Rjz85D0S.js";import{u as N,s as c}from"./App-pJGjDiPw.js";import{m as b}from"./vendor-motion-Cp_NPzpZ.js";import{S as P,r as z,w as f,d as A,i as S,bE as E,bJ
+- 7: `,children:h?e.jsx(S,{className:"w-4 h-4 animate-spin"}):e.jsxs(e.Fragment,{children:[!o&&!n&&e.jsx(E,{className:"w-3 h-3"}),o?"Buy Now":"Get"]})})]})]})]})},j=({title:r,subtitle:s,actionLabel:i="View All",onAction:a,children:h})=>{const d=v.useRef(null),n=o=>
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 1: import{j as e,r as v}from"./vendor-react-BfU3Zn2J.js";import{u as _,a as q,b as C}from"./vendor-query-Rjz85D0S.js";import{u as N,s as c}from"./App-pJGjDiPw.js";import{m as b}from"./vendor-motion-Cp_NPzpZ.js";import{S as P,r as z,w as f,d as A,i as S,bE as E,bJ
+- 7: `,children:h?e.jsx(S,{className:"w-4 h-4 animate-spin"}):e.jsxs(e.Fragment,{children:[!o&&!n&&e.jsx(E,{className:"w-3 h-3"}),o?"Buy Now":"Get"]})})]})]})]})},j=({title:r,subtitle:s,actionLabel:i="View All",onAction:a,children:h})=>{const d=v.useRef(null),n=o=>
+- external libraries:
+- 1: import{j as e,r as v}from"./vendor-react-BfU3Zn2J.js";import{u as _,a as q,b as C}from"./vendor-query-Rjz85D0S.js";import{u as N,s as c}from"./App-pJGjDiPw.js";import{m as b}from"./vendor-motion-Cp_NPzpZ.js";import{S as 
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 1: import{j as e,r as v}from"./vendor-react-BfU3Zn2J.js";import{u as _,a as q,b as C}from"./vendor-query-Rjz85D0S.js";import{u as N,s as c}from"./App-pJGjDiPw.js";import{m as b}from"./vendor-motion-Cp_NPzpZ.js";import{S as P,r as z,w as f,d as A,i as S,bE as E,bJ
+- external services: https://grainy-gradients.vercel.app/noise.svg, https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=1000, https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&q=80&w=1000, https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=1000, https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=400, https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1000, https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=1000, https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=1000, https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=1000, https://images.unsplash.com/photo-1585336261022-680e295ce3fe?auto=format&fit=crop&q=80&w=1000, https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&q=80&w=1000, https://images.unsplash.com/photo-1628155930542-3c7a64e2c833?auto=format&fit=crop&q=80&w=1000
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0307-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/FocusStore-D5cRXSIr.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/FocusStore-D5cRXSIr.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 22486
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - server.mjs:142: '/assets/FocusStore-D5cRXSIr.js',
+  - server.mjs:3234: const STORE_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'FocusStore-D5cRXSIr.js');
+  - public/sw.js:80: '/assets/FocusStore-D5cRXSIr.js',
+  - public/assets/Community-DIqF5406.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css",
+  - public/assets/Community-DIqF5406.js:2: import{_ as s}from"./index-BPYJFSVW.js";import{j as e,f as _,r as t}from"./vendor-react-BfU3Zn2J.js";import{c as w}from"./App-pJGjDiPw.js";import{S as N,D as k}from"./DashboardHead
+  - artifacts/asset-diff/local-assets.txt:34: FocusStore-D5cRXSIr.js
+  - artifacts/asset-diff/asset-report.json:604: "file": "FocusStore-D5cRXSIr.js",
+  - artifacts/asset-diff/asset-report.json:607: "remote_url": "https://isotopeai.in/assets/FocusStore-D5cRXSIr.js",
+  - artifacts/asset-diff/summary.md:70: | FocusStore-D5cRXSIr.js | 200 | unexpected HTML fallback for .js request |

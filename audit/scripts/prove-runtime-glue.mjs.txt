@@ -1,0 +1,173 @@
+FILE IDENTITY
+
+- original path: scripts/prove-runtime-glue.mjs
+- audit path: audit/scripts/prove-runtime-glue.mjs.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 4897
+- SHA-256: 02f2fc04ce7c1131678ccc00ceb38a883a230ca753d5530d41483dfa6baf32fc
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: application project
+- primary auditor: lead-coordinator
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the application project subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: application project
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- package.json:30 - "test:runtime-glue": "node scripts/prove-runtime-glue.mjs",
+
+INTERNAL STRUCTURE
+
+- line count: 89
+- imports:
+- 1: import assert from 'node:assert/strict';
+- exports:
+None observed.
+- functions/async flows:
+- 5: async function text(pathname) {
+- 11: async function head(pathname) {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 3: const base = process.env.RUNTIME_PROOF_BASE || 'http://127.0.0.1:3000';
+- 6: const response = await fetch(base + pathname, { cache: 'no-store' });
+- 12: const response = await fetch(base + pathname, { method: 'HEAD', cache: 'no-store' });
+- 17: const rootHtml = await text('/');
+- 31: const bridge = await text('/auth-bridge.js');
+- 35: const appBundle = await text('/assets/App-pJGjDiPw.js');
+- 43: const syncStore = await text('/assets/useSyncStore-vWs_TdIc.js');
+- 54: const settingsBundle = await text('/assets/SettingsLayout-B4OgCkQ5.js');
+- 66: const authBridgeCache = (await head('/auth-bridge.js')).get('cache-control') || '';
+- 67: const restoreCache = (await head('/restore-and-launch.js')).get('cache-control') || '';
+- 68: const appBundleCache = (await head('/assets/App-pJGjDiPw.js')).get('cache-control') || '';
+- 69: const syncStoreCache = (await head('/assets/useSyncStore-vWs_TdIc.js')).get('cache-control') || '';
+- 70: const settingsCache = (await head('/assets/SettingsLayout-B4OgCkQ5.js')).get('cache-control') || '';
+- 71: const swHeaders = await head('/sw.js');
+- 72: const swCache = swHeaders.get('cache-control') || '';
+- 73: const swAllowed = swHeaders.get('service-worker-allowed') || '';
+- 74: const assetCache = (await head('/assets/index-CrO6t5EW.css')).get('cache-control') || '';
+- 85: const sw = await text('/sw.js');
+- handlers/lifecycle candidates:
+- 6: const response = await fetch(base + pathname, { cache: 'no-store' });
+- 12: const response = await fetch(base + pathname, { method: 'HEAD', cache: 'no-store' });
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- PASS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:539, CHANGELOG.md:566, scripts/prove-new-browser-restore.mjs:79, scripts/prove-runtime-glue.mjs:89, scripts/prove-supabase-sync.mjs:156, scripts/test-auth-bridge.mjs:139, scripts/verify-supabase-security.mjs:89, server.mjs:220, server.mjs:7723, server.mjs:8362, server.mjs:8363, server.mjs:8587
+- RUNTIME_PROOF_BASE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/prove-runtime-glue.mjs:3, scripts/prove-supabase-sync.mjs:5
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://127.0.0.1:3000
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 6: const response = await fetch(base + pathname, { cache: 'no-store' });
+- 12: const response = await fetch(base + pathname, { method: 'HEAD', cache: 'no-store' });
+- 89: console.log('PASS runtime glue load order and cache headers');
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 3: const base = process.env.RUNTIME_PROOF_BASE || 'http://127.0.0.1:3000';
+- 36: assert.match(appBundle, /header_manual_sync|manual_full_sync/, 'served app bundle should expose manual sync runtime path');
+- external libraries:
+- 1: import assert from 'node:assert/strict';
+- local files: see References and Consumers above
+- browser APIs:
+- 32: assert.match(bridge, /window\.__isoLogin\s*=/, 'auth bridge does not define window.__isoLogin');
+- 33: assert.match(bridge, /window\.__isoUp\s*=/, 'auth bridge does not define window.__isoUp');
+- operating-system commands:
+- 1: import assert from 'node:assert/strict';
+- Supabase interfaces:
+- 28: assert.match(rootHtml, /window\.__isoGetValidJwt\s*=\s*getValidJwt/, 'runtime must expose canonical Supabase JWT getter');
+- 46: assert.match(syncStore, /Cloud session missing\. Log in again before syncing\./, 'sync store must require a real Supabase session');
+- 47: assert.match(syncStore, /__isoGetValidJwt/, 'sync store must validate the runtime Supabase JWT before syncing');
+- external services: http://127.0.0.1:3000
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0554-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: scripts/prove-runtime-glue.mjs inspected; no file-specific high-risk issue confirmed
+  observed evidence: scripts/prove-runtime-glue.mjs inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: package.json
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

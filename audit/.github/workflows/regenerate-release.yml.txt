@@ -1,0 +1,187 @@
+FILE IDENTITY
+
+- original path: .github/workflows/regenerate-release.yml
+- audit path: audit/.github/workflows/regenerate-release.yml.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: configuration
+- MIME type: application/yaml
+- size in bytes: 5307
+- SHA-256: a26e870608c951b15e4f5e2cef6e126358f79169c0c47c7857d67c2b1e9bd75a
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: CI/CD
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the CI/CD subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: CI/CD
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: active status inferred from path and project role
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+No direct textual consumers found by path/name search.
+
+INTERNAL STRUCTURE
+
+- line count: 155
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ADMIN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:208, .github/workflows/ci.yml:242, .github/workflows/ci.yml:285, .github/workflows/regenerate-release.yml:113, .github/workflows/release.yml:198, README.md:47, README.md:175, README.md:187, README.md:188, README.md:237, README.md:238, README.md:239
+- ARCHIVE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/regenerate-release.yml:73, .github/workflows/regenerate-release.yml:74, .github/workflows/regenerate-release.yml:75, .github/workflows/regenerate-release.yml:84, .github/workflows/regenerate-release.yml:90, .github/workflows/regenerate-release.yml:92, .github/workflows/regenerate-release.yml:152, .github/workflows/regenerate-release.yml:154, .github/workflows/regenerate-release.yml:155, .github/workflows/release.yml:273, .github/workflows/release.yml:290, .github/workflows/release.yml:291
+- EXIT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/regenerate-release.yml:133, .github/workflows/release.yml:219, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, install-termux.sh:120, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8, setup.sh:118
+- GH_TOKEN: classification=secret; required=unknown from static map; inspect use locations; uses=.github/workflows/regenerate-release.yml:147, .github/workflows/release.yml:257, .github/workflows/release.yml:268
+- GITHUB_OUTPUT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/regenerate-release.yml:46, .github/workflows/regenerate-release.yml:47, .github/workflows/release.yml:43, .github/workflows/release.yml:44, .github/workflows/release.yml:75, .github/workflows/release.yml:81, .github/workflows/release.yml:95, .github/workflows/release.yml:141, .github/workflows/release.yml:148
+- PID: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:289, .github/workflows/ci.yml:291, .github/workflows/ci.yml:304, .github/workflows/ci.yml:305, .github/workflows/regenerate-release.yml:132, .github/workflows/regenerate-release.yml:133, .github/workflows/release.yml:218, .github/workflows/release.yml:219, CHANGELOG.md:304, TERMUX_WIDGET.md:64, TERMUX_WIDGET.md:176, bin/isotope:22
+- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
+- README: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:207, .github/workflows/ci.yml:348, .github/workflows/pages.yml:8, .github/workflows/regenerate-release.yml:112, .github/workflows/release.yml:197, CHANGELOG.md:201, CHANGELOG.md:207, CHANGELOG.md:222, CHANGELOG.md:238, CHANGELOG.md:279, CHANGELOG.md:328, CHANGELOG.md:340
+- SESSION_SECRET: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:50, .github/workflows/ci.yml:284, .github/workflows/regenerate-release.yml:130, .github/workflows/release.yml:216, artifacts/isotope/.env:47
+- STATUS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:292, .github/workflows/ci.yml:295, .github/workflows/ci.yml:297, .github/workflows/ci.yml:298, .github/workflows/ci.yml:306, .github/workflows/ci.yml:308, .github/workflows/ci.yml:309, .github/workflows/regenerate-release.yml:135, .github/workflows/regenerate-release.yml:136, .github/workflows/regenerate-release.yml:137, .github/workflows/regenerate-release.yml:142, .github/workflows/release.yml:221
+- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
+- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
+- TAG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/regenerate-release.yml:36, .github/workflows/regenerate-release.yml:38, .github/workflows/regenerate-release.yml:40, .github/workflows/regenerate-release.yml:41, .github/workflows/regenerate-release.yml:44, .github/workflows/regenerate-release.yml:45, .github/workflows/regenerate-release.yml:46, .github/workflows/regenerate-release.yml:150, .github/workflows/regenerate-release.yml:153, .github/workflows/regenerate-release.yml:154, .github/workflows/regenerate-release.yml:155, .github/workflows/release.yml:33
+- TMPDIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:331, .github/workflows/ci.yml:332, .github/workflows/ci.yml:336, .github/workflows/ci.yml:343, .github/workflows/regenerate-release.yml:91, .github/workflows/regenerate-release.yml:92, .github/workflows/regenerate-release.yml:117, .github/workflows/regenerate-release.yml:119, .github/workflows/regenerate-release.yml:123, .github/workflows/regenerate-release.yml:131, .github/workflows/regenerate-release.yml:133, .github/workflows/release.yml:169
+- VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/bug_report.md:26, .github/workflows/ci.yml:275, .github/workflows/ci.yml:318, .github/workflows/ci.yml:319, .github/workflows/ci.yml:320, .github/workflows/ci.yml:328, .github/workflows/ci.yml:332, .github/workflows/ci.yml:343, .github/workflows/regenerate-release.yml:45, .github/workflows/regenerate-release.yml:47, .github/workflows/regenerate-release.yml:72, .github/workflows/regenerate-release.yml:73
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://127.0.0.1:3099/__isotope/ping
+- https://placeholder.supabase.co
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 22: name: Rebuild and re-upload release zip
+- 145: - name: 🚀 Upload asset to existing release
+- 154: gh release upload "$TAG" "$ARCHIVE" --clobber
+- 155: echo "✅ Uploaded $ARCHIVE to $TAG"
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 128: SUPABASE_URL=https://placeholder.supabase.co \
+- 135: STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3099/__isotope/ping 2>/dev/null || echo 000)"
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 40: if ! git rev-parse "$TAG^{commit}" >/dev/null 2>&1; then
+- 44: git checkout --detach "$TAG"
+- 50: uses: actions/setup-node@v4
+- 52: node-version: '22'
+- 57: node --check server.mjs
+- 58: node --check server/backup-manager.mjs
+- 59: node --check public/sync/backup-normalizer.js
+- 60: node --check public/sync/local-data-adapter.js
+- 61: node --check scripts/validate-backup-files.mjs
+- 62: node --check scripts/repair-user-backup.mjs
+- 63: node --check scripts/prove-new-browser-restore.mjs
+- 64: node --check scripts/validate-storage-cleanup.mjs
+- 65: node --check scripts/verify-supabase-security.mjs
+- 66: node --check scripts/compare-remote-assets.mjs
+- 67: npm run docs:validate
+- 76: --exclude ".git/*" \
+- 131: node "$TMPDIR/server.mjs" &
+- 135: STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3099/__isotope/ping 2>/dev/null || echo 000)"
+- Supabase interfaces:
+- 65: node --check scripts/verify-supabase-security.mjs
+- 105: scripts/verify-supabase-security.mjs
+- 111: docs/supabase-connection-map.md
+- 128: SUPABASE_URL=https://placeholder.supabase.co \
+- 129: SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature \
+- external services: http://127.0.0.1:3099/__isotope/ping, https://placeholder.supabase.co
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0013-01
+  severity: MEDIUM
+  category: supply-chain
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: .github/workflows/regenerate-release.yml contains privileged workflow patterns
+  observed evidence: .github/workflows/regenerate-release.yml contains privileged workflow patterns
+  inferred impact: Workflow permissions and secret access affect supply-chain risk.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Pin actions and restrict permissions to minimum required.
+  related files: .github/**
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- No direct consumer found; this uncertainty is explicitly recorded rather than hidden.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the CI/CD subsystem. Its role is determined from path, content, and references.
+- activity status: active status inferred from path and project role
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

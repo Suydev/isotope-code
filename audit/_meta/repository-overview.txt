@@ -1,0 +1,50 @@
+Repository overview
+
+- audited branch: main
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- total in-scope files: 641
+- tracked files: 422
+- untracked included files: 219
+- generated/built candidates: 427
+- text files: 497
+- binary files: 143
+
+Subsystem/agent ownership:
+- compiled-frontend-agent: 213
+- documentation-ci-agent: 33
+- installer-platform-agent: 19
+- lead-coordinator: 188
+- offline-pwa-sync-agent: 8
+- runtime-server-agent: 2
+- source-frontend-agent: 66
+- sql-supabase-agent: 11
+- static-asset-agent: 100
+
+File type distribution:
+- archive: 2
+- audio: 3
+- binary asset: 1
+- code: 399
+- configuration: 20
+- environment: 2
+- font: 116
+- html: 9
+- image: 28
+- markdown: 14
+- script: 13
+- sql: 10
+- stylesheet: 15
+- text/project file: 7
+- video: 1
+
+Major systems observed:
+- Local Node server in server.mjs.
+- Browser shell and runtime glue under index.html and public/*.js.
+- Compiled frontend bundles under public/assets/**.
+- Offline/sync/local data adapters under public/sync/**.
+- Supabase/Postgres schema and helper SQL under sql/** when present.
+- Install/platform/documentation/CI files in scripts, bin, docs, root docs, and .github.
+
+Limitations:
+- Frontend/PWA/Sync subagent completed with independent observations.
+- Other specialist subagents failed due usage limit; lead coordinator completed local static review for their scopes.

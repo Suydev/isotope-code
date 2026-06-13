@@ -1,0 +1,251 @@
+FILE IDENTITY
+
+- original path: VERSION
+- audit path: audit/VERSION.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: text/project file
+- MIME type: text/plain
+- size in bytes: 182
+- SHA-256: dedaf4a0fc39eb0f85550d95cbd5d1bade5477d569086b06abdbfc28ba71ea76
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: application project
+- primary auditor: lead-coordinator
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the application project subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: application project
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/ISSUE_TEMPLATE/bug_report.md:26 - - **IsotopeAI version**: (check `VERSION` file or `isotope status`)
+- .github/workflows/ci.yml:275 - grep -q 'TERMUX_VERSION' setup.sh install-termux.sh
+- .github/workflows/ci.yml:318 - VERSION="$(node -e "process.stdout.write(require('./package.json').version)")"
+- .github/workflows/ci.yml:319 - echo "Building release zip for v$VERSION..."
+- .github/workflows/ci.yml:320 - zip -qr "isotope-v${VERSION}-ci-test.zip" . \
+- .github/workflows/ci.yml:328 - echo "Archive: $(wc -c < "isotope-v${VERSION}-ci-test.zip") bytes"
+- .github/workflows/ci.yml:332 - unzip -q "isotope-v${VERSION}-ci-test.zip" -d "$TMPDIR"
+- .github/workflows/ci.yml:343 - rm -rf "$TMPDIR" "isotope-v${VERSION}-ci-test.zip"
+- .github/workflows/regenerate-release.yml:45 - VERSION="${TAG#v}"
+- .github/workflows/regenerate-release.yml:47 - echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+- .github/workflows/regenerate-release.yml:72 - VERSION="${{ steps.tag.outputs.version }}"
+- .github/workflows/regenerate-release.yml:73 - ARCHIVE="isotope-v${VERSION}.zip"
+- .github/workflows/regenerate-release.yml:89 - VERSION="${{ steps.tag.outputs.version }}"
+- .github/workflows/regenerate-release.yml:90 - ARCHIVE="isotope-v${VERSION}.zip"
+- .github/workflows/regenerate-release.yml:151 - VERSION="${{ steps.tag.outputs.version }}"
+- .github/workflows/regenerate-release.yml:152 - ARCHIVE="isotope-v${VERSION}.zip"
+- .github/workflows/release.yml:34 - VERSION="${TAG#v}"
+- .github/workflows/release.yml:36 - VERSION="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' package.json | head -1)"
+- .github/workflows/release.yml:37 - TAG="v${VERSION}"
+- .github/workflows/release.yml:39 - if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$'; then
+- .github/workflows/release.yml:40 - echo "❌ Invalid package version: $VERSION"
+- .github/workflows/release.yml:44 - echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+- .github/workflows/release.yml:69 - VERSION="${{ steps.tag.outputs.version }}"
+- .github/workflows/release.yml:71 - NOTES=$(awk "/^## \[$VERSION\]/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
+- .github/workflows/release.yml:99 - VERSION="${{ steps.tag.outputs.version }}"
+- .github/workflows/release.yml:111 - content: 'Polish these GitHub release notes for IsotopeAI v${VERSION} into a clean, friendly, emoji-enhanced format for students. Keep it concise (max 300 words). Original:\n' + excerpt
+- .github/workflows/release.yml:153 - VERSION="${{ steps.tag.outputs.version }}"
+- .github/workflows/release.yml:154 - zip -qr "isotope-v${VERSION}.zip" . \
+- .github/workflows/release.yml:163 - echo "Archive: $(wc -c < isotope-v${VERSION}.zip) bytes"
+- .github/workflows/release.yml:168 - VERSION="${{ steps.tag.outputs.version }}"
+- .github/workflows/release.yml:170 - unzip -q "isotope-v${VERSION}.zip" -d "$TMPDIR"
+- .github/workflows/release.yml:272 - VERSION="${{ steps.tag.outputs.version }}"
+- .github/workflows/release.yml:273 - ARCHIVE="isotope-v${VERSION}.zip"
+- CHANGELOG.md:205 - - `VERSION` bumped to `3.3.0`.
+- CHANGELOG.md:236 - - `VERSION` bumped to `3.2.0`.
+- CHANGELOG.md:277 - - `VERSION` bumped to `3.1.3`.
+- artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:500 - createRoutesFromChildren: ${es}. matchRoutes: ${tt}.`),e;const n=r=>{const o=Re.useRef(!0),s=Xt(),i=Qt();return Yt(()=>{const a=es(r.children);o.current?(po(a),ho({activeRootSpan:ct(),location:s,routes:a,allRoutes:Array.from($e)}),o.current
+- artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6 - `)};if(I===0){var C=l.slice(p+1,g).concat(K({children:[h],className:m.properties.className})),k=y(C,w);d.push(k)}else if(I===F.length-1){var P=l[g+1]&&l[g+1].children&&l[g+1].children[0],B={type:"text",value:"".concat(x)};if(P){var Y=K({chi
+- bin/isotope:43 - [ -n "${TERMUX_VERSION:-}" ] || printf '%s' "${PREFIX:-}" | grep -q 'com.termux'
+- bin/isotope:304 - if [ -f "$project/VERSION" ]; then
+- bin/isotope:305 - sha="$(node - "$project/VERSION" <<'NODE' 2>/dev/null || true
+- bin/isotope:367 - info "[ok]  Termux detected (v${TERMUX_VERSION:-unknown})"
+- bin/isotope:370 - VER="${TERMUX_VERSION:-0}"
+- bin/isotope:536 - fs.writeFileSync('VERSION', JSON.stringify({ version, sha, message, updated_at: new Date().toISOString() }, null, 2) + '\n');
+- bin/isotope.bat:188 - node -e "const cp=require('child_process'),fs=require('fs');let sha='unknown',message='';try{sha=cp.execSync('git rev-parse HEAD').toString().trim()}catch{}try{message=cp.execSync('git log -1 --pretty=%%s').toString().trim()}catch{}fs.write
+- docs/BUG_FIXES.md:29 - const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA;
+- docs/BUG_FIXES.md:32 - const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
+- docs/BUG_FIXES.md:124 - if (data.type === 'ISOTOPE_SW_READY' || data.type === 'ISOTOPE_SW_VERSION') {
+- docs/BUG_FIXES.md:157 - client.postMessage({ type: 'ISOTOPE_SW_READY', version: APP_VERSION, sha: APP_SHA });
+- docs/BUG_FIXES.md:163 - client.postMessage({ type: 'ISOTOPE_SW_READY', version: APP_VERSION, sha: APP_SHA });
+- install-termux.sh:71 - if [ -z "${TERMUX_VERSION:-}" ] && ! printf '%s' "${PREFIX:-}" | grep -q 'com.termux'; then
+- install-termux.sh:76 - ok "Termux detected (TERMUX_VERSION=${TERMUX_VERSION:-unknown})"
+- install-termux.sh:91 - TERMUX_VER_NUM="${TERMUX_VERSION:-0}"
+- public/assets/App-pJGjDiPw.js:76 - SCHEMA_VERSION: "isotope_schema_version",
+- public/assets/App-pJGjDiPw.js:945 - localStorage.getItem(this.getStorageKey(l.SCHEMA_VERSION)) !== Ft && (this.migrateFromV1(), localStorage.setItem(this.getStorageKey(l.SCHEMA_VERSION), Ft))
+- public/assets/AppAccessGate-B975UtK7.js:380 - ue = new Set([c.TASKS, c.SESSIONS, c.SUBJECTS, c.HABITS, c.DAILY_LOGS, c.TESTS, c.EXAMS, c.MOCK_TESTS, c.USER_PROFILE, c.TIMER_STATE, c.SYNC_METADATA, c.SCHEMA_VERSION]),
+- public/assets/analyticsWorker-BnmTlfYB.js:1 - (function(){"use strict";const jt=Symbol.for("constructDateFrom");function it(a,e){return typeof a=="function"?a(e):a&&typeof a=="object"&&jt in a?a[jt](e):a instanceof Date?new a.constructor(e):new Date(e)}function De(a,e){return it(e||a,a
+- public/assets/analyticsWorker-BnmTlfYB.js:6 - `).trim():a.replace(/\s+/g," ").trim()}function ds(a,e){if(!e||e<=0)return a;const t=Array.from(a.matchAll(/\S+/g));if(t.length<=e)return a;const s=t[e]?.index??a.length;return a.slice(0,s).trim()}function us(a,e){return a.length<=e?a:a.sli
+- public/assets/index-qd2KF3Jd.js:26 - `).replace(Gh,"")}function Cd(t,e){return e=_d(e),_d(t)===e}function dt(t,e,a,l,n,s){switch(a){case"children":typeof l=="string"?e==="body"||e==="textarea"&&l===""||fl(t,l):(typeof l=="number"||typeof l=="bigint")&&e!=="body"&&fl(t,""+l);br
+- public/assets/index-qd2KF3Jd.js:31 - `).trim():u.replace(/\s+/g," ").trim()}function c0(u,i){if(!i||i<=0)return u;const c=Array.from(u.matchAll(/\S+/g));if(c.length<=i)return u;const r=c[i]?.index??u.length;return u.slice(0,r).trim()}function o0(u,i){return u.length<=i?u:u.sli
+- public/assets/messaging-BP0KfJxy.js:858 - return e.getComponent() ?.type === "VERSION"
+- public/assets/messaging-BP0KfJxy.js:1135 - }), "VERSION"))
+- public/assets/vendor-sentry-VzeXdCeF.js:21682 - JT as BrowserClient, rx as ErrorBoundary, Ci as MULTIPLEXED_TRANSPORT_EXTRA_KEY, OM as OpenFeatureIntegrationHook, vm as Profiler, qt as SDK_VERSION, pe as SEMANTIC_ATTRIBUTE_SENTRY_OP, G as SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, ja as SEMANTIC_
+- public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6 - `)};if(I===0){var C=l.slice(p+1,g).concat(K({children:[h],className:m.properties.className})),k=y(C,w);d.push(k)}else if(I===F.length-1){var P=l[g+1]&&l[g+1].children&&l[g+1].children[0],B={type:"text",value:"".concat(x)};if(P){var Y=K({chi
+- public/pwa-local.js:176 - if (data.type === 'ISOTOPE_SW_READY' || data.type === 'ISOTOPE_SW_VERSION') {
+- public/sw.js:5 - const APP_VERSION = '__ISOTOPE_APP_VERSION__';
+- public/sw.js:8 - const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
+- public/sw.js:9 - const RUNTIME_CACHE = CACHE_PREFIX + '-runtime-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
+- public/sw.js:174 - client.postMessage({ type: 'ISOTOPE_SW_READY', version: APP_VERSION, sha: APP_SHA });
+- public/sw.js:184 - if (event.data && event.data.type === 'GET_VERSION') {
+- public/sw.js:185 - event.source && event.source.postMessage({ type: 'ISOTOPE_SW_VERSION', version: APP_VERSION, sha: APP_SHA });
+- public/sync/local-data-adapter.js:11 - const DB_VERSION = 20;
+- public/sync/local-data-adapter.js:99 - const req = window.indexedDB.open(DB_NAME, DB_VERSION);
+- server.mjs:3146 - const RELOAD_GUARD_VERSION = (() => {
+- server.mjs:3156 - var _k='isotope_reload_guard_${RELOAD_GUARD_VERSION.replace(/[^A-Za-z0-9_.-]/g, '_')}';
+- server.mjs:4442 - appVersion: (typeof LOCAL_VERSION !== 'undefined' && LOCAL_VERSION.version) ? LOCAL_VERSION.version : 'unknown',
+- server.mjs:4580 - appVersion: appVersion || ((typeof LOCAL_VERSION !== 'undefined' && LOCAL_VERSION.version) ? LOCAL_VERSION.version : 'unknown'),
+- server.mjs:4690 - app_version: (typeof LOCAL_VERSION !== 'undefined' && LOCAL_VERSION.version) ? LOCAL_VERSION.version : 'unknown',
+- server.mjs:5318 - const vf = path.join(__dirname, 'VERSION');
+- server.mjs:5320 - if (vdata.version) info.version = String(vdata.version); // VERSION overrides package.json
+- server.mjs:5324 - info.source = 'VERSION';
+- server.mjs:5329 - // update banner. Fall back to the VERSION file SHA instead.
+- server.mjs:5362 - let LOCAL_VERSION = readLocalVersionInfo();
+- server.mjs:5363 - let DEPLOYED_SHA = LOCAL_VERSION.sha || 'unknown';
+- server.mjs:5364 - console.log('[Update] Local version: ' + LOCAL_VERSION.version + ' (' + String(DEPLOYED_SHA).slice(0, 7) + ', ' + LOCAL_VERSION.source + ')');
+- server.mjs:5933 - LOCAL_VERSION = readLocalVersionInfo();
+- server.mjs:5934 - DEPLOYED_SHA = LOCAL_VERSION.sha || DEPLOYED_SHA;
+- server.mjs:5937 - version: LOCAL_VERSION.version,
+- server.mjs:5939 - source: LOCAL_VERSION.source,
+- server.mjs:5940 - message: LOCAL_VERSION.message,
+- server.mjs:5941 - updated_at: LOCAL_VERSION.updated_at,
+- server.mjs:5946 - pwa_cache: 'isotope-local-shell-' + LOCAL_VERSION.version + '-' + String(DEPLOYED_SHA).slice(0, 12),
+- server.mjs:5961 - LOCAL_VERSION = readLocalVersionInfo();
+- server.mjs:5962 - DEPLOYED_SHA = LOCAL_VERSION.sha || DEPLOYED_SHA;
+- server.mjs:5964 - const versionCmp = upstreamVer ? compareSemver(upstreamVer, LOCAL_VERSION.version) : null;
+- server.mjs:5971 - deployed_version: LOCAL_VERSION.version,
+- server.mjs:6310 - appVersion: (typeof LOCAL_VERSION !== 'undefined' && LOCAL_VERSION.version) ? LOCAL_VERSION.version : 'unknown',
+- server.mjs:8250 - LOCAL_VERSION = readLocalVersionInfo();
+- server.mjs:8251 - DEPLOYED_SHA = LOCAL_VERSION.sha || DEPLOYED_SHA;
+- server.mjs:8253 - .replace(/__ISOTOPE_APP_VERSION__/g, LOCAL_VERSION.version)
+- setup-termux-widget.sh:12 - if [ -z "${TERMUX_VERSION:-}" ] && ! printf '%s' "${PREFIX:-}" | grep -q 'com.termux'; then
+- setup.sh:14 - #   --termux-ci         CI simulation mode (sets TERMUX_VERSION=ci-test)
+- setup.sh:38 - --termux-ci)       TERMUX_VERSION="${TERMUX_VERSION:-ci-test}" ;;
+- setup.sh:66 - if [ -n "${TERMUX_VERSION:-}" ] || printf '%s' "${PREFIX:-}" | grep -q 'com.termux'; then
+- setup.sh:84 - VER="${TERMUX_VERSION:-0}"
+
+INTERNAL STRUCTURE
+
+- line count: 6
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+No environment variable names observed.
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 5: "updated_at": "2026-06-12T04:47:41.814Z"
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0026-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: VERSION inspected; no file-specific high-risk issue confirmed
+  observed evidence: VERSION inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/ISSUE_TEMPLATE/bug_report.md, .github/workflows/ci.yml, .github/workflows/ci.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

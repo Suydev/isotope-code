@@ -1,0 +1,10 @@
+Recommended test matrix
+
+- setup/env: bash -n setup.sh; setup --yes --no-start with existing .env and yeh.env fixtures.
+- runtime glue: npm run test:auth-bridge; npm run test:runtime-glue; browser console typeof window.__isoLogin/__isoUp.
+- static cache: curl -I /auth-bridge.js, /restore-and-launch.js, /sw.js, and hashed /assets file.
+- PWA: register service worker, bump bridge query, clear caches, reload, confirm fresh bridge.
+- sync: npm run test:supabase-sync plus browser manual sync with authenticated session; test empty-local and empty-cloud cases.
+- server: route smoke tests for /, /auth, /__auth/bootstrap, /__supa/storage/*, static missing files, HEAD, malformed path.
+- SQL: idempotency/lint checks against a disposable database only.
+- assets: verify active image/font/audio rendering where referenced.

@@ -1,0 +1,414 @@
+FILE IDENTITY
+
+- original path: public/assets/sortable.esm-BBuGRz7f.js
+- audit path: audit/public/assets/sortable.esm-BBuGRz7f.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 92670
+- SHA-256: f88643b61b98b2a3756806e5dc4850d4063e9f997361a11074fa5699e2e88cd9
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3034 - "file": "sortable.esm-BBuGRz7f.js",
+- artifacts/asset-diff/asset-report.json:3037 - "remote_url": "https://isotopeai.in/assets/sortable.esm-BBuGRz7f.js",
+- artifacts/asset-diff/local-assets.txt:169 - sortable.esm-BBuGRz7f.js
+- artifacts/asset-diff/summary.md:18 - | sortable.esm-BBuGRz7f.js | 92670 | 49983 | 200 |
+- public/assets/Analytics-D74gQMjN.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJFSVW.js","assets/index-CrO6t5EW.css","assets/App-pJGjDiPw.js
+- public/assets/Analytics-D74gQMjN.js:2 - import{_ as Ie}from"./index-BPYJFSVW.js";import{r as A,j as o,f as fa}from"./vendor-react-BfU3Zn2J.js";import{S as nn,D as rn}from"./DashboardHeader-DNuRMna8.js";import{g as te,q as _e,p as pt,j as on,h as sn,u as cn,k as ln,c as dn,d as un
+- public/assets/AnalyticsPeriod-CGXbfYQB.js:1 - import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{A as ae,C as T,X as $,Y as W,T as A,L as X,a as Z,P as pe,c 
+- public/assets/AnalyticsSubjects-DOh8aXlW.js:1 - import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T}from"./timeFormat-CMPo-BX2.js";import{B as D,a as f,T as v,
+- public/assets/AnalyticsToday-BTdRNTb0.js:1 - import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";import{S as V}from"./SafeResponsiveContainer-D7o6DE97.js";impor
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/IsotopeWrapped2-B4zl9ERi.js:1 - import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as re,b0 as oe,cW as ce,b1 as le,am as de,l as G,J as ue,d as 
+- public/assets/Syllabus-DZSnov0t.js:72 - } from "./sortable.esm-BBuGRz7f.js";
+- public/assets/Tasks-BYRFOrek.js:34 - } from "./sortable.esm-BBuGRz7f.js";
+
+INTERNAL STRUCTURE
+
+- line count: 3415
+- imports:
+- 1: import {
+- 5: } from "./vendor-react-BfU3Zn2J.js";
+- exports:
+- 3413: export {
+- functions/async flows:
+- 7: function Nn() {
+- 9: return l.useMemo(() => r => {
+- 15: function we(e) {
+- 20: function wt(e) {
+- 24: function z(e) {
+- 29: function xt(e) {
+- 36: function Fe(e) {
+- 40: function qt(e) {
+- 44: function xe(e) {
+- 49: function ot(e) {
+- 51: return V(() => {
+- 59: function Tn() {
+- 61: t = l.useCallback((r, o) => {
+- 64: n = l.useCallback(() => {
+- 70: function Pe(e, t) {
+- 73: return V(() => {
+- 78: function $e(e, t) {
+- 80: return l.useMemo(() => {
+- 86: function _e(e) {
+- 89: r = l.useCallback(o => {
+- 95: function Qe(e) {
+- 97: return l.useEffect(() => {
+- 103: function Xe(e, t) {
+- 104: return l.useMemo(() => {
+- 111: function Gt(e) {
+- 114: return r.reduce((i, s) => {
+- 116: for (const [c, u] of a) {
+- 128: function Ln(e) {
+- 132: function it(e) {
+- 140: function kn(e) {
+- 148: function Ze(e) {
+- 150: if (e.touches && e.touches.length) {
+- 177: toString(e) {
+- 187: toString(e) {
+- 197: toString(e) {
+- 202: toString(e) {
+- 214: function Pn(e) {
+- 221: function Bn(e) {
+- 232: function Fn(e) {
+- 261: function $n() {
+- 264: announce: l.useCallback(r => {
+- 272: function Xn(e) {
+- 274: l.useEffect(() => {
+- 280: function jn() {
+- 282: return [l.useCallback(r => {
+- 287: e.forEach(s => {
+- 301: onDragStart(e) {
+- 307: onDragOver(e) {
+- 314: onDragEnd(e) {
+- 321: onDragCancel(e) {
+- 329: function Un(e) {
+- 340: if (l.useEffect(() => {
+- 343: onDragStart(d) {
+- 351: onDragMove(d) {
+- 361: onDragOver(d) {
+- 371: onDragEnd(d) {
+- 381: onDragCancel(d) {
+- 406: function et() {}
+- 408: function xo(e, t) {
+- 415: function Co() {
+- 424: function Ct(e, t) {
+- 428: function Wn(e, t) {
+- 438: function Dt(e, t) {
+- 451: function Hn(e, t) {
+- 464: function pt(e) {
+- 486: function _t(e, t) {
+- 492: function zt(e, t, n) {
+- 498: const Do = e => {
+- 506: for (const s of r) {
+- 510: if (c) {
+- 523: Vn = e => {
+- 531: for (const s of r) {
+- 535: if (c) {
+- 551: function qn(e, t) {
+- 558: if (r < o && n < i) {
+- 567: const Gn = e => {
+- 574: for (const i of r) {
+- 578: if (a) {
+- 592: function Jn(e, t) {
+- 601: const Ro = e => {
+- classes:
+- 927: class Rt {
+- 948: class Te {
+- 1019: class ln {
+- 1185: class St {
+- 1304: class un extends St {
+- 1337: class pr extends St {
+- 1366: class br extends St {
+- 1862: class ke extends Map {
+- constants/mutable state candidates:
+- 13: const rt = typeof window < "u" && typeof window.document < "u" && typeof window.document.createElement < "u";
+- 16: const t = Object.prototype.toString.call(e);
+- 25: var t, n;
+- 47: const V = rt ? l.useLayoutEffect : l.useEffect;
+- 50: const t = l.useRef(e);
+- 60: const e = l.useRef(null),
+- 72: const n = l.useRef(e);
+- 79: const n = l.useRef();
+- 81: const r = e(n.current);
+- 87: const t = ot(e),
+- 96: const t = l.useRef();
+- 101: let ft = {};
+- 106: const n = ft[e] == null ? 0 : ft[e] + 1;
+- 115: const a = Object.entries(s);
+- 117: const f = i[c];
+- 125: const ye = Gt(1),
+- 175: const fe = Object.freeze({
+- 217: const zn = {
+- 238: const o = {
+- 270: const Jt = l.createContext(null);
+- 273: const t = l.useContext(Jt);
+- 288: var a;
+- 293: const Yn = {
+- 392: const f = I.createElement(I.Fragment, null, I.createElement(Bn, {
+- 401: var T;
+- 419: const q = Object.freeze({
+- 429: const n = Ze(e);
+- 431: const r = {
+- 498: const Do = e => {
+- 504: const o = zt(t, t.left, t.top),
+- 511: const u = Ct(zt(c), o);
+- 529: const o = pt(t),
+- 536: const u = pt(c),
+- 552: const n = Math.max(t.top, e.top),
+- 559: const c = t.width * t.height,
+- 567: const Gn = e => {
+- 573: const o = [];
+- 579: const c = qn(a, t);
+- 601: const Ro = e => {
+- 608: const o = [];
+- 614: const u = pt(a).reduce((d, h) => d + Ct(r, h), 0),
+- 654: const Zn = Qn(1);
+- 658: const t = e.slice(9, -1).split(/, /);
+- 666: const t = e.slice(7, -1).split(/, /);
+- 678: const r = Zt(t);
+- 695: const tr = {
+- 701: let n = e.getBoundingClientRect();
+- 734: const t = e.innerWidth,
+- 752: const n = /(auto|scroll|overlay)/;
+- 754: const i = t[o];
+- 760: const n = [];
+- 766: const i = z(e).getComputedStyle(o);
+- 795: var L;
+- 805: const t = {
+- 833: const ir = {
+- 923: const ur = [
+- 930: const r = st(n),
+- 937: const u = a(r),
+- 952: var r;
+- 958: var o;
+- 971: const n = Math.abs(e.x),
+- 975: var U;
+- 987: var D;
+- 991: const cn = {
+- 1067: const d = s(t, {
+- 1073: const h = ze(d, f),
+- 1082: const p = t.code,
+- 1099: const M = v.scrollLeft + h.x,
+- 1114: const M = v.scrollTop + h.y,
+- 1169: const a = i.activatorNode.current;
+- 1187: var o;
+- 1246: var n;
+- 1258: const c = (n = Ze(t)) != null ? n : q,
+- 1289: var t;
+- 1293: const gr = {
+- 1325: const vr = {
+- 1333: var mt;
+- 1355: const vt = {
+- 1398: var Le;
+- 1402: var tt;
+- handlers/lifecycle candidates:
+- 62: e.current = setInterval(r, o)
+- 959: (o = this.target) == null || o.addEventListener(t, n, r), this.listeners.push([t, n, r])
+- 1030: this.handleStart(), this.windowListeners.add(U.Resize, this.handleCancel), this.windowListeners.add(U.VisibilityChange, this.handleCancel), setTimeout(() => this.listeners.add(U.Keydown, this.handleKeyDown))
+- 1215: this.timeoutId = setTimeout(this.handleStart, n.delay), this.handlePending(n);
+- 1226: this.listeners.removeAll(), this.windowListeners.removeAll(), setTimeout(this.documentListeners.removeAll, 50), this.timeoutId !== null && (clearTimeout(this.timeoutId), this.timeoutId = null)
+- 1371: return window.addEventListener(vt.move.name, t, {
+- 1589: d || typeof a != "number" || x.current !== null || (x.current = setTimeout(() => {
+- 1720: return u ? (u.addEventListener("scroll", o, {
+- 2641: g.current != null && clearTimeout(g.current), g.current = setTimeout(() => {
+- 3289: const ge = setTimeout(() => {
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+No environment variable names observed.
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 281: const [e] = l.useState(() => new Set), t = l.useCallback(r => (e.add(r), () => e.delete(r)), [e]);
+- 950: this.target = void 0, this.listeners = [], this.removeAll = () => {
+- 953: return (r = this.target) == null ? void 0 : r.removeEventListener(...n)
+- 1153: this.listeners.removeAll(), this.windowListeners.removeAll()
+- 1194: this.props = t, this.events = n, this.document = xe(s), this.documentListeners = new Te(this.document), this.listeners = new Te(r), this.windowListeners = new Te(z(s)), this.initialCoordinates = (o = Ze(i)) != null ? o : q, this.handleStart = this.handleStart.
+- 1226: this.listeners.removeAll(), this.windowListeners.removeAll(), setTimeout(this.documentListeners.removeAll, 50), this.timeoutId !== null && (clearTimeout(this.timeoutId), this.timeoutId = null)
+- 1243: }), this.removeTextSelection(), this.documentListeners.add(U.SelectionChange, this.removeTextSelection), n(t))
+- 1288: removeTextSelection() {
+- 1290: (t = this.document.getSelection()) == null || t.removeAllRanges()
+- 1376: window.removeEventListener(vt.move.name, t)
+- 1733: u ?.removeEventListener("scroll", o)
+- 2021: return i.delete(n),
+- 2321: Ne.unstable_batchedUpdates(() => {
+- 2364: G.current = null, Ne.unstable_batchedUpdates(() => {
+- 2414: Ne.unstable_batchedUpdates(() => {
+- 2446: Ne.unstable_batchedUpdates(() => {
+- 2575: O && O.key === i && d.delete(t)
+- 2630: updateMeasurementsFor: v,
+- 2780: s != null && s.active && n.node.classList.remove(s.active)
+- 3225: updateMeasurementsFor: E,
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 1: import {
+- 5: } from "./vendor-react-BfU3Zn2J.js";
+- local files: see References and Consumers above
+- browser APIs:
+- 13: const rt = typeof window < "u" && typeof window.document < "u" && typeof window.document.createElement < "u";
+- 801: return !rt || !e ? !1 : e === document.scrollingElement
+- 810: height: window.innerHeight,
+- 811: width: window.innerWidth
+- 868: if (e === document.scrollingElement) {
+- 918: en(e) && (o <= 0 || i <= 0 || n >= window.innerHeight || r >= window.innerWidth) && e.scrollIntoView({
+- 1290: (t = this.document.getSelection()) == null || t.removeAllRanges()
+- 1371: return window.addEventListener(vt.move.name, t, {
+- 1376: window.removeEventListener(vt.move.name, t)
+- 1625: if (n || typeof window > "u" || typeof window.MutationObserver > "u") return;
+- 1641: if (n || typeof window > "u" || typeof window.ResizeObserver > "u") return;
+- 1688: i(), e ? (a ?.observe(e), s ?.observe(document.body, {
+- 2044: if (!it(i) || document.activeElement === i.target) return;
+- operating-system commands:
+- 1036: } = this.props, r = t.node.current;
+- 1524: r = n ? n.node.current : null;
+- 1574: const R = b.node.current,
+- 1880: return (n = (r = this.get(t)) == null ? void 0 : r.node.current) != null ? n : void 0
+- 2049: node: u
+- 2112: const u = t ?.node.current;
+- 2570: node: y,
+- 2592: node: y,
+- 2662: node: S,
+- 2681: node: S,
+- 2774: for (const [a, c] of Object.entries(i.active)) c !== void 0 && (o[a] = n.node.style.getPropertyValue(a), n.node.style.setProperty(a, c));
+- 2776: for (const [a, c] of Object.entries(i.dragOverlay)) c !== void 0 && r.node.style.setProperty(a, c);
+- 2777: return s != null && s.active && n.node.classList.add(s.active), s != null && s.dragOverlay && r.node.classList.add(s.dragOverlay),
+- 2779: for (const [c, u] of Object.entries(o)) n.node.style.setProperty(c, u);
+- 2780: s != null && s.active && n.node.classList.remove(s.active)
+- 2820: const c = a.node.current;
+- 2833: node: c,
+- 2838: node: s,
+- 2894: m = a.node.animate(g, {
+- 3160: node: r,
+- 3217: node: C,
+- 3278: node: C,
+- 3306: node: C,
+- 3384: x = h ?.node.current;
+- Supabase interfaces:
+- 1736: }, [o, e]), l.useMemo(() => e.length ? t ? Array.from(t.values()).reduce((i, s) => ye(i, s), q) : sn(e) : q, [e, t])
+- 1868: return Array.from(this.values())
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Large text/code file; focused tests and decomposition would reduce regression risk.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0442-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/sortable.esm-BBuGRz7f.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/sortable.esm-BBuGRz7f.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 92670
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/Analytics-D74gQMjN.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJ
+  - public/assets/Analytics-D74gQMjN.js:2: import{_ as Ie}from"./index-BPYJFSVW.js";import{r as A,j as o,f as fa}from"./vendor-react-BfU3Zn2J.js";import{S as nn,D as rn}from"./DashboardHeader-DNuRMna8.js";import{g as te,q a
+  - public/assets/AnalyticsPeriod-CGXbfYQB.js:1: import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{
+  - public/assets/AnalyticsSubjects-DOh8aXlW.js:1: import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T
+  - public/assets/AnalyticsToday-BTdRNTb0.js:1: import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";imp
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/IsotopeWrapped2-B4zl9ERi.js:1: import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as
+  - public/assets/Syllabus-DZSnov0t.js:72: } from "./sortable.esm-BBuGRz7f.js";
+  - public/assets/Tasks-BYRFOrek.js:34: } from "./sortable.esm-BBuGRz7f.js";
+  - artifacts/asset-diff/local-assets.txt:169: sortable.esm-BBuGRz7f.js
+  - artifacts/asset-diff/asset-report.json:3034: "file": "sortable.esm-BBuGRz7f.js",
+  - artifacts/asset-diff/asset-report.json:3037: "remote_url": "https://isotopeai.in/assets/sortable.esm-BBuGRz7f.js",
+  - artifacts/asset-diff/summary.md:18: | sortable.esm-BBuGRz7f.js | 92670 | 49983 | 200 |

@@ -1,0 +1,839 @@
+FILE IDENTITY
+
+- original path: public/assets/vendor-sentry-VzeXdCeF.js
+- audit path: audit/public/assets/vendor-sentry-VzeXdCeF.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 671458
+- SHA-256: 12aa7f6b00e705122b3e7fc664745efcd63a06d210b5c61793ed467f725bf42d
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3718 - "file": "vendor-sentry-VzeXdCeF.js",
+- artifacts/asset-diff/asset-report.json:3721 - "remote_url": "https://isotopeai.in/assets/vendor-sentry-VzeXdCeF.js",
+- artifacts/asset-diff/local-assets.txt:207 - vendor-sentry-VzeXdCeF.js
+- artifacts/asset-diff/summary.md:30 - | vendor-sentry-VzeXdCeF.js | 671458 | 437048 | 200 |
+- public/assets/index-BPYJFSVW.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/vendor-sentry-VzeXdCeF.js", "assets/vendor-react-BfU3Zn2J.js", "assets/App-pJGjDiPw.js", "assets/vendor-supabase-DAiUAuun.js", "assets/vendor-motion-Cp_NPzpZ.js", 
+- public/assets/index-BPYJFSVW.js:127 - import ("./vendor-sentry-VzeXdCeF.js"), __vite__mapDeps([0, 1]))) => {
+
+INTERNAL STRUCTURE
+
+- line count: 21683
+- imports:
+- 1: import {
+- 5: } from "./vendor-react-BfU3Zn2J.js";
+- 21489: h.isPlaceholder ? (h.routeName = l, Ne && g.log(`[Tracing] Updated placeholder navigation name from "${L}" to "${l}" (will apply to real span)`)) : (h.span.updateName(l), h.span.setAttribute(ae, f), we(h.span, "__sentry_
+- exports:
+- 21681: export {
+- functions/async flows:
+- 7: function Hm(e, t) {
+- 8: for (var n = 0; n < t.length; n++) {
+- 29: function Pt() {
+- 33: function qr(e) {
+- 38: function hr(e, t, n = $) {
+- 47: function on(e) {
+- 52: r.forEach(o => {
+- 59: r.forEach(o => {
+- 65: function jm() {
+- 69: function zm() {
+- 73: function Bd() {
+- 77: function qm(...e) {
+- 81: function Gm(...e) {
+- 85: function Vm(...e) {
+- 89: function $a(e, ...t) {
+- 90: R && Bd() && on(() => {
+- 95: function Ba() {
+- 115: function Hd(...e) {
+- 117: return (n, r = 0, o = 0) => {
+- 121: for (let a = r; a < i.length; a++) {
+- 126: for (const d of t) {
+- 128: if (l) {
+- 140: function Jm(e) {
+- 144: function Km(e) {
+- 153: function go(e) {
+- 158: function At(e) {
+- 166: function Qi(e) {
+- 168: if (t) {
+- 171: return t.values.forEach(r => {
+- 180: function Wd(e) {
+- 186: function sn(e, t) {
+- 190: function an(e, t) {
+- 191: if (!iu[e]) {
+- 201: function Qe(e, t) {
+- 215: function jd(e) {
+- 220: function Ym() {
+- 233: function zd(e) {
+- 238: function Xm() {
+- 245: function kt(e) {
+- 257: function mr(e, t) {
+- 261: function Gd(e) {
+- 265: function au(e) {
+- 269: function Qm(e) {
+- 273: function st(e) {
+- 277: function Ls(e) {
+- 281: function Zt(e) {
+- 285: function mt(e) {
+- 289: function Ds(e) {
+- 293: function Zm(e) {
+- 297: function eg(e) {
+- 301: function Pn(e) {
+- 305: function tg(e) {
+- 309: function xt(e, t) {
+- 317: function Vd(e) {
+- 321: function Ua(e) {
+- 327: function je(e, t = {}) {
+- 347: function rg(e, t) {
+- 351: if (Ha.HTMLElement && n instanceof HTMLElement && n.dataset) {
+- 357: if (o ?.length) o.forEach(i => {
+- 369: for (const i of s) {
+- 376: function Ln() {
+- 384: function Jd(e) {
+- 388: for (let r = 0; r < n; r++) {
+- 390: if (t instanceof HTMLElement) {
+- 399: function xe(e, t, n) {
+- 412: function we(e, t, n) {
+- 424: function Kd(e, t) {
+- 431: function Wa(e) {
+- 435: function Yd(e) {
+- 453: function cu(e) {
+- 461: function uu(e) {
+- 462: if (typeof e == "object" && e !== null) {
+- 469: function og(e) {
+- 474: function Dr(e, t = 0) {
+- 478: function Ei(e, t) {
+- 489: function rs(e, t) {
+- 492: for (let r = 0; r < e.length; r++) {
+- 503: function Lo(e, t, n = !1) {
+- 507: function it(e, t = [], n = !1) {
+- 511: function sg() {
+- classes:
+- 710: class St {
+- 932: class _g {
+- 1691: class Nt {
+- 2112: class Us {
+- 2699: class $r {
+- 3799: class Ry {
+- 9989: class JT extends Ry {
+- 10096: class Ss {
+- 10187: class bs {
+- 10266: class l0 {
+- 13757: class qk {
+- 13854: class Xk {
+- 13885: class Qk {
+- 14853: class Aa {
+- 14894: class hR {
+- 14902: class mR {
+- 15036: class gR {
+- 15042: class _R {
+- 15094: class td {
+- 15105: class SR {
+- 15147: class bR {
+- 15685: class MR {
+- 16174: class Gc extends Error {
+- 16179: class Dh {
+- 16211: class aC {
+- 16259: class cC {
+- 16300: class uC {
+- 17443: class Kh extends Error {
+- 17448: class Yc extends Error {
+- 17509: class I1 {
+- 18008: class x1 {
+- 18182: class P1 {
+- 18565: class V1 {
+- 19932: class jA {
+- 20179: class OM {
+- 20442: class vm extends Re.Component {
+- 20573: class rx extends Re.Component {
+- constants/mutable state candidates:
+- 9: const r = t[n];
+- 13: const s = Object.getOwnPropertyDescriptor(r, o);
+- 25: const R = typeof __SENTRY_DEBUG__ > "u" || __SENTRY_DEBUG__,
+- 34: const t = e.__SENTRY__ = e.__SENTRY__ || {};
+- 39: const r = n.__SENTRY__ = n.__SENTRY__ || {},
+- 43: const Fa = ["debug", "info", "warn", "error", "log", "assert", "trace"],
+- 49: const t = $.console,
+- 53: const s = ns[o];
+- 102: const g = {
+- 116: const t = e.sort((n, r) => n[0] - r[0]).map(n => n[1]);
+- 118: const s = [],
+- 122: let c = i[a];
+- 124: const u = ou.test(c) ? c.replace(ou, "$1") : c;
+- 127: const l = d(u);
+- 146: const t = Array.from(e);
+- 156: const yi = "<anonymous>";
+- 167: const t = e.exception;
+- 169: const n = [];
+- 183: const Po = {},
+- 202: const n = e && Po[e];
+- 213: let Si = null;
+- 216: const t = "error";
+- 231: let bi = null;
+- 234: const t = "unhandledrejection";
+- 243: const qd = Object.prototype.toString;
+- 324: const Ha = $,
+- 330: let n = e;
+- 331: const r = 5,
+- 333: let s = 0,
+- 335: const a = " > ",
+- 337: let u;
+- 338: const d = Array.isArray(t) ? t : t.keyAttrs,
+- 348: const n = e,
+- 356: const o = t ?.length ? t.filter(i => n.getAttribute(i)).map(i => [i, n.getAttribute(i)]) : null;
+- 362: const i = n.className;
+- 364: const a = i.split(/\s+/);
+- 368: const s = ["aria-label", "type", "name", "title", "alt"];
+- 370: const a = n.getAttribute(i);
+- 386: let t = e;
+- 387: const n = 5;
+- 401: const r = e[t];
+- 403: const o = n(r);
+- 426: const n = t.prototype || {};
+- 443: const t = {
+- 463: const t = {};
+- 470: const t = Object.keys(Yd(e));
+- 479: let n = e;
+- 480: const r = n.length;
+- 483: let o = Math.max(t - 60, 0);
+- 485: let s = Math.min(o + 140, r);
+- 491: const n = [];
+- 493: const o = e[r];
+- 512: const e = $;
+- 515: let vi;
+- 538: const r = Xd(e);
+- 543: const r = e.exception = e.exception || {},
+- 550: const n = Xd(e);
+- 552: const r = {
+- 561: const s = { ...o ?.data,
+- 570: const r = e.length,
+- 573: const s = Math.min(r - 1, o);
+- 590: const Qd = 1e3;
+- 601: const t = e.timeOrigin;
+- 604: let du;
+- 609: let Ti;
+- 616: const t = 3600 * 1e3,
+- 632: const t = he(),
+- 651: const n = e.timestamp - e.started;
+- 658: let n = {};
+- 687: const r = { ...e
+- 700: const ea = "_sentrySpan";
+- 709: const hg = 100;
+- 718: const t = new St;
+- 813: const n = typeof t == "function" ? t(this) : t,
+- 842: const r = typeof n == "number" ? n : hg;
+- 844: const o = {
+- 891: const r = n ?.event_id || Ie();
+- 893: const o = new Error("Sentry syntheticException");
+- 902: const o = r ?.event_id || Ie();
+- 904: const s = r ?.syntheticException ?? new Error(t);
+- handlers/lifecycle candidates:
+- 2608: y(), o = setTimeout(() => {
+- 2614: o = setTimeout(() => {
+- 2672: })), t.disableAutoFinish || b(), setTimeout(() => {
+- 3602: const c = [a, new Promise(u => setTimeout(() => u(!1), i))];
+- 3792: s += r(c), s >= 8e5 ? o(e) : a || (a = !0, i = setTimeout(() => {
+- 3973: if (await new Promise(r => setTimeout(r, 1)), !this._numProcessing) return !0;
+- 4210: i && clearTimeout(i), i = setTimeout(async () => {
+- 4448: a = n ?.setTimeoutImpl || setTimeout;
+- 7475: o = setTimeout(() => {
+- 7482: i = setTimeout(() => {
+- 7605: const i = setTimeout(() => s("Unable to determine if Feedback was correctly sent."), 3e4),
+- 7974: Ce = typeof ie == "string" ? ce.querySelector(ie) : typeof ie.addEventListener == "function" ? ie : null;
+- 7984: Ce.addEventListener("click", ft);
+- 8014: !_s() || !Le.autoInject || (ce.readyState === "loading" ? ce.addEventListener("DOMContentLoaded", () => Tr().appendToDom()) : Tr().appendToDom())
+- 8186: else if (t[0] === "o" && t[1] === "n") s = t !== (t = t.replace(/(PointerCapture)$|Capture$/i, "$1")), t = t.toLowerCase() in e ? t.toLowerCase().slice(2) : t.slice(2), e.l || (e.l = {}), e.l[t + s] = n, n ? r ? n.u = r.
+- 8329: }, zo.prototype.render = Qr, mn = [], vp = typeof Promise == "function" ? Promise.prototype.then.bind(Promise.resolve()) : setTimeout, pa = function(e, t) {
+- 8515: clearTimeout(r), Al && cancelAnimationFrame(t), setTimeout(e)
+- 8517: r = setTimeout(n, 100);
+- 8830: n.onSubmitSuccess(u, d), i(setTimeout(() => {
+- 9397: return s.addEventListener("change", o), () => {
+- 9512: }), (P.clientHeight === 0 || P.clientWidth === 0) && setTimeout(k, 0))
+- 9514: return k(), ot.addEventListener("resize", k), () => {
+- 9570: ce.addEventListener("mousemove", Y), ce.addEventListener("mouseup", ne)
+- 9696: _a++, setTimeout(() => {
+- 9793: i.addEventListener("load", () => l()), i.addEventListener("error", f)
+- 10004: M.document && (s || i || u) && M.document.addEventListener("visibilitychange", () => {
+- 10043: q.document && q.addEventListener(e, t, n)
+- 10136: q.document ?.prerendering ? addEventListener("prerenderingchange", () => e(), !0) : e()
+- 10164: }), q ?.setTimeout ?.(r))
+- 10228: const t = q.requestIdleCallback || q.setTimeout;
+- 10301: q.document ?.prerendering ? ti(() => ba(e)) : q.document ?.readyState !== "complete" ? addEventListener("load", () => ba(e), !0) : setTimeout(e)
+- 10474: return q.addEventListener && q.performance
+- 11038: q.document.addEventListener("click", t, !1), q.document.addEventListener("keypress", t, !1), ["EventTarget", "Node"].forEach(n => {
+- 11040: o ?.hasOwnProperty ?.("addEventListener") && (xe(o, "addEventListener", function(s) {
+- 11091: }), Ea = n.type, va = r ? r._sentryId : void 0), clearTimeout(Ol), Ol = q.setTimeout(() => {
+- 11112: if (q.addEventListener("popstate", () => {
+- 11171: return Nc("setTimeout")(...e)
+- 11213: }) : n.addEventListener("readystatechange", c), n.setRequestHeader = new Proxy(n.setRequestHeader, {
+- 11354: q.addEventListener(o, t, {
+- 11771: setInterval: !0,
+- 11772: setTimeout: !0,
+- 11779: t.setTimeout && xe(M, "setTimeout", Ll), t.setInterval && xe(M, "setInterval", Ll), t.requestAnimationFrame && xe(M, "requestAnimationFrame", ZI), t.XMLHttpRequest && "XMLHttpRequest" in M && xe(XMLHttpRequest.prototype,
+- 11836: r ?.hasOwnProperty ?.("addEventListener") && (xe(r, "addEventListener", function(o) {
+- 11857: type: "auto.browser.browserapierrors.addEventListener"
+- 12167: M.addEventListener("message", d)
+- 12779: return ph("setTimeout")(...e)
+- 13001: e.addEventListener("load", () => {
+- 13007: if (r.location.href !== i || e.src === i || e.src === "") return wa(t, 0), e.addEventListener("load", t);
+- 13008: e.addEventListener("load", t)
+- 13023: e.addEventListener("load", () => {
+- 13253: E.crossOrigin = "anonymous", E.complete && E.naturalWidth !== 0 ? P() : E.addEventListener("load", P);
+- 13259: E.complete && E.naturalWidth !== 0 ? P() : E.addEventListener("load", P)
+- 13470: w.isConnected && w.addEventListener("load", V)
+- 13605: return n.addEventListener(e, t, r), () => n.removeEventListener(e, t, r)
+- 13827: return Hc("setTimeout")(...e)
+- 14904: this.iframes = new WeakMap, this.crossOriginIframeMap = new WeakMap, this.crossOriginIframeMirror = new Aa(Bc), this.crossOriginIframeRootIdMap = new WeakMap, this.mutationCb = t.mutationCb, this.wrappedEmit = t.wrappedE
+- 14923: }), this.recordCrossOriginIframes && t.contentWindow ?.addEventListener("message", this.handleMessage.bind(this)), this.loadListener ?.(t);
+- 16124: oC = 'var t=Uint8Array,n=Uint16Array,r=Int32Array,e=new t([0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0,0,0,0]),i=new t([0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,0,0]),s=new t([16,
+- 16168: g.log(Xo, ...r), t && setTimeout(() => qi(r[0]), 0)
+- 16217: this._worker.addEventListener("message", ({
+- 16223: }), this._worker.addEventListener("error", r => {
+- 16248: this._worker.addEventListener("message", i), this._worker.postMessage({
+- 17258: setTimeoutImpl: io
+- 17785: fe.document.addEventListener("visibilitychange", this._handleVisibilityChange), fe.addEventListener("blur", this._handleWindowBlur), fe.addEventListener("focus", this._handleWindowFocus), fe.addEventListener("keydown", t
+- 18353: return Qh("setTimeout")(...e)
+- 18957: X1(o) && o.name.endsWith(t) && (e.setAttributes(Jp(o)), setTimeout(n))
+- 19047: M.document ? M.document.addEventListener("visibilitychange", () => {
+- 19245: V && !O && n && (n.addEventListener("readystatechange", () => {
+- 19260: addEventListener("click", w, {
+- 19262: }), addEventListener("keydown", w, {
+- 19428: s && addEventListener("click", a, {
+- 19534: return M.addEventListener("online", async r => {
+- 19916: let i = M.setTimeout(() => {
+- 20026: const n = setTimeout(() => this._onRootSpanTimeout(t), WA);
+- 20039: this._isRunning && (this._chunkTimer = setTimeout(() => {
+- 20143: n.initialize(e), o && n.notifyRootSpanActive(o), M.setTimeout(() => {
+- 20230: await S_(() => fetch("https://o447951.ingest.sentry.io/api/4509632503087104/envelope/?sentry_version=7&sentry_key=c1dfb07d783ad5325c245c1fd3725390&sentry_client=sentry.javascript.browser%2F1.33.7", {
+- 20252: e.addEventListener("message", t => {
+- 20285: }), e.addEventListener("unhandledrejection", t => {
+- 21177: return M ?.requestAnimationFrame ? M.requestAnimationFrame(e) : setTimeout(e, 0)
+
+INPUTS
+
+- parameters: route/request path candidates are listed in Internal Structure
+- environment variables:
+- BODY_PARSE_ERROR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-sentry-VzeXdCeF.js:11253, public/assets/vendor-sentry-VzeXdCeF.js:17018, public/assets/vendor-sentry-VzeXdCeF.js:17022, public/assets/vendor-sentry-VzeXdCeF.js:17150
+- BODY_PARSE_TIMEOUT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-sentry-VzeXdCeF.js:17022
+- BUTTON: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-motion-Cp_NPzpZ.js:1, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-motion-Cp_NPzpZ.js:1977, public/assets/vendor-sentry-VzeXdCeF.js:15788
+- CDATA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:2, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, public/assets/vendor-markdown-core-B0W_OS7u.js:10, public/assets/vendor-markdown-core-Pkt6xPHa.js:2, public/assets/vendor-sentry-VzeXdCeF.js:12584, public/assets/vendor-sentry-VzeXdCeF.js:13105, public/assets/vendor-sentry-VzeXdCeF.js:13107, public/assets/vendor-sentry-VzeXdCeF.js:15833, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- CDATA_SECTION_NODE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, public/assets/vendor-sentry-VzeXdCeF.js:13105
+- CHAT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:18, public/assets/groupCache-DVHvdGlY.js:11, public/assets/groupCache-DVHvdGlY.js:21, public/assets/vendor-sentry-VzeXdCeF.js:5838, public/assets/vendor-sentry-VzeXdCeF.js:6025
+- CLS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:487, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, public/assets/vendor-sentry-VzeXdCeF.js:10153, public/assets/vendor-sentry-VzeXdCeF.js:10543
+- COLOR_BUFFER_BIT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:498, public/assets/vendor-sentry-VzeXdCeF.js:18730
+- COMMENT_NODE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, public/assets/vendor-sentry-VzeXdCeF.js:13111
+- CONSOLE_ARG_TRUNCATED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-sentry-VzeXdCeF.js:16663
+- DNS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, public/assets/vendor-sentry-VzeXdCeF.js:10881
+- DOCTYPE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:492, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, public/404.html:1, public/assets/vendor-sentry-VzeXdCeF.js:12426, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8, server.mjs:6929, server.mjs:7080, server.mjs:7733
+- DOCUMENT_FRAGMENT_NODE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-sentry-VzeXdCeF.js:13785, public/assets/vendor-sentry-VzeXdCeF.js:13986
+- DOCUMENT_NODE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-sentry-VzeXdCeF.js:13053, public/assets/vendor-sentry-VzeXdCeF.js:13729
+- DOCUMENT_TYPE_NODE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, public/assets/vendor-sentry-VzeXdCeF.js:13062
+- DSN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:9, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:491, public/assets/vendor-sentry-VzeXdCeF.js:3801, public/assets/vendor-sentry-VzeXdCeF.js:12144
+- ELEMENT_NODE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:496, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:498, public/assets/vendor-sentry-VzeXdCeF.js:12587, public/assets/vendor-sentry-VzeXdCeF.js:12945, public/assets/vendor-sentry-VzeXdCeF.js:12967, public/assets/vendor-sentry-VzeXdCeF.js:13070, public/assets/vendor-sentry-VzeXdCeF.js:13698, public/assets/vendor-sentry-VzeXdCeF.js:13751, public/assets/vendor-sentry-VzeXdCeF.js:17324, public/assets/vendor-sentry-VzeXdCeF.js:18238
+- EMBEDDINGS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:18, public/assets/vendor-sentry-VzeXdCeF.js:5840, public/assets/vendor-sentry-VzeXdCeF.js:6025
+- EOF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/release.yml:78, .github/workflows/release.yml:80, .github/workflows/release.yml:92, .github/workflows/release.yml:94, .github/workflows/release.yml:138, .github/workflows/release.yml:140, .github/workflows/release.yml:145, .github/workflows/release.yml:147, .github/workflows/release.yml:233, .github/workflows/release.yml:253, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:256, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:259
+- ERROR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:87, .github/workflows/schema-lint.yml:152, .github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:163, .github/workflows/schema-lint.yml:165, .github/workflows/schema-lint.yml:168, .github/workflows/schema-lint.yml:171, .github/workflows/schema-lint.yml:190, .github/workflows/schema-lint.yml:205, .github/workflows/schema-lint.yml:207, .github/workflows/schema-lint.yml:220, .github/workflows/schema-lint.yml:222
+- FCP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:487, public/assets/vendor-sentry-VzeXdCeF.js:10142
+- IFRAME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-sentry-VzeXdCeF.js:13747, public/assets/vendor-sentry-VzeXdCeF.js:14060, public/assets/vendor-sentry-VzeXdCeF.js:15317
+- INP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:487, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:496, public/assets/vendor-sentry-VzeXdCeF.js:10217, public/assets/vendor-sentry-VzeXdCeF.js:10245, public/assets/vendor-sentry-VzeXdCeF.js:11077, public/assets/vendor-sentry-VzeXdCeF.js:12708, public/assets/vendor-sentry-VzeXdCeF.js:12749, public/assets/vendor-sentry-VzeXdCeF.js:12969, public/assets/vendor-sentry-VzeXdCeF.js:14068
+- INPUT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-motion-Cp_NPzpZ.js:1, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:49, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:496, public/assets/ChapterHub-BXRydU0B.js:42, public/assets/Focus-BmgY-9vP.js:937, public/assets/Tasks-BYRFOrek.js:4462, public/assets/index-qd2KF3Jd.js:26, public/assets/vendor-motion-Cp_NPzpZ.js:1977, public/assets/vendor-react-BfU3Zn2J.js:8520
+- LCP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:487, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, public/assets/vendor-sentry-VzeXdCeF.js:10275, public/assets/vendor-sentry-VzeXdCeF.js:10585
+- LINK: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:49, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/index-BPYJFSVW.js:14, public/assets/index-qd2KF3Jd.js:2, public/assets/index-qd2KF3Jd.js:26, public/assets/vendor-react-BfU3Zn2J.js:8474, public/assets/vendor-react-BfU3Zn2J.js:8509, public/assets/vendor-react-BfU3Zn2J.js:9087, public/assets/vendor-sentry-VzeXdCeF.js:13751, public/boot-recovery.js:139
+- M10: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:395, public/assets/vendor-icons-CqruUz7g.js:156, public/assets/vendor-icons-CqruUz7g.js:482, public/assets/vendor-icons-CqruUz7g.js:511, public/assets/vendor-icons-CqruUz7g.js:1232, public/assets/vendor-icons-CqruUz7g.js:1606, public/assets/vendor-icons-CqruUz7g.js:2019, public/assets/vendor-icons-CqruUz7g.js:2036, public/assets/vendor-icons-CqruUz7g.js:2088, public/assets/vendor-icons-CqruUz7g.js:2134, public/assets/vendor-icons-CqruUz7g.js:2287, public/assets/vendor-icons-CqruUz7g.js:2815
+- M15: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/IsotopeLogoIcon-oPk5Ru-_.js:1, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:69, docs/logo.svg:4, logo.svg:4, public/assets/IsotopeLogoIcon-oPk5Ru-_.js:22, public/assets/QuickActionsMenu-ojdsCiqG.js:50, public/assets/vendor-icons-CqruUz7g.js:181, public/assets/vendor-icons-CqruUz7g.js:185, public/assets/vendor-icons-CqruUz7g.js:358, public/assets/vendor-icons-CqruUz7g.js:362, public/assets/vendor-icons-CqruUz7g.js:389, public/assets/vendor-icons-CqruUz7g.js:624
+- M29: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:105, public/assets/vendor-sentry-VzeXdCeF.js:8570
+- MAYBE_JSON_TRUNCATED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-sentry-VzeXdCeF.js:16898
+- MULTIPLEXED_TRANSPORT_EXTRA_KEY: classification=secret; required=optional/defaulted; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:10, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:500, public/assets/vendor-sentry-VzeXdCeF.js:4245, public/assets/vendor-sentry-VzeXdCeF.js:21682
+- OPTION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, public/assets/vendor-sentry-VzeXdCeF.js:12708, public/assets/vendor-sentry-VzeXdCeF.js:13154, public/assets/vendor-sentry-VzeXdCeF.js:14390, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- POP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:10, artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:12, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:498, public/assets/vendor-router-CmoTwRnm.js:95, public/assets/vendor-router-CmoTwRnm.js:107, public/assets/vendor-router-CmoTwRnm.js:596, public/assets/vendor-router-CmoTwRnm.js:844, public/assets/vendor-sentry-VzeXdCeF.js:20742, public/assets/vendor-sentry-VzeXdCeF.js:20921, public/assets/vendor-sentry-VzeXdCeF.js:21282, public/assets/vendor-sentry-VzeXdCeF.js:21284, public/assets/vendor-sentry-VzeXdCeF.js:21309
+- PUSH: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:10, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:498, public/assets/vendor-router-CmoTwRnm.js:118, public/assets/vendor-sentry-VzeXdCeF.js:20742, public/assets/vendor-sentry-VzeXdCeF.js:20921, public/assets/vendor-sentry-VzeXdCeF.js:21284, public/assets/vendor-sentry-VzeXdCeF.js:21481
+- RESPONSES: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:18, public/assets/vendor-sentry-VzeXdCeF.js:5839, public/assets/vendor-sentry-VzeXdCeF.js:6025
+- SCRIPT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:1, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:255, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:256, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:49, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, public/assets/index-qd2KF3Jd.js:26, public/assets/vendor-katex-BSXZKQS3.js:1, public/assets/vendor-katex-BSXZKQS3.js:255, public/assets/vendor-katex-BSXZKQS3.js:256, public/assets/vendor-react-BfU3Zn2J.js:8474, public/assets/vendor-react-BfU3Zn2J.js:8506, public/assets/vendor-sentry-VzeXdCeF.js:13142
+- SCRIPT_PLACEHOLDER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, public/assets/vendor-sentry-VzeXdCeF.js:13152
+- SDK: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:5, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:9, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:10, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:487, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:491, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:498, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:500, public/assets/messaging-BP0KfJxy.js:2344, public/assets/vendor-sentry-VzeXdCeF.js:881, public/assets/vendor-sentry-VzeXdCeF.js:1395, public/assets/vendor-sentry-VzeXdCeF.js:2401, public/assets/vendor-sentry-VzeXdCeF.js:2405
+- SDK_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:500, public/assets/vendor-sentry-VzeXdCeF.js:21682
+- SELECT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:177, .github/workflows/schema-lint.yml:185, ADMIN.md:488, CHANGELOG.md:177, CHANGELOG.md:196, CHANGELOG.md:231, CHANGELOG.md:269, CHANGELOG.md:270, CHANGELOG.md:274
+- SEMANTIC_ATTRIBUTE_SENTRY_OP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:500, public/assets/vendor-sentry-VzeXdCeF.js:21682
+- SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:500, public/assets/vendor-sentry-VzeXdCeF.js:21682
+- SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:500, public/assets/vendor-sentry-VzeXdCeF.js:21682
+- SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:500, public/assets/vendor-sentry-VzeXdCeF.js:21682
+- SENTRY_RELEASE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:487, public/assets/vendor-sentry-VzeXdCeF.js:10021
+- SENTRY_SDK_SOURCE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:487, public/assets/vendor-sentry-VzeXdCeF.js:9992
+- SSL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, public/assets/vendor-sentry-VzeXdCeF.js:10881
+- STYLE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:49, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, public/assets/index-qd2KF3Jd.js:26, public/assets/useAIStore-B2cv1FZz.js:8091, public/assets/vendor-react-BfU3Zn2J.js:8474, public/assets/vendor-react-BfU3Zn2J.js:8507, public/assets/vendor-sentry-VzeXdCeF.js:13141
+- TEXTAREA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-motion-Cp_NPzpZ.js:1, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/ChapterHub-BXRydU0B.js:42, public/assets/Focus-BmgY-9vP.js:937, public/assets/Tasks-BYRFOrek.js:4462, public/assets/vendor-motion-Cp_NPzpZ.js:1977, public/assets/vendor-sentry-VzeXdCeF.js:11077, public/assets/vendor-sentry-VzeXdCeF.js:13143, public/assets/vendor-sentry-VzeXdCeF.js:14365, public/assets/vendor-sentry-VzeXdCeF.js:15943
+- TEXT_NODE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, public/assets/vendor-sentry-VzeXdCeF.js:13092
+- TEXT_TRUNCATED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-sentry-VzeXdCeF.js:16901
+- TLS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, public/assets/Privacy-ClP3A1gm.js:1, public/assets/vendor-sentry-VzeXdCeF.js:10881
+- TTFB: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:487, public/assets/vendor-sentry-VzeXdCeF.js:10304
+- UNPARSEABLE_BODY_TYPE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-sentry-VzeXdCeF.js:11255, public/assets/vendor-sentry-VzeXdCeF.js:17152
+- URL_SKIPPED: classification=public/configuration; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-sentry-VzeXdCeF.js:16854
+- UTF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:4, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:4, artifacts/asset-diff/remote-assets/AIWeeklySummary-fVbvFqu3.js:4, artifacts/asset-diff/remote-assets/About-DbJqhVWT.js:4, artifacts/asset-diff/remote-assets/Analytics-D74gQMjN.js:4, artifacts/asset-diff/remote-assets/AnalyticsPeriod-CGXbfYQB.js:4, artifacts/asset-diff/remote-assets/AnalyticsSubjects-DOh8aXlW.js:4, artifacts/asset-diff/remote-assets/AnalyticsTasks-DOfUf9Sd.js:4, artifacts/asset-diff/remote-assets/AnalyticsToday-BTdRNTb0.js:4, artifacts/asset-diff/remote-assets/App-Bcp_57Ks.js:4, artifacts/asset-diff/remote-assets/App-pJGjDiPw.js:4, artifacts/asset-diff/remote-assets/AppAccessGate-B975UtK7.js:4
+- WINDOW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:500, public/assets/vendor-sentry-VzeXdCeF.js:21682
+- XHR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:492, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:498, public/assets/vendor-sentry-VzeXdCeF.js:12350, public/assets/vendor-sentry-VzeXdCeF.js:18897, public/assets/vendor-sentry-VzeXdCeF.js:18905, public/assets/vendor-sentry-VzeXdCeF.js:19186, public/assets/vendor-sentry-VzeXdCeF.js:19359
+- command-line arguments: not directly observed
+- request data: route candidates observed
+- headers/cookies: cookie/header/storage terms observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://localhost:8969/stream
+- http://www.w3.org/2000/svg
+- https://browser.sentry-cdn.com
+- https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/
+- https://o447951.ingest.sentry.io/api/4509632503087104/envelope/?sentry_version=7&sentry_key=c1dfb07d783ad5325c245c1fd3725390&sentry_client=sentry.javascript.browser%2F1.33.7
+- https://sentry.io/welcome/
+- https://spotlightjs.com/sidecar/npx/
+- browser storage:
+- 12231: ih() && ([i, c] = Bl("Cookie", s), [a, u] = Bl("Set-Cookie", n));
+- 12238: requestCookies: c,
+- 12239: responseCookies: u,
+- 12262: const u = t.getResponseHeader("Set-Cookie") || t.getResponseHeader("set-cookie") || void 0;
+- 12276: responseCookies: i,
+- 12379: cookies: e.requestCookies
+- 12385: cookies: e.responseCookies,
+- 16394: return "sessionStorage" in fe && !!fe.sessionStorage
+- 16406: fe.sessionStorage.removeItem(Lc)
+- 16416: fe.sessionStorage.setItem(Lc, JSON.stringify(e))
+- 16462: const e = fe.sessionStorage.getItem(Lc);
+- 16502: }) ? (U && H.infoTick("Session in sessionStorage is expired, creating new one..."), sd(r, {
+- 19128: M.sessionStorage.setItem(im, JSON.stringify(e))
+- 19130: I && g.warn("Could not store previous trace in sessionStorage", t)
+- 19136: const e = M.sessionStorage ?.getItem(im);
+- 19472: const n = indexedDB.open(e);
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 378: return Ha.document.location.href
+- 703: t ? we(e, ea, t) : delete e[ea]
+- 780: removeAttribute(t) {
+- 781: return t in this._attributes && (delete this._attributes[t], this._notifyScopeListeners()), this
+- 803: return n === null ? delete this._contexts[t] : this._contexts[t] = n, this._notifyScopeListeners(), this
+- 806: return t ? this._session = t : delete this._session, this._notifyScopeListeners(), this
+- 811: update(t) {
+- 1269: const t = Pg.exec(e);
+- 1272: console.error(`Invalid Sentry Dsn: ${e}`)
+- 1545: e[vn] && e[vn].delete(t)
+- 1573: console.warn("[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.")
+- 1578: e.updateName(t), e.setAttributes({
+- 1712: updateName(t) {
+- 1815: e.delete(r)
+- 2015: return delete e.sdkProcessingMetadata, lt(i, [
+- 2140: return n === void 0 ? delete this._attributes[t] : this._attributes[t] = n, this
+- 2145: updateStartTime(t) {
+- 2151: updateName(t) {
+- 2214: delete this._attributes[ta], s.forEach(d => {
+- 2215: delete d.data[ta]
+- 2478: return r.startTimestamp = En(e.startTime), delete r.startTime, r
+- 2626: if (n.has(S) && n.delete(S), n.size === 0) {
+- 2868: e.fingerprint = e.fingerprint ? Array.isArray(e.fingerprint) ? e.fingerprint : [e.fingerprint] : [], t && (e.fingerprint = e.fingerprint.concat(t)), e.fingerprint.length || delete e.fingerprint
+- 2966: o.debug_id && (o.abs_path ? t[o.abs_path] = o.debug_id : o.filename && (t[o.filename] = o.debug_id), delete o.debug_id)
+- 3014: return n.update(t), n
+- 3589: t.delete(i)
+- 3667: }).then(l => (l.statusCode !== void 0 && (l.statusCode < 200 || l.statusCode >= 300) && R && g.warn(`Sentry responded with status code ${l.statusCode} to sent event.`), r = Ff(r, l), l), l => {
+- 3930: r.delete(o)
+- 3951: _updateSessionFromEvent(t, n) {
+- 4027: if (c && h && this._updateSessionFromEvent(h, p), a) {
+- 4181: console.warn("[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.")
+- 4182: })), j().update(t.initialScope);
+- 4681: delete n.module_metadata
+- 4758: const u = `Assertion failed: ${rs(e.slice(1)," ")||"console.assert"}`;
+- 4916: n = kS.exec(t);
+- 5021: OS = ["createUser", "deleteUser", "listUsers", "getUserById", "updateUserById", "inviteUserByEmail"],
+- 5051: tp = ["select", "insert", "upsert", "update", "delete"];
+- 5072: return t.Prefer ?.includes("resolution=") ? "upsert" : "insert";
+- 5074: return "update";
+- 5075: case "DELETE":
+- 5076: return "delete";
+- 5365: R && g.error(`[Feature Flags] insertToFlagBuffer called on a buffer larger than maxSize=${r}`);
+- 5426: h && (ib(h, e), ob(h, e, o), delete r[p]);
+- 6389: }), delete t.activeToolBlocks[e.index]
+- 7077: a ?.isRecording() && (a.end(), r.delete(i))
+- 7318: a ?.name && typeof a.name == "string" && (s.setAttribute(rp, a.name), s.updateName(`create_agent ${a.name}`));
+- 7351: c && typeof c == "string" && (a.setAttribute(Ob, c), a.setAttribute(rp, c), a.updateName(`invoke_agent ${c}`));
+- 7415: n.hidden = !0, t.head.appendChild(n), n.contentWindow ?.fetch && (e = fa(n.contentWindow.fetch)), t.head.removeChild(n)
+- 7585: Nv = "Remove screenshot",
+- 7588: Lv = "Remove",
+- 7757: removeFromDom() {
+- 7758: o.remove(), s.remove()
+- 7877: removeScreenshotButtonLabel: D = Nv,
+- 7884: removeHighlightText: V = Lv,
+- 7922: removeScreenshotButtonLabel: D,
+- 7925: removeHighlightText: V,
+- 7980: Me ?.removeFromDom(), Ye.onFormSubmitted ?.()
+- 7986: dt = dt.filter(ze => ze !== X), Me ?.removeFromDom(), Me = null, Ce.removeEventListener("click", ft)
+- 8024: remove() {
+- 8025: Be && (Be.parentElement ?.remove(), Be = null), dt.forEach(ie => ie()), dt = []
+- 8045: t && t.removeChild(e)
+- 8146: e.__e != t && (n.insertBefore(e.__e, t || null), t = e.__e);
+- 8186: else if (t[0] === "o" && t[1] === "n") s = t !== (t = t.replace(/(PointerCapture)$|Capture$/i, "$1")), t = t.toLowerCase() in e ? t.toLowerCase().slice(2) : t.slice(2), e.l || (e.l = {}), e.l[t + s] = n, n ? r ? n.u = r.u : (n.u = Date.now(), e.addEventListene
+- 8193: typeof n == "function" || (n == null || n === !1 && t[4] !== "-" ? e.removeAttribute(t) : e.setAttribute(t, n))
+- 8218: if (B.getDerivedStateFromProps == null && y !== p && l.componentWillReceiveProps != null && l.componentWillReceiveProps(y, N), !l.__e && (l.shouldComponentUpdate != null && l.shouldComponentUpdate(y, l.__s, N) === !1 || t.__v === n.__v)) {
+- 8225: l.componentWillUpdate != null && l.componentWillUpdate(y, l.__s, N), l.componentDidUpdate != null && l.__h.push(function() {
+- 8226: l.componentDidUpdate(p, h, m)
+- 8234: l.state = l.__s, l.getChildContext != null && (r = zt(zt({}, r), l.getChildContext())), f || l.getSnapshotBeforeUpdate == null || (m = l.getSnapshotBeforeUpdate(p, h)), wp(e, Sc(x = d != null && d.type === Qr && d.key == null ? d.props.children : d) ? x : [x],
+- 8327: }, zo.prototype.forceUpdate = function(e) {
+- 8382: var s = ue.shouldComponentUpdate,
+- 8383: i = ue.componentWillUpdate;
+- 8384: ue.componentWillUpdate = function(a, c, u) {
+- 8390: }, ue.shouldComponentUpdate = o
+- 8620: removeScreenshotButtonLabel: f,
+- 9188: removeFromDom() {
+- 9189: a.remove(), c.remove(), ce.body.style.overflow = u
+- 9398: s.removeEventListener("change", o)
+- 9515: ot.removeEventListener("resize", k)
+- 9568: z.w * T >= 1 && z.h * T >= 1 && m(w => [...w, z]), ce.removeEventListener("mousemove", Y), ce.removeEventListener("mouseup", ne)
+- 9617: "aria-label": o.removeHighlightText,
+- 9798: else throw new Error(`Could not find parent element to insert lazy-loaded ${e} script`);
+- 10047: q.document && q.removeEventListener(e, t, n)
+- 10215: for (const s of o) this._longestInteractionMap.delete(s.id)
+- 10426: return o && o > t && typeof e.updateStartTime == "function" && e.updateStartTime(t), nr(e, () => {
+- 10826: }), Nl = Math.max(s.length - 1, 0), z0(e), i === "pageload" && (V0(rt), t.recordClsOnPageloadSpan || delete rt.cls, t.recordLcpOnPageloadSpan || delete rt.lcp, Object.entries(rt).forEach(([c, u]) => {
+- 10931: u.protocol && (c["url.scheme"] = u.protocol.split(":").pop()), u.host && (c["server.address"] = u.host), c["url.same_origin"] = n.includes(q.location.origin), G0(t, c, [
+- 10945: name: n.replace(q.location.origin, ""),
+- 11055: }), xe(o, "removeEventListener", function(s) {
+- 11060: d && (d.refCount--, d.refCount <= 0 && (s.call(this, i, d.handler, c), d.handler = void 0, delete u[i]), Object.keys(u).length === 0 && delete this.__sentry_instrumentation_handlers__)
+- 11113: const t = q.location.href,
+- 11142: return new URL(e, q.location.origin).toString()
+- 11159: s ?.[e] && (n = s[e]), r.head.removeChild(o)
+- 11367: c !== void 0 && Bn.delete(c)
+- 11396: Ko.delete(d)
+- 11494: const n = bI.exec(e);
+- 11499: const r = EI.exec(e);
+- 11502: const a = vI.exec(r[2]);
+- 11513: const t = kI.exec(e);
+- 11516: const s = RI.exec(t[3]);
+- 11527: const t = xI.exec(e);
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 227: url: t
+- 513: return e.crypto || e.msCrypto
+- 1074: Eg = "http.request.method",
+- 1075: vg = "url.full",
+- 1155: function os(e, t) {
+- 1156: e.setAttribute("http.response.status_code", t);
+- 1252: return e === "http" || e === "https"
+- 1258: path: r,
+- 1287: path: c,
+- 1302: path: e.path || "",
+- 1684: return f !== "url" && p && (l.transaction = p), Ze() && (l.sampled = String(un(n)), l.sample_rand = s ?.get("sentry.sample_rand") ?? ss(n).scope ?.getPropagationContext().sampleRand.toString()), a(l), t.emit("createDsc", l, n), l
+- 2948: i ?.url && s && (i.url = Dr(i.url, s)), s && e.exception ?.values ?.forEach(a => {
+- 3143: return `${t}//${e.host}${n}${e.path?`/${e.path}`:""}/api/`
+- 3807: url: r
+- 4287: url: h
+- 4289: url: h
+- 4353: path: t[5],
+- 4591: return R && g.error(`Cannot extract url for event ${hn(e)}`), null
+- 4722: function fs(e) {
+- 4744: const r = fs(t),
+- 4747: level: fs(t),
+- 5156: if (!o.includes(i) || !s ?.url ?.pathname || typeof s.url.pathname != "string") return Reflect.apply(t, n, r);
+- 5157: const a = s.url.pathname.split("/"),
+- 5160: for (const [p, h] of s.url.searchParams.entries()) u.push(DS(p, h));
+- 5168: "db.url": s.url.origin,
+- 5179: if (p && (h && typeof h == "object" && "status" in h && os(p, h.status || 500), p.end()), h.error) {
+- 5196: throw p && (os(p, 500), p.end()), h
+- 5236: path: "path" in e && Array.isArray(e.path) ? e.path.join(".") : void 0,
+- 5249: const o = JS(r.path);
+- 5420: url: i
+- 5430: spanOrigin: c = "auto.http.browser",
+- 5435: if (e.fetchData.__span = l.spanContext().spanId, r[l.spanContext().spanId] = l, n(e.fetchData.url)) {
+- 5502: os(e, t.response.status);
+- 5506: r > 0 && e.setAttribute("http.response_content_length", r)
+- 5533: url: e,
+- 5535: "http.method": n,
+- 5537: [pe]: "http.client"
+- 5539: return t && (sc(t) || (o["http.url"] = t.href, o["server.address"] = t.host), t.search && (o["http.query"] = t.search), t.hash && (o["http.fragment"] = t.hash)), o
+- 5547: url: i,
+- 5557: url: i,
+- 7442: url: i
+- 7448: url: i
+- 7463: const u = new URL(a.fetchData.url);
+- 7519: return typeof e == "string" ? e : e ? Ho(e, "url") ? e.url : e.toString ? e.toString() : "" : ""
+- 7525: url: ""
+- 7530: url: hl(n),
+- 7536: url: hl(t),
+- 7601: url: Ln(),
+- 7709: Wv = "http://www.w3.org/2000/svg";
+- 7720: clipPath: "url(#clip0_57_80)"
+- 7722: r = Je(e("path"), {
+- 8267: e = o ? document.createElementNS("http://www.w3.org/2000/svg", b) : document.createElement(b, y.is && y), s = null, a = !1
+- 8558: lT = "http://www.w3.org/2000/svg";
+- 8568: n = Je(e("path"), {
+- 8588: href: "https://sentry.io/welcome/",
+- 8781: mT = "http://www.w3.org/2000/svg";
+- 8792: clipPath: "url(#clip0_57_156)"
+- 8794: r = Je(e("path"), {
+- 8799: o = Je(e("path"), {
+- 9247: }), e("path", {
+- 9250: }), e("path", {
+- 9253: }), e("path", {
+- 9755: url: e,
+- 9810: const n = C() ?.getOptions() ?.cdnBaseUrl || "https://browser.sentry-cdn.com";
+- 10491: t = r === "h" ? "http" : r, n = e.split(r)[1];
+- 10548: [G]: "auto.http.browser.cls",
+- 10590: [G]: "auto.http.browser.lcp",
+- 10596: t && (t.element && (a["lcp.element"] = je(t.element)), t.id && (a["lcp.id"] = t.id), t.url && (a["lcp.url"] = t.url), t.loadTime != null && (a["lcp.loadTime"] = t.loadTime), t.renderTime != null && (a["lcp.renderTime"] = t.renderTime), t.size != null && (a["lc
+- 10623: "http.request.redirect_start": Xe(e.redirectStart),
+- 10624: "http.request.redirect_end": Xe(e.redirectEnd),
+- 10625: "http.request.worker_start": Xe(e.workerStart),
+- 10626: "http.request.fetch_start": Xe(e.fetchStart),
+- 10627: "http.request.domain_lookup_start": Xe(e.domainLookupStart),
+- 10628: "http.request.domain_lookup_end": Xe(e.domainLookupEnd),
+- 10629: "http.request.connect_start": Xe(e.connectStart),
+- 10630: "http.request.secure_connection_start": Xe(e.secureConnectionStart),
+- 10631: "http.request.connection_end": Xe(e.connectEnd),
+- 10632: "http.request.request_start": Xe(e.requestStart),
+- 10633: "http.request.response_start": Xe(e.responseStart),
+- 10634: "http.request.response_end": Xe(e.responseEnd),
+- external libraries:
+- 1: import {
+- 5: } from "./vendor-react-BfU3Zn2J.js";
+- 21489: h.isPlaceholder ? (h.routeName = l, Ne && g.log(`[Tracing] Updated placeholder navigation name from "${L}" to "${l}" (will apply to real span)`)) : (h.span.updateName(l), h.span.setAttribute(ae, f), we(h.span, "__sentry_
+- local files: see References and Consumers above
+- browser APIs:
+- 378: return Ha.document.location.href
+- 7417: R && g.warn("Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ", n)
+- 7712: const e = a => ot.document.createElementNS(Wv, a),
+- 8266: if (b === null) return document.createTextNode(y);
+- 8267: e = o ? document.createElementNS("http://www.w3.org/2000/svg", b) : document.createElement(b, y.is && y), s = null, a = !1
+- 8784: const e = c => ot.document.createElementNS(mT, c),
+- 9790: i = M.document.createElement("script");
+- 9795: c = M.document.currentScript,
+- 9796: u = M.document.body || M.document.head || c ?.parentElement;
+- 10004: M.document && (s || i || u) && M.document.addEventListener("visibilitychange", () => {
+- 10005: M.document.visibilityState === "hidden" && (s && this._flushOutcomes(), i && Za(this), u && tc(this))
+- 10062: Yn = (q.document.prerendering ? void 0 : globalThis.performance.getEntriesByType("visibility-state").filter(n => n.name === "hidden" && n.startTime > e)[0] ?.startTime) ?? XT(), In("visibilitychange", Vo, !0), In("pagehide", Vo, !0), In("prerenderingchange", V
+- 11038: q.document.addEventListener("click", t, !1), q.document.addEventListener("keypress", t, !1), ["EventTarget", "Node"].forEach(n => {
+- 11161: Nn && g.warn(`Could not create sandbox iframe for ${e} check, bailing to window.${e}: `, o)
+- 11764: const KI = ["EventTarget", "Window", "Node", "ApplicationCache", "AudioTrackList", "BroadcastChannel", "ChannelMergerNode", "CryptoOperation", "EventSource", "FileReader", "HTMLUnknownElement", "IDBDatabase", "IDBRequest", "IDBTransaction", "KeyOperation", "Me
+- 12153: a = M.document.createElement("script");
+- 12755: n = new URL(e, t ?? window.location.href)
+- 12767: const n = window.document;
+- 12993: s = r.document.readyState
+- 13628: typeof window < "u" && window.Proxy && window.Reflect && (Vl = new Proxy(Vl, {
+- 13688: return window.innerHeight || document.documentElement && document.documentElement.clientHeight || document.body && document.body.clientHeight
+- 13692: return window.innerWidth || document.documentElement && document.documentElement.clientWidth || document.body && document.body.clientWidth
+- 13811: const n = window.document;
+- 14070: this.unattachedDoc = document.implementation.createHTMLDocument()
+- 14199: let r = window.MutationObserver || window.__rrMutationObserver;
+- 14304: if (window.PointerEvent) switch (De[l]) {
+- 14904: this.iframes = new WeakMap, this.crossOriginIframeMap = new WeakMap, this.crossOriginIframeMirror = new Aa(Bc), this.crossOriginIframeRootIdMap = new WeakMap, this.mutationCb = t.mutationCb, this.wrappedEmit = t.wrappedEmit, this.stylesheetManager = t.styleshe
+- 15165: const e = document.createElement("iframe");
+- 15166: document.body.appendChild(e), Array.from = e.contentWindow ?.Array.from || Array.from, document.body.removeChild(e)
+- 15215: const re = k ? window.parent === window : !0;
+- 15218: window.parent.document && (ve = !1)
+- 15269: origin: window.location.origin,
+- 15272: window.parent.postMessage(Ae, "*")
+- 15386: href: window.location.href,
+- 15448: }), Vn.forEach(Q => Q.unlock()), document.adoptedStyleSheets && document.adoptedStyleSheets.length > 0 && ie.adoptStyleSheets(document.adoptedStyleSheets, nt.getId(document))
+- 15586: return document.readyState === "interactive" || document.readyState === "complete" ? Q() : (X.push(Fe("DOMContentLoaded", () => {
+- 16369: if (e && window.Worker) {
+- 16394: return "sessionStorage" in fe && !!fe.sessionStorage
+- 16406: fe.sessionStorage.removeItem(Lc)
+- 16416: fe.sessionStorage.setItem(Lc, JSON.stringify(e))
+- 16462: const e = fe.sessionStorage.getItem(Lc);
+- 16502: }) ? (U && H.infoTick("Session in sessionStorage is expired, creating new one..."), sd(r, {
+- 16925: function BC(e, t = fe.document.baseURI) {
+- 17543: fe.document.visibilityState === "visible" ? this._doChangeToForegroundTasks() : this._doChangeToBackgroundTasks()
+- 17785: fe.document.addEventListener("visibilitychange", this._handleVisibilityChange), fe.addEventListener("blur", this._handleWindowBlur), fe.addEventListener("focus", this._handleWindowFocus), fe.addEventListener("keydown", this._handleKeyboardEvent), this.clickDet
+- 17793: fe.document.removeEventListener("visibilitychange", this._handleVisibilityChange), fe.removeEventListener("blur", this._handleWindowBlur), fe.removeEventListener("focus", this._handleWindowFocus), fe.removeEventListener("keydown", this._handleKeyboardEvent), t
+- 18278: typeof window < "u" && window.Proxy && window.Reflect && (hd = new Proxy(hd, {
+- 18337: const n = window.document;
+- 18787: const e = document.createElement("iframe");
+- 18788: document.body.appendChild(e), Array.from = e.contentWindow ?.Array.from || Array.from, document.body.removeChild(e)
+- 19047: M.document ? M.document.addEventListener("visibilitychange", () => {
+- 19051: if (M.document.hidden && t) {
+- 19060: }), t.setAttribute("sentry.cancellation_reason", "document.hidden"), t.end()
+- 19128: M.sessionStorage.setItem(im, JSON.stringify(e))
+- 19130: I && g.warn("Could not store previous trace in sessionStorage", t)
+- 19136: const e = M.sessionStorage ?.getItem(im);
+- 19472: const n = indexedDB.open(e);
+- 19595: version: M.navigator.userAgent
+- 21130: Ne && g.warn("[React Router] Could not access window.location")
+- operating-system commands:
+- 4396: function Vf(e, t, n = [t], r = "npm") {
+- 7554: return "npm"
+- 10546: i = t ? je(t.sources[0] ?.node) : "Layout shift",
+- 10555: a[`cls.source.${d+1}`] = je(u.node)
+- 10962: Ue && t.recordLcpOnPageloadSpan && (Ue.element && e.setAttribute("lcp.element", je(Ue.element)), Ue.id && e.setAttribute("lcp.id", Ue.id), Ue.url && e.setAttribute("lcp.url", Ue.url.trim().slice(0, 200)), Ue.loadTime != null && e.setAttribute("lcp.loadTime", U
+- 12232: const d = sh({
+- 12270: const c = sh({
+- 12359: function sh(e) {
+- 13960: node: l
+- 14005: id: this.mirror.getId(c.node),
+- 14018: id: this.mirror.getId(c.node),
+- 14032: node: t.target
+- 14064: node: t.target,
+- 14917: node: n
+- 14941: this.replaceIdOnNode(n.data.node, t);
+- 14942: const r = n.data.node.id;
+- 14944: this.patchRootIdOnNode(n.data.node, r),
+- 14953: node: n.data.node
+- 14974: this.replaceIds(r, t, ["parentId", "nextId", "previousId"]), this.replaceIdOnNode(r.node, t);
+- 14976: o && this.patchRootIdOnNode(r.node, o)
+- 15445: node: ze,
+- 15706: node: n
+- 15708: this._clicks.some(o => o.node === r.node && Math.abs(o.timestamp - r.timestamp) < 1) || (this._clicks.push(r), this._clicks.length === 1 && this._scheduleCheckClicks())
+- 15726: return this._clicks.filter(n => n.node === t)
+- 15864: node: {
+- 16068: if (s.node) {
+- 16069: n.push(s.node);
+- 16070: const i = Ct.mirror.getId(s.node);
+- 19432: const am = "_sentry_idleSpan";
+- 19435: return e[am]
+- 19439: we(e, am, t)
+- Supabase interfaces:
+- 146: const t = Array.from(e);
+- 1554: const o = r[vn] ? Array.from(r[vn]) : [];
+- 1558: return n(e), Array.from(t)
+- 3600: const a = Promise.allSettled(Array.from(t)).then(() => !0);
+- 3607: return Array.from(t)
+- 5097: [G]: "auto.db.supabase",
+- 5107: type: "auto.db.supabase.auth"
+- 5117: type: "auto.db.supabase.auth"
+- 5172: [G]: "auto.db.supabase",
+- 5185: type: "auto.db.supabase.postgres"
+- 5186: }), T)), N.setContext("supabase", b), N))
+- 5189: type: "supabase",
+- 5213: R && g.warn("Supabase integration was not installed because no Supabase client was provided.");
+- 5219: WS = "Supabase",
+- 5226: Jx = e => jS(e.supabaseClient),
+- 5252: const n = Array.from(t);
+- 12614: return t ? fk(Array.from(t, lh).join("")) : null
+- 12667: return Array.from(this.idNodeMap.keys())
+- 13204: const E = Array.from(n.styleSheets).find(k => k.href === e.href);
+- 13415: V = e.childNodes ? Array.from(e.childNodes) : [];
+- 13421: for (const se of Array.from(e.shadowRoot.childNodes)) {
+- 14076: for (const a of Array.from(n.style)) {
+- 14081: for (const a of Array.from(i.style)) n.style.getPropertyValue(a) === "" && (s.styleDiff[a] = !1)
+- 14477: const i = Array.from(r.parentRule.cssRules).indexOf(r);
+- 14480: const i = Array.from(r.parentStyleSheet.cssRules).indexOf(r);
+- 14740: fontSource: typeof u == "string" ? u : JSON.stringify(Array.from(new Uint8Array(u)))
+- 15134: rules: Array.from(s.rules || CSSRule, (a, c) => ({
+- 15153: return r && Array.from(r).some(o => o !== n)
+- 15164: if (Array.from([1], e => e * 2)[0] !== 2) {
+- 15867: textContent: Array.from(s.childNodes).map(i => i.type === zc.Text && i.textContent).filter(Boolean).map(i => i.trim()).join(""),
+- 17854: errorIds: Array.from(this._context.errorIds),
+- 17855: traceIds: Array.from(this._context.traceIds),
+- 18193: return Array.from(this.idNodeMap.keys())
+- 18786: if (Array.from([1], e => e * 2)[0] !== 2) {
+- 21254: routes: Array.from($e),
+- 21255: allRoutes: Array.from($e)
+- 21256: }) : i === "navigation" && Da(o, a, Array.from($e), !1, tt))
+- 21293: allRoutes: Array.from($e)
+- 21314: allRoutes: Array.from($e)
+- 21341: allRoutes: Array.from($e)
+- 21406: allRoutes: Array.from($e)
+- 21412: allRoutes: Array.from($e)
+- 21440: }, Array.from($e), !0, tt), a(c, u)
+- 21460: }, Array.from($e), !1, tt)
+- 21564: const u = Array.from(a),
+- 21628: allRoutes: Array.from($e)
+- 21634: allRoutes: Array.from($e)
+- 21682: JT as BrowserClient, rx as ErrorBoundary, Ci as MULTIPLEXED_TRANSPORT_EXTRA_KEY, OM as OpenFeatureIntegrationHook, vm as Profiler, qt as SDK_VERSION, pe as SEMANTIC_ATTRIBUTE_SENTRY_OP, G as SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, ja as SEMANTIC_ATTRIBUTE_SENTRY_SAM
+- external services: http://localhost:8969/stream, http://www.w3.org/2000/svg, https://browser.sentry-cdn.com, https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/, https://o447951.ingest.sentry.io/api/4509632503087104/envelope/?sentry_version=7&sentry_key=c1dfb07d783ad5325c245c1fd3725390&sentry_client=sentry.javascript.browser%2F1.33.7, https://sentry.io/welcome/, https://spotlightjs.com/sidecar/npx/
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Large file (671458 bytes); affects clone/install/cache or browser parse/download if active.
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Large text/code file; focused tests and decomposition would reduce regression risk.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0480-01
+  severity: LOW
+  category: performance
+  status: CONFIRMED
+  confidence: HIGH
+  affected lines or byte-level evidence: public/assets/vendor-sentry-VzeXdCeF.js size 671458 bytes
+  observed evidence: public/assets/vendor-sentry-VzeXdCeF.js size 671458 bytes
+  inferred impact: Large frontend bundle can increase startup parse/download cost.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Review chunking and stale duplicate bundles after active-reference proof.
+  related files: index.html; public/restore-and-launch.js
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 671458
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: very large file >=500KB; vendor/generated dependency chunk family; same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/index-BPYJFSVW.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/vendor-sentry-VzeXdCeF.js", "assets/vendor-react-BfU3Zn2J.js", "assets/App-pJGjDiPw.js", "assets/vendor
+  - public/assets/index-BPYJFSVW.js:127: import ("./vendor-sentry-VzeXdCeF.js"), __vite__mapDeps([0, 1]))) => {
+  - artifacts/asset-diff/local-assets.txt:207: vendor-sentry-VzeXdCeF.js
+  - artifacts/asset-diff/asset-report.json:3718: "file": "vendor-sentry-VzeXdCeF.js",
+  - artifacts/asset-diff/asset-report.json:3721: "remote_url": "https://isotopeai.in/assets/vendor-sentry-VzeXdCeF.js",
+  - artifacts/asset-diff/summary.md:30: | vendor-sentry-VzeXdCeF.js | 671458 | 437048 | 200 |

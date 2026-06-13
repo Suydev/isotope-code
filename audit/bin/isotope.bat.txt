@@ -1,0 +1,257 @@
+FILE IDENTITY
+
+- original path: bin/isotope.bat
+- audit path: audit/bin/isotope.bat.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: script
+- MIME type: application/x-msdos-program
+- size in bytes: 9350
+- SHA-256: 4d26e9f1b6318c122e820dfd07d4a348fb7e7da050443bdac5dd3566bb2e3e11
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: installer/platform
+- primary auditor: installer-platform-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+
+ROLE IN THE APPLICATION
+
+- subsystem: installer/platform
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/ci.yml:200 - bin/isotope.bat
+- CONTRIBUTING.md:45 - | `bin/isotope.bat` | Windows CLI |
+- doctor.bat:14 - if exist "%PROJECT_DIR%\bin\isotope.bat" (
+- doctor.bat:15 - set "ISO_CMD=%PROJECT_DIR%\bin\isotope.bat"
+- install.ps1:79 - Copy-Item "bin\isotope.bat" (Join-Path $isoBin "isotope.bat") -Force
+- install.ps1:82 - Write-Host "Installed command: $(Join-Path $isoBin "isotope.bat")"
+- install.ps1:92 - & (Join-Path $isoBin "isotope.bat") start
+- scripts/validate-docs.mjs:213 - 'bin/isotope.bat',
+- setup.bat:97 - copy bin\isotope.bat "%ISO_BIN%\isotope.bat" >nul
+- setup.bat:98 - echo Installed command: %ISO_BIN%\isotope.bat
+- setup.bat:103 - echo   "%ISO_BIN%\isotope.bat" start
+- setup.bat:112 - call "%ISO_BIN%\isotope.bat" start
+- start.bat:14 - if exist "%PROJECT_DIR%\bin\isotope.bat" (
+- start.bat:15 - set "ISO_CMD=%PROJECT_DIR%\bin\isotope.bat"
+- update.bat:14 - if exist "%PROJECT_DIR%\bin\isotope.bat" (
+- update.bat:15 - set "ISO_CMD=%PROJECT_DIR%\bin\isotope.bat"
+
+INTERNAL STRUCTURE
+
+- line count: 266
+- imports:
+- 188: node -e "const cp=require('child_process'),fs=require('fs');let sha='unknown',message='';try{sha=cp.execSync('git rev-parse HEAD').toString().trim()}catch{}try{message=cp.execSync('git log -1 --pretty=%%s').toString().tr
+- 210: for /f %%v in ('node -e "const fs=require('fs');let v='unknown';try{v=JSON.parse(fs.readFileSync('%PROJECT_DIR:\=/%/package.json','utf8')).version}catch{}process.stdout.write(v)"') do echo Version: %%v
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BRANCH: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:165, bin/isotope.bat:166, bin/isotope.bat:167, bin/isotope.bat:170
+- CMD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:16, bin/isotope.bat:17, bin/isotope.bat:18, bin/isotope.bat:19, bin/isotope.bat:24, bin/isotope.bat:30, bin/isotope.bat:31, bin/isotope.bat:32, bin/isotope.bat:33, bin/isotope.bat:34, bin/isotope.bat:35, bin/isotope.bat:36
+- DEFAULT_PORT: classification=public/configuration; required=optional/defaulted; uses=bin/isotope:27, bin/isotope:105, bin/isotope:114, bin/isotope:154, bin/isotope:220, bin/isotope:619, bin/isotope.bat:11, bin/isotope.bat:65, bin/isotope.bat:74
+- DIRTY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:155, bin/isotope.bat:157, bin/isotope.bat:158, bin/isotope.bat:159
+- ENABLE_ADMIN_MODE: classification=public/configuration; required=optional/defaulted; uses=.env.example:18, .env.example:19, ADMIN.md:28, ADMIN.md:46, ADMIN.md:440, ADMIN.md:441, CHANGELOG.md:489, README.md:175, README.md:187, README.md:188, README.md:237, artifacts/isotope/.env:24
+- ERROR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:87, .github/workflows/schema-lint.yml:152, .github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:163, .github/workflows/schema-lint.yml:165, .github/workflows/schema-lint.yml:168, .github/workflows/schema-lint.yml:171, .github/workflows/schema-lint.yml:190, .github/workflows/schema-lint.yml:205, .github/workflows/schema-lint.yml:207, .github/workflows/schema-lint.yml:220, .github/workflows/schema-lint.yml:222
+- ERRORLEVEL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:131, bin/isotope.bat:155, bin/isotope.bat:157, bin/isotope.bat:177
+- ISOTOPE_PROJECT_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:60, bin/isotope:61, bin/isotope.bat:41, bin/isotope.bat:42, bin/isotope.bat:43, doctor.sh:6, setup-termux-widget.sh:66, setup-termux-widget.sh:104, start.sh:6, update.sh:5
+- ISO_HOME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:20, bin/isotope:21, bin/isotope:22, bin/isotope:23, bin/isotope:24, bin/isotope:47, bin/isotope.bat:4, bin/isotope.bat:5, bin/isotope.bat:6, bin/isotope.bat:7, bin/isotope.bat:8, bin/isotope.bat:13
+- LOCAL_SHA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:169, bin/isotope.bat:171, bin/isotope.bat:174, bin/isotope.bat:176, install-termux.sh:247, install-termux.sh:249
+- LOG_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:24, bin/isotope:25, bin/isotope:26, bin/isotope:47, bin/isotope.bat:8, bin/isotope.bat:9, bin/isotope.bat:10, bin/isotope.bat:14, install-termux.sh:17, install-termux.sh:18, install-termux.sh:38, setup-termux-widget.sh:19
+- PACKAGE_CHANGED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:177, bin/isotope.bat:180
+- PID: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:289, .github/workflows/ci.yml:291, .github/workflows/ci.yml:304, .github/workflows/ci.yml:305, .github/workflows/regenerate-release.yml:132, .github/workflows/regenerate-release.yml:133, .github/workflows/release.yml:218, .github/workflows/release.yml:219, CHANGELOG.md:304, TERMUX_WIDGET.md:64, TERMUX_WIDGET.md:176, bin/isotope:22
+- PID_FILE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:22, bin/isotope:118, bin/isotope:119, bin/isotope:125, bin/isotope:241, bin/isotope:261, bin/isotope:271, bin/isotope:280, bin/isotope:451, bin/isotope:452, bin/isotope:495, bin/isotope:496
+- PID_VALUE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:80, bin/isotope.bat:81, bin/isotope.bat:82, bin/isotope.bat:97, bin/isotope.bat:119, bin/isotope.bat:120, bin/isotope.bat:122, bin/isotope.bat:123, bin/isotope.bat:207
+- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
+- PORT_FILE: classification=public/configuration; required=optional/defaulted; uses=bin/isotope:23, bin/isotope:113, bin/isotope:229, bin/isotope.bat:7, bin/isotope.bat:71, bin/isotope.bat:72, bin/isotope.bat:105
+- PORT_VALUE: classification=public/configuration; required=optional/defaulted; uses=bin/isotope.bat:65, bin/isotope.bat:68, bin/isotope.bat:72, bin/isotope.bat:74, bin/isotope.bat:98, bin/isotope.bat:105, bin/isotope.bat:108, bin/isotope.bat:208, bin/isotope.bat:209, bin/isotope.bat:238, bin/isotope.bat:241, install-termux.sh:19
+- PROJECT_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:41, bin/isotope.bat:42, bin/isotope.bat:43, bin/isotope.bat:44, bin/isotope.bat:49, bin/isotope.bat:50, bin/isotope.bat:53, bin/isotope.bat:54, bin/isotope.bat:58, bin/isotope.bat:59, bin/isotope.bat:66, bin/isotope.bat:67
+- PROJECT_PATH_FILE: classification=secret; required=unknown from static map; inspect use locations; uses=bin/isotope:21, bin/isotope:52, bin/isotope:64, bin/isotope:65, bin/isotope.bat:5, bin/isotope.bat:44, bin/isotope.bat:48, bin/isotope.bat:49, bin/isotope.bat:54, bin/isotope.bat:59, setup-termux-widget.sh:51, setup-termux-widget.sh:53
+- REMOTE_SHA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:170, bin/isotope.bat:171, bin/isotope.bat:174, bin/isotope.bat:176, bin/isotope.bat:178, install-termux.sh:248, install-termux.sh:249
+- RUNNING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:78, bin/isotope.bat:82, bin/isotope.bat:95, bin/isotope.bat:114, bin/isotope.bat:145, bin/isotope.bat:192, bin/isotope.bat:193, bin/isotope.bat:206, bin/isotope.bat:207, bin/isotope.bat:237
+- SERVER_LOG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:25, bin/isotope:231, bin/isotope:236, bin/isotope:238, bin/isotope:355, bin/isotope:631, bin/isotope:632, bin/isotope:635, bin/isotope.bat:9, bin/isotope.bat:102, bin/isotope.bat:103, bin/isotope.bat:215
+- STAMP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, bin/isotope.bat:160, bin/isotope.bat:161, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- STASH_NAME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:161, bin/isotope.bat:162, bin/isotope.bat:163
+- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
+- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
+- UPDATE_LOG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:26, bin/isotope:606, bin/isotope:607, bin/isotope:610, bin/isotope:613, bin/isotope.bat:10, bin/isotope.bat:146, bin/isotope.bat:149, bin/isotope.bat:150, bin/isotope.bat:162, bin/isotope.bat:163, bin/isotope.bat:166
+- USERPROFILE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:4, bin/isotope.bat:57, bin/isotope.bat:58, install.ps1:73, install.ps1:74, setup.bat:91, setup.bat:92
+- VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/bug_report.md:26, .github/workflows/ci.yml:275, .github/workflows/ci.yml:318, .github/workflows/ci.yml:319, .github/workflows/ci.yml:320, .github/workflows/ci.yml:328, .github/workflows/ci.yml:332, .github/workflows/ci.yml:343, .github/workflows/regenerate-release.yml:45, .github/workflows/regenerate-release.yml:47, .github/workflows/regenerate-release.yml:72, .github/workflows/regenerate-release.yml:73
+- WARN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:30, bin/isotope.bat:238, bin/isotope.bat:239, install-termux.sh:54, public/assets/messaging-BP0KfJxy.js:622, public/assets/messaging-BP0KfJxy.js:628, public/assets/messaging-BP0KfJxy.js:637, public/assets/messaging-BP0KfJxy.js:684, setup-termux-widget.sh:10, setup.bat:50, setup.bat:51, setup.sh:44
+- WAS_RUNNING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:145, bin/isotope.bat:192, bin/isotope.bat:193
+- command-line arguments: script-like file; inspect internal structure for argv/flags
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: filesystem or asset file dependency likely
+- database data:
+None observed.
+- network responses:
+- http://127.0.0.1:%PORT_VALUE%
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 10: set UPDATE_LOG=%LOG_DIR%\update.log
+- 33: if "%CMD%"=="update" goto update
+- 133: :update
+- 136: echo ERROR: Git is required for isotope update.
+- 146: >"%UPDATE_LOG%" echo Isotope update
+- 149: echo ERROR: This project is not a Git checkout.>>"%UPDATE_LOG%"
+- 150: type "%UPDATE_LOG%"
+- 162: echo Local changes detected. Saving them as Git stash: !STASH_NAME!>>"%UPDATE_LOG%"
+- 163: git stash push -u -m "!STASH_NAME!" >>"%UPDATE_LOG%" 2>&1
+- 166: echo Fetching origin/%BRANCH%...>>"%UPDATE_LOG%"
+- 167: git fetch origin %BRANCH% >>"%UPDATE_LOG%" 2>&1
+- 168: if errorlevel 1 goto update_fail
+- 172: echo Already up to date.>>"%UPDATE_LOG%"
+- 174: git merge-base --is-ancestor %LOCAL_SHA% %REMOTE_SHA% >>"%UPDATE_LOG%" 2>&1
+- 175: if errorlevel 1 goto update_fail
+- 178: git merge --ff-only %REMOTE_SHA% >>"%UPDATE_LOG%" 2>&1
+- 179: if errorlevel 1 goto update_fail
+- 182: if not errorlevel 1 npm install >>"%UPDATE_LOG%" 2>&1
+- 186: node --check server.mjs >>"%UPDATE_LOG%" 2>&1
+- 187: if errorlevel 1 goto update_fail
+- 188: node -e "const cp=require('child_process'),fs=require('fs');let sha='unknown',message='';try{sha=cp.execSync('git rev-parse HEAD').toString().trim()}catch{}try{message=cp.execSync('git log -1 --pretty=%%s').toString().trim()}catch{}fs.writeFileSync('VERSION',J
+- 189: echo Update complete.>>"%UPDATE_LOG%"
+- 191: type "%UPDATE_LOG%"
+- 196: :update_fail
+- 197: echo ERROR: Update failed. Your .env was not deleted.>>"%UPDATE_LOG%"
+- 199: type "%UPDATE_LOG%"
+- 238: echo WARN: Server is not responding on port %PORT_VALUE%. You may see a cached offline page.
+- 261: echo   update    Safely pull the latest GitHub version
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: shell/OS/platform commands likely required
+- Node core modules:
+- 5: set PROJECT_PATH_FILE=%ISO_HOME%\project-path
+- 98: echo Local URL: http://127.0.0.1:%PORT_VALUE%
+- 108: echo Local URL: http://127.0.0.1:%PORT_VALUE%
+- 188: node -e "const cp=require('child_process'),fs=require('fs');let sha='unknown',message='';try{sha=cp.execSync('git rev-parse HEAD').toString().trim()}catch{}try{message=cp.execSync('git log -1 --pretty=%%s').toString().trim()}catch{}fs.writeFileSync('VERSION',J
+- 205: echo Project path: %PROJECT_DIR%
+- 209: echo Local URL: http://127.0.0.1:%PORT_VALUE%
+- 210: for /f %%v in ('node -e "const fs=require('fs');let v='unknown';try{v=JSON.parse(fs.readFileSync('%PROJECT_DIR:\=/%/package.json','utf8')).version}catch{}process.stdout.write(v)"') do echo Version: %%v
+- 223: if exist "%PROJECT_DIR%" (echo [ok] project path %PROJECT_DIR%) else echo [missing] project path
+- 241: set URL=http://127.0.0.1:%PORT_VALUE%
+- external libraries:
+- 188: node -e "const cp=require('child_process'),fs=require('fs');let sha='unknown',message='';try{sha=cp.execSync('git rev-parse HEAD').toString().trim()}catch{}try{message=cp.execSync('git log -1 --pretty=%%s').toString().tr
+- 210: for /f %%v in ('node -e "const fs=require('fs');let v='unknown';try{v=JSON.parse(fs.readFileSync('%PROJECT_DIR:\=/%/package.json','utf8')).version}catch{}process.stdout.write(v)"') do echo Version: %%v
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 88: where node >nul 2>nul
+- 103: powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=Start-Process -FilePath 'node' -ArgumentList 'server.mjs' -WorkingDirectory '%PROJECT_DIR%' -RedirectStandardOutput '%SERVER_LOG%' -RedirectStandardError '%SERVER_LOG%.err' -WindowStyle Minimized -Pass
+- 134: where git >nul 2>nul
+- 139: where node >nul 2>nul
+- 148: if not exist .git (
+- 154: git diff --quiet
+- 156: git diff --cached --quiet
+- 158: for /f %%u in ('git ls-files --others --exclude-standard') do set DIRTY=1
+- 160: for /f %%t in ('node -e "const d=new Date();process.stdout.write(d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+String(d.getSeconds()).padSt
+- 163: git stash push -u -m "!STASH_NAME!" >>"%UPDATE_LOG%" 2>&1
+- 165: for /f %%b in ('git rev-parse --abbrev-ref HEAD') do set BRANCH=%%b
+- 167: git fetch origin %BRANCH% >>"%UPDATE_LOG%" 2>&1
+- 169: for /f %%s in ('git rev-parse HEAD') do set LOCAL_SHA=%%s
+- 170: for /f %%s in ('git rev-parse origin/%BRANCH%') do set REMOTE_SHA=%%s
+- 174: git merge-base --is-ancestor %LOCAL_SHA% %REMOTE_SHA% >>"%UPDATE_LOG%" 2>&1
+- 176: git diff --name-only %LOCAL_SHA% %REMOTE_SHA% | findstr /R /C:"^package.json$" /C:"^package-lock.json$" >nul
+- 178: git merge --ff-only %REMOTE_SHA% >>"%UPDATE_LOG%" 2>&1
+- 181: where npm >nul 2>nul
+- 182: if not errorlevel 1 npm install >>"%UPDATE_LOG%" 2>&1
+- 186: node --check server.mjs >>"%UPDATE_LOG%" 2>&1
+- 188: node -e "const cp=require('child_process'),fs=require('fs');let sha='unknown',message='';try{sha=cp.execSync('git rev-parse HEAD').toString().trim()}catch{}try{message=cp.execSync('git log -1 --pretty=%%s').toString().trim()}catch{}fs.writeFileSync('VERSION',J
+- 210: for /f %%v in ('node -e "const fs=require('fs');let v='unknown';try{v=JSON.parse(fs.readFileSync('%PROJECT_DIR:\=/%/package.json','utf8')).version}catch{}process.stdout.write(v)"') do echo Version: %%v
+- 220: where node >nul 2>nul && echo [ok] node || echo [missing] node
+- 221: where npm >nul 2>nul && echo [ok] npm || echo [missing] npm
+- 222: where git >nul 2>nul && echo [ok] git || echo [missing] git
+- 230: node --check server.mjs >nul 2>nul && echo [ok] server syntax || echo [fail] server syntax
+- 251: powershell -NoProfile -Command "Get-Content -Path '%SERVER_LOG%' -Tail 80 | ForEach-Object { $_ -replace 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+','[redacted-jwt]' -replace 'sbp_[A-Za-z0-9_-]+','[redacted-token]' -replace 'gh[pousr]_[A-Za-z0-9_]+','[
+- Supabase interfaces:
+- 212: findstr /B /C:"SUPABASE_URL=" "%PROJECT_DIR%\.env" >nul 2>nul && echo Supabase URL: configured || echo Supabase URL: missing
+- 213: findstr /B /C:"SUPABASE_ANON_KEY=" "%PROJECT_DIR%\.env" >nul 2>nul && echo Supabase anon key: configured || echo Supabase anon key: missing
+- external services: http://127.0.0.1:%PORT_VALUE%
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0243-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: bin/isotope.bat inspected; no file-specific high-risk issue confirmed
+  observed evidence: bin/isotope.bat inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/ci.yml, CONTRIBUTING.md, doctor.bat
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

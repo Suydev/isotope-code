@@ -1,0 +1,5 @@
+Schema drift
+
+Static-only map of SQL objects and code references is in database-object-map.txt.
+No live Supabase project was queried or mutated.
+Potential drift exists when source references .from()/storage buckets/RPCs without matching SQL definitions in this repository; inspect database-object-map.txt before applying migrations.

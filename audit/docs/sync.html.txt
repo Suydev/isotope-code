@@ -1,0 +1,167 @@
+FILE IDENTITY
+
+- original path: docs/sync.html
+- audit path: audit/docs/sync.html.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: html
+- MIME type: text/html
+- size in bytes: 5476
+- SHA-256: 1401c8f5be013b118612f4b34fa44160109a5a9bed8b3e96d61a36ef05c0e5c8
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: offline/sync/backup
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: offline/sync/backup
+- runtime stage: development, installation, or documentation
+- user-visible feature: sync/backup/restore
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/release.yml:190 - docs/sync.html
+- README.md:21 - <a href="https://suydev.github.io/isotope-code/sync.html">Sync safety</a>
+- docs/admin.html:18 - <a href="./sync.html">Sync</a>
+- docs/assets/site.js:66 - { title: 'Sync and backup safety', desc: 'Canonical paths and empty-overwrite blocking', href: './sync.html', tag: 'data' },
+- docs/gallery.html:18 - <a href="./sync.html">Sync</a>
+- docs/index.html:21 - <a href="./sync.html">Sync</a>
+- docs/index.html:38 - <a class="button secondary" href="./sync.html">Read safe sync docs</a>
+- docs/index.html:85 - <h3><a href="./sync.html">Sync and backup</a></h3>
+- docs/index.md:15 - - [Sync and backup guide](./sync.html)
+- docs/install.html:18 - <a href="./sync.html">Sync</a>
+- docs/install.html:136 - <p>Next: <a href="./sync.html">read sync and backup safety</a>.</p>
+- docs/motion.html:18 - <a href="./sync.html">Sync</a>
+- docs/motion.html:107 - docs/sync.html
+- scripts/validate-docs.mjs:221 - 'docs/sync.html',
+
+INTERNAL STRUCTURE
+
+- line count: 125
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BLOCKED_EMPTY_OVERWRITE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=README.md:227, docs/index.html:137, docs/index.md:35, docs/sync-system.md:29, docs/sync.html:93, scripts/prove-new-browser-restore.mjs:44, server.mjs:901, server.mjs:988, server.mjs:1052, server.mjs:4452, server.mjs:4459, server.mjs:5603
+- HASH: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, docs/sync.html:43, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- SAFE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:195, docs/sync.html:42
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- https://github.com/Suydev/isotope-code
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 32: <p class="lead">Sync checks cloud first. If this device is empty but cloud has tasks, sessions, subjects, habits, exams, tests, or mock tests, IsotopeAI restores cloud before it uploads.</p>
+- 89: <div><h3>Restore before upload</h3><p>Fresh browsers must download and apply cloud data before writing canonical latest.</p></div>
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 22: <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+- 40: <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Isotope analytics screen">
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 112: <pre class="code">node scripts/repair-user-backup.mjs --user &lt;id&gt; --dry-run
+- 113: node scripts/prove-new-browser-restore.mjs
+- 114: node scripts/validate-storage-cleanup.mjs --user &lt;id&gt; --dry-run</pre>
+- Supabase interfaces:
+None observed.
+- external services: https://github.com/Suydev/isotope-code, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0260-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: docs/sync.html inspected; no file-specific high-risk issue confirmed
+  observed evidence: docs/sync.html inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/release.yml, README.md, docs/admin.html
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

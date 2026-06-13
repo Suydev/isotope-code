@@ -1,0 +1,19 @@
+Architecture map
+
+Browser entry:
+- index.html loads early runtime glue and boot/recovery/PWA helpers.
+- public/restore-and-launch.js gates/injects the active compiled app bundle when present.
+
+Runtime server:
+- server.mjs is the main local HTTP server and static asset source.
+- Server route/static/auth/cache behavior is audited in audit/server.mjs.txt.
+
+Frontend assets:
+- public/assets/** contains built JS/CSS/media chunks.
+- Active status is based on direct references and bundle imports, not hash names alone.
+
+Offline and sync:
+- public/sw.js, pwa-local, boot-recovery, auth-bridge, restore-and-launch, and public/sync/** coordinate cache, auth, restore, and local-first data.
+
+Supabase/database:
+- SQL files and source references to .from(), .rpc(), storage.from(), and auth endpoints are mapped in database-object-map.txt and environment-variable-map.txt.

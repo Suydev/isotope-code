@@ -1,6 +1,6 @@
 {
   "version": "3.3.8",
-  "sha": "v3.3.8",
-  "message": "fix: canonical backup restore safety and cross-platform setup docs",
-  "updated_at": "2026-06-12T00:00:00.000Z"
+  "sha": "41825c04f0aaca8a3e5828e7d32078368f4c3dfd",
+  "message": "ci: include env example in release archives",
+  "updated_at": "2026-06-12T04:47:41.814Z"
 }

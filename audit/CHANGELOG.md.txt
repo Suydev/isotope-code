@@ -1,0 +1,374 @@
+FILE IDENTITY
+
+- original path: CHANGELOG.md
+- audit path: audit/CHANGELOG.md.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: markdown
+- MIME type: text/markdown
+- size in bytes: 46445
+- SHA-256: f3671867402b6fc64864134b87c08a47ecf584e31332651a8e359c44cdb1070d
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: documentation
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: documentation
+- runtime stage: development, installation, or documentation
+- user-visible feature: documentation
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/PULL_REQUEST_TEMPLATE.md:17 - - [ ] I updated `CHANGELOG.md`
+- .github/workflows/ci.yml:209 - CHANGELOG.md
+- .github/workflows/release.yml:70 - # Extract section for this version from CHANGELOG.md
+- .github/workflows/release.yml:71 - NOTES=$(awk "/^## \[$VERSION\]/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
+- .github/workflows/release.yml:73 - NOTES="See [CHANGELOG.md](./CHANGELOG.md) for details."
+- .github/workflows/release.yml:249 - See [CHANGELOG.md](https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md) for the full history.
+- .github/workflows/welcome.yml:80 - - [ ] \`CHANGELOG.md\` updated
+- CONTRIBUTING.md:46 - | `CHANGELOG.md` | All notable changes — update this with your PR |
+- README.md:12 - <a href="./CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-3.3.8-314f28"></a>
+- scripts/validate-docs.mjs:217 - 'CHANGELOG.md',
+
+INTERNAL STRUCTURE
+
+- line count: 621
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+- 269: - `performance-patch.sql` §5 — Supabase Advisor: all RLS policies upgraded from `auth.uid()` to `(SELECT auth.uid())`, eliminating per-row function re-evaluation. Also replaces `auth.role() = 'authenticated'` with the sa
+- 270: - `performance-patch.sql` get_my_group_ids() — the security-definer helper function now uses `(SELECT auth.uid())` internally.
+- 596: - Leaderboard edge function interceptor → real DB data
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+- 273: - `public/pwa-local.js` — replaced aggressive 10-second `setInterval` server poll with a visibility-change listener and a 5-minute background keepalive. Eliminates unnecessary `/api/version` requests while the app is act
+
+INPUTS
+
+- parameters: route/request path candidates are listed in Internal Structure
+- environment variables:
+- ADMIN_EMAIL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.env.example:28, .env.example:29, .env.example:32, ADMIN.md:31, ADMIN.md:32, ADMIN.md:50, ADMIN.md:51, ADMIN.md:195, ADMIN.md:428, ADMIN.md:429, ADMIN.md:450, ADMIN.md:459
+- ADMIN_EMAILS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.env.example:29, ADMIN.md:32, ADMIN.md:51, ADMIN.md:429, CHANGELOG.md:128, CHANGELOG.md:365, server.mjs:223, server.mjs:224, server.mjs:228, server.mjs:321, server.mjs:355, server.mjs:370
+- ADMIN_PASSWORD: classification=secret; required=unknown from static map; inspect use locations; uses=ADMIN.md:52, ADMIN.md:430, ADMIN.md:447, ADMIN.md:459, ADMIN.md:523, CHANGELOG.md:566, artifacts/isotope/.env:31, server.mjs:220, server.mjs:8362, server.mjs:8363, server.mjs:8587, server.mjs:8588
+- ADMIN_SECRET: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:25, .github/workflows/ci.yml:242, .github/workflows/ci.yml:285, ADMIN.md:29, ADMIN.md:47, ADMIN.md:54, ADMIN.md:431, ADMIN.md:539, CHANGELOG.md:365, CHANGELOG.md:489, CHANGELOG.md:565, README.md:238
+- AFTER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:130, CHANGELOG.md:134, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:1162, community-patch-v4.sql:1730, community-patch-v4.sql:1988, community-patch-v4.sql:2025, community-patch-v4.sql:2121, community-patch-v4.sql:2176, isotope-complete.sql:1396, isotope-complete.sql:1424, isotope-complete.sql:1437
+- AGENTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:587, docs/BUG_FIXES.md:305
+- ALLOW_SELF_RESTART: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:378
+- ALWAYS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:496, community-patch-v4.sql:123, community-patch-v4.sql:204, community-patch-v4.sql:338, community-patch-v4.sql:347, community-patch-v4.sql:356, community-patch-v4.sql:365, community-patch-v4.sql:374, community-patch-v4.sql:383, isotope-complete.sql:120, isotope-complete.sql:127, isotope-complete.sql:134
+- ANON: classification=public/configuration; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:230, CHANGELOG.md:232, server.mjs:172, server.mjs:179, server.mjs:180, server.mjs:197, server.mjs:207, server.mjs:294, server.mjs:419, server.mjs:633, server.mjs:2068, server.mjs:2075
+- AUTH_GUARD_SCRIPT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:249, server.mjs:3141, server.mjs:3196, server.mjs:3203
+- BEFORE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:132, CHANGELOG.md:133, community-patch-v4.sql:2356, isotope-complete.sql:1473, isotope-complete.sql:1684, isotope-complete.sql:1698, isotope-complete.sql:1701, isotope-complete.sql:1713, server.mjs:3074
+- BEGIN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, .github/workflows/schema-lint.yml:122, CHANGELOG.md:174, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:73, community-patch-v4.sql:76, community-patch-v4.sql:102, community-patch-v4.sql:117, community-patch-v4.sql:146, community-patch-v4.sql:172
+- CASCADE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:173, community-patch-v4.sql:486, community-patch-v4.sql:501, community-patch-v4.sql:1279, community-patch-v4.sql:1280, community-patch-v4.sql:1753, community-patch-v4.sql:1769, community-patch-v4.sql:1823, community-patch-v4.sql:1826, community-patch-v4.sql:1829, community-patch-v4.sql:2061, community-patch-v4.sql:2272
+- CREATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/ci.yml:259, .github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, .github/workflows/schema-lint.yml:91
+- CRITICAL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:44, CHANGELOG.md:45, CHANGELOG.md:77, CHANGELOG.md:173, community-patch-v4.sql:163, community-patch-v4.sql:191, community-patch-v4.sql:1021, isotope-complete.sql:903, public/assets/Dashboard-dypAV-0H.js:669, public/assets/DashboardHeader-DNuRMna8.js:275, public/assets/SessionLogTable-CclRAAwc.js:15, public/assets/SessionLogTable-CclRAAwc.js:31
+- CRUD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:480, CHANGELOG.md:545, community-patch-v4.sql:1559, public/assets/useAIStore-B2cv1FZz.js:3930
+- DDL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:155, CHANGELOG.md:163, performance-patch.sql:6, server.mjs:8421, server.mjs:8471
+- DEFAULT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:93, .github/workflows/schema-lint.yml:95, .github/workflows/schema-lint.yml:107, .github/workflows/schema-lint.yml:112, .github/workflows/schema-lint.yml:117, .github/workflows/schema-lint.yml:118, .github/workflows/schema-lint.yml:119, CHANGELOG.md:408, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:66, community-patch-v4.sql:67
+- DEFINER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:73, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:75, ADMIN.md:197, ADMIN.md:232, ADMIN.md:488, CHANGELOG.md:476, CHANGELOG.md:493, CHANGELOG.md:575, CONTRIBUTING.md:105, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:514
+- DESC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:457, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:185, community-patch-v4.sql:257, community-patch-v4.sql:392, community-patch-v4.sql:393, community-patch-v4.sql:402, community-patch-v4.sql:403, community-patch-v4.sql:424, community-patch-v4.sql:444, community-patch-v4.sql:495, community-patch-v4.sql:509
+- DOCS_LINK_HTML: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:200, CHANGELOG.md:221, server.mjs:3190, server.mjs:3202, server.mjs:3206
+- DROP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:63, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:65, .github/workflows/schema-lint.yml:66, .github/workflows/schema-lint.yml:67, .github/workflows/schema-lint.yml:69, .github/workflows/schema-lint.yml:142, CHANGELOG.md:129, CHANGELOG.md:173, CHANGELOG.md:401, CHANGELOG.md:403, CHANGELOG.md:410
+- ENABLE_ADMIN_MODE: classification=public/configuration; required=optional/defaulted; uses=.env.example:18, .env.example:19, ADMIN.md:28, ADMIN.md:46, ADMIN.md:440, ADMIN.md:441, CHANGELOG.md:489, README.md:175, README.md:187, README.md:188, README.md:237, artifacts/isotope/.env:24
+- END: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/ci.yml:259, .github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:80, .github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89
+- ENOTFOUND: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:451
+- ERROR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:87, .github/workflows/schema-lint.yml:152, .github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:163, .github/workflows/schema-lint.yml:165, .github/workflows/schema-lint.yml:168, .github/workflows/schema-lint.yml:171, .github/workflows/schema-lint.yml:190, .github/workflows/schema-lint.yml:205, .github/workflows/schema-lint.yml:207, .github/workflows/schema-lint.yml:220, .github/workflows/schema-lint.yml:222
+- EXECUTE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:80, .github/workflows/schema-lint.yml:81, CHANGELOG.md:138, community-patch-v4.sql:34, community-patch-v4.sql:863, community-patch-v4.sql:865, community-patch-v4.sql:867, community-patch-v4.sql:869, community-patch-v4.sql:871, community-patch-v4.sql:873, community-patch-v4.sql:875, community-patch-v4.sql:877
+- EXISTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:63, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:66, .github/workflows/schema-lint.yml:69, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125
+- FOR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:132, CHANGELOG.md:133, CHANGELOG.md:231, LICENSE:7, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:909, community-patch-v4.sql:913, community-patch-v4.sql:919, community-patch-v4.sql:924, community-patch-v4.sql:928, community-patch-v4.sql:933, community-patch-v4.sql:937
+- FUNCTION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:259, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:81, .github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, CHANGELOG.md:403, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:45
+- GENERATED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:496, community-patch-v4.sql:123, community-patch-v4.sql:199, community-patch-v4.sql:334, isotope-complete.sql:118, isotope-complete.sql:356, isotope-complete.sql:435
+- GRANT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:78, .github/workflows/schema-lint.yml:80, .github/workflows/schema-lint.yml:81, CHANGELOG.md:138, CHANGELOG.md:146, CHANGELOG.md:147, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:34, community-patch-v4.sql:863, community-patch-v4.sql:865, community-patch-v4.sql:867, community-patch-v4.sql:869
+- INCLUDE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:233, isotope-complete.sql:613, performance-patch.sql:80
+- INDEX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:64, CHANGELOG.md:96, CHANGELOG.md:174, CHANGELOG.md:420, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:133, community-patch-v4.sql:134, community-patch-v4.sql:135, community-patch-v4.sql:136, community-patch-v4.sql:137, community-patch-v4.sql:138
+- INSERT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:130, CHANGELOG.md:132, CHANGELOG.md:133, CHANGELOG.md:134, CHANGELOG.md:497, CHANGELOG.md:602, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:8, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:35, community-patch-v4.sql:321, community-patch-v4.sql:326, community-patch-v4.sql:586
+- JSONB: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:471, CHANGELOG.md:500, CHANGELOG.md:521, community-patch-v4.sql:1751, isotope-schema.sql:31, isotope-schema.sql:185, server.mjs:6528
+- LICENSE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:259, README.md:358, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:11, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:19, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:59, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:8, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:16, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:24, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:32, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:40, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:55, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:63
+- MIT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:259, README.md:358, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:10, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:18, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:58, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:7, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:15, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:23, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:31, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:39, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:54, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:62
+- NOT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:14, .github/PULL_REQUEST_TEMPLATE.md:15, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125, CHANGELOG.md:96, CHANGELOG.md:269
+- NULL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, CHANGELOG.md:269, CHANGELOG.md:457, CHANGELOG.md:516, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:66, community-patch-v4.sql:67, community-patch-v4.sql:71, community-patch-v4.sql:75, community-patch-v4.sql:78
+- PASS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:539, CHANGELOG.md:566, scripts/prove-new-browser-restore.mjs:79, scripts/prove-runtime-glue.mjs:89, scripts/prove-supabase-sync.mjs:156, scripts/test-auth-bridge.mjs:139, scripts/verify-supabase-security.mjs:89, server.mjs:220, server.mjs:7723, server.mjs:8362, server.mjs:8363, server.mjs:8587
+- PATH: classification=secret; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:288, TERMUX_WIDGET.md:114, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:21, bin/isotope:52, bin/isotope:64, bin/isotope:65, bin/isotope:414, bin/isotope:416, install.ps1:83, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup-termux-widget.sh:27
+- PID: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:289, .github/workflows/ci.yml:291, .github/workflows/ci.yml:304, .github/workflows/ci.yml:305, .github/workflows/regenerate-release.yml:132, .github/workflows/regenerate-release.yml:133, .github/workflows/release.yml:218, .github/workflows/release.yml:219, CHANGELOG.md:304, TERMUX_WIDGET.md:64, TERMUX_WIDGET.md:176, bin/isotope:22
+- PRODUCTION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:437
+- README: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:207, .github/workflows/ci.yml:348, .github/workflows/pages.yml:8, .github/workflows/regenerate-release.yml:112, .github/workflows/release.yml:197, CHANGELOG.md:201, CHANGELOG.md:207, CHANGELOG.md:222, CHANGELOG.md:238, CHANGELOG.md:279, CHANGELOG.md:328, CHANGELOG.md:340
+- RELEASE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:437, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- RELOAD_GUARD_SCRIPT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:253, server.mjs:3154, server.mjs:3198, server.mjs:3203
+- REPLACE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:259, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, CHANGELOG.md:129, CHANGELOG.md:403, CONTRIBUTING.md:54, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:20, artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:10, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- REST: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:188, CHANGELOG.md:81, CHANGELOG.md:232, CHANGELOG.md:252, CHANGELOG.md:349, CHANGELOG.md:376, CHANGELOG.md:378, CHANGELOG.md:483, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:8, community-patch-v4.sql:607, community-patch-v4.sql:2378, docs/supabase-connection-map.md:25
+- RPC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:11, ADMIN.md:127, ADMIN.md:151, ADMIN.md:153, ADMIN.md:176, ADMIN.md:233, ADMIN.md:234, ADMIN.md:258, ADMIN.md:379, ADMIN.md:490, CHANGELOG.md:135, CHANGELOG.md:148
+- RSVP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:383
+- SAMEORIGIN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:117, server.mjs:8190
+- SECURITY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:73, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:75, ADMIN.md:197, ADMIN.md:232, ADMIN.md:488, CHANGELOG.md:476, CHANGELOG.md:493, CHANGELOG.md:575, CONTRIBUTING.md:105, community-patch-v4.sql:514, community-patch-v4.sql:529
+- SELECT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:177, .github/workflows/schema-lint.yml:185, ADMIN.md:488, CHANGELOG.md:177, CHANGELOG.md:196, CHANGELOG.md:231, CHANGELOG.md:269, CHANGELOG.md:270, CHANGELOG.md:274
+- SHA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:354, ADMIN.md:356, CHANGELOG.md:251, CHANGELOG.md:295, CHANGELOG.md:312, CHANGELOG.md:317, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:27, docs/BUG_FIXES.md:17, docs/BUG_FIXES.md:22, docs/BUG_FIXES.md:29, docs/BUG_FIXES.md:32, docs/BUG_FIXES.md:68
+- SPA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:116, CHANGELOG.md:297, public/404.html:7, server.mjs:1783, server.mjs:1809, server.mjs:1821, server.mjs:8162, server.mjs:8170
+- STOP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:12, server.mjs:883, server.mjs:1361
+- SUPA_REF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:557, public/restore-and-launch.js:40, public/restore-and-launch.js:146, public/restore-and-launch.js:147, public/restore-and-launch.js:227, server.mjs:411, server.mjs:417, server.mjs:466, server.mjs:534, server.mjs:549, server.mjs:567, server.mjs:602
+- TABLE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, CHANGELOG.md:173, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:65
+- THEN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, CHANGELOG.md:174, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:75, community-patch-v4.sql:78, community-patch-v4.sql:112, community-patch-v4.sql:121, community-patch-v4.sql:151, community-patch-v4.sql:178, community-patch-v4.sql:210
+- TRIGGER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:141, .github/workflows/schema-lint.yml:142, CHANGELOG.md:129, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:1160, community-patch-v4.sql:1161, community-patch-v4.sql:1986, community-patch-v4.sql:1987, community-patch-v4.sql:2023, community-patch-v4.sql:2024, community-patch-v4.sql:2119
+- TTL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:81, CHANGELOG.md:104
+- UNIQUE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:459, CHANGELOG.md:460, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:153, community-patch-v4.sql:240, community-patch-v4.sql:477, community-patch-v4.sql:1774, community-patch-v4.sql:1831, community-patch-v4.sql:2338, isotope-complete.sql:216, isotope-complete.sql:235, isotope-complete.sql:257
+- UPDATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:133, CHANGELOG.md:506, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:8, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:43, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:104, community-patch-v4.sql:108, community-patch-v4.sql:179, community-patch-v4.sql:216, community-patch-v4.sql:230, community-patch-v4.sql:231, community-patch-v4.sql:591
+- VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/bug_report.md:26, .github/workflows/ci.yml:275, .github/workflows/ci.yml:318, .github/workflows/ci.yml:319, .github/workflows/ci.yml:320, .github/workflows/ci.yml:328, .github/workflows/ci.yml:332, .github/workflows/ci.yml:343, .github/workflows/regenerate-release.yml:45, .github/workflows/regenerate-release.yml:47, .github/workflows/regenerate-release.yml:72, .github/workflows/regenerate-release.yml:73
+- VIEW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:409, CHANGELOG.md:410, CHANGELOG.md:419, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, bin/isotope:157, community-patch-v4.sql:1787, community-patch-v4.sql:1788, community-patch-v4.sql:2272, events-expansion.sql:13, isotope-complete.sql:705, isotope-complete.sql:706, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- VPS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:310, CHANGELOG.md:340
+- WHERE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:179, .github/workflows/schema-lint.yml:187, CHANGELOG.md:457, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:106, community-patch-v4.sql:108, community-patch-v4.sql:120, community-patch-v4.sql:134, community-patch-v4.sql:135, community-patch-v4.sql:137, community-patch-v4.sql:138, community-patch-v4.sql:149
+- XSS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:117, server.mjs:8192
+- YYYY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:51, public/assets/Dashboard-dypAV-0H.js:377, public/assets/Dashboard-dypAV-0H.js:381, public/assets/useAIStore-B2cv1FZz.js:1200
+- command-line arguments: not directly observed
+- request data: route candidates observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- https://keepachangelog.com/en/1.0.0/
+- https://suydev.github.io/isotope-code/
+- browser storage:
+- 252: | 6 | Study stats — Analytics vs Leaderboard | ✅ Analytics = local IndexedDB (analyticsWorker); Leaderboard = `user_stats_summary` via Supabase REST + JWT. Both written by `finish_session_sync` RPC — consistent source |
+- 253: | 7 | Offline PWA — no reload loop | ✅ `RELOAD_GUARD_SCRIPT` injected; blocks if `navigator.onLine===false`; blocks repeat reloads via `sessionStorage` key |
+- 360: - Local study workspace data is isolated per authenticated user and stale global IndexedDB stores are cleared on user switches.
+- 373: - Onboarding routing now uses Supabase (`user_onboarding`, falling back to `user_profiles.profile_data`) as the authority and no longer trusts localStorage when the DB is unavailable.
+- 453: | Auth session persistence | ✅ Dual localStorage keys |
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 12: - **Auth failure is now a STOP condition, not a retry condition** — Previously any auth error (expired session, no session, 401) caused the sync to be written as `failed` and retried on the next timer tick, visibility change, or online event. The same 2009 KB 
+- 16: - **All sync triggers check auth-blocked state** — `__isoAutoSync`, `__isoStartupSync`, the 30-min timer interval, the visibility-change handler, and the online-event handler all check `window.__isoSyncAuthBlocked` and return `{ reason: 'paused_auth' }` withou
+- 19: - **Online event re-validates session before unblocking** — When the network comes back and `__isoSyncAuthBlocked` is true, the handler calls `getValidJwt()` first; if a valid JWT exists, it unblocks and syncs. It does not blindly retry the upload.
+- 22: - **All sync operations (`snapshot`, `upload`, `download_import`, `manual_sync`) handle auth errors uniformly** — Each catch block calls `__isoSyncAuthBlock()` and writes `paused_auth` to sync history instead of `failed`.
+- 29: | 2 | Same payload never uploads infinitely on auth error | ✅ fixed |
+- 45: - **CRITICAL: Download skipped on startup (timing race)** — `window.__isoBuildBackup` and `window.__isoApplyBackup` are registered by the app bundle's internal sync method, which fires asynchronously after React initialises. The startup sync (previously 5 s af
+- 46: - **First-sync debounce blocks retry** — If the startup sync fell back to upload-only on a new device (no download), the 5-minute debounce was already written, preventing retry on the next page load. Fix: when a first-sync (no local snapshot history) completes
+- 47: - **New-device fallback bootstraps from cloud** — In the upload-only fallback path, if the device has no local sync history, the server now calls `/__auth/bootstrap` first to restore the cloud snapshot into Supabase DB before uploading a snapshot. This ensures
+- 51: - **Old cloud backup files accumulating in Storage** — `uploadRawUserBackupJson` wrote a new timestamped file (`{userId}/exports/YYYY-MM-DD....json`) on every upload but never deleted old ones. Fixed: after each upload, old timestamped files in the same folder
+- 52: - **Cloud snapshot history files accumulating** — `uploadCloudSnapshotForUser` wrote history snapshots (`{userId}/cloud-snapshot/history/....json`) that were never cleaned up. Fixed: after each history write, files are pruned keeping only the 5 most recent.
+- 68: | 5 | Old export files pruned after upload (keep 3) | ✅ fixed |
+- 69: | 6 | Old snapshot history files pruned after upload (keep 5) | ✅ fixed |
+- 78: - **Same query-string fallthrough for `/api/version`, `/api/check-update`, `/api/ai-config`** — All four API route handlers were patched from `req.url ===` to `adminPath ===`.
+- 85: - `community_events(created_at)`, `community_events(updated_at)` — date ordering
+- 87: - `user_tours(created_at)`, `user_tours(updated_at)` — date ordering
+- 91: - `groups(created_at)`, `groups(updated_at)` — ordering
+- 92: - `users(updated_at)` — profile sync delta queries
+- 103: | 2 | `/api/version`, `/api/check-update`, `/api/ai-config` same fix | ✅ all 4 handlers patched |
+- 111: ## [3.3.4] — 2026-06-07 — YepAPI removed; security headers; syntax fix; API 404s; SW cache
+- 114: - **`SyntaxError: Malformed arrow function`** — `|| async () =>` in Upload-only sync patch was invalid syntax; changed to `|| (async () => ...)`.
+- 115: - **YepAPI removed entirely** — `handleAiRoute()` and all `/__ai/*` dispatch deleted; those routes return `{"ok":false,"error":"Not found"}`.
+- 118: - **`Access-Control-Allow-Methods` missing `PATCH` and `DELETE`** — Fixed.
+- 128: - **`user_roles.is_active` does not exist — admin auth always failed silently** — `isSupabaseAdminUser()` in `server.mjs` filtered `user_roles` with `&is_active=eq.true`. The live `user_roles` table has no `is_active` column (`id, user_id, role, granted_by, gr
+- 130: - `handle_new_user_profile()` + `trg_handle_new_user_profile` (AFTER INSERT on auth.users)
+- 132: - `set_group_slug_from_name()` + `trg_set_group_slug` (BEFORE INSERT on groups)
+- 133: - `sync_group_visibility()` + `trg_sync_group_visibility` (BEFORE INSERT/UPDATE on groups)
+- 134: - `sync_group_member_count()` + `trg_sync_member_count` (AFTER INSERT/DELETE on group_members)
+- 144: | 1 | `user_roles.is_active` filter removed from `isSupabaseAdminUser()` | ✅ server.mjs line 265 |
+- 148: | 5 | Store + Events features confirmed removed — RPCs not added to schema | ✅ |
+- 155: - **`user_tours` table missing from `isotope-complete.sql` and live DB** — Parallel subagent audit found `community-patch-v4.sql` §v11 (lines 2327–2367) defines `public.user_tours` (persistent tour/guide state: which onboarding walks a user completed or dismis
+- 165: | 4 | All 24 tables now in master schema | ✅ isotope-complete.sql updated |
+- 201: - **GitHub Pages link in README** — Logo in README header now links to GitHub Pages; a Docs badge and nav link added to the header; footer updated with Documentation link.
+- 202: - **GitHub Pages docs updated** (`docs/index.md`) — Added v3.3.0 changelog section, GitHub Pages self-link, repository link, and updated version footer.
+- 207: - `README.md` version badge updated to `3.3.0`.
+- 215: | 3 | All `/__auth/*` endpoints exist in server.mjs | ✅ login, signup, backup, backup/latest, snapshot, profile, refresh, delete-account |
+- 223: | 11 | docs/index.md updated to v3.3.0 | ✅ |
+- 238: - `README.md` version badge updated to `3.2.0`.
+- 239: - `docs/index.md` version footer updated to `3.2.0`.
+- 248: | 2 | Cloud sync flow | ⚠️ Code-reviewed: `/__auth/snapshot` → `refreshCloudSnapshotForUser` → Storage upload; fallback chain in `/__auth/backup/latest` correct |
+- 251: | 5 | Avatar upload/download/dedupe | ✅ SHA-256 hash → `{userId}/avatar-{hash}.{ext}`; `upsert: false` + `isStorageAlreadyExists` guard; old path deleted on replace |
+- 252: | 6 | Study stats — Analytics vs Leaderboard | ✅ Analytics = local IndexedDB (analyticsWorker); Leaderboard = `user_stats_summary` via Supabase REST + JWT. Both written by `finish_session_sync` RPC — consistent source |
+- 254: | 8 | Update banner — hidden when latest | ✅ `/api/check-update` live: `hasUpdate: false`, `deployed_version: "3.2.0"`, `latest_version: "3.2.0"` |
+- 255: | 9 | Setup scripts syntax | ✅ `bash -n setup.sh` passes; `setup.bat`, `update.bat` present and reviewed |
+- 268: - `update.bat` — Windows update shortcut that delegates to `isotope update` or the local wrapper.
+- 279: - `README.md` version badge updated to `3.1.3`.
+- 289: - `isotope open` and the Windows `open` command now warn when the managed local server is not responding before opening the browser.
+- 295: - `/api/check-update` now prefers semantic version comparison and only falls back to Git SHA comparison when no version can be inferred.
+- 296: - The update checker clears stale dismissed-banner state when the server reports `hasUpdate=false`.
+- 303: - Added global `isotope` command wrappers for Bash and Windows with `start`, `stop`, `restart`, `update`, `status`, `doctor`, `open`, and `logs`.
+- 311: - Reworked setup/update scripts to install the global command, preserve `.env`, and keep admin fields private.
+- 315: - The update banner now opens a command dialog showing `isotope update`; it no longer stops or restarts the server from the browser.
+- 317: - Update checks compare GitHub `main` with the local version/SHA so the banner disappears after a real update.
+- 321: ### Removed
+- 322: - Removed Events and Store from the served Community UI through deterministic serve-time bundle patches.
+- 324: - Updated Supabase patches to drop Events and Store tables, views, RPCs, policies, and the `event-images` bucket.
+- 327: - Admin verification now checks the remaining core app surface instead of expecting removed Events/Store objects.
+- 335: - Safer update scripts that preserve `.env`, stash local changes automatically, refresh dependencies, and explain restart steps.
+- 342: - Package version updated to `2.9.0`.
+- 346: - Removed old local-runtime provider references from tracked documentation.
+- 351: - Upload, download, signed URL, and cleanup operations pass for all four storage buckets.
+- 357: - Removed the hardcoded “Global Study Marathon 2025” featured event copy from the tracked EventsCalendar bundle.
+- 360: - Local study workspace data is isolated per authenticated user and stale global IndexedDB stores are cleared on user switches.
+- 361: - Service worker runtime caches are smaller, old runtime caches are deleted on activation, and `/sounds/` is no longer cached to avoid large mobile cache growth.
+- 371: - Removed committed Supabase service-role JWT material from `server.mjs` and the built App bundle.
+- 385: - Safer cross-platform `setup.sh`, `update.sh`, `setup.bat`, `update.bat`, and `install.ps1`.
+- 458: - **Cascade DELETE constraints** — deleting a group cascades to `group_members`, `group_chat_messages`; deleting an event cascades to `community_event_attendees`; deleting a challenge cascades to `group_challenge_participants` — no more orphan records
+- 463: - **`purchase_store_item(user_id, item_id)` RPC** — atomic store purchase; checks ownership, deducts coins, inserts inventory in a single transaction
+- 468: - **14 RPC functions** — get_leaderboard, get_group_leaderboard, get_membership_snapshot, is_premium_user, get_invite_details, accept_invite, get_group_analytics_from_snapshots, finish_session_sync, join_community_event, leave_community_event, create_community
+- 480: - **`/__admin/events` management UI** — full CRUD for community events (create, edit, delete, publish/unpublish, refresh-dates)
+- 487: - **No `isLocalSession()` bypass** — removed client-side-only auth bypass
+- 497: - **`group_chat_messages` INSERT RLS** — checks `user_id = auth.uid()` (was `sender_id`)
+- 506: - All users default to `ranker` plan via DB trigger + UPDATE backfill on startup
+- 519: ### Fixed — Bug 2: Profile update endpoint missing (cloud sync broken)
+- 537: - `community_events.image_url`, `updated_at`, `creator_id` columns added
+- 538: - `create_community_event`, `update_community_event`, `delete_community_event`, `get_event_attendees` RPCs live
+- 547: - 7 events admin endpoints (create, update, delete, publish, refresh-dates, list)
+- 556: - Removed `isLocalSession()` client-side bypass
+- 566: - `ADMIN_PASSWORD` / `ADMIN_EMAIL` via env vars (removed from source)
+- 602: - `group_chat_messages` INSERT RLS uses `user_id`
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 4: Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+- 44: - **CRITICAL: Cloud backup never downloaded on new/different device** — `GET /__auth/backup/latest` returned the backup JSON but omitted the `cloud_snapshot` field when serving from the `exports/latest.json` path (the primary path). The client smart-sync reads
+- 47: - **New-device fallback bootstraps from cloud** — In the upload-only fallback path, if the device has no local sync history, the server now calls `/__auth/bootstrap` first to restore the cloud snapshot into Supabase DB before uploading a snapshot. This ensures
+- 67: | 4 | Fallback path calls `/__auth/bootstrap` on new device | ✅ fixed |
+- 77: - **CRITICAL: `/api/health?_=<timestamp>` speed probe returned HTTP 404** — The network speed probe fired by the app at every session used a cache-busting query-string (`?_=Date.now()`). The API health handler matched `req.url === '/api/health'` (exact string)
+- 78: - **Same query-string fallthrough for `/api/version`, `/api/check-update`, `/api/ai-config`** — All four API route handlers were patched from `req.url ===` to `adminPath ===`.
+- 82: - **Pre-gzip bundle cache** — 10 major JS bundles (App, Auth, Focus, Onboarding, SingleGroup, Leaderboard, Settings, AppAccessGate, SessionSync, Invites) are gzip-compressed once at server startup and stored in memory (`_gzipCache`). All subsequent requests fo
+- 200: - **GitHub Pages docs link in login screen** (`server.mjs` `DOCS_LINK_HTML`) — A `📖 Docs` badge is injected into every served HTML page (including the unauthenticated login screen) linking to `https://suydev.github.io/isotope-code/`. The badge floats in the bo
+- 240: - `.replit-artifact/artifact.toml` — corrected development `run` path from `artifacts/isotope` to `isotope`.
+- 251: | 5 | Avatar upload/download/dedupe | ✅ SHA-256 hash → `{userId}/avatar-{hash}.{ext}`; `upsert: false` + `isStorageAlreadyExists` guard; old path deleted on replace |
+- 290: - Termux Widget shortcuts now prefer the absolute Termux `isotope` command path and fall back to the project-local wrapper when needed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 16: - **All sync triggers check auth-blocked state** — `__isoAutoSync`, `__isoStartupSync`, the 30-min timer interval, the visibility-change handler, and the online-event handler all check `window.__isoSyncAuthBlocked` and return `{ reason: 'paused_auth' }` withou
+- 17: - **Token intercept unblocks sync on new valid session** — When Supabase returns a new `access_token` (login, token refresh), the fetch interceptor calls `window.__isoSyncAuthUnblock()`, which clears the blocked flag, restarts the timer, and queues one sync at
+- 45: - **CRITICAL: Download skipped on startup (timing race)** — `window.__isoBuildBackup` and `window.__isoApplyBackup` are registered by the app bundle's internal sync method, which fires asynchronously after React initialises. The startup sync (previously 5 s af
+- 253: | 7 | Offline PWA — no reload loop | ✅ `RELOAD_GUARD_SCRIPT` injected; blocks if `navigator.onLine===false`; blocks repeat reloads via `sessionStorage` key |
+- 373: - Onboarding routing now uses Supabase (`user_onboarding`, falling back to `user_profiles.profile_data`) as the authority and no longer trusts localStorage when the DB is unavailable.
+- 453: | Auth session persistence | ✅ Dual localStorage keys |
+- 462: - **Notification cleanup trigger** — auto-purges notifications older than 90 days per user
+- operating-system commands:
+- 57: - **`setup.sh` installs Node.js 18+ on Debian/Ubuntu via NodeSource** — Previously used `apt-get install nodejs` which installs the distro-packaged version (often v12). Now checks the installed version first; if < 18, fetches the NodeSource v22 setup script an
+- 58: - **`setup.sh` works non-interactively** — `--yes` / `-y` flag and piped stdin now skip all prompts reliably.
+- 255: | 9 | Setup scripts syntax | ✅ `bash -n setup.sh` passes; `setup.bat`, `update.bat` present and reviewed |
+- 256: | 10 | No secrets staged or committed | ✅ `.env` not tracked; `.gitignore` covers `.env*`; full git history grep found no embedded keys |
+- 257: | 11 | HTTP 200 from app root | ✅ `curl -I localhost:24099/` → `200 OK` |
+- 267: - `.env.example` — required template for first-time setup; `setup.sh` and `setup.bat` now copy it correctly without erroring on a missing file.
+- 287: - Kept the root package as a zero-dependency local-server package where `npm start` runs `node server.mjs`.
+- 370: - `node server.mjs` now loads `.env` safely without requiring `--env-file`; `node --env-file=.env server.mjs` still works and environment values keep precedence.
+- 385: - Safer cross-platform `setup.sh`, `update.sh`, `setup.bat`, `update.bat`, and `install.ps1`.
+- 388: - `node server.mjs` starts successfully.
+- 389: - `node --env-file=.env server.mjs` starts successfully.
+- Supabase interfaces:
+- 17: - **Token intercept unblocks sync on new valid session** — When Supabase returns a new `access_token` (login, token refresh), the fetch interceptor calls `window.__isoSyncAuthUnblock()`, which clears the blocked flag, restarts the timer, and queues one sync at
+- 18: - **Login (`__isoLogin`) unblocks sync on success** — After a successful username/password login and profile sync, `__isoSyncAuthUnblock()` is called so sync resumes without waiting for the next Supabase token intercept.
+- 47: - **New-device fallback bootstraps from cloud** — In the upload-only fallback path, if the device has no local sync history, the server now calls `/__auth/bootstrap` first to restore the cloud snapshot into Supabase DB before uploading a snapshot. This ensures
+- 81: - **Health endpoint caching (15 s TTL)** — `/api/health` previously made 3 concurrent Supabase HTTP round-trips on every call (REST, Auth, Storage), taking 200–600 ms. Results are now cached for 15 seconds; subsequent calls return in <1 ms. The cache is only p
+- 93: - Apply via: `Supabase Dashboard → SQL Editor → run performance-indexes.sql`
+- 128: - **`user_roles.is_active` does not exist — admin auth always failed silently** — `isSupabaseAdminUser()` in `server.mjs` filtered `user_roles` with `&is_active=eq.true`. The live `user_roles` table has no `is_active` column (`id, user_id, role, granted_by, gr
+- 129: - **8 live-DB functions missing from `isotope-complete.sql`** — Full pg_proc audit found 8 functions present in the live Supabase DB that were never documented in the master schema file. A fresh install using only `isotope-complete.sql` would be missing critic
+- 144: | 1 | `user_roles.is_active` filter removed from `isSupabaseAdminUser()` | ✅ server.mjs line 265 |
+- 173: - **CRITICAL: `user_inventory`, `store_items`, `community_events`, `community_event_attendees` tables missing from live DB** — Zero-trust audit found the frontend calls 5× `user_inventory` and 2× `store_items` but neither table existed. Root cause: `events-exp
+- 177: - **`isotope-complete.sql`** — New single-file authoritative schema covering all 23 tables, all indexes, all RLS policies (with `(SELECT auth.uid())` optimisation), all RPCs (18 functions), triggers (`handle_new_user`, `sync_user_onboarding_from_profile`, `cle
+- 196: - **§5+§6 RLS policies applied to live Supabase DB** — `performance-patch.sql` §5 (own-row `(SELECT auth.uid())` optimisation) and §6 (leaderboard `stats_select_all`, `daily_select_all`, `users_select_display` public-read policies) were not applied to the live
+- 197: - **Improved login error messages** (`server.mjs` `/__auth/login`) — Login failures now surface the specific Supabase error: "email not confirmed" shows a confirmation-link hint; "invalid credentials" shows a clear message directing users to use their Supabase
+- 214: | 2 | `/api/broadcast` in vendor-supabase bundle | ✅ Supabase realtime internal — not a server route |
+- 243: The following items were code-reviewed and live-tested against the running server. Items marked ⚠️ require a live Supabase instance to fully exercise and could not be end-to-end tested in the build environment.
+- 249: | 3 | Onboarding — new vs existing user | ✅ `onboarding_completed` checked at login; `AUTH_GUARD_SCRIPT` gates routing; `OnboardingPatch` requires verified Supabase write |
+- 252: | 6 | Study stats — Analytics vs Leaderboard | ✅ Analytics = local IndexedDB (analyticsWorker); Leaderboard = `user_stats_summary` via Supabase REST + JWT. Both written by `finish_session_sync` RPC — consistent source |
+- 269: - `performance-patch.sql` §5 — Supabase Advisor: all RLS policies upgraded from `auth.uid()` to `(SELECT auth.uid())`, eliminating per-row function re-evaluation. Also replaces `auth.role() = 'authenticated'` with the safer `(SELECT auth.uid()) IS NOT NULL` pa
+- 310: - Documented Supabase as backend/cloud sync only, not static frontend hosting or a VPS replacement.
+- 324: - Updated Supabase patches to drop Events and Store tables, views, RPCs, policies, and the `event-images` bucket.
+- 333: - Default public Isotope Supabase URL and anon key for normal installs, so downloaded copies can connect to shared cloud sync without owner/admin secrets.
+- 340: - README and Pages now describe IsotopeAI as portable local software with Supabase cloud sync, not a hosted website or VPS deployment.
+- 341: - Owner/admin mode remains optional; service-role keys, admin secrets, Supabase management tokens, and GitHub PATs stay blank by default and private.
+- 349: - Supabase Auth, REST, profile, onboarding, and community event endpoints are reachable.
+- 356: - `/api/community-events` now returns the exact array shape expected by the EventsCalendar widget, preventing invalid-data crashes when Supabase rows are raw or unavailable.
+- 358: - Startup routing now keeps returning onboarded users on the dashboard when Supabase is temporarily slow/offline instead of forcing onboarding again.
+- 365: - Browser admin unlock via `/__admin/login`, supporting either `ADMIN_SECRET` or a logged-in Supabase account listed in `ADMIN_EMAIL`/`ADMIN_EMAILS` or `user_roles`.
+- 371: - Removed committed Supabase service-role JWT material from `server.mjs` and the built App bundle.
+- 372: - Browser bundles now receive only the runtime Supabase URL and anon key; service-role access remains server-side.
+- 373: - Onboarding routing now uses Supabase (`user_onboarding`, falling back to `user_profiles.profile_data`) as the authority and no longer trusts localStorage when the DB is unavailable.
+- 376: - `/api/health` now checks live Supabase REST, Auth, and Storage reachability.
+- 377: - `/api/community-events` no longer hides Supabase failures behind an empty array.
+- 396: Full autodiscovery audit of the live Supabase project (23 tables, 21 RPCs, 1 view, 4 buckets,
+- 423: - **`user_settings` added to `supabase_realtime` publication**.
+- 440: First production-stable release. Every feature from the original IsotopeAI is connected to a real Supabase backend — no dummy endpoints, no mock data, no local-only state. Passes full system audit against both hardening prompts.
+- 481: - **`/__admin/apply-sql`** POST endpoint for programmatic SQL execution via Supabase Management API
+- 483: - **`supaRestReq()` helper** in server.mjs — general-purpose Supabase REST caller with service_role auth
+- 527: ### Added — Supabase Storage Buckets
+- 536: ### Fixed — Patch v7 Applied to Supabase
+- 618: - Replaced original Supabase project with self-hosted fork
+- external services: https://keepachangelog.com/en/1.0.0/, https://suydev.github.io/isotope-code/
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0021-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: CHANGELOG.md inspected; no file-specific high-risk issue confirmed
+  observed evidence: CHANGELOG.md inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/PULL_REQUEST_TEMPLATE.md, .github/workflows/ci.yml, .github/workflows/release.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

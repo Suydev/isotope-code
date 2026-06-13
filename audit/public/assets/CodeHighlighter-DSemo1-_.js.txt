@@ -1,0 +1,152 @@
+FILE IDENTITY
+
+- original path: public/assets/CodeHighlighter-DSemo1-_.js
+- audit path: audit/public/assets/CodeHighlighter-DSemo1-_.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 2241
+- SHA-256: 039c8a1f37da16f0a81b103ac016261a59e082dc80f96d4499af53c4178698b7
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:298 - "file": "CodeHighlighter-DSemo1-_.js",
+- artifacts/asset-diff/asset-report.json:301 - "remote_url": "https://isotopeai.in/assets/CodeHighlighter-DSemo1-_.js",
+- artifacts/asset-diff/local-assets.txt:17 - CodeHighlighter-DSemo1-_.js
+- public/assets/MarkdownRendererContent-DBrMkHal.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CodeHighlighter-DSemo1-_.js","assets/vendor-react-BfU3Zn2J.js","assets/vendor-syntax-highlighter-CDo2wmi8.js","assets/vendor-markdown-core-Pkt6xPHa.js","assets/vendor-katex-BS
+- public/assets/MarkdownRendererContent-DBrMkHal.js:2 - import{_ as k}from"./index-BPYJFSVW.js";import{r as i,j as t,f as b}from"./vendor-react-BfU3Zn2J.js";import"./vendor-katex-BSXZKQS3.js";import{n as y}from"./App-pJGjDiPw.js";import{r as N,a as z,b as v,M as $}from"./vendor-markdown-core-Pkt
+
+INTERNAL STRUCTURE
+
+- line count: 1
+- imports:
+- 1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-CDo2wmi8.js";import"./vendor-markdown-co
+- exports:
+None observed.
+- functions/async flows:
+- 1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-CDo2wmi8.js";import"./vendor-markdown-co
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BSXZKQS3: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3556, artifacts/asset-diff/asset-report.json:3559, artifacts/asset-diff/local-assets.txt:198, artifacts/asset-diff/remote-assets/CodeHighlighter-DSemo1-_.js:1, artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/ChapterHub-BXRydU0B.js:1, public/assets/CodeHighlighter-DSemo1-_.js:1, public/assets/MarkdownRenderer-CIV1x0Uq.js:1, public/assets/MarkdownRendererContent-DBrMkHal.js:1, public/assets/MarkdownRendererContent-DBrMkHal.js:2, public/assets/index-qd2KF3Jd.js:1
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-CDo2wmi8.js";import"./vendor-markdown-core-Pkt6xPHa.js";import"./vendor-katex-BS
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-CDo2wmi8.js";import"./vendor-markdown-core-Pkt6xPHa.js";import"./vendor-katex-BS
+- external libraries:
+- 1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-CDo2wmi8.js";import"./vendor-markdown-co
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-CDo2wmi8.js";import"./vendor-markdown-core-Pkt6xPHa.js";import"./vendor-katex-BS
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0290-01
+  severity: LOW
+  category: duplication
+  status: CONFIRMED
+  confidence: HIGH
+  affected lines or byte-level evidence: SHA-256 039c8a1f37da16f0a81b103ac016261a59e082dc80f96d4499af53c4178698b7 shared by artifacts/asset-diff/remote-assets/CodeHighlighter-DSemo1-_.js, public/assets/CodeHighlighter-DSemo1-_.js
+  observed evidence: SHA-256 039c8a1f37da16f0a81b103ac016261a59e082dc80f96d4499af53c4178698b7 shared by artifacts/asset-diff/remote-assets/CodeHighlighter-DSemo1-_.js, public/assets/CodeHighlighter-DSemo1-_.js
+  inferred impact: Byte-identical duplicates may waste repository or install size.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep duplicates only when required by platform paths or comparison artifacts.
+  related files: artifacts/asset-diff/remote-assets/CodeHighlighter-DSemo1-_.js
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof

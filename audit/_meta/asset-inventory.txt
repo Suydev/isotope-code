@@ -1,0 +1,1059 @@
+Asset inventory
+
+- artifacts/asset-diff/remote-assets/KaTeX_AMS-Regular-BQhdFMY1.woff2
+  type: font
+  mime: font/woff2
+  size: 28076
+  sha256: 0cdd387c9590a1a9f9794560022dbb59654a7d86f187aa0c81495ad42d3a7308
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_AMS-Regular-BQhdFMY1.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_AMS-Regular-DMm9YOAa.woff
+  type: font
+  mime: font/woff
+  size: 33516
+  sha256: 30da91e84c893f875e252689faebdc590b2871145e8adc7f9a9d4dbd8ce0b251
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_AMS-Regular-DMm9YOAa.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_AMS-Regular-DRggAlZN.ttf
+  type: font
+  mime: font/ttf
+  size: 63632
+  sha256: 68534840bcfdd2bffb6f0e8deb48684dd01e7f04ea2813267577afb906de1d13
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_AMS-Regular-DRggAlZN.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf
+  type: font
+  mime: font/ttf
+  size: 12368
+  sha256: 07d8e303ce4fc12b4bb54f1004170dd190a1f3db45d400fe68060df3e0897268
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff
+  type: font
+  mime: font/woff
+  size: 7716
+  sha256: 1ae6bd7475590e97e7f145a89e09ccde322f7a6bc0b91607b1c8b8ee28290fed
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2
+  type: font
+  mime: font/woff2
+  size: 6912
+  sha256: de7701e42cf1f4cf0b766c03fb27977207eee2f4fd5d76fa82188406da43ea4c
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff
+  type: font
+  mime: font/woff
+  size: 7656
+  sha256: 3398dd02302557a793f2863f88e02d96ce10df2abffa07c8e9fa90775116e65c
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2
+  type: font
+  mime: font/woff2
+  size: 6908
+  sha256: 5d53e70ad607c2352162dec9e0923fb54ecdafaccbf604cd8dcf7d00facb989b
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf
+  type: font
+  mime: font/ttf
+  size: 12344
+  sha256: ed0b74372feefcbb9c0666b2e210da37b7e49fa7fbbf3eeb11db5f693dacfbb7
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf
+  type: font
+  mime: font/ttf
+  size: 19584
+  sha256: 9163df9c7122432e6495b4229fa9071cf9ae86a758ae5efc4924ec2e1a6dbce1
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Bold-BsDP51OF.woff
+  type: font
+  mime: font/woff
+  size: 13296
+  sha256: 9be7ceb88004ab8ad124082246fbfcca4091e36385d4ec6ed1df67375dad50fb
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Bold-BsDP51OF.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2
+  type: font
+  mime: font/woff2
+  size: 11348
+  sha256: 74444efd593c005e3f4573b44524704c0af0a937fe911cca9e94068d0d140d3f
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Regular-CB_wures.ttf
+  type: font
+  mime: font/ttf
+  size: 19572
+  sha256: 1e6f9579e90e2cac37f8f60a597c436e075c114385652b7cbeb0dec0421291b3
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Regular-CB_wures.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2
+  type: font
+  mime: font/woff2
+  size: 11316
+  sha256: 51814d270d06ff0255dba0799994fa4d8c84d11f09951d47595f4abb1f3602dc
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff
+  type: font
+  mime: font/woff
+  size: 13208
+  sha256: 5e28753be717dac97f559f49bc10be9cf3c124ddcabda6659d11cb68febc6463
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-Bold-Cx986IdX.woff2
+  type: font
+  mime: font/woff2
+  size: 25324
+  sha256: 0f60d1b897938ec918c8ce073092411baf9438f6739465693ff18b0f9d20b021
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Bold-Cx986IdX.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-Bold-Jm3AIy58.woff
+  type: font
+  mime: font/woff
+  size: 29912
+  sha256: c76c5d696297d51b9cb1639c7da4334f0e7dec81b42b11213b5e25ef671bb822
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Bold-Jm3AIy58.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-Bold-waoOVXN0.ttf
+  type: font
+  mime: font/ttf
+  size: 51336
+  sha256: 138ac28d1663b3037e9c5f52371fa5c63d8324f4a38d22cd573e6ea3a3fd0cf8
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Bold-waoOVXN0.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2
+  type: font
+  mime: font/woff2
+  size: 16780
+  sha256: 99cd42a3c072d918f2f44984a807cf7aa16e13545fd0875fc07c6c65f99e715b
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf
+  type: font
+  mime: font/ttf
+  size: 32968
+  sha256: 70ee1f64a20f2048c21940ef46d0144fd215baa953ca69afd1e31e98544f708f
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-BoldItalic-SpSLRI95.woff
+  type: font
+  mime: font/woff
+  size: 19412
+  sha256: a6f7ec0d846ac7ad975adb8959c37ed49b94acbc4ae436db9ce9e20287e4a64c
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-BoldItalic-SpSLRI95.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-Italic-3WenGoN9.ttf
+  type: font
+  mime: font/ttf
+  size: 33580
+  sha256: 0d85ae7cc30f23790a7f1a58c4a112fdca8aae769b6ba11429af1d98b1b6cb3a
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Italic-3WenGoN9.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-Italic-BMLOBm91.woff
+  type: font
+  mime: font/woff
+  size: 19676
+  sha256: f1d6ef86f3b11a528bd5185199bd2443ecb2b0dead96d88674b5a2c12be24bdf
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Italic-BMLOBm91.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-Italic-NWA7e6Wa.woff2
+  type: font
+  mime: font/woff2
+  size: 16988
+  sha256: 97479ca6cce906abc961ecac96faa5f9ca2e61b8e7670d475826bcdee9a7c267
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Italic-NWA7e6Wa.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-Regular-B22Nviop.woff2
+  type: font
+  mime: font/woff2
+  size: 26272
+  sha256: c2342cd8b869e01752a9321dc17213fc40d4d04c79688c1d43f2cf316abd7866
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Regular-B22Nviop.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-Regular-Dr94JaBh.woff
+  type: font
+  mime: font/woff
+  size: 30772
+  sha256: c6368d87e8a1a3a5d337623d83d8dc4b868f242a9ad476237d6f8d1e0f168cdc
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Regular-Dr94JaBh.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Main-Regular-ypZvNtVU.ttf
+  type: font
+  mime: font/ttf
+  size: 53580
+  sha256: d0332f52868370fd83ae7fa46470f90c8f2eab2fcf12bc4f88080b340c95a830
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Regular-ypZvNtVU.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf
+  type: font
+  mime: font/ttf
+  size: 31196
+  sha256: f9377ab0271cda59af24bcffbd46a4d0c8a3572ffafdbb38de2ad5ea7b0d5ee5
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2
+  type: font
+  mime: font/woff2
+  size: 16400
+  sha256: dc47344dbb6cb5b655c8460d561f4df5f501b90c804ad3c6cec65fe322351ab1
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff
+  type: font
+  mime: font/woff
+  size: 18668
+  sha256: 850c0af5c2238497febaf5e461d880bf458c341f42f4f330f1b1ab5698b1998e
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Math-Italic-DA0__PXp.woff
+  type: font
+  mime: font/woff
+  size: 18748
+  sha256: 8a8d244581371912b8f3f5a23e2437cb2a59cd9bcaebb0346e722c05737a2571
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Math-Italic-DA0__PXp.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Math-Italic-flOr_0UB.ttf
+  type: font
+  mime: font/ttf
+  size: 31308
+  sha256: 08ce98e51b04d58945a301e639e02b6998af29fdfd61a7b8afdd07bbfc479d4a
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Math-Italic-flOr_0UB.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Math-Italic-t53AETM-.woff2
+  type: font
+  mime: font/woff2
+  size: 16440
+  sha256: 7af58c5ec8f132a2ddde9027c6d7814decce4d3b822a11192a42a20e2e973264
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Math-Italic-t53AETM-.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf
+  type: font
+  mime: font/ttf
+  size: 24504
+  sha256: 1ece03f79f95277d57dc7f6b435a74e1379b0d46104a8530286b60ff49369ea0
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2
+  type: font
+  mime: font/woff2
+  size: 12216
+  sha256: e99ae51144bf1232efcc1bfe5add36262c6866b0faab24fa75740e1b98577a62
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff
+  type: font
+  mime: font/woff
+  size: 14408
+  sha256: ece03cfd83e22c212cdef66feb8442d25a083beb988db3f1883f3f9738d750ba
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2
+  type: font
+  mime: font/woff2
+  size: 12028
+  sha256: 00b26ac825e2095056396e0553b8ac26d3f8ad158c3826e28b4c45b385c4714a
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Italic-DN2j7dab.woff
+  type: font
+  mime: font/woff
+  size: 14112
+  sha256: 91ee67500cc0129aa0ace3ac5c61ff1692102f0f31d02b69347fba35dcb75bf2
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Italic-DN2j7dab.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf
+  type: font
+  mime: font/ttf
+  size: 22364
+  sha256: 3931dd81faed86ba021bb2bbdc36f5bed9a38d6b4f4077aca59b265aa1b02083
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf
+  type: font
+  mime: font/ttf
+  size: 19436
+  sha256: f36ea897e19f4a2e571d1e900e4e3710e438deb05a842486045ba0a3e616a4ad
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff
+  type: font
+  mime: font/woff
+  size: 12316
+  sha256: 11e4dc8a6471ff6d6ee561d53d10fde8f7489e798257ff449c5d37c197435605
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2
+  type: font
+  mime: font/woff2
+  size: 10344
+  sha256: 68e8c73ef42afd3ccec58bf0fba302cce448938e7fc020a5e31f8a952eee1342
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Script-Regular-C5JkGWo-.ttf
+  type: font
+  mime: font/ttf
+  size: 16648
+  sha256: 1c67f068fea8bb09bf099c088b1cf64bd27516a6e07f4684344873564bb66a67
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Script-Regular-C5JkGWo-.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Script-Regular-D3wIWfF6.woff2
+  type: font
+  mime: font/woff2
+  size: 9644
+  sha256: 036d4e95149b69ff9bcc0cd55771efeb25ffa3947293e69acd78d5ac328c684b
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Script-Regular-D3wIWfF6.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Script-Regular-D5yQViql.woff
+  type: font
+  mime: font/woff
+  size: 10588
+  sha256: d96cdf2b3bdd4d64a8fd5f74a4c467f123a8a73931cd435889f08ffaf9bf947a
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Script-Regular-D5yQViql.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Size1-Regular-C195tn64.woff
+  type: font
+  mime: font/woff
+  size: 6496
+  sha256: c943cc986384f59e86bea5fd7dc50a9c4dfe567a7c05eb40d6790720dead97c9
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Size1-Regular-C195tn64.woff.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Size1-Regular-Dbsnue_I.ttf
+  type: font
+  mime: font/ttf
+  size: 12228
+  sha256: 95b6d2f1a50173bfedb8c63e1d1c99b10427d0a4df4201cb44513b226951a22b
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Size1-Regular-Dbsnue_I.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Size1-Regular-mCD8mA8B.woff2
+  type: font
+  mime: font/woff2
+  size: 5468
+  sha256: 6b47c40166b6dbe21a5dfca7718413f2147fd2399be1ba605d8ad39cedf25dfe
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Size1-Regular-mCD8mA8B.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Size2-Regular-B7gKUWhC.ttf
+  type: font
+  mime: font/ttf
+  size: 11508
+  sha256: a6b2099fb555c60e3a0db3a08842ebf1d732c6eb4e4bf44913613bed4fc4e39b
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Size2-Regular-B7gKUWhC.ttf.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Size2-Regular-Dy4dx90m.woff2
+  type: font
+  mime: font/woff2
+  size: 5208
+  sha256: d04c54219f9eaec6d4d4fd42dfb28785975a4794d6b2fc71e566b9cd6db842dd
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Size2-Regular-Dy4dx90m.woff2.txt
+  referenced: 5
+- artifacts/asset-diff/remote-assets/KaTeX_Size2-Regular-oD1tc_U0.woff
+  type: font
+  mime: font/woff
+  size: 6188
+  sha256: 2014c523c3210bcc166648c4d4cc57f05b747df07a24277bf71c51e67dc79e3d
+  audit: audit/artifacts/asset-diff/remote-assets/KaTeX_Size2-Regular-oD1tc_U0.woff.txt
+  referenced: 5
+- docs/logo.svg
+  type: image
+  mime: image/svg+xml
+  size: 477
+  sha256: 6ade6286d1d20959b52cfff9922afc56bdff2f9a110c49bd536d06d7c0ab95c6
+  audit: audit/docs/logo.svg.txt
+  referenced: 18
+- logo.svg
+  type: image
+  mime: image/svg+xml
+  size: 476
+  sha256: 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789
+  audit: audit/logo.svg.txt
+  referenced: 18
+- public/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2
+  type: font
+  mime: font/woff2
+  size: 28076
+  sha256: 0cdd387c9590a1a9f9794560022dbb59654a7d86f187aa0c81495ad42d3a7308
+  audit: audit/public/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_AMS-Regular-DMm9YOAa.woff
+  type: font
+  mime: font/woff
+  size: 33516
+  sha256: 30da91e84c893f875e252689faebdc590b2871145e8adc7f9a9d4dbd8ce0b251
+  audit: audit/public/assets/KaTeX_AMS-Regular-DMm9YOAa.woff.txt
+  referenced: 5
+- public/assets/KaTeX_AMS-Regular-DRggAlZN.ttf
+  type: font
+  mime: font/ttf
+  size: 63632
+  sha256: 68534840bcfdd2bffb6f0e8deb48684dd01e7f04ea2813267577afb906de1d13
+  audit: audit/public/assets/KaTeX_AMS-Regular-DRggAlZN.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf
+  type: font
+  mime: font/ttf
+  size: 12368
+  sha256: 07d8e303ce4fc12b4bb54f1004170dd190a1f3db45d400fe68060df3e0897268
+  audit: audit/public/assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff
+  type: font
+  mime: font/woff
+  size: 7716
+  sha256: 1ae6bd7475590e97e7f145a89e09ccde322f7a6bc0b91607b1c8b8ee28290fed
+  audit: audit/public/assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2
+  type: font
+  mime: font/woff2
+  size: 6912
+  sha256: de7701e42cf1f4cf0b766c03fb27977207eee2f4fd5d76fa82188406da43ea4c
+  audit: audit/public/assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff
+  type: font
+  mime: font/woff
+  size: 7656
+  sha256: 3398dd02302557a793f2863f88e02d96ce10df2abffa07c8e9fa90775116e65c
+  audit: audit/public/assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2
+  type: font
+  mime: font/woff2
+  size: 6908
+  sha256: 5d53e70ad607c2352162dec9e0923fb54ecdafaccbf604cd8dcf7d00facb989b
+  audit: audit/public/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf
+  type: font
+  mime: font/ttf
+  size: 12344
+  sha256: ed0b74372feefcbb9c0666b2e210da37b7e49fa7fbbf3eeb11db5f693dacfbb7
+  audit: audit/public/assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf
+  type: font
+  mime: font/ttf
+  size: 19584
+  sha256: 9163df9c7122432e6495b4229fa9071cf9ae86a758ae5efc4924ec2e1a6dbce1
+  audit: audit/public/assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Fraktur-Bold-BsDP51OF.woff
+  type: font
+  mime: font/woff
+  size: 13296
+  sha256: 9be7ceb88004ab8ad124082246fbfcca4091e36385d4ec6ed1df67375dad50fb
+  audit: audit/public/assets/KaTeX_Fraktur-Bold-BsDP51OF.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2
+  type: font
+  mime: font/woff2
+  size: 11348
+  sha256: 74444efd593c005e3f4573b44524704c0af0a937fe911cca9e94068d0d140d3f
+  audit: audit/public/assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Fraktur-Regular-CB_wures.ttf
+  type: font
+  mime: font/ttf
+  size: 19572
+  sha256: 1e6f9579e90e2cac37f8f60a597c436e075c114385652b7cbeb0dec0421291b3
+  audit: audit/public/assets/KaTeX_Fraktur-Regular-CB_wures.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2
+  type: font
+  mime: font/woff2
+  size: 11316
+  sha256: 51814d270d06ff0255dba0799994fa4d8c84d11f09951d47595f4abb1f3602dc
+  audit: audit/public/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff
+  type: font
+  mime: font/woff
+  size: 13208
+  sha256: 5e28753be717dac97f559f49bc10be9cf3c124ddcabda6659d11cb68febc6463
+  audit: audit/public/assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Main-Bold-Cx986IdX.woff2
+  type: font
+  mime: font/woff2
+  size: 25324
+  sha256: 0f60d1b897938ec918c8ce073092411baf9438f6739465693ff18b0f9d20b021
+  audit: audit/public/assets/KaTeX_Main-Bold-Cx986IdX.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Main-Bold-Jm3AIy58.woff
+  type: font
+  mime: font/woff
+  size: 29912
+  sha256: c76c5d696297d51b9cb1639c7da4334f0e7dec81b42b11213b5e25ef671bb822
+  audit: audit/public/assets/KaTeX_Main-Bold-Jm3AIy58.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Main-Bold-waoOVXN0.ttf
+  type: font
+  mime: font/ttf
+  size: 51336
+  sha256: 138ac28d1663b3037e9c5f52371fa5c63d8324f4a38d22cd573e6ea3a3fd0cf8
+  audit: audit/public/assets/KaTeX_Main-Bold-waoOVXN0.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2
+  type: font
+  mime: font/woff2
+  size: 16780
+  sha256: 99cd42a3c072d918f2f44984a807cf7aa16e13545fd0875fc07c6c65f99e715b
+  audit: audit/public/assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf
+  type: font
+  mime: font/ttf
+  size: 32968
+  sha256: 70ee1f64a20f2048c21940ef46d0144fd215baa953ca69afd1e31e98544f708f
+  audit: audit/public/assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Main-BoldItalic-SpSLRI95.woff
+  type: font
+  mime: font/woff
+  size: 19412
+  sha256: a6f7ec0d846ac7ad975adb8959c37ed49b94acbc4ae436db9ce9e20287e4a64c
+  audit: audit/public/assets/KaTeX_Main-BoldItalic-SpSLRI95.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Main-Italic-3WenGoN9.ttf
+  type: font
+  mime: font/ttf
+  size: 33580
+  sha256: 0d85ae7cc30f23790a7f1a58c4a112fdca8aae769b6ba11429af1d98b1b6cb3a
+  audit: audit/public/assets/KaTeX_Main-Italic-3WenGoN9.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Main-Italic-BMLOBm91.woff
+  type: font
+  mime: font/woff
+  size: 19676
+  sha256: f1d6ef86f3b11a528bd5185199bd2443ecb2b0dead96d88674b5a2c12be24bdf
+  audit: audit/public/assets/KaTeX_Main-Italic-BMLOBm91.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2
+  type: font
+  mime: font/woff2
+  size: 16988
+  sha256: 97479ca6cce906abc961ecac96faa5f9ca2e61b8e7670d475826bcdee9a7c267
+  audit: audit/public/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Main-Regular-B22Nviop.woff2
+  type: font
+  mime: font/woff2
+  size: 26272
+  sha256: c2342cd8b869e01752a9321dc17213fc40d4d04c79688c1d43f2cf316abd7866
+  audit: audit/public/assets/KaTeX_Main-Regular-B22Nviop.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Main-Regular-Dr94JaBh.woff
+  type: font
+  mime: font/woff
+  size: 30772
+  sha256: c6368d87e8a1a3a5d337623d83d8dc4b868f242a9ad476237d6f8d1e0f168cdc
+  audit: audit/public/assets/KaTeX_Main-Regular-Dr94JaBh.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Main-Regular-ypZvNtVU.ttf
+  type: font
+  mime: font/ttf
+  size: 53580
+  sha256: d0332f52868370fd83ae7fa46470f90c8f2eab2fcf12bc4f88080b340c95a830
+  audit: audit/public/assets/KaTeX_Main-Regular-ypZvNtVU.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf
+  type: font
+  mime: font/ttf
+  size: 31196
+  sha256: f9377ab0271cda59af24bcffbd46a4d0c8a3572ffafdbb38de2ad5ea7b0d5ee5
+  audit: audit/public/assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2
+  type: font
+  mime: font/woff2
+  size: 16400
+  sha256: dc47344dbb6cb5b655c8460d561f4df5f501b90c804ad3c6cec65fe322351ab1
+  audit: audit/public/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff
+  type: font
+  mime: font/woff
+  size: 18668
+  sha256: 850c0af5c2238497febaf5e461d880bf458c341f42f4f330f1b1ab5698b1998e
+  audit: audit/public/assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Math-Italic-DA0__PXp.woff
+  type: font
+  mime: font/woff
+  size: 18748
+  sha256: 8a8d244581371912b8f3f5a23e2437cb2a59cd9bcaebb0346e722c05737a2571
+  audit: audit/public/assets/KaTeX_Math-Italic-DA0__PXp.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Math-Italic-flOr_0UB.ttf
+  type: font
+  mime: font/ttf
+  size: 31308
+  sha256: 08ce98e51b04d58945a301e639e02b6998af29fdfd61a7b8afdd07bbfc479d4a
+  audit: audit/public/assets/KaTeX_Math-Italic-flOr_0UB.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Math-Italic-t53AETM-.woff2
+  type: font
+  mime: font/woff2
+  size: 16440
+  sha256: 7af58c5ec8f132a2ddde9027c6d7814decce4d3b822a11192a42a20e2e973264
+  audit: audit/public/assets/KaTeX_Math-Italic-t53AETM-.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf
+  type: font
+  mime: font/ttf
+  size: 24504
+  sha256: 1ece03f79f95277d57dc7f6b435a74e1379b0d46104a8530286b60ff49369ea0
+  audit: audit/public/assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2
+  type: font
+  mime: font/woff2
+  size: 12216
+  sha256: e99ae51144bf1232efcc1bfe5add36262c6866b0faab24fa75740e1b98577a62
+  audit: audit/public/assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff
+  type: font
+  mime: font/woff
+  size: 14408
+  sha256: ece03cfd83e22c212cdef66feb8442d25a083beb988db3f1883f3f9738d750ba
+  audit: audit/public/assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff.txt
+  referenced: 5
+- public/assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2
+  type: font
+  mime: font/woff2
+  size: 12028
+  sha256: 00b26ac825e2095056396e0553b8ac26d3f8ad158c3826e28b4c45b385c4714a
+  audit: audit/public/assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_SansSerif-Italic-DN2j7dab.woff
+  type: font
+  mime: font/woff
+  size: 14112
+  sha256: 91ee67500cc0129aa0ace3ac5c61ff1692102f0f31d02b69347fba35dcb75bf2
+  audit: audit/public/assets/KaTeX_SansSerif-Italic-DN2j7dab.woff.txt
+  referenced: 5
+- public/assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf
+  type: font
+  mime: font/ttf
+  size: 22364
+  sha256: 3931dd81faed86ba021bb2bbdc36f5bed9a38d6b4f4077aca59b265aa1b02083
+  audit: audit/public/assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf
+  type: font
+  mime: font/ttf
+  size: 19436
+  sha256: f36ea897e19f4a2e571d1e900e4e3710e438deb05a842486045ba0a3e616a4ad
+  audit: audit/public/assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff
+  type: font
+  mime: font/woff
+  size: 12316
+  sha256: 11e4dc8a6471ff6d6ee561d53d10fde8f7489e798257ff449c5d37c197435605
+  audit: audit/public/assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff.txt
+  referenced: 5
+- public/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2
+  type: font
+  mime: font/woff2
+  size: 10344
+  sha256: 68e8c73ef42afd3ccec58bf0fba302cce448938e7fc020a5e31f8a952eee1342
+  audit: audit/public/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Script-Regular-C5JkGWo-.ttf
+  type: font
+  mime: font/ttf
+  size: 16648
+  sha256: 1c67f068fea8bb09bf099c088b1cf64bd27516a6e07f4684344873564bb66a67
+  audit: audit/public/assets/KaTeX_Script-Regular-C5JkGWo-.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Script-Regular-D3wIWfF6.woff2
+  type: font
+  mime: font/woff2
+  size: 9644
+  sha256: 036d4e95149b69ff9bcc0cd55771efeb25ffa3947293e69acd78d5ac328c684b
+  audit: audit/public/assets/KaTeX_Script-Regular-D3wIWfF6.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Script-Regular-D5yQViql.woff
+  type: font
+  mime: font/woff
+  size: 10588
+  sha256: d96cdf2b3bdd4d64a8fd5f74a4c467f123a8a73931cd435889f08ffaf9bf947a
+  audit: audit/public/assets/KaTeX_Script-Regular-D5yQViql.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Size1-Regular-C195tn64.woff
+  type: font
+  mime: font/woff
+  size: 6496
+  sha256: c943cc986384f59e86bea5fd7dc50a9c4dfe567a7c05eb40d6790720dead97c9
+  audit: audit/public/assets/KaTeX_Size1-Regular-C195tn64.woff.txt
+  referenced: 5
+- public/assets/KaTeX_Size1-Regular-Dbsnue_I.ttf
+  type: font
+  mime: font/ttf
+  size: 12228
+  sha256: 95b6d2f1a50173bfedb8c63e1d1c99b10427d0a4df4201cb44513b226951a22b
+  audit: audit/public/assets/KaTeX_Size1-Regular-Dbsnue_I.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Size1-Regular-mCD8mA8B.woff2
+  type: font
+  mime: font/woff2
+  size: 5468
+  sha256: 6b47c40166b6dbe21a5dfca7718413f2147fd2399be1ba605d8ad39cedf25dfe
+  audit: audit/public/assets/KaTeX_Size1-Regular-mCD8mA8B.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Size2-Regular-B7gKUWhC.ttf
+  type: font
+  mime: font/ttf
+  size: 11508
+  sha256: a6b2099fb555c60e3a0db3a08842ebf1d732c6eb4e4bf44913613bed4fc4e39b
+  audit: audit/public/assets/KaTeX_Size2-Regular-B7gKUWhC.ttf.txt
+  referenced: 5
+- public/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2
+  type: font
+  mime: font/woff2
+  size: 5208
+  sha256: d04c54219f9eaec6d4d4fd42dfb28785975a4794d6b2fc71e566b9cd6db842dd
+  audit: audit/public/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2.txt
+  referenced: 5
+- public/assets/KaTeX_Size2-Regular-oD1tc_U0.woff
+  type: font
+  mime: font/woff
+  size: 6188
+  sha256: 2014c523c3210bcc166648c4d4cc57f05b747df07a24277bf71c51e67dc79e3d
+  audit: audit/public/assets/KaTeX_Size2-Regular-oD1tc_U0.woff.txt
+  referenced: 5
+- public/bg.mp4
+  type: video
+  mime: video/mp4
+  size: 4328716
+  sha256: 6ce96dc7ffbb6028d98a1a2b6db906a9b453829aa01af9e26ff8165af3f5ad6d
+  audit: audit/public/bg.mp4.txt
+  referenced: 0
+- public/favicon.svg
+  type: image
+  mime: image/svg+xml
+  size: 163
+  sha256: 8ffbde9092b1fa4de97c9481b76f518b131268c82e7c555041925225b1dab6e0
+  audit: audit/public/favicon.svg.txt
+  referenced: 1
+- public/fonts/9Bt23C1KxNDXMspQ1lPyU89-1h6ONRlW45G04pIo.woff2
+  type: font
+  mime: font/woff2
+  size: 17208
+  sha256: d64ba838ef5472bba248620ec4fd8b5aa7cf0db2908e0bb230600caf279ba7bc
+  audit: audit/public/fonts/9Bt23C1KxNDXMspQ1lPyU89-1h6ONRlW45G04pIo.woff2.txt
+  referenced: 1
+- public/fonts/9Bt23C1KxNDXMspQ1lPyU89-1h6ONRlW45G07JIoSwQ.woff2
+  type: font
+  mime: font/woff2
+  size: 9384
+  sha256: 61eeb0eb8b881a84d069e67be1723f5b353b0b9b866ad8e7ad9dba66cdc4dabd
+  audit: audit/public/fonts/9Bt23C1KxNDXMspQ1lPyU89-1h6ONRlW45G07JIoSwQ.woff2.txt
+  referenced: 1
+- public/fonts/9Bt73C1KxNDXMspQ1lPyU89-1h6ONRlW45G8Wbc9dCWP.woff2
+  type: font
+  mime: font/woff2
+  size: 17524
+  sha256: 140e2bd25a7315c8a062508391426b0d8c3297400c947b8d847be28f73a199f0
+  audit: audit/public/fonts/9Bt73C1KxNDXMspQ1lPyU89-1h6ONRlW45G8Wbc9dCWP.woff2.txt
+  referenced: 1
+- public/fonts/9Bt73C1KxNDXMspQ1lPyU89-1h6ONRlW45G8Wbc9eiWPVFw.woff2
+  type: font
+  mime: font/woff2
+  size: 9372
+  sha256: 840ced16f975d8abc2594b436d0206649e0c2a7327e36750ff849d3d37c3c02e
+  audit: audit/public/fonts/9Bt73C1KxNDXMspQ1lPyU89-1h6ONRlW45G8Wbc9eiWPVFw.woff2.txt
+  referenced: 1
+- public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2
+  type: font
+  mime: font/woff2
+  size: 18748
+  sha256: 71d5ee93cc1e9f1d520a3a8b66456de18c7879d8df09d57fcd2eaff75fef0075
+  audit: audit/public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2.txt
+  referenced: 5
+- public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2
+  type: font
+  mime: font/woff2
+  size: 48256
+  sha256: 3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62
+  audit: audit/public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2.txt
+  referenced: 5
+- public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2
+  type: font
+  mime: font/woff2
+  size: 18996
+  sha256: 1be3448e292fbf05ffe176fe1e43f135013d50b1e7d324ad1a558f623d3bb6f6
+  audit: audit/public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2.txt
+  referenced: 5
+- public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2
+  type: font
+  mime: font/woff2
+  size: 85068
+  sha256: 34b9c504cab7a73e37b746343a449132e56cf7b5481af2cb81dc74dcff25c956
+  audit: audit/public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2.txt
+  referenced: 5
+- public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2
+  type: font
+  mime: font/woff2
+  size: 25960
+  sha256: ca157063339ac4ad418f214f3abfed119b0798ab4d377386ce5c9e5a7a435ebd
+  audit: audit/public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2.txt
+  referenced: 5
+- public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2
+  type: font
+  mime: font/woff2
+  size: 11232
+  sha256: 6e9e020a25f9b56d418f2c085b1d3c09725a4da23fe693a5b463064606732190
+  audit: audit/public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2.txt
+  referenced: 5
+- public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2
+  type: font
+  mime: font/woff2
+  size: 10252
+  sha256: 5c66f9e07e90c6d4ac4922cc68d60de26c17b1858e677fb5e603fce3952b3ff2
+  audit: audit/public/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2.txt
+  referenced: 5
+- public/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb54C-s0.woff2
+  type: font
+  mime: font/woff2
+  size: 6712
+  sha256: 8895e3d49825128bfa5238e4c96e9b432d7a3dadbe5c17c6081267398305dc71
+  audit: audit/public/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb54C-s0.woff2.txt
+  referenced: 4
+- public/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb94C-s0.woff2
+  type: font
+  mime: font/woff2
+  size: 18940
+  sha256: 952dddb45d2f96f71cbf3b7f510b24379afc3c89ea02fcf89d377b45d62c0166
+  audit: audit/public/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb94C-s0.woff2.txt
+  referenced: 4
+- public/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2
+  type: font
+  mime: font/woff2
+  size: 22288
+  sha256: 0640890476fc1198ab4de571fb658de443c4d85b66466ec09534a8737ab1ce9d
+  audit: audit/public/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2.txt
+  referenced: 4
+- public/icons/apple-touch-icon.png
+  type: image
+  mime: image/png
+  size: 12902
+  sha256: c3a13997005c7e35f5ceadc41a5976572d5e97660cc1f5b84cfd98c972873cbc
+  audit: audit/public/icons/apple-touch-icon.png.txt
+  referenced: 120
+- public/icons/icon-192x192.png
+  type: image
+  mime: image/png
+  size: 13602
+  sha256: 80f6a7d7b30af3c57730f568e9da546d2ac19eefe51ad333da2ff69b5e0c7af3
+  audit: audit/public/icons/icon-192x192.png.txt
+  referenced: 120
+- public/icons/icon-192x192.svg
+  type: image
+  mime: image/svg+xml
+  size: 476
+  sha256: 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789
+  audit: audit/public/icons/icon-192x192.svg.txt
+  referenced: 3
+- public/icons/icon-512x512.png
+  type: image
+  mime: image/png
+  size: 32368
+  sha256: c123ea7cb202134d5dae3d37c44714bd89ba10f393a037adef97faa2f3ea3661
+  audit: audit/public/icons/icon-512x512.png.txt
+  referenced: 120
+- public/icons/icon-96x96.svg
+  type: image
+  mime: image/svg+xml
+  size: 476
+  sha256: 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789
+  audit: audit/public/icons/icon-96x96.svg.txt
+  referenced: 3
+- public/icons/icon.svg
+  type: image
+  mime: image/svg+xml
+  size: 476
+  sha256: 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789
+  audit: audit/public/icons/icon.svg.txt
+  referenced: 120
+- public/icons/maskable-icon-512x512.png
+  type: image
+  mime: image/png
+  size: 32368
+  sha256: c123ea7cb202134d5dae3d37c44714bd89ba10f393a037adef97faa2f3ea3661
+  audit: audit/public/icons/maskable-icon-512x512.png.txt
+  referenced: 3
+- public/logo-full.svg
+  type: image
+  mime: image/svg+xml
+  size: 476
+  sha256: 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789
+  audit: audit/public/logo-full.svg.txt
+  referenced: 2
+- public/logo-icon.svg
+  type: image
+  mime: image/svg+xml
+  size: 476
+  sha256: 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789
+  audit: audit/public/logo-icon.svg.txt
+  referenced: 1
+- public/opengraph.jpg
+  type: image
+  mime: image/jpeg
+  size: 45405
+  sha256: 5aae27836a55b1160959a9fd184f2e6cb4011063f1683e1d50d75be576aaf5a3
+  audit: audit/public/opengraph.jpg.txt
+  referenced: 0
+- public/screenshots/desktop-1.png
+  type: image
+  mime: image/png
+  size: 32368
+  sha256: c123ea7cb202134d5dae3d37c44714bd89ba10f393a037adef97faa2f3ea3661
+  audit: audit/public/screenshots/desktop-1.png.txt
+  referenced: 2
+- public/screenshots/desktop-2.png
+  type: image
+  mime: image/png
+  size: 32368
+  sha256: c123ea7cb202134d5dae3d37c44714bd89ba10f393a037adef97faa2f3ea3661
+  audit: audit/public/screenshots/desktop-2.png.txt
+  referenced: 2
+- public/sounds/crickets.wav
+  type: audio
+  mime: audio/wav
+  size: 11917352
+  sha256: 3dc67c4bcbad369877fc5bf64873a237cfdd8a9a7bbe3c45c6e20e9141cba72b
+  audit: audit/public/sounds/crickets.wav.txt
+  referenced: 1
+- public/sounds/rain.wav
+  type: audio
+  mime: audio/wav
+  size: 14825128
+  sha256: 4a64515bf06c680e89e728ae18d67fb4e2a252ad7c06b79199d2faaf9040e98a
+  audit: audit/public/sounds/rain.wav.txt
+  referenced: 1
+- public/sounds/wind.wav
+  type: audio
+  mime: audio/wav
+  size: 17143172
+  sha256: 3467f87658b2e8a5620641ea1fa81ab3111efa1a08c183c43221faf52cada06a
+  audit: audit/public/sounds/wind.wav.txt
+  referenced: 1
+- screenshot
+  type: binary asset
+  mime: application/octet-stream
+  size: 5245159
+  sha256: bac4f7980c644c8d8f1a4e27b5aba18255f0b84fd487400ea031ecbb4c2dfaa4
+  audit: audit/screenshot.txt
+  referenced: 94
+- screenshot.zip
+  type: archive
+  mime: application/zip
+  size: 5245159
+  sha256: bac4f7980c644c8d8f1a4e27b5aba18255f0b84fd487400ea031ecbb4c2dfaa4
+  audit: audit/screenshot.zip.txt
+  referenced: 1
+- screenshots/icon-512.png
+  type: image
+  mime: image/png
+  size: 32368
+  sha256: c123ea7cb202134d5dae3d37c44714bd89ba10f393a037adef97faa2f3ea3661
+  audit: audit/screenshots/icon-512.png.txt
+  referenced: 0
+- screenshots/landingpage.png
+  type: image
+  mime: image/png
+  size: 4594523
+  sha256: ada9da74020d00c47d409b6030cd4ac253b1dc006fd66d72ac318d4e9024840e
+  audit: audit/screenshots/landingpage.png.txt
+  referenced: 120
+- screenshots/screenshot.zip
+  type: archive
+  mime: application/zip
+  size: 5245159
+  sha256: bac4f7980c644c8d8f1a4e27b5aba18255f0b84fd487400ea031ecbb4c2dfaa4
+  audit: audit/screenshots/screenshot.zip.txt
+  referenced: 1
+- screenshots/screenshot/Screenshot_2026-06-07-13-58-43-64_e4424258c8b8649f6e67d283a50a2cbc.jpg
+  type: image
+  mime: image/jpeg
+  size: 565267
+  sha256: da0360a11985962e174375d52035734dc84fe63b71405bacc7265a7995fa2e31
+  audit: audit/screenshots/screenshot/Screenshot_2026-06-07-13-58-43-64_e4424258c8b8649f6e67d283a50a2cbc.jpg.txt
+  referenced: 1
+- screenshots/screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg
+  type: image
+  mime: image/jpeg
+  size: 296412
+  sha256: ca5205a4fec6fd34a3265ed97906a2d78cd0fa0abd4477fc40798c04040c4e39
+  audit: audit/screenshots/screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg.txt
+  referenced: 2
+- screenshots/screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg
+  type: image
+  mime: image/jpeg
+  size: 608081
+  sha256: c90b57a715075a419344d01c13673d2655c01eba386f7a3beb3227de53f3fe2d
+  audit: audit/screenshots/screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg.txt
+  referenced: 2
+- screenshots/screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg
+  type: image
+  mime: image/jpeg
+  size: 721433
+  sha256: a6be678790292a3f271e79778211e7def57ddef52919fd4279d2ea200158fc6e
+  audit: audit/screenshots/screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg.txt
+  referenced: 2
+- screenshots/screenshot/Screenshot_2026-06-08-08-45-47-93_e4424258c8b8649f6e67d283a50a2cbc.jpg
+  type: image
+  mime: image/jpeg
+  size: 657521
+  sha256: 3d8f5d18fd2beb11ffab790dd6feb0e0df940429a443c21db51ab79c41c49729
+  audit: audit/screenshots/screenshot/Screenshot_2026-06-08-08-45-47-93_e4424258c8b8649f6e67d283a50a2cbc.jpg.txt
+  referenced: 1
+- screenshots/screenshot/Screenshot_2026-06-08-08-46-00-34_e4424258c8b8649f6e67d283a50a2cbc.jpg
+  type: image
+  mime: image/jpeg
+  size: 535847
+  sha256: e371f8c2ef5d359225328747c67b51a0dd6beb15e080c96a6db88ded3cd759c7
+  audit: audit/screenshots/screenshot/Screenshot_2026-06-08-08-46-00-34_e4424258c8b8649f6e67d283a50a2cbc.jpg.txt
+  referenced: 2
+- screenshots/screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg
+  type: image
+  mime: image/jpeg
+  size: 616074
+  sha256: 01c1dcbabd2a7cab9b0f8d151905a539a5d8414a279fd6f3caba355ad463e392
+  audit: audit/screenshots/screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg.txt
+  referenced: 2
+- screenshots/screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg
+  type: image
+  mime: image/jpeg
+  size: 984602
+  sha256: 2d4214f62b80e32172955b515ac6227fb88eb2eb0c226a1a770d359c044221f0
+  audit: audit/screenshots/screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg.txt
+  referenced: 2
+- screenshots/screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg
+  type: image
+  mime: image/jpeg
+  size: 683546
+  sha256: 0055593f8f8ce003b1c9057e40ae078c8e95284597b2f3af14104a295cfbbb93
+  audit: audit/screenshots/screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg.txt
+  referenced: 2
+- screenshots/screenshot/Screenshot_2026-06-08-08-47-09-37_e4424258c8b8649f6e67d283a50a2cbc.jpg
+  type: image
+  mime: image/jpeg
+  size: 436745
+  sha256: 8334201baccc8ff3e08bad6275832c99eed1170db513e7b441ad0327137f02be
+  audit: audit/screenshots/screenshot/Screenshot_2026-06-08-08-47-09-37_e4424258c8b8649f6e67d283a50a2cbc.jpg.txt
+  referenced: 2
+- screenshots/upi-qr.png
+  type: image
+  mime: image/png
+  size: 3925
+  sha256: c69334ad93e32cd536d1b41199c2d30312091cdce89bfcb2ecaaf7c5d8250d9f
+  audit: audit/screenshots/upi-qr.png.txt
+  referenced: 0

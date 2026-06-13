@@ -24,6 +24,9 @@
   var _modalOpen = false;
   var _activeTab = 'image';
   var _lastAppliedBlur = 0;
+  var _renderedUrl = null;
+  var _renderedKind = null;
+  var _renderedTarget = null;
 
   function openIdb() {
     return new Promise(function (resolve, reject) {
@@ -310,6 +313,11 @@
   function removeImageLayer() {
     var layer = document.getElementById('__iso_focus_bg_layer__');
     if (layer && layer.parentNode) layer.parentNode.removeChild(layer);
+    if (_renderedKind === 'image') {
+      _renderedUrl = null;
+      _renderedKind = null;
+      _renderedTarget = null;
+    }
   }
 
   function removeVideoLayer() {
@@ -319,6 +327,11 @@
       vid.removeAttribute('src');
       vid.load();
       if (vid.parentNode) vid.parentNode.removeChild(vid);
+    }
+    if (_renderedKind === 'video') {
+      _renderedUrl = null;
+      _renderedKind = null;
+      _renderedTarget = null;
     }
   }
 
@@ -367,6 +380,11 @@
       layer.id = '__iso_focus_bg_layer__';
       layer.setAttribute('aria-hidden', 'true');
     }
+    if (layer.parentNode === el && _renderedUrl === url && _renderedKind === 'image') {
+      observeTarget(el);
+      refreshBlur();
+      return true;
+    }
     if (layer.parentNode !== el) el.appendChild(layer);
     layer.style.cssText = [
       'position:absolute', 'inset:-32px',
@@ -376,6 +394,10 @@
       'transform-origin:center',
       'background-image:' + cssUrl(url),
     ].join(';');
+    layer.setAttribute('data-isotope-bg-url', url);
+    _renderedUrl = url;
+    _renderedKind = 'image';
+    _renderedTarget = el;
     observeTarget(el);
     refreshBlur();
     return true;
@@ -398,6 +420,13 @@
       vid.setAttribute('playsinline', '');
       vid.setAttribute('preload', 'metadata');
       vid.setAttribute('aria-hidden', 'true');
+    }
+    if (vid.parentNode === el && _renderedUrl === url && _renderedKind === 'video') {
+      refreshBlur();
+      var replay = vid.play();
+      if (replay && replay.catch) replay.catch(function () {});
+      observeTarget(el);
+      return true;
     }
     if (vid.parentNode !== el) el.appendChild(vid);
     vid.style.cssText = [
@@ -439,9 +468,22 @@
     vid.load();
     var play = vid.play();
     if (play && play.catch) play.catch(function () {});
+    _renderedUrl = url;
+    _renderedKind = 'video';
+    _renderedTarget = el;
     observeTarget(el);
     refreshBlur();
     return true;
+  }
+
+  function ensureActiveBackground() {
+    if (!_activeUrl || !isOnFocus()) return;
+    if (_renderedUrl === _activeUrl && _renderedKind === _activeKind && _renderedTarget && isVisible(_renderedTarget)) {
+      refreshBlur();
+      return;
+    }
+    if (_activeKind === 'video') applyVideoToDom(_activeUrl);
+    else applyToDom(_activeUrl);
   }
 
   function applyBackground(url, isVideo, ownsObjectUrl) {
@@ -470,6 +512,9 @@
     _objectUrl = null;
     _activeUrl = null;
     _activeKind = 'image';
+    _renderedUrl = null;
+    _renderedKind = null;
+    _renderedTarget = null;
     if (_styleObs) {
       _styleObs.disconnect();
       _styleObs = null;
@@ -906,7 +951,7 @@
     clearTimeout(_routeTimer);
     _routeTimer = setTimeout(function () {
       syncButtonPlacement();
-      if (_activeUrl && isOnFocus()) applyBackground(_activeUrl, _activeKind === 'video', false);
+      ensureActiveBackground();
     }, delay || 120);
   }
 

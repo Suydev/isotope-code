@@ -1,0 +1,168 @@
+Database/Supabase object map
+
+- "avatars: public read" on storage.objects: community-patch-v4.sql
+- "avatars: users manage own" on storage.objects: community-patch-v4.sql
+- "avatars_public_read" on storage.objects: community-patch-v4.sql, isotope-complete.sql, sql/006_security_policy_cleanup.sql
+- "avatars_user_delete_own" on storage.objects: community-patch-v4.sql, isotope-complete.sql, sql/006_security_policy_cleanup.sql
+- "avatars_user_insert_own" on storage.objects: community-patch-v4.sql, isotope-complete.sql, sql/006_security_policy_cleanup.sql
+- "avatars_user_update_own" on storage.objects: community-patch-v4.sql, isotope-complete.sql, sql/006_security_policy_cleanup.sql
+- "backup_manifests_delete_own" on public.backup_manifests: sql/backup_manifests.sql
+- "backup_manifests_insert_own" on public.backup_manifests: sql/backup_manifests.sql
+- "backup_manifests_select_own" on public.backup_manifests: sql/backup_manifests.sql
+- "backup_manifests_update_own" on public.backup_manifests: sql/backup_manifests.sql
+- "notes: users manage own objects" on storage.objects: community-patch-v4.sql
+- "private_content_owner_delete" on storage.objects: community-patch-v4.sql, isotope-complete.sql
+- "private_content_owner_insert" on storage.objects: community-patch-v4.sql, isotope-complete.sql
+- "private_content_owner_read" on storage.objects: community-patch-v4.sql, isotope-complete.sql
+- "private_content_owner_update" on storage.objects: community-patch-v4.sql, isotope-complete.sql
+- "sync_items_delete_own" on public.sync_items: isotope-complete.sql, sql/v3.3.7-sync-schema.sql
+- "sync_items_insert_own" on public.sync_items: isotope-complete.sql, sql/v3.3.7-sync-schema.sql
+- "sync_items_select_own" on public.sync_items: isotope-complete.sql, sql/v3.3.7-sync-schema.sql
+- "sync_items_update_own" on public.sync_items: isotope-complete.sql, sql/v3.3.7-sync-schema.sql
+- "user-content: users manage own objects" on storage.objects: community-patch-v4.sql
+- "user_onboarding_insert_own" on public.user_onboarding: community-patch-v4.sql, isotope-complete.sql
+- "user_onboarding_select_own" on public.user_onboarding: community-patch-v4.sql, isotope-complete.sql
+- "user_onboarding_update_own" on public.user_onboarding: community-patch-v4.sql, isotope-complete.sql
+- "user_tours_own" on public.user_tours: community-patch-v4.sql, isotope-complete.sql
+- AS: isotope-complete.sql
+- IF: isotope-complete.sql
+- auth.email: .github/workflows/schema-lint.yml
+- auth.role: .github/workflows/schema-lint.yml
+- auth.uid: .github/workflows/schema-lint.yml
+- auth.users: .github/workflows/schema-lint.yml
+- backup_manifests_delete_own on public.backup_manifests: isotope-complete.sql
+- backup_manifests_insert_own on public.backup_manifests: isotope-complete.sql
+- backup_manifests_select_own on public.backup_manifests: isotope-complete.sql
+- backup_manifests_update_own on public.backup_manifests: isotope-complete.sql
+- but: community-patch-v4.sql
+- ce_read_public on public.community_events: community-patch-v4.sql, isotope-complete.sql
+- ce_service_write on public.community_events: community-patch-v4.sql, isotope-complete.sql
+- cea_own on public.community_event_attendees: community-patch-v4.sql, isotope-complete.sql
+- cea_read_auth on public.community_event_attendees: community-patch-v4.sql, isotope-complete.sql
+- daily_own on public.daily_user_stats: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- daily_select_all on public.daily_user_stats: isotope-complete.sql, performance-patch.sql
+- daily_user_stats: public/assets/SingleGroup-DU1IhoNK.js
+- gann_read on public.group_announcements: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- gann_write on public.group_announcements: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- gchall_insert on public.group_challenges: community-patch-v4.sql
+- gchall_read on public.group_challenges: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- gchall_update on public.group_challenges: community-patch-v4.sql
+- gchall_write on public.group_challenges: isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- gchat_delete_own on public.group_chat_messages: isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- gchat_insert on public.group_chat_messages: community-patch-v4.sql
+- gchat_read on public.group_chat_messages: community-patch-v4.sql
+- gchat_read_members on public.group_chat_messages: isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- gchat_send on public.group_chat_messages: isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- gcpart_own on public.group_challenge_participants: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- gcpart_read on public.group_challenge_participants: community-patch-v4.sql
+- gcpart_read_members on public.group_challenge_participants: isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- ginv_create on public.group_invites: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- ginv_delete on public.group_invites: community-patch-v4.sql, isotope-complete.sql
+- ginv_read on public.group_invites: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- gm_insert on public.group_members: community-patch-v4.sql, isotope-complete.sql
+- gm_own_delete on public.group_members: community-patch-v4.sql
+- gm_own_write on public.group_members: isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- gm_owner_update on public.group_members: community-patch-v4.sql
+- gm_read on public.group_members: community-patch-v4.sql
+- gm_read_members on public.group_members: isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- gmile_read on public.group_milestones: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- group_announcements: public/assets/SingleGroup-DU1IhoNK.js
+- group_challenge_participants: public/assets/CommunityHub-gANxZssO.js, public/assets/useGroupChallenges-N8BLPr3m.js
+- group_challenges: public/assets/CommunityHub-gANxZssO.js, public/assets/useGroupChallenges-N8BLPr3m.js
+- group_chat_messages: public/assets/GroupChat-j6zM76h9.js
+- group_invites: public/assets/useInvites-D9RLFwf8.js
+- group_members: public/assets/SingleGroup-DU1IhoNK.js, public/assets/useGroupChallenges-N8BLPr3m.js, public/assets/useGroups-vEjDKzZY.js, public/assets/useInvites-D9RLFwf8.js
+- group_milestones: public/assets/SingleGroup-DU1IhoNK.js
+- groups: isotope-complete.sql, public/assets/SingleGroup-DU1IhoNK.js, public/assets/useGroups-vEjDKzZY.js, public/assets/useInvites-D9RLFwf8.js
+- groups_auth_insert on public.groups: community-patch-v4.sql, isotope-complete.sql
+- groups_member_read on public.groups: community-patch-v4.sql, isotope-complete.sql
+- groups_owner_delete on public.groups: community-patch-v4.sql
+- groups_owner_update on public.groups: community-patch-v4.sql
+- groups_owner_write on public.groups: isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- groups_read_active on public.groups: isotope-schema.sql
+- groups_read_public on public.groups: community-patch-v4.sql, isotope-complete.sql
+- inventory_own on public.user_inventory: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- notif_own on public.notifications: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- points_own_write on public.user_points: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- points_read_all on public.user_points: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- presence_own_write on public.user_presence: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- presence_read_auth on public.user_presence: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- profiles_own on public.user_profiles: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql, sql/006_security_policy_cleanup.sql
+- public._is_group_member: community-patch-v4.sql, isotope-complete.sql
+- public.accept_invite: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.backup_manifests: isotope-complete.sql, sql/backup_manifests.sql
+- public.check_user_role: isotope-complete.sql
+- public.cleanup_old_notifications: community-patch-v4.sql, isotope-complete.sql
+- public.community_event_attendees: community-patch-v4.sql, isotope-complete.sql
+- public.community_events: community-patch-v4.sql, isotope-complete.sql
+- public.create_community_event: community-patch-v4.sql, isotope-complete.sql
+- public.create_community_group: isotope-complete.sql
+- public.daily_user_stats: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, sql/v3.3.7-sync-schema.sql
+- public.delete_community_event: community-patch-v4.sql, isotope-complete.sql
+- public.expire_stale_presence: community-patch-v4.sql, isotope-complete.sql
+- public.finish_session_sync: community-patch-v4.sql, isotope-complete.sql
+- public.get_event_attendees: community-patch-v4.sql, isotope-complete.sql
+- public.get_group_analytics_from_snapshots: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.get_group_leaderboard: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.get_invite_details: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.get_leaderboard: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.get_membership_snapshot: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.get_my_group_ids: isotope-complete.sql, performance-patch.sql
+- public.get_my_role: isotope-complete.sql
+- public.group_announcements: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.group_challenge_participants: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.group_challenges: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.group_chat_messages: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.group_invites: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.group_members: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.group_milestones: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.groups: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.handle_new_user: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.handle_new_user_profile: isotope-complete.sql
+- public.is_premium_user: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.join_community_event: community-patch-v4.sql, isotope-complete.sql
+- public.leave_community_event: community-patch-v4.sql, isotope-complete.sql
+- public.notifications: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, sql/v3.3.7-sync-schema.sql
+- public.purchase_store_item: community-patch-v4.sql, isotope-complete.sql
+- public.rls_auto_enable: isotope-complete.sql
+- public.set_group_slug_from_name: isotope-complete.sql
+- public.set_user_tours_updated_at: community-patch-v4.sql, isotope-complete.sql
+- public.store_items: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.study_sessions_log: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, sql/v3.3.7-sync-schema.sql
+- public.sync_group_member_count: isotope-complete.sql
+- public.sync_group_visibility: isotope-complete.sql
+- public.sync_items: isotope-complete.sql, sql/v3.3.7-sync-schema.sql
+- public.sync_user_onboarding_from_profile: community-patch-v4.sql, isotope-complete.sql
+- public.update_community_event: community-patch-v4.sql, isotope-complete.sql
+- public.user_inventory: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.user_onboarding: community-patch-v4.sql, isotope-complete.sql
+- public.user_points: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.user_presence: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.user_profiles: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, sql/006_security_policy_cleanup.sql, sql/v3.3.7-sync-schema.sql
+- public.user_roles: community-patch-v4.sql, isotope-complete.sql
+- public.user_settings: community-patch-v4.sql, isotope-complete.sql, sql/v3.3.7-sync-schema.sql
+- public.user_stats_summary: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- public.user_tours: community-patch-v4.sql, isotope-complete.sql
+- public.users: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, sql/v3.3.7-sync-schema.sql
+- sessions_own on public.study_sessions_log: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- stats_own on public.user_stats_summary: isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- stats_own_write on public.user_stats_summary: community-patch-v4.sql
+- stats_read_all on public.user_stats_summary: community-patch-v4.sql
+- stats_select_all on public.user_stats_summary: isotope-complete.sql, performance-patch.sql
+- storage.buckets: .github/workflows/schema-lint.yml
+- storage.foldername: .github/workflows/schema-lint.yml
+- storage.objects: .github/workflows/schema-lint.yml
+- store_items: public/assets/FocusStore-D5cRXSIr.js
+- store_read_all on public.store_items: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- study_sessions_log: public/assets/SingleGroup-DU1IhoNK.js
+- uroles_own_read on public.user_roles: community-patch-v4.sql, isotope-complete.sql
+- uroles_service_write on public.user_roles: community-patch-v4.sql, isotope-complete.sql
+- user_inventory: public/assets/FocusStore-D5cRXSIr.js
+- user_points: public/assets/FocusStore-D5cRXSIr.js
+- user_profiles: public/assets/App-pJGjDiPw.js, public/assets/MemberProfile-D-l2e-2X.js
+- user_stats_summary: public/assets/MemberProfile-D-l2e-2X.js, public/assets/SingleGroup-DU1IhoNK.js, public/assets/useLeaderboard-BpvH5FXA.js
+- users: public/assets/App-pJGjDiPw.js
+- users_own on public.users: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql, performance-patch.sql
+- users_read_public on public.users: community-patch-v4.sql, isotope-complete.sql, isotope-schema.sql
+- users_select_display on public.users: isotope-complete.sql, performance-patch.sql
+- usettings_own on public.user_settings: community-patch-v4.sql, isotope-complete.sql

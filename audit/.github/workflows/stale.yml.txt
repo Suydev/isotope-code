@@ -1,0 +1,147 @@
+FILE IDENTITY
+
+- original path: .github/workflows/stale.yml
+- audit path: audit/.github/workflows/stale.yml.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: configuration
+- MIME type: application/yaml
+- size in bytes: 1950
+- SHA-256: a711f4a61cb190835456e64e5173ab57e1a24fe803c68a89d5335177747b7d5c
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: CI/CD
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the CI/CD subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: CI/CD
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: active status inferred from path and project role
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+No direct textual consumers found by path/name search.
+
+INTERNAL STRUCTURE
+
+- line count: 60
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- UTC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/codeql.yml:9, .github/workflows/stale.yml:5, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/Analytics-D74gQMjN.js:2, public/assets/IsotopeWrapped2-B4zl9ERi.js:1, public/assets/SessionLogTable-CclRAAwc.js:25, public/assets/SingleGroup-DU1IhoNK.js:1, public/assets/useFocusStore-CX_Nyp1h.js:156, public/assets/useFocusStore-CX_Nyp1h.js:157, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:8698, public/assets/vendor-charts-CFLJvnG7.js:8707
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 59: remove-stale-when-updated: true
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0016-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: .github/workflows/stale.yml inspected; no file-specific high-risk issue confirmed
+  observed evidence: .github/workflows/stale.yml inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: See references and consumers above.
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- No direct consumer found; this uncertainty is explicitly recorded rather than hidden.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the CI/CD subsystem. Its role is determined from path, content, and references.
+- activity status: active status inferred from path and project role
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

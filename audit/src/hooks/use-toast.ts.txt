@@ -1,0 +1,201 @@
+FILE IDENTITY
+
+- original path: src/hooks/use-toast.ts
+- audit path: audit/src/hooks/use-toast.ts.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/typescript
+- size in bytes: 3895
+- SHA-256: 5aab0623ee24bddf9420c259a23a06996292e38ea70eccbac2715516f6d01a0b
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: editable frontend source
+- primary auditor: source-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the editable frontend source subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: editable frontend source
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: source status depends on Vite build path; inspect references and bundle drift
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+No direct textual consumers found by path/name search.
+
+INTERNAL STRUCTURE
+
+- line count: 191
+- imports:
+- 1: import * as React from "react"
+- 3: import type {
+- 6: } from "@/components/ui/toast"
+- exports:
+- 74: export const reducer = (state: State, action: Action): State => {
+- 191: export { useToast, toast }
+- functions/async flows:
+- 27: function genId() {
+- 58: const addToRemoveQueue = (toastId: string) => {
+- 63: const timeout = setTimeout(() => {
+- 74: export const reducer = (state: State, action: Action): State => {
+- 75: switch (action.type) {
+- 95: if (toastId) {
+- 98: state.toasts.forEach((toast) => {
+- 116: if (action.toastId === undefined) {
+- 133: function dispatch(action: Action) {
+- 135: listeners.forEach((listener) => {
+- 142: function toast({ ...props }: Toast) {
+- 158: onOpenChange: (open) => {
+- 171: function useToast() {
+- 174: React.useEffect(() => {
+- 176: return () => {
+- 178: if (index > -1) {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 8: const TOAST_LIMIT = 1
+- 9: const TOAST_REMOVE_DELAY = 1000000
+- 18: const actionTypes = {
+- 25: let count = 0
+- 56: const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
+- 58: const addToRemoveQueue = (toastId: string) => {
+- 63: const timeout = setTimeout(() => {
+- 129: const listeners: Array<(state: State) => void> = []
+- 131: let memoryState: State = { toasts: [] }
+- 143: const id = genId()
+- 145: const update = (props: ToasterToast) =>
+- 150: const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+- 177: const index = listeners.indexOf(setState)
+- handlers/lifecycle candidates:
+- 56: const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
+- 63: const timeout = setTimeout(() => {
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ADD_TOAST: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=src/hooks/use-toast.ts:19, src/hooks/use-toast.ts:36, src/hooks/use-toast.ts:76, src/hooks/use-toast.ts:153
+- DISMISS_TOAST: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=src/hooks/use-toast.ts:21, src/hooks/use-toast.ts:44, src/hooks/use-toast.ts:90, src/hooks/use-toast.ts:150, src/hooks/use-toast.ts:187
+- MAX_SAFE_INTEGER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:4, public/assets/ExamPrimitives-K6hgnm_l.js:23, public/assets/Study-pAdAenIl.js:2111, public/assets/Study-pAdAenIl.js:2112, public/assets/Tasks-BYRFOrek.js:1055, public/assets/useFocusStore-CX_Nyp1h.js:374, public/assets/useFocusStore-CX_Nyp1h.js:928, public/assets/useFocusStore-CX_Nyp1h.js:1492, public/assets/vendor-charts-BN-djq5a.js:20, public/assets/vendor-charts-CFLJvnG7.js:2229, src/hooks/use-toast.ts:28
+- REMOVE_TOAST: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=src/hooks/use-toast.ts:22, src/hooks/use-toast.ts:48, src/hooks/use-toast.ts:66, src/hooks/use-toast.ts:115
+- TOAST_LIMIT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=src/hooks/use-toast.ts:8, src/hooks/use-toast.ts:79
+- TOAST_REMOVE_DELAY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=src/hooks/use-toast.ts:9, src/hooks/use-toast.ts:69
+- UPDATE_TOAST: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=src/hooks/use-toast.ts:20, src/hooks/use-toast.ts:40, src/hooks/use-toast.ts:82, src/hooks/use-toast.ts:147
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 9: const TOAST_REMOVE_DELAY = 1000000
+- 20: UPDATE_TOAST: "UPDATE_TOAST",
+- 22: REMOVE_TOAST: "REMOVE_TOAST",
+- 40: type: ActionType["UPDATE_TOAST"]
+- 48: type: ActionType["REMOVE_TOAST"]
+- 58: const addToRemoveQueue = (toastId: string) => {
+- 64: toastTimeouts.delete(toastId)
+- 66: type: "REMOVE_TOAST",
+- 69: }, TOAST_REMOVE_DELAY)
+- 82: case "UPDATE_TOAST":
+- 96: addToRemoveQueue(toastId)
+- 99: addToRemoveQueue(toast.id)
+- 115: case "REMOVE_TOAST":
+- 145: const update = (props: ToasterToast) =>
+- 147: type: "UPDATE_TOAST",
+- 167: update,
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 1: import * as React from "react"
+- 3: import type {
+- 6: } from "@/components/ui/toast"
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0630-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: src/hooks/use-toast.ts inspected; no file-specific high-risk issue confirmed
+  observed evidence: src/hooks/use-toast.ts inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: See references and consumers above.
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- No direct consumer found; this uncertainty is explicitly recorded rather than hidden.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the editable frontend source subsystem. Its role is determined from path, content, and references.
+- activity status: source status depends on Vite build path; inspect references and bundle drift
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

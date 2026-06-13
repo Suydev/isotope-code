@@ -1,0 +1,203 @@
+FILE IDENTITY
+
+- original path: docs/BUG_FIXES.md
+- audit path: audit/docs/BUG_FIXES.md.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: markdown
+- MIME type: text/markdown
+- size in bytes: 8022
+- SHA-256: ba9d0bd92121d2eb4db5a5f4659f23255ed19b053ab1cb4f787fbe19da7646b7
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: documentation
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: documentation
+- runtime stage: development, installation, or documentation
+- user-visible feature: documentation
+- whether it is active: active status inferred from path and project role
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+No direct textual consumers found by path/name search.
+
+INTERNAL STRUCTURE
+
+- line count: 305
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+- 124: if (data.type === 'ISOTOPE_SW_READY' || data.type === 'ISOTOPE_SW_VERSION') {
+- 127: if (!swActivationReloadGuard && newVersion && newVersion !== state.swVersion) {
+- 156: for (const client of clients) {
+- 161: for (const client of clients) {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 29: const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA;
+- 32: const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
+- 120: var swActivationReloadGuard = false;
+- 123: var data = event.data || {};
+- 125: var newVersion = data.version || '';
+- handlers/lifecycle candidates:
+- 44: - `setInterval()` for update polling never cleaned up
+- 51: window.addEventListener('beforeunload', function () {
+- 122: navigator.serviceWorker.addEventListener('message', function (event) {
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- AGENTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:587, docs/BUG_FIXES.md:305
+- APP_SHA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:29, docs/BUG_FIXES.md:32, docs/BUG_FIXES.md:157, docs/BUG_FIXES.md:163, public/sw.js:6, public/sw.js:8, public/sw.js:9, public/sw.js:174, public/sw.js:185
+- APP_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:29, docs/BUG_FIXES.md:32, docs/BUG_FIXES.md:157, docs/BUG_FIXES.md:163, public/sw.js:5, public/sw.js:8, public/sw.js:9, public/sw.js:174, public/sw.js:185
+- BUGGY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:66
+- CACHE_PREFIX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:29, docs/BUG_FIXES.md:32, public/sw.js:7, public/sw.js:8, public/sw.js:9, public/sw.js:165, public/sw.js:190
+- CORRECT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:75
+- ISOTOPE_SW_READY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:124, docs/BUG_FIXES.md:157, docs/BUG_FIXES.md:163, public/pwa-local.js:176, public/sw.js:174
+- ISOTOPE_SW_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:124, public/pwa-local.js:176, public/sw.js:185
+- NOT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:14, .github/PULL_REQUEST_TEMPLATE.md:15, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125, CHANGELOG.md:96, CHANGELOG.md:269
+- README: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:207, .github/workflows/ci.yml:348, .github/workflows/pages.yml:8, .github/workflows/regenerate-release.yml:112, .github/workflows/release.yml:197, CHANGELOG.md:201, CHANGELOG.md:207, CHANGELOG.md:222, CHANGELOG.md:238, CHANGELOG.md:279, CHANGELOG.md:328, CHANGELOG.md:340
+- RISKY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:185
+- SAFE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:195, docs/sync.html:42
+- SHA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:354, ADMIN.md:356, CHANGELOG.md:251, CHANGELOG.md:295, CHANGELOG.md:312, CHANGELOG.md:317, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:27, docs/BUG_FIXES.md:17, docs/BUG_FIXES.md:22, docs/BUG_FIXES.md:29, docs/BUG_FIXES.md:32, docs/BUG_FIXES.md:68
+- SHELL_CACHE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:29, docs/BUG_FIXES.md:32, public/sw.js:8, public/sw.js:137, public/sw.js:155, public/sw.js:165
+- STARTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:68
+- WITH: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=LICENSE:7, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:913, community-patch-v4.sql:919, community-patch-v4.sql:928, community-patch-v4.sql:937, community-patch-v4.sql:943, community-patch-v4.sql:949, community-patch-v4.sql:960, community-patch-v4.sql:966, community-patch-v4.sql:976, community-patch-v4.sql:990
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+- 122: navigator.serviceWorker.addEventListener('message', function (event) {
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 4: description: Critical PWA stability fixes for service worker, update checker, and offline mode
+- 11: This release includes **7 critical bug fixes** for PWA service worker, update checker, and offline mode stability. All issues have been resolved with comprehensive error handling and memory management improvements.
+- 23: - On app updates, the new cache name wouldn't match old format
+- 39: ### 2. Update Checker Polling Timer Leak
+- 41: **File**: `public/update-checker.js` (Line 212-213)
+- 44: - `setInterval()` for update polling never cleaned up
+- 60: ### 3. Update Dismissal Logic Flaw
+- 62: **File**: `public/update-checker.js` (Line 203)
+- 80: **Impact**: Update banner won't show again for the exact dismissed version, no false positives
+- 84: ### 4. Silent Update Check Failures
+- 86: **File**: `public/update-checker.js` (Line 208)
+- 90: - Users had no visibility into why update checks weren't working
+- 100: console.warn('[IsotopeUpdateChecker] Error:', err.message);
+- 131: window.location.reload();
+- 150: - If a client detaches between `matchAll()` and `postMessage()`, uncaught exception
+- 157: client.postMessage({ type: 'ISOTOPE_SW_READY', version: APP_VERSION, sha: APP_SHA });
+- 163: client.postMessage({ type: 'ISOTOPE_SW_READY', version: APP_VERSION, sha: APP_SHA });
+- 176: **File**: `public/update-checker.js` (Line 129-130)
+- 188: '<span class="iso-tag">Update</span>',
+- 198: '<span class="iso-tag">Update</span>',
+- 212: ### ✅ Update Dismissal
+- 214: 1. Trigger update check
+- 215: 2. Dismiss update banner
+- 243: 1. isotope update (to bump version)
+- 246: 4. Verify old caches are deleted
+- 253: 2. Trigger update check
+- 255: 4. Look for [IsotopeUpdateChecker] prefix on errors
+- 267: - Update via `isotope update` or manual pull + `npm install`
+- 272: - Check browser console for `[IsotopeUpdateChecker]` warnings
+- 288: | `public/update-checker.js` | Dismissal logic + error logging + timer cleanup |
+- 297: 2. **a848d3a** — `public/update-checker.js`: Fix update dismissal logic, add error logging, and prevent timer leaks
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 51: window.addEventListener('beforeunload', function () {
+- 122: navigator.serviceWorker.addEventListener('message', function (event) {
+- 131: window.location.reload();
+- operating-system commands:
+- 267: - Update via `isotope update` or manual pull + `npm install`
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0247-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: docs/BUG_FIXES.md inspected; no file-specific high-risk issue confirmed
+  observed evidence: docs/BUG_FIXES.md inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: See references and consumers above.
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- No direct consumer found; this uncertainty is explicitly recorded rather than hidden.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: active status inferred from path and project role
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

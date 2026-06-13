@@ -1,0 +1,150 @@
+FILE IDENTITY
+
+- original path: start.bat
+- audit path: audit/start.bat.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: script
+- MIME type: application/x-msdos-program
+- size in bytes: 451
+- SHA-256: 77a56f2ebd03fbfd17cc5dc12f390cbea58613e52c112f9a8791dfa4cd070bb6
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: application project
+- primary auditor: installer-platform-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the application project subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: application project
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/ci.yml:196 - start.bat
+- scripts/validate-docs.mjs:209 - 'start.bat',
+
+INTERNAL STRUCTURE
+
+- line count: 25
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ERROR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:87, .github/workflows/schema-lint.yml:152, .github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:163, .github/workflows/schema-lint.yml:165, .github/workflows/schema-lint.yml:168, .github/workflows/schema-lint.yml:171, .github/workflows/schema-lint.yml:190, .github/workflows/schema-lint.yml:205, .github/workflows/schema-lint.yml:207, .github/workflows/schema-lint.yml:220, .github/workflows/schema-lint.yml:222
+- ISO_CMD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=doctor.bat:7, doctor.bat:10, doctor.bat:15, doctor.bat:25, start.bat:7, start.bat:10, start.bat:15, start.bat:25, update.bat:7, update.bat:10, update.bat:15, update.bat:25
+- PROJECT_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:41, bin/isotope.bat:42, bin/isotope.bat:43, bin/isotope.bat:44, bin/isotope.bat:49, bin/isotope.bat:50, bin/isotope.bat:53, bin/isotope.bat:54, bin/isotope.bat:58, bin/isotope.bat:59, bin/isotope.bat:66, bin/isotope.bat:67
+- command-line arguments: script-like file; inspect internal structure for argv/flags
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: shell/OS/platform commands likely required
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0635-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: start.bat inspected; no file-specific high-risk issue confirmed
+  observed evidence: start.bat inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/ci.yml, scripts/validate-docs.mjs
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

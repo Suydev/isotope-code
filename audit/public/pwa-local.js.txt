@@ -1,0 +1,255 @@
+FILE IDENTITY
+
+- original path: public/pwa-local.js
+- audit path: audit/public/pwa-local.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 7995
+- SHA-256: 5a3e9590f8bdf8d8d76a9f3795c90f9a53af20a933239fc3ea809798e77fe68b
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: application project
+- primary auditor: offline-pwa-sync-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the application project subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: application project
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- CHANGELOG.md:119 - - **`sw.js` and `pwa-local.js` cached for 1 hour** — Now served with `Cache-Control: no-cache`.
+- CHANGELOG.md:273 - - `public/pwa-local.js` — replaced aggressive 10-second `setInterval` server poll with a visibility-change listener and a 5-minute background keepalive. Eliminates unnecessary `/api/version` requests while the app is actively in use.
+- docs/BUG_FIXES.md:111 - **File**: `public/pwa-local.js` (Lines 6, 124-131)
+- docs/BUG_FIXES.md:289 - | `public/pwa-local.js` | Reload guard + improved messaging |
+- docs/BUG_FIXES.md:298 - 3. **8b407ea** — `public/pwa-local.js`: Add service worker reload guard and improve client message handling
+- index.html:51 - <script src="/pwa-local.js" defer></script>
+- public/sw.js:31 - '/pwa-local.js',
+- public/sw.js:56 - '/pwa-local.js',
+- server.mjs:119 - '/pwa-local.js',
+- server.mjs:5516 - <script src="/pwa-local.js"></script></head><body><main><h1>Isotope Browser Proof</h1><pre id="log">starting...</pre></main>
+- server.mjs:7640 - ok: fileContains('public/pwa-local.js', "fetch('/api/version'") && fileContains('public/pwa-local.js', 'Browser network is offline') && fileContains('public/pwa-local.js', 'Local server unavailable'),
+
+INTERNAL STRUCTURE
+
+- line count: 236
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+- 16: function ensureStyles() {
+- 39: function statusKind() {
+- 45: function readDismissed() {
+- 49: function isDismissed(kind) {
+- 54: function dismiss(kind) {
+- 63: function clearDismissed() {
+- 67: function readLastSnapshotAt() {
+- 77: function formatSnapshotTime(value) {
+- 88: function renderStatus() {
+- 92: if (!el) {
+- 103: if (!state.browserOnline) {
+- 109: if (!message) {
+- 123: if (close) {
+- 132: function publishStatus() {
+- 148: function checkServer() {
+- 149: if (!navigator.onLine) {
+- 166: function registerServiceWorker() {
+- 176: if (data.type === 'ISOTOPE_SW_READY' || data.type === 'ISOTOPE_SW_VERSION') {
+- 180: if (!swActivationReloadGuard && newVersion && newVersion !== state.swVersion) {
+- 211: function scheduleServerCheck(delayMs) {
+- 216: function init() {
+- 222: if (!document.hidden) {
+- 231: if (document.readyState === 'loading') {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 5: var STATUS_ID = '__iso_offline_status__';
+- 6: var DISMISS_KEY = 'isotope_offline_status_dismissed';
+- 7: var swActivationReloadGuard = false;
+- 8: var state = {
+- 18: var style = document.createElement('style');
+- 50: var d = readDismissed();
+- 68: var boot = window.__ISO_BOOT_STATE__ || {};
+- 71: var last = JSON.parse(localStorage.getItem('isotope_last_cloud_snapshot_user') || 'null');
+- 80: var date = new Date(value);
+- 91: var el = document.getElementById(STATUS_ID);
+- 100: var message = '';
+- 101: var kind = statusKind();
+- 102: var snapshotText = 'Last cloud snapshot: ' + formatSnapshotTime(state.lastSnapshotAt) + '. ';
+- 122: var close = el.querySelector('.dismiss');
+- 175: var data = event.data || {};
+- 177: var newVersion = data.version || '';
+- 178: var newSha = data.sha || '';
+- 209: var _serverCheckTimer = null;
+- handlers/lifecycle candidates:
+- 124: close.onclick = function () {
+- 157: fetch('/api/version', { cache: 'no-store' })
+- 174: navigator.serviceWorker.addEventListener('message', function (event) {
+- 195: window.addEventListener('online', function () {
+- 199: window.addEventListener('offline', function () {
+- 205: window.addEventListener('isotope:boot-state', function () {
+- 213: _serverCheckTimer = setTimeout(checkServer, delayMs);
+- 221: document.addEventListener('visibilitychange', function () {
+- 228: setInterval(checkServer, 5 * 60 * 1000);
+- 232: document.addEventListener('DOMContentLoaded', init);
+
+INPUTS
+
+- parameters: route/request path candidates are listed in Internal Structure
+- environment variables:
+- DISMISS_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=public/pwa-local.js:6, public/pwa-local.js:46, public/pwa-local.js:56, public/pwa-local.js:64, public/update-checker.js:10, public/update-checker.js:12, public/update-checker.js:139, public/update-checker.js:204
+- ISOTOPE_SW_READY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:124, docs/BUG_FIXES.md:157, docs/BUG_FIXES.md:163, public/pwa-local.js:176, public/sw.js:174
+- ISOTOPE_SW_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/BUG_FIXES.md:124, public/pwa-local.js:176, public/sw.js:185
+- SKIP_WAITING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/workbox-window.prod.es5-BIl4cyR9.js:2, public/assets/workbox-window.prod.es5-BIl4cyR9.js:95, public/pwa-local.js:170, public/sw.js:183
+- STATUS_ID: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/pwa-local.js:5, public/pwa-local.js:21, public/pwa-local.js:26, public/pwa-local.js:27, public/pwa-local.js:28, public/pwa-local.js:29, public/pwa-local.js:30, public/pwa-local.js:31, public/pwa-local.js:34, public/pwa-local.js:91, public/pwa-local.js:94
+- command-line arguments: not directly observed
+- request data: route candidates observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+- 46: try { return JSON.parse(localStorage.getItem(DISMISS_KEY) || 'null') || null; } catch (e) { return null; }
+- 56: localStorage.setItem(DISMISS_KEY, JSON.stringify({
+- 64: try { localStorage.removeItem(DISMISS_KEY); } catch (e) {}
+- 71: var last = JSON.parse(localStorage.getItem('isotope_last_cloud_snapshot_user') || 'null');
+- 166: function registerServiceWorker() {
+- 167: if (!('serviceWorker' in navigator)) return;
+- 168: navigator.serviceWorker.register('/sw.js', { scope: '/' })
+- 174: navigator.serviceWorker.addEventListener('message', function (event) {
+- 217: registerServiceWorker();
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 56: localStorage.setItem(DISMISS_KEY, JSON.stringify({
+- 64: try { localStorage.removeItem(DISMISS_KEY); } catch (e) {}
+- 106: message = '<strong>Local server unavailable.</strong> <span>' + snapshotText + 'Browser is online, but the Isotope local server is not responding.</span>';
+- 111: el.classList.remove('show');
+- 116: el.classList.remove('show');
+- 126: el.classList.remove('show');
+- 138: window.dispatchEvent(new CustomEvent('isotope:local-status', { detail: {
+- 157: fetch('/api/version', { cache: 'no-store' })
+- 170: if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+- 184: window.location.reload();
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 9: browserOnline: navigator.onLine,
+- 17: if (document.getElementById('__iso_offline_status_css__')) return;
+- 18: var style = document.createElement('style');
+- 36: document.head.appendChild(style);
+- 46: try { return JSON.parse(localStorage.getItem(DISMISS_KEY) || 'null') || null; } catch (e) { return null; }
+- 56: localStorage.setItem(DISMISS_KEY, JSON.stringify({
+- 64: try { localStorage.removeItem(DISMISS_KEY); } catch (e) {}
+- 68: var boot = window.__ISO_BOOT_STATE__ || {};
+- 71: var last = JSON.parse(localStorage.getItem('isotope_last_cloud_snapshot_user') || 'null');
+- 91: var el = document.getElementById(STATUS_ID);
+- 93: el = document.createElement('div');
+- 97: document.body.appendChild(el);
+- 134: window.__isoLocalStatus = state;
+- 135: window.__isoBrowserOffline = !state.browserOnline;
+- 136: window.__isoLocalServerOffline = state.browserOnline && !state.serverOnline;
+- 138: window.dispatchEvent(new CustomEvent('isotope:local-status', { detail: {
+- 149: if (!navigator.onLine) {
+- 167: if (!('serviceWorker' in navigator)) return;
+- 168: navigator.serviceWorker.register('/sw.js', { scope: '/' })
+- 174: navigator.serviceWorker.addEventListener('message', function (event) {
+- 184: window.location.reload();
+- 193: window.__isoLocalStatus = state;
+- 195: window.addEventListener('online', function () {
+- 199: window.addEventListener('offline', function () {
+- 205: window.addEventListener('isotope:boot-state', function () {
+- 221: document.addEventListener('visibilitychange', function () {
+- 222: if (!document.hidden) {
+- 231: if (document.readyState === 'loading') {
+- 232: document.addEventListener('DOMContentLoaded', init);
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0520-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/pwa-local.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/pwa-local.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: CHANGELOG.md, CHANGELOG.md, docs/BUG_FIXES.md
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

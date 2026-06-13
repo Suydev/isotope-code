@@ -179,6 +179,14 @@ Do not put a service-role key in the browser.
 
 Do not commit `.env`.
 
+### Setup Env Rules
+
+- `.env` is the preferred runtime env file.
+- If `.env` is missing and `yeh.env` exists, setup copies `yeh.env` to `.env`.
+- If `ISOTOPE_ENV_FILE` is set, setup reads that file, copies it to `.env`, and uses the copied values.
+- Existing `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `ENABLE_ADMIN_MODE` values are preserved.
+- If `ENABLE_ADMIN_MODE` is missing, setup writes `ENABLE_ADMIN_MODE=false`.
+
 ## Safe Cloud Backup
 
 The app now uses one backup system.
@@ -284,6 +292,43 @@ node scripts/validate-storage-cleanup.mjs --user <user-id> --dry-run
 | Storage permission error | Re-run `isotope-complete.sql` |
 | Android widget is missing | `isotope reinstall-widgets` |
 | Update failed | `isotope doctor`, then `isotope repair` |
+
+### Runtime Login Bridge And Cache Troubleshooting
+
+Do not test browser globals in the Node REPL. Node has no `window`, so `typeof window.__isoLogin` is not a valid Node check.
+
+Use the browser console on `http://127.0.0.1:3000/auth`:
+
+```js
+typeof window.__isoLogin
+typeof window.__isoUp
+```
+
+Both should return `"function"`.
+
+Use the Node smoke test when a browser is not available:
+
+```bash
+npm run test:auth-bridge
+```
+
+To prove the configured Supabase project can perform the Storage-backed sync path end to end:
+
+```bash
+npm run test:supabase-sync
+```
+
+If a stale PWA or browser cache is serving old runtime files, clear runtime caches from the browser console:
+
+```js
+caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload())
+```
+
+If the top-right cloud sync button says `Authentication required`, the browser is not holding a valid Supabase session even if the app shell still looks logged in. Sign out, sign in again through `/auth`, then run:
+
+```js
+typeof window.__isoGetValidJwt
+```
 
 ## For Contributors
 

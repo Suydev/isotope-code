@@ -1,0 +1,174 @@
+FILE IDENTITY
+
+- original path: public/assets/useUIStore-JhKp1ywd.js
+- audit path: audit/public/assets/useUIStore-JhKp1ywd.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 803
+- SHA-256: 493b2b75357bdf3794ae6f7dd9d42e5d3a9790f7b452e8281c6af274b1dde28e
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3394 - "file": "useUIStore-JhKp1ywd.js",
+- artifacts/asset-diff/asset-report.json:3397 - "remote_url": "https://isotopeai.in/assets/useUIStore-JhKp1ywd.js",
+- artifacts/asset-diff/local-assets.txt:189 - useUIStore-JhKp1ywd.js
+- artifacts/asset-diff/summary.md:163 - | useUIStore-JhKp1ywd.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/AppAccessGate-B975UtK7.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-C
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:6 - } from "./useUIStore-JhKp1ywd.js";
+- public/assets/QuickActionsMenu-ojdsCiqG.js:13 - } from "./useUIStore-JhKp1ywd.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:13 - } from "./useUIStore-JhKp1ywd.js";
+
+INTERNAL STRUCTURE
+
+- line count: 36
+- imports:
+- 1: import {
+- 3: } from "./App-pJGjDiPw.js";
+- exports:
+- 34: export {
+- functions/async flows:
+- 6: toggleQuickChat: a => {
+- 13: toggleTaskModal: a => {
+- 20: toggleExamModal: a => {
+- 27: toggleQuickActions: a => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 4: const n = e((s, o) => ({
+- 7: const i = a !== void 0 ? a : !o().isQuickChatOpen;
+- 14: const i = a !== void 0 ? a : !o().isTaskModalOpen;
+- 21: const i = a !== void 0 ? a : !o().isExamModalOpen;
+- 28: const i = a !== void 0 ? a : !o().isQuickActionsOpen;
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+No environment variable names observed.
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 1: import {
+- 3: } from "./App-pJGjDiPw.js";
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0462-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/useUIStore-JhKp1ywd.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/useUIStore-JhKp1ywd.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 803
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - none found by direct text search

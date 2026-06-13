@@ -1,0 +1,5 @@
+Data-loss risks
+
+- Sync/local restore paths should be tested for empty backup, partial IndexedDB failure, stale IndexedDB shadowing localStorage, and timestamp clock skew.
+- Specialist evidence: local-data-adapter reads/writes IndexedDB and localStorage and may clear stores during restore. See audit/public/sync/local-data-adapter.js.txt.
+- Backup normalizer merge behavior should be verified with rich-vs-empty fixtures. See audit/public/sync/backup-normalizer.js.txt when present.

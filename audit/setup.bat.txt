@@ -1,0 +1,209 @@
+FILE IDENTITY
+
+- original path: setup.bat
+- audit path: audit/setup.bat.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: script
+- MIME type: application/x-msdos-program
+- size in bytes: 4183
+- SHA-256: 8c4bc4505a1186067f08de6b0c065be7c700fcfe124218f566b4bd7e57bacc45
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: installer/platform
+- primary auditor: installer-platform-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+
+ROLE IN THE APPLICATION
+
+- subsystem: installer/platform
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/labeler.yml:26 - - 'setup.bat'
+- .github/workflows/ci.yml:189 - setup.bat
+- CHANGELOG.md:255 - | 9 | Setup scripts syntax | ✅ `bash -n setup.sh` passes; `setup.bat`, `update.bat` present and reviewed |
+- CHANGELOG.md:267 - - `.env.example` — required template for first-time setup; `setup.sh` and `setup.bat` now copy it correctly without erroring on a missing file.
+- CHANGELOG.md:385 - - Safer cross-platform `setup.sh`, `update.sh`, `setup.bat`, `update.bat`, and `install.ps1`.
+- README.md:108 - setup.bat
+- bin/isotope.bat:25 - echo ERROR: Could not find Isotope project. Run setup.bat from the project folder.
+- doctor.bat:20 - echo Run setup.bat first to install the global command.
+- public/update-checker.js:29 - if (/Windows/i.test(ua)) return 'Windows: open Command Prompt or PowerShell and run isotope update. If missing, run setup.bat again.';
+- scripts/validate-docs.mjs:133 - ['setup.bat',      'setup.bat'],
+- scripts/validate-docs.mjs:202 - 'setup.bat',
+- server.mjs:2966 - return 'Windows: open Command Prompt or PowerShell and run isotope update. If the command is not installed, run setup.bat again.';
+- start.bat:20 - echo Run setup.bat first to install the global command.
+- update.bat:20 - echo Run setup.bat first to install the global command.
+
+INTERNAL STRUCTURE
+
+- line count: 116
+- imports:
+- 69: if not "%NEW_SUPA_URL%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_URL',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;retur
+- 71: if not "%NEW_ANON%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_ANON_KEY',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;retu
+- 73: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l
+- exports:
+None observed.
+- functions/async flows:
+- 69: if not "%NEW_SUPA_URL%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_URL',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;retur
+- 71: if not "%NEW_ANON%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_ANON_KEY',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;retu
+- 73: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ERROR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:87, .github/workflows/schema-lint.yml:152, .github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:163, .github/workflows/schema-lint.yml:165, .github/workflows/schema-lint.yml:168, .github/workflows/schema-lint.yml:171, .github/workflows/schema-lint.yml:190, .github/workflows/schema-lint.yml:205, .github/workflows/schema-lint.yml:207, .github/workflows/schema-lint.yml:220, .github/workflows/schema-lint.yml:222
+- ISO_BIN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=setup.bat:92, setup.bat:95, setup.bat:97, setup.bat:98, setup.bat:101, setup.bat:103, setup.bat:112
+- ISO_HOME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:20, bin/isotope:21, bin/isotope:22, bin/isotope:23, bin/isotope:24, bin/isotope:47, bin/isotope.bat:4, bin/isotope.bat:5, bin/isotope.bat:6, bin/isotope.bat:7, bin/isotope.bat:8, bin/isotope.bat:13
+- LSS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=setup.bat:43
+- LTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install.ps1:30, setup.bat:25
+- NEW_ANON: classification=public/configuration; required=unknown from static map; inspect use locations; uses=setup.bat:70, setup.bat:71
+- NEW_SUPA_URL: classification=public/configuration; required=unknown from static map; inspect use locations; uses=setup.bat:68, setup.bat:69
+- NODE_MAJOR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:199, install-termux.sh:200, install-termux.sh:224, install-termux.sh:225, setup.bat:42, setup.bat:43
+- NO_START: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:23, install-termux.sh:28, install-termux.sh:303, setup.bat:5, setup.bat:7, setup.bat:110, setup.sh:19, setup.sh:31, setup.sh:35, setup.sh:79, setup.sh:487
+- PATH: classification=secret; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:288, TERMUX_WIDGET.md:114, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:21, bin/isotope:52, bin/isotope:64, bin/isotope:65, bin/isotope:414, bin/isotope:416, install.ps1:83, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup-termux-widget.sh:27
+- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
+- PORT_VALUE: classification=public/configuration; required=optional/defaulted; uses=bin/isotope.bat:65, bin/isotope.bat:68, bin/isotope.bat:72, bin/isotope.bat:74, bin/isotope.bat:98, bin/isotope.bat:105, bin/isotope.bat:108, bin/isotope.bat:208, bin/isotope.bat:209, bin/isotope.bat:238, bin/isotope.bat:241, install-termux.sh:19
+- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
+- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
+- USERPROFILE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:4, bin/isotope.bat:57, bin/isotope.bat:58, install.ps1:73, install.ps1:74, setup.bat:91, setup.bat:92
+- WARN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:30, bin/isotope.bat:238, bin/isotope.bat:239, install-termux.sh:54, public/assets/messaging-BP0KfJxy.js:622, public/assets/messaging-BP0KfJxy.js:628, public/assets/messaging-BP0KfJxy.js:637, public/assets/messaging-BP0KfJxy.js:684, setup-termux-widget.sh:10, setup.bat:50, setup.bat:51, setup.sh:44
+- command-line arguments: script-like file; inspect internal structure for argv/flags
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: filesystem or asset file dependency likely
+- database data:
+None observed.
+- network responses:
+- http://127.0.0.1:%PORT_VALUE%
+- https://nodejs.org
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 51: where git >nul 2>nul && echo Git ready. || echo WARN: Git not found. isotope update needs Git.
+- 69: if not "%NEW_SUPA_URL%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_URL',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;return k+'='+v}return l});if(!d)t.push(k+'='+
+- 71: if not "%NEW_ANON%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_ANON_KEY',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;return k+'='+v}return l});if(!d)t.push(k+'='
+- 73: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l.slice(0,i).trim()===k)return l.slice(i+
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: shell/OS/platform commands likely required
+- Node core modules:
+- 37: echo ERROR: Node.js 18+ is required. Install it from https://nodejs.org and run setup.bat again.
+- 69: if not "%NEW_SUPA_URL%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_URL',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;return k+'='+v}return l});if(!d)t.push(k+'='+
+- 71: if not "%NEW_ANON%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_ANON_KEY',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;return k+'='+v}return l});if(!d)t.push(k+'='
+- 73: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l.slice(0,i).trim()===k)return l.slice(i+
+- 96: >"%ISO_HOME%\project-path" echo %CD%
+- 107: echo Local URL: http://127.0.0.1:%PORT_VALUE%
+- external libraries:
+- 69: if not "%NEW_SUPA_URL%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_URL',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;retur
+- 71: if not "%NEW_ANON%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_ANON_KEY',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;retu
+- 73: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 21: where node >nul 2>nul
+- 28: where git >nul 2>nul
+- 35: where node >nul 2>nul
+- 42: for /f %%v in ('node -e "process.stdout.write(process.versions.node.split('.')[0])"') do set NODE_MAJOR=%%v
+- 50: where npm >nul 2>nul && echo npm ready. || echo WARN: npm not found. npm install will be skipped.
+- 51: where git >nul 2>nul && echo Git ready. || echo WARN: Git not found. isotope update needs Git.
+- 65: echo It is not website hosting. The app runs locally through node server.mjs.
+- 69: if not "%NEW_SUPA_URL%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_URL',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;return k+'='+v}return l});if(!d)t.push(k+'='+
+- 71: if not "%NEW_ANON%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_ANON_KEY',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;return k+'='+v}return l});if(!d)t.push(k+'='
+- 73: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l.slice(0,i).trim()===k)return l.slice(i+
+- 81: where npm >nul 2>nul
+- 82: if not errorlevel 1 npm install
+- 85: node --check server.mjs
+- Supabase interfaces:
+- 11: echo This is a downloadable local app. Supabase is used only for cloud sync/backend services.
+- 64: echo Supabase is used for auth, database, storage, realtime, and community sync.
+- 68: set /p NEW_SUPA_URL=SUPABASE_URL:
+- 69: if not "%NEW_SUPA_URL%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_URL',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;return k+'='+v}return l});if(!d)t.push(k+'='+
+- 70: set /p NEW_ANON=SUPABASE_ANON_KEY:
+- 71: if not "%NEW_ANON%"=="" node -e "const fs=require('fs');const f='.env',k='SUPABASE_ANON_KEY',v=process.argv[1];let t=fs.readFileSync(f,'utf8').split(/\r?\n/),d=false;t=t.map(l=>{if(l.trim().startsWith(k+'=')){d=true;return k+'='+v}return l});if(!d)t.push(k+'='
+- 73: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l.slice(0,i).trim()===k)return l.slice(i+
+- 78: echo Supabase cloud sync config is present. Secrets were not printed.
+- external services: http://127.0.0.1:%PORT_VALUE%, https://nodejs.org
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0567-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: setup.bat inspected; no file-specific high-risk issue confirmed
+  observed evidence: setup.bat inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/labeler.yml, .github/workflows/ci.yml, CHANGELOG.md
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

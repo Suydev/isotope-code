@@ -1,0 +1,427 @@
+FILE IDENTITY
+
+- original path: public/assets/AppAccessGate-B975UtK7.js
+- audit path: audit/public/assets/AppAccessGate-B975UtK7.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 33135
+- SHA-256: fa6cd0b81baf029d7a91a00b775a84e31195b6d9efef8018e33f4cda16f3bc05
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:208 - "file": "AppAccessGate-B975UtK7.js",
+- artifacts/asset-diff/asset-report.json:211 - "remote_url": "https://isotopeai.in/assets/AppAccessGate-B975UtK7.js",
+- artifacts/asset-diff/local-assets.txt:12 - AppAccessGate-B975UtK7.js
+- artifacts/asset-diff/summary.md:49 - | AppAccessGate-B975UtK7.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/App-pJGjDiPw.js:8385 - import ("./AppAccessGate-B975UtK7.js").then(a => a.A), __vite__mapDeps([75, 2, 1, 3, 7, 62, 20, 21, 22, 76, 77, 15, 8, 5, 12, 25, 66, 67, 69, 10, 11]))),
+- public/assets/bootstrap-D1vc155U.js:3 - } from "./AppAccessGate-B975UtK7.js";
+- public/sw.js:75 - '/assets/AppAccessGate-B975UtK7.js',
+- server.mjs:137 - '/assets/AppAccessGate-B975UtK7.js',
+- server.mjs:3997 - const APP_ACCESS_GATE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'AppAccessGate-B975UtK7.js');
+
+INTERNAL STRUCTURE
+
+- line count: 810
+- imports:
+- 2: import {
+- 5: } from "./vendor-react-BfU3Zn2J.js";
+- 6: import {
+- 8: } from "./index-BPYJFSVW.js";
+- 9: import {
+- 11: } from "./useOnlineStatus-BJOTUERN.js";
+- 12: import {
+- 14: } from "./TaskController-BUyiMYKC.js";
+- 15: import {
+- 18: } from "./index-B45N-99N.js";
+- 19: import {
+- 30: } from "./App-pJGjDiPw.js";
+- 31: import {
+- 34: } from "./useSyncStore-vWs_TdIc.js";
+- 35: import {
+- 41: } from "./vendor-icons-CqruUz7g.js";
+- 42: import {
+- 45: } from "./QueryProvider-DusNhG9D.js";
+- 46: import {
+- 50: } from "./vendor-router-CmoTwRnm.js";
+- 51: import {
+- 56: } from "./useFocusStore-CX_Nyp1h.js";
+- 57: import {
+- 62: } from "./useAIStore-B2cv1FZz.js";
+- 63: import {
+- 67: } from "./NetworkRequiredState-O9ZdVBEy.js";
+- exports:
+- 808: export {
+- functions/async flows:
+- 68: const Re = () => {
+- 100: onClick: () => {
+- 115: Ce = () => {
+- 121: return p.useEffect(() => {
+- 122: if (!e || !s) {
+- 127: }, [a, e, s, t]), p.useEffect(() => {
+- 129: const l = window.setTimeout(() => {
+- 168: ze = () => {
+- 171: const s = () => {
+- 174: t = () => {
+- 234: Qe = () => {
+- 247: return p.useEffect(() => {
+- 248: if (!s || !e) {
+- 253: const g = window.setTimeout(() => {
+- 254: if (typeof window.requestIdleCallback == "function") {
+- 255: i = window.requestIdleCallback(() => {
+- 264: return () => {
+- 267: }, [e, s, l]), p.useEffect(() => {
+- 269: const i = async () => {
+- 273: const g = window.setInterval(() => {
+- 277: }, [n, e, s, u, t, a]), p.useEffect(() => {
+- 284: Xe = () => {
+- 292: He = async () => {
+- 295: } = await x(async () => {
+- 306: qe = () => {
+- 308: return p.useEffect(() => {
+- 310: n.current = !0, (async () => {
+- 322: }, [l, Q]), p.useEffect(() => {
+- 326: u.current = o, s(!1), X(), (async () => {
+- 351: Ze = e => {
+- 358: tt = (e, s, t) => {
+- 363: ie = () => {
+- 367: for (let t = 0; t < window.localStorage.length; t += 1) {
+- 371: if (!n) {
+- 385: j = e => {
+- 393: ot = (e, s) => {
+- 395: return Array.isArray(t) ? t.filter(a => a !== null && typeof a == "object").map(a => {
+- 410: D = () => {
+- 412: for (let s = 0; s < window.localStorage.length; s += 1) {
+- 418: pe = async (e, s, t) => {
+- 451: if (g.length === 0) {
+- 462: if (n) {
+- 469: if (u) {
+- 476: if (l) {
+- 478: if (d && typeof d == "object") {
+- 487: me = async (e, s, t, a) => {
+- 489: if (n.length === 0) {
+- 497: for (const l of n) {
+- 499: if (d === null) {
+- 516: fe = (e, s) => {
+- 517: for (const t of e) {
+- 524: dt = async () => {
+- 555: ut = async e => {
+- 624: b = e => {
+- 630: ft = e => (B.add(e), e(y), () => {
+- 633: Nt = async () => _ || (_ = (async () => {
+- 659: const t = await ut(a => {
+- 689: })(), _.finally(() => {
+- 692: gt = () => {
+- 694: if (p.useEffect(() => ft(a => {
+- 733: }) => {
+- 774: if (s === "private") {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.
+- 68: const Re = () => {
+- 73: const n = t === "syncing";
+- 116: const e = f(l => l.isTemporaryLocalSession),
+- 129: const l = window.setTimeout(() => {
+- 169: const e = ve();
+- 171: const s = () => {
+- 235: const e = f(i => i.isAuthenticated),
+- 252: let i = null;
+- 253: const g = window.setTimeout(() => {
+- 269: const i = async () => {
+- 273: const g = window.setInterval(() => {
+- 320: const q = Q();
+- 324: const o = `${h?i??"unknown":"guest"}:${g}`;
+- 329: const k = f.getState(),
+- 335: const R = f.getState();
+- 337: const ge = await (await ke()).canBootstrapFromCloud(R.userId, !0);
+- 352: const s = e.split("__");
+- 354: const t = Number(s[2]);
+- 365: const e = Date.now(),
+- 368: const a = window.localStorage.key(t);
+- 370: const n = Ze(a);
+- 394: const t = j(e);
+- 396: const n = a.createdAt ?? new Date().toISOString(),
+- 411: const e = [];
+- 413: const t = window.localStorage.key(s);
+- 419: const a = [{
+- 448: const i = window.localStorage.getItem(d);
+- 450: const g = ot(i, d);
+- 461: const n = window.localStorage.getItem(c.USER_PROFILE);
+- 463: const d = j(n);
+- 468: const u = window.localStorage.getItem(c.TIMER_STATE);
+- 470: const d = j(u);
+- 475: const l = window.localStorage.getItem(c.SYNC_METADATA);
+- 477: const d = j(l);
+- 479: const h = Object.entries(d).filter(([i, g]) => !!i && typeof g == "string").map(([i, g]) => ({
+- 488: const n = e.filter(l => !ue.has(l));
+- 496: let u = 0;
+- 498: const d = window.localStorage.getItem(l);
+- 509: const h = 45 + Math.floor(u / n.length * 25);
+- 518: const a = window.localStorage.getItem(t);
+- 530: const e = D();
+- 536: const s = [],
+- 540: const a = Date.now();
+- 561: const s = D();
+- 571: const t = [],
+- 581: const n = Date.now();
+- 621: let y = pt,
+- 623: const B = new Set,
+- 659: const t = await ut(a => {
+- 697: const t = e.status === "error";
+- 734: const a = qe(),
+- 747: const F = typeof window < "u" ? window.__ISO_BOOT_STATE__ : null,
+- handlers/lifecycle candidates:
+- 129: const l = window.setTimeout(() => {
+- 253: const g = window.setTimeout(() => {
+- 273: const g = window.setInterval(() => {
+
+INPUTS
+
+- parameters: route/request path candidates are listed in Internal Structure
+- environment variables:
+- B45N: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2890, artifacts/asset-diff/asset-report.json:2893, artifacts/asset-diff/local-assets.txt:161, artifacts/asset-diff/summary.md:140, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1, public/assets/AppAccessGate-B975UtK7.js:18, public/assets/bootstrap-D1vc155U.js:21, public/assets/useSyncStore-vWs_TdIc.js:1, public/assets/useSyncStore-vWs_TdIc.js:22, public/sw.js:35
+- BJOTUERN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3322, artifacts/asset-diff/asset-report.json:3325, artifacts/asset-diff/local-assets.txt:185, artifacts/asset-diff/summary.md:22, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- BPYJFSVW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2908, artifacts/asset-diff/asset-report.json:2911, artifacts/asset-diff/local-assets.txt:162, artifacts/asset-diff/summary.md:141, public/assets/AIAssistant--spCOe6W.js:58, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsTasks-DOfUf9Sd.js:1
+- BX2: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3142, artifacts/asset-diff/asset-report.json:3145, artifacts/asset-diff/local-assets.txt:175, artifacts/asset-diff/summary.md:21, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- DAILY_LOGS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:72, public/assets/App-pJGjDiPw.js:838, public/assets/App-pJGjDiPw.js:949, public/assets/App-pJGjDiPw.js:956, public/assets/App-pJGjDiPw.js:1125, public/assets/App-pJGjDiPw.js:1132, public/assets/App-pJGjDiPw.js:1135, public/assets/App-pJGjDiPw.js:1553, public/assets/App-pJGjDiPw.js:1803, public/assets/App-pJGjDiPw.js:1807, public/assets/App-pJGjDiPw.js:1812, public/assets/App-pJGjDiPw.js:4234
+- EXAMS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:74, public/assets/App-pJGjDiPw.js:844, public/assets/App-pJGjDiPw.js:1153, public/assets/App-pJGjDiPw.js:1157, public/assets/App-pJGjDiPw.js:1161, public/assets/App-pJGjDiPw.js:1162, public/assets/App-pJGjDiPw.js:1165, public/assets/App-pJGjDiPw.js:1555, public/assets/App-pJGjDiPw.js:1834, public/assets/App-pJGjDiPw.js:1838, public/assets/App-pJGjDiPw.js:1850, public/assets/App-pJGjDiPw.js:4238
+- HABITS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:69, public/assets/App-pJGjDiPw.js:835, public/assets/App-pJGjDiPw.js:949, public/assets/App-pJGjDiPw.js:1073, public/assets/App-pJGjDiPw.js:1077, public/assets/App-pJGjDiPw.js:1080, public/assets/App-pJGjDiPw.js:1081, public/assets/App-pJGjDiPw.js:1086, public/assets/App-pJGjDiPw.js:1552, public/assets/App-pJGjDiPw.js:1746, public/assets/App-pJGjDiPw.js:1750, public/assets/App-pJGjDiPw.js:1753
+- MOCK_TESTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:75, public/assets/App-pJGjDiPw.js:847, public/assets/App-pJGjDiPw.js:1168, public/assets/App-pJGjDiPw.js:1172, public/assets/App-pJGjDiPw.js:1175, public/assets/App-pJGjDiPw.js:1176, public/assets/App-pJGjDiPw.js:1183, public/assets/App-pJGjDiPw.js:1184, public/assets/App-pJGjDiPw.js:1187, public/assets/App-pJGjDiPw.js:1556, public/assets/App-pJGjDiPw.js:1853, public/assets/App-pJGjDiPw.js:1857
+- SCHEMA_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:76, public/assets/App-pJGjDiPw.js:945, public/assets/AppAccessGate-B975UtK7.js:380, public/assets/analyticsWorker-BnmTlfYB.js:1, public/assets/analyticsWorker-BnmTlfYB.js:6, public/assets/index-qd2KF3Jd.js:26, public/assets/index-qd2KF3Jd.js:31
+- SESSIONS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Analytics-D74gQMjN.js:2, public/assets/App-pJGjDiPw.js:67, public/assets/App-pJGjDiPw.js:829, public/assets/App-pJGjDiPw.js:949, public/assets/App-pJGjDiPw.js:1036, public/assets/App-pJGjDiPw.js:1040, public/assets/App-pJGjDiPw.js:1043, public/assets/App-pJGjDiPw.js:1044, public/assets/App-pJGjDiPw.js:1050, public/assets/App-pJGjDiPw.js:1051, public/assets/App-pJGjDiPw.js:1054, public/assets/App-pJGjDiPw.js:1550
+- SUBJECTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsToday-BTdRNTb0.js:8, public/assets/App-pJGjDiPw.js:68, public/assets/App-pJGjDiPw.js:832, public/assets/App-pJGjDiPw.js:949, public/assets/App-pJGjDiPw.js:1057, public/assets/App-pJGjDiPw.js:1061, public/assets/App-pJGjDiPw.js:1064, public/assets/App-pJGjDiPw.js:1065, public/assets/App-pJGjDiPw.js:1070, public/assets/App-pJGjDiPw.js:1551, public/assets/App-pJGjDiPw.js:1729
+- SYNC_METADATA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:77, public/assets/App-pJGjDiPw.js:1003, public/assets/App-pJGjDiPw.js:1010, public/assets/App-pJGjDiPw.js:1011, public/assets/AppAccessGate-B975UtK7.js:380, public/assets/AppAccessGate-B975UtK7.js:475, public/assets/AppAccessGate-B975UtK7.js:483, public/assets/AppAccessGate-B975UtK7.js:484, public/assets/analyticsWorker-BnmTlfYB.js:1, public/assets/analyticsWorker-BnmTlfYB.js:6, public/assets/index-qd2KF3Jd.js:26, public/assets/index-qd2KF3Jd.js:31
+- TASKS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:66, public/assets/App-pJGjDiPw.js:826, public/assets/App-pJGjDiPw.js:949, public/assets/App-pJGjDiPw.js:1015, public/assets/App-pJGjDiPw.js:1019, public/assets/App-pJGjDiPw.js:1022, public/assets/App-pJGjDiPw.js:1023, public/assets/App-pJGjDiPw.js:1029, public/assets/App-pJGjDiPw.js:1030, public/assets/App-pJGjDiPw.js:1033, public/assets/App-pJGjDiPw.js:1549, public/assets/App-pJGjDiPw.js:1677
+- TESTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:73, public/assets/App-pJGjDiPw.js:75, public/assets/App-pJGjDiPw.js:841, public/assets/App-pJGjDiPw.js:847, public/assets/App-pJGjDiPw.js:1138, public/assets/App-pJGjDiPw.js:1142, public/assets/App-pJGjDiPw.js:1146, public/assets/App-pJGjDiPw.js:1147, public/assets/App-pJGjDiPw.js:1150, public/assets/App-pJGjDiPw.js:1168, public/assets/App-pJGjDiPw.js:1172, public/assets/App-pJGjDiPw.js:1175
+- TIMER_STATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:71, public/assets/App-pJGjDiPw.js:1108, public/assets/App-pJGjDiPw.js:1119, public/assets/App-pJGjDiPw.js:1122, public/assets/App-pJGjDiPw.js:6936, public/assets/AppAccessGate-B975UtK7.js:380, public/assets/AppAccessGate-B975UtK7.js:468, public/assets/AppAccessGate-B975UtK7.js:473, public/assets/analyticsWorker-BnmTlfYB.js:1, public/assets/analyticsWorker-BnmTlfYB.js:6, public/assets/index-qd2KF3Jd.js:26, public/assets/index-qd2KF3Jd.js:31
+- USER_PROFILE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:70, public/assets/App-pJGjDiPw.js:949, public/assets/App-pJGjDiPw.js:1091, public/assets/App-pJGjDiPw.js:1103, public/assets/App-pJGjDiPw.js:6933, public/assets/AppAccessGate-B975UtK7.js:380, public/assets/AppAccessGate-B975UtK7.js:461, public/assets/AppAccessGate-B975UtK7.js:466, public/assets/analyticsWorker-BnmTlfYB.js:1, public/assets/analyticsWorker-BnmTlfYB.js:6, public/assets/index-qd2KF3Jd.js:26, public/assets/index-qd2KF3Jd.js:31
+- command-line arguments: not directly observed
+- request data: route candidates observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+- 350: de = () => typeof window < "u" && typeof window.localStorage < "u",
+- 360: window.localStorage.setItem(et(e, s), t)
+- 367: for (let t = 0; t < window.localStorage.length; t += 1) {
+- 368: const a = window.localStorage.key(t);
+- 377: for (const t of s) window.localStorage.removeItem(t)
+- 379: O = "indexeddb_migration_complete_v3",
+- 384: L = () => typeof window < "u" && typeof window.localStorage < "u",
+- 412: for (let s = 0; s < window.localStorage.length; s += 1) {
+- 413: const t = window.localStorage.key(s);
+- 448: const i = window.localStorage.getItem(d);
+- 461: const n = window.localStorage.getItem(c.USER_PROFILE);
+- 468: const u = window.localStorage.getItem(c.TIMER_STATE);
+- 475: const l = window.localStorage.getItem(c.SYNC_METADATA);
+- 498: const d = window.localStorage.getItem(l);
+- 518: const a = window.localStorage.getItem(t);
+- 519: a !== null && (tt(s, t, a), window.localStorage.removeItem(t))
+- 586: error: `Migration skipped ${a.length} legacy key(s); kept them in localStorage for retry`
+- 637: message: "Checking IndexedDB availability",
+- 639: }), !await w.isAvailable()) return C("IndexedDB is unavailable in this browser session. Keeping the app in local backup mode."), b({
+- 642: message: "IndexedDB is unavailable; startup continued in local backup mode",
+- 643: error: "IndexedDB unavailable"
+- 649: message: "No legacy localStorage data found",
+- 657: message: "Migrating legacy localStorage data"
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 172: Se(), se.clear(), window.location.replace("/dashboard")
+- 177: }), window.location.reload()
+- 360: window.localStorage.setItem(et(e, s), t)
+- 377: for (const t of s) window.localStorage.removeItem(t)
+- 379: O = "indexeddb_migration_complete_v3",
+- 397: u = a.updatedAt ?? n;
+- 401: updatedAt: u
+- 404: updatedAt: u
+- 506: console.error(`[Migration] Failed to migrate KV key: ${l}`, i), t.push(l)
+- 519: a !== null && (tt(s, t, a), window.localStorage.removeItem(t))
+- 547: return console.error("[Migration] Failed to migrate orphaned keys:", a), {
+- 631: B.delete(e)
+- 637: message: "Checking IndexedDB availability",
+- 639: }), !await w.isAvailable()) return C("IndexedDB is unavailable in this browser session. Keeping the app in local backup mode."), b({
+- 642: message: "IndexedDB is unavailable; startup continued in local backup mode",
+- 643: error: "IndexedDB unavailable"
+- 722: onClick: () => window.location.reload(),
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 2: import {
+- 5: } from "./vendor-react-BfU3Zn2J.js";
+- 6: import {
+- 8: } from "./index-BPYJFSVW.js";
+- 9: import {
+- 11: } from "./useOnlineStatus-BJOTUERN.js";
+- 12: import {
+- 14: } from "./TaskController-BUyiMYKC.js";
+- 15: import {
+- 18: } from "./index-B45N-99N.js";
+- 19: import {
+- 30: } from "./App-pJGjDiPw.js";
+- 31: import {
+- 34: } from "./useSyncStore-vWs_TdIc.js";
+- 35: import {
+- 41: } from "./vendor-icons-CqruUz7g.js";
+- 42: import {
+- 45: } from "./QueryProvider-DusNhG9D.js";
+- 46: import {
+- 50: } from "./vendor-router-CmoTwRnm.js";
+- 51: import {
+- 56: } from "./useFocusStore-CX_Nyp1h.js";
+- 57: import {
+- 62: } from "./useAIStore-B2cv1FZz.js";
+- 63: import {
+- 67: } from "./NetworkRequiredState-O9ZdVBEy.js";
+- local files: see References and Consumers above
+- browser APIs:
+- 1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-CrO6t5EW.css", "asset
+- 129: const l = window.setTimeout(() => {
+- 132: return () => window.clearTimeout(l)
+- 172: Se(), se.clear(), window.location.replace("/dashboard")
+- 177: }), window.location.reload()
+- 253: const g = window.setTimeout(() => {
+- 254: if (typeof window.requestIdleCallback == "function") {
+- 255: i = window.requestIdleCallback(() => {
+- 265: window.clearTimeout(g), i !== null && window.cancelIdleCallback ?.(i)
+- 273: const g = window.setInterval(() => {
+- 276: return () => window.clearInterval(g)
+- 350: de = () => typeof window < "u" && typeof window.localStorage < "u",
+- 360: window.localStorage.setItem(et(e, s), t)
+- 367: for (let t = 0; t < window.localStorage.length; t += 1) {
+- 368: const a = window.localStorage.key(t);
+- 377: for (const t of s) window.localStorage.removeItem(t)
+- 384: L = () => typeof window < "u" && typeof window.localStorage < "u",
+- 412: for (let s = 0; s < window.localStorage.length; s += 1) {
+- 413: const t = window.localStorage.key(s);
+- 448: const i = window.localStorage.getItem(d);
+- 461: const n = window.localStorage.getItem(c.USER_PROFILE);
+- 468: const u = window.localStorage.getItem(c.TIMER_STATE);
+- 475: const l = window.localStorage.getItem(c.SYNC_METADATA);
+- 498: const d = window.localStorage.getItem(l);
+- 518: const a = window.localStorage.getItem(t);
+- 519: a !== null && (tt(s, t, a), window.localStorage.removeItem(t))
+- 586: error: `Migration skipped ${a.length} legacy key(s); kept them in localStorage for retry`
+- 649: message: "No legacy localStorage data found",
+- 657: message: "Migrating legacy localStorage data"
+- 722: onClick: () => window.location.reload(),
+- 747: const F = typeof window < "u" ? window.__ISO_BOOT_STATE__ : null,
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-CrO6t5EW.css", "asset
+- 762: description: "Local server not running or Supabase cannot be reached. No trusted completed cloud snapshot is available on this device, so onboarding will not be shown until cloud state is verified.",
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0285-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/AppAccessGate-B975UtK7.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/AppAccessGate-B975UtK7.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 33135
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - server.mjs:137: '/assets/AppAccessGate-B975UtK7.js',
+  - server.mjs:3997: const APP_ACCESS_GATE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'AppAccessGate-B975UtK7.js');
+  - public/sw.js:75: '/assets/AppAccessGate-B975UtK7.js',
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/App-pJGjDiPw.js:8385: import ("./AppAccessGate-B975UtK7.js").then(a => a.A), __vite__mapDeps([75, 2, 1, 3, 7, 62, 20, 21, 22, 76, 77, 15, 8, 5, 12, 25, 66, 67, 69, 10, 11]))),
+  - public/assets/bootstrap-D1vc155U.js:3: } from "./AppAccessGate-B975UtK7.js";
+  - artifacts/asset-diff/local-assets.txt:12: AppAccessGate-B975UtK7.js
+  - artifacts/asset-diff/asset-report.json:208: "file": "AppAccessGate-B975UtK7.js",
+  - artifacts/asset-diff/asset-report.json:211: "remote_url": "https://isotopeai.in/assets/AppAccessGate-B975UtK7.js",
+  - artifacts/asset-diff/summary.md:49: | AppAccessGate-B975UtK7.js | 200 | unexpected HTML fallback for .js request |

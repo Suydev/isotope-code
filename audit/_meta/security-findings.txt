@@ -1,0 +1,10 @@
+Security findings
+
+- HIGH security: server.mjs references service-role style configuration; verify it remains server-only and is never exposed to browser responses.
+- MEDIUM privacy: active frontend bundle appears to configure Sentry with default PII enabled.
+- MEDIUM security: server-only secret names appear in browser-served files; static audit did not find secret values but exposure boundaries need tests.
+
+Additional security notes are in per-file FINDINGS sections.
+- HIGH security: dedicated server audit confirms service-role/admin routes exist and must remain fully admin-gated.
+- MEDIUM security: static serving path normalization exists, but explicit symlink/root escape proof should be tested.
+- MEDIUM CSRF: mutating `/__admin/*` POST routes are CSRF-relevant when admin cookie auth is accepted.

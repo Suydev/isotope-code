@@ -1,0 +1,17 @@
+Always excluded:
+- .git/**
+- audit/**
+- node_modules/**
+- package-manager caches
+- editor swap files
+- OS caches/temp files
+- sensitive runtime state listed in excluded-sensitive-runtime-files.txt
+
+Ignored status observed before audit:
+!! .env
+!! .isotope/
+!! artifacts/
+!! screenshot
+!! screenshot.zip
+!! screenshots/screenshot.zip
+

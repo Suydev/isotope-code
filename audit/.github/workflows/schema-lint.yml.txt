@@ -1,0 +1,211 @@
+FILE IDENTITY
+
+- original path: .github/workflows/schema-lint.yml
+- audit path: audit/.github/workflows/schema-lint.yml.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: configuration
+- MIME type: application/yaml
+- size in bytes: 8772
+- SHA-256: 354deba104af3733c40ce76282101e35426c1ad78bd542807745940986b2a608
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: CI/CD
+- primary auditor: sql-supabase-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the CI/CD subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: CI/CD
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: active status inferred from path and project role
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+No direct textual consumers found by path/name search.
+
+INTERNAL STRUCTURE
+
+- line count: 231
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ALTER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:139, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:65, community-patch-v4.sql:66, community-patch-v4.sql:67, community-patch-v4.sql:68, community-patch-v4.sql:69, community-patch-v4.sql:70, community-patch-v4.sql:71, community-patch-v4.sql:74, community-patch-v4.sql:77, community-patch-v4.sql:86
+- BEGIN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, .github/workflows/schema-lint.yml:122, CHANGELOG.md:174, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:73, community-patch-v4.sql:76, community-patch-v4.sql:102, community-patch-v4.sql:117, community-patch-v4.sql:146, community-patch-v4.sql:172
+- CREATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/ci.yml:259, .github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, .github/workflows/schema-lint.yml:91
+- DEFAULT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:93, .github/workflows/schema-lint.yml:95, .github/workflows/schema-lint.yml:107, .github/workflows/schema-lint.yml:112, .github/workflows/schema-lint.yml:117, .github/workflows/schema-lint.yml:118, .github/workflows/schema-lint.yml:119, CHANGELOG.md:408, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:66, community-patch-v4.sql:67
+- DEFINER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:73, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:75, ADMIN.md:197, ADMIN.md:232, ADMIN.md:488, CHANGELOG.md:476, CHANGELOG.md:493, CHANGELOG.md:575, CONTRIBUTING.md:105, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:514
+- DROP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:63, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:65, .github/workflows/schema-lint.yml:66, .github/workflows/schema-lint.yml:67, .github/workflows/schema-lint.yml:69, .github/workflows/schema-lint.yml:142, CHANGELOG.md:129, CHANGELOG.md:173, CHANGELOG.md:401, CHANGELOG.md:403, CHANGELOG.md:410
+- END: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/ci.yml:259, .github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:80, .github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89
+- ERROR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:87, .github/workflows/schema-lint.yml:152, .github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:163, .github/workflows/schema-lint.yml:165, .github/workflows/schema-lint.yml:168, .github/workflows/schema-lint.yml:171, .github/workflows/schema-lint.yml:190, .github/workflows/schema-lint.yml:205, .github/workflows/schema-lint.yml:207, .github/workflows/schema-lint.yml:220, .github/workflows/schema-lint.yml:222
+- ERROR_COUNT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:163, .github/workflows/schema-lint.yml:165, .github/workflows/schema-lint.yml:168, .github/workflows/schema-lint.yml:190
+- ERRS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:207, .github/workflows/schema-lint.yml:208, .github/workflows/schema-lint.yml:209, .github/workflows/schema-lint.yml:210, .github/workflows/schema-lint.yml:222, .github/workflows/schema-lint.yml:223, .github/workflows/schema-lint.yml:224, .github/workflows/schema-lint.yml:225
+- EVENT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:141, .github/workflows/schema-lint.yml:142, LICENSE:7, isotope-complete.sql:1679, isotope-complete.sql:1680
+- EXCEPTION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, community-patch-v4.sql:75, community-patch-v4.sql:78, community-patch-v4.sql:112, community-patch-v4.sql:219, community-patch-v4.sql:1370, community-patch-v4.sql:1371, community-patch-v4.sql:1372, community-patch-v4.sql:1373, community-patch-v4.sql:1374
+- EXECUTE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:80, .github/workflows/schema-lint.yml:81, CHANGELOG.md:138, community-patch-v4.sql:34, community-patch-v4.sql:863, community-patch-v4.sql:865, community-patch-v4.sql:867, community-patch-v4.sql:869, community-patch-v4.sql:871, community-patch-v4.sql:873, community-patch-v4.sql:875, community-patch-v4.sql:877
+- EXISTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:63, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:66, .github/workflows/schema-lint.yml:69, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125
+- EXIT_CODE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:154, .github/workflows/schema-lint.yml:159, .github/workflows/schema-lint.yml:190
+- EXTENSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125
+- FROM: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:178, .github/workflows/schema-lint.yml:186, ADMIN.md:488, LICENSE:7, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:119, community-patch-v4.sql:148, community-patch-v4.sql:174, community-patch-v4.sql:205, community-patch-v4.sql:236, community-patch-v4.sql:338, community-patch-v4.sql:347
+- FUNCTION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:259, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:81, .github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, CHANGELOG.md:403, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:45
+- FUNCTIONS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:81
+- GRANT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:78, .github/workflows/schema-lint.yml:80, .github/workflows/schema-lint.yml:81, CHANGELOG.md:138, CHANGELOG.md:146, CHANGELOG.md:147, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:34, community-patch-v4.sql:863, community-patch-v4.sql:865, community-patch-v4.sql:867, community-patch-v4.sql:869
+- GRANTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:80, .github/workflows/schema-lint.yml:81
+- GROUP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:180, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:546, community-patch-v4.sql:655, community-patch-v4.sql:1795, community-patch-v4.sql:1858, isotope-complete.sql:712, isotope-complete.sql:1030, isotope-complete.sql:1091, isotope-schema.sql:320, isotope-schema.sql:389
+- INDEX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:64, CHANGELOG.md:96, CHANGELOG.md:174, CHANGELOG.md:420, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:133, community-patch-v4.sql:134, community-patch-v4.sql:135, community-patch-v4.sql:136, community-patch-v4.sql:137, community-patch-v4.sql:138
+- KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:93, .github/workflows/schema-lint.yml:105, .github/workflows/schema-lint.yml:112, bin/isotope:36, bin/isotope:331, bin/isotope:435, community-patch-v4.sql:273, community-patch-v4.sql:309, community-patch-v4.sql:419, community-patch-v4.sql:430, community-patch-v4.sql:450, community-patch-v4.sql:472
+- LANGUAGE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:122, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:514, community-patch-v4.sql:529, community-patch-v4.sql:557, community-patch-v4.sql:615, community-patch-v4.sql:644, community-patch-v4.sql:682
+- NOT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:14, .github/PULL_REQUEST_TEMPLATE.md:15, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125, CHANGELOG.md:96, CHANGELOG.md:269
+- NULL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, CHANGELOG.md:269, CHANGELOG.md:457, CHANGELOG.md:516, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:66, community-patch-v4.sql:67, community-patch-v4.sql:71, community-patch-v4.sql:75, community-patch-v4.sql:78
+- ON_ERROR_STOP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:87, .github/workflows/schema-lint.yml:152, .github/workflows/schema-lint.yml:205, .github/workflows/schema-lint.yml:220
+- ORDER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:181, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:656, community-patch-v4.sql:688, community-patch-v4.sql:714, community-patch-v4.sql:740, community-patch-v4.sql:753, community-patch-v4.sql:1523, community-patch-v4.sql:1533, community-patch-v4.sql:1675, community-patch-v4.sql:1702, community-patch-v4.sql:1858
+- OUT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:151, .github/workflows/schema-lint.yml:157, .github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:162, .github/workflows/schema-lint.yml:171, .github/workflows/schema-lint.yml:204, .github/workflows/schema-lint.yml:207, .github/workflows/schema-lint.yml:219, .github/workflows/schema-lint.yml:222, LICENSE:7, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- PGPASSWORD: classification=secret; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:85, .github/workflows/schema-lint.yml:130, .github/workflows/schema-lint.yml:198
+- POLICY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:64, CONTRIBUTING.md:55, community-patch-v4.sql:909, community-patch-v4.sql:912, community-patch-v4.sql:918, community-patch-v4.sql:924, community-patch-v4.sql:927, community-patch-v4.sql:933, community-patch-v4.sql:936, community-patch-v4.sql:942
+- POSTGRES_DB: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:27
+- POSTGRES_PASSWORD: classification=secret; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:25
+- POSTGRES_USER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:26
+- PRIMARY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:93, .github/workflows/schema-lint.yml:105, .github/workflows/schema-lint.yml:112, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:273, community-patch-v4.sql:309, community-patch-v4.sql:419, community-patch-v4.sql:430, community-patch-v4.sql:450, community-patch-v4.sql:472, community-patch-v4.sql:485, community-patch-v4.sql:501
+- PSQL_OUT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:151, .github/workflows/schema-lint.yml:157, .github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:162, .github/workflows/schema-lint.yml:171
+- PUBLICATION: classification=public/configuration; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:139, community-patch-v4.sql:1370, community-patch-v4.sql:1371, community-patch-v4.sql:1372, community-patch-v4.sql:1373, community-patch-v4.sql:1374, community-patch-v4.sql:1375, community-patch-v4.sql:1376, community-patch-v4.sql:2036, community-patch-v4.sql:2037, community-patch-v4.sql:2038, community-patch-v4.sql:2039
+- REPLACE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:259, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, CHANGELOG.md:129, CHANGELOG.md:403, CONTRIBUTING.md:54, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:20, artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:10, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- RETURN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, .github/workflows/schema-lint.yml:122, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:514, community-patch-v4.sql:522, community-patch-v4.sql:556, community-patch-v4.sql:565, community-patch-v4.sql:574, community-patch-v4.sql:578
+- RETURNS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, community-patch-v4.sql:514, community-patch-v4.sql:522, community-patch-v4.sql:556, community-patch-v4.sql:614, community-patch-v4.sql:639, community-patch-v4.sql:668, community-patch-v4.sql:726, community-patch-v4.sql:771
+- ROLE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, server.mjs:208, server.mjs:210, server.mjs:361, server.mjs:370, server.mjs:385, server.mjs:5469, server.mjs:6808, server.mjs:6883, server.mjs:6949
+- SCHEMA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:123, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8, server.mjs:7303, server.mjs:7323, server.mjs:8511
+- SECURITY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:73, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:75, ADMIN.md:197, ADMIN.md:232, ADMIN.md:488, CHANGELOG.md:476, CHANGELOG.md:493, CHANGELOG.md:575, CONTRIBUTING.md:105, community-patch-v4.sql:514, community-patch-v4.sql:529
+- SEC_DEF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:75
+- SELECT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:177, .github/workflows/schema-lint.yml:185, ADMIN.md:488, CHANGELOG.md:177, CHANGELOG.md:196, CHANGELOG.md:231, CHANGELOG.md:269, CHANGELOG.md:270, CHANGELOG.md:274
+- STABLE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, community-patch-v4.sql:514, community-patch-v4.sql:529, community-patch-v4.sql:615, community-patch-v4.sql:644, community-patch-v4.sql:682, community-patch-v4.sql:736, community-patch-v4.sql:1355, community-patch-v4.sql:1520, community-patch-v4.sql:1668
+- TABLE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, CHANGELOG.md:173, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:65
+- THEN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, CHANGELOG.md:174, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:75, community-patch-v4.sql:78, community-patch-v4.sql:112, community-patch-v4.sql:121, community-patch-v4.sql:151, community-patch-v4.sql:178, community-patch-v4.sql:210
+- TRIGGER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:141, .github/workflows/schema-lint.yml:142, CHANGELOG.md:129, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:1160, community-patch-v4.sql:1161, community-patch-v4.sql:1986, community-patch-v4.sql:1987, community-patch-v4.sql:2023, community-patch-v4.sql:2024, community-patch-v4.sql:2119
+- UNSAFE_DROPS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:65, .github/workflows/schema-lint.yml:67
+- WARNING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:162, .github/workflows/schema-lint.yml:164, .github/workflows/schema-lint.yml:166
+- WARNING_COUNT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:162, .github/workflows/schema-lint.yml:164, .github/workflows/schema-lint.yml:166
+- WHEN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:75, community-patch-v4.sql:78, community-patch-v4.sql:112, community-patch-v4.sql:219, community-patch-v4.sql:690, community-patch-v4.sql:691, community-patch-v4.sql:708, community-patch-v4.sql:794
+- WHERE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:179, .github/workflows/schema-lint.yml:187, CHANGELOG.md:457, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:106, community-patch-v4.sql:108, community-patch-v4.sql:120, community-patch-v4.sql:134, community-patch-v4.sql:135, community-patch-v4.sql:137, community-patch-v4.sql:138, community-patch-v4.sql:149
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+- auth.email
+- auth.role
+- auth.uid
+- auth.users
+- storage.buckets
+- storage.foldername
+- storage.objects
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 119: updated_at timestamptz DEFAULT now()
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 146: -e 'net\.http' \
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 83: - name: 🗄️ Create Supabase compatibility shim
+- 137: echo "Stripping Supabase-cloud-only statements..."
+- 140: -e 'supabase_realtime' \
+- 145: -e 'supabase_admin' \
+- 191: echo "❌ isotope-complete.sql must execute cleanly against the Supabase compatibility shim"
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0015-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: .github/workflows/schema-lint.yml inspected; no file-specific high-risk issue confirmed
+  observed evidence: .github/workflows/schema-lint.yml inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: See references and consumers above.
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- No direct consumer found; this uncertainty is explicitly recorded rather than hidden.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the CI/CD subsystem. Its role is determined from path, content, and references.
+- activity status: active status inferred from path and project role
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

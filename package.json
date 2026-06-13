@@ -25,7 +25,10 @@
     "backup:repair:dry-run": "node scripts/repair-user-backup.mjs --dry-run",
     "backup:prove-restore": "node scripts/prove-new-browser-restore.mjs",
     "storage:cleanup:dry-run": "node scripts/validate-storage-cleanup.mjs --dry-run",
-    "security:verify": "node scripts/verify-supabase-security.mjs"
+    "security:verify": "node scripts/verify-supabase-security.mjs",
+    "test:auth-bridge": "node scripts/test-auth-bridge.mjs",
+    "test:runtime-glue": "node scripts/prove-runtime-glue.mjs",
+    "test:supabase-sync": "node scripts/prove-supabase-sync.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

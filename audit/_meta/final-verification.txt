@@ -1,0 +1,49 @@
+Final verification
+
+Audited branch: main
+Audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+
+Coverage summary:
+Coverage report
+
+- in-scope tracked files: 422
+- in-scope untracked files: 219
+- total source files: 641
+- expected per-file audits: 641
+- generated per-file audits: 641
+- missing audits: 0
+
+- duplicate mappings: 0
+
+- empty audits: 0
+
+- hash mismatches: 0
+
+- sensitive env hash redactions: 2
+
+- template failures: 0
+
+- unexpected audit files: 0
+
+- coverage percentage: 100.00%
+
+Source-safety verification:
+- pre-existing modifications: ## main...origin/main [ahead 1]
+- files created under audit/: 669
+- per-file audits under audit/: 641
+- meta reports under audit/_meta/: 28
+- source files modified by this task: 0
+
+- source files deleted by this task: 0
+- source files renamed by this task: 0
+
+Required task result:
+- source files modified: 0
+- source files deleted: 0
+- source files renamed: 0
+
+Completion gate:
+PASS
+
+Second-pass validation addendum:
+- Added audit/_meta/large-file-agent-hazard-review.txt and per-file hazard addenda for high/medium generated-file risks.

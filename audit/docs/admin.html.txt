@@ -1,0 +1,176 @@
+FILE IDENTITY
+
+- original path: docs/admin.html
+- audit path: audit/docs/admin.html.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: html
+- MIME type: text/html
+- size in bytes: 5596
+- SHA-256: c54078fe7c3a51095fb6cb1bcc3b9e4d0e3a3877fdc2f35fa56d6fe2f7a0166b
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: documentation
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: documentation
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/release.yml:191 - docs/admin.html
+- README.md:23 - <a href="https://suydev.github.io/isotope-code/admin.html">Admin proof</a>
+- docs/assets/site.js:67 - { title: 'Admin and browser proof', desc: 'Verify schema, repair sync, and run real browser proof', href: './admin.html', tag: 'admin' },
+- docs/gallery.html:19 - <a href="./admin.html">Admin</a>
+- docs/index.html:22 - <a href="./admin.html">Admin</a>
+- docs/index.html:90 - <h3><a href="./admin.html">Admin and proof</a></h3>
+- docs/index.md:16 - - [Admin and browser proof guide](./admin.html)
+- docs/install.html:19 - <a href="./admin.html">Admin</a>
+- docs/motion.html:19 - <a href="./admin.html">Admin</a>
+- docs/motion.html:108 - docs/admin.html
+- docs/sync.html:19 - <a href="./admin.html">Admin</a>
+- docs/sync.html:35 - <a class="button secondary" href="./admin.html">Run browser proof</a>
+- scripts/validate-docs.mjs:222 - 'docs/admin.html',
+
+INTERNAL STRUCTURE
+
+- line count: 129
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ADMIN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:208, .github/workflows/ci.yml:242, .github/workflows/ci.yml:285, .github/workflows/regenerate-release.yml:113, .github/workflows/release.yml:198, README.md:47, README.md:175, README.md:187, README.md:188, README.md:237, README.md:238, README.md:239
+- ADMIN_EMAIL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.env.example:28, .env.example:29, .env.example:32, ADMIN.md:31, ADMIN.md:32, ADMIN.md:50, ADMIN.md:51, ADMIN.md:195, ADMIN.md:428, ADMIN.md:429, ADMIN.md:450, ADMIN.md:459
+- ADMIN_SECRET: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:25, .github/workflows/ci.yml:242, .github/workflows/ci.yml:285, ADMIN.md:29, ADMIN.md:47, ADMIN.md:54, ADMIN.md:431, ADMIN.md:539, CHANGELOG.md:365, CHANGELOG.md:489, CHANGELOG.md:565, README.md:238
+- BROWSER_PROOF_EMAIL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.env.example:33, docs/admin.html:59, server.mjs:228, server.mjs:5471, server.mjs:5717, server.mjs:5720, server.mjs:5721, server.mjs:5732, server.mjs:5753
+- DRY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/admin.html:43
+- ENABLE_ADMIN_MODE: classification=public/configuration; required=optional/defaulted; uses=.env.example:18, .env.example:19, ADMIN.md:28, ADMIN.md:46, ADMIN.md:440, ADMIN.md:441, CHANGELOG.md:489, README.md:175, README.md:187, README.md:188, README.md:237, artifacts/isotope/.env:24
+- PAT: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:38, .env.example:39, ADMIN.md:40, ADMIN.md:213, ADMIN.md:220, ADMIN.md:427, ADMIN.md:499, docs/admin.html:118, docs/supabase-connection-map.md:29, performance-indexes.sql:6, scripts/validate-docs.mjs:118, scripts/validate-docs.mjs:119
+- SUPABASE_SERVICE_ROLE_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:22, .github/workflows/ci.yml:242, ADMIN.md:30, ADMIN.md:48, ADMIN.md:426, ADMIN.md:449, ADMIN.md:491, README.md:242, artifacts/isotope/.env:16, docs/admin.html:60, scripts/prove-new-browser-restore.mjs:10, scripts/prove-supabase-sync.mjs:25
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://127.0.0.1:3000/__admin
+- http://127.0.0.1:3000/__admin/browser-proof
+- https://github.com/Suydev/isotope-code
+- https://github.com/Suydev/isotope-code/blob/main/ADMIN.md
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg
+- browser storage:
+- 118: <div><h3>Admin keys stay server-side</h3><p>The service-role key and PAT must never be written into HTML, bundled assets, localStorage, or logs.</p></div>
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 114: <div><h3>Preview before destructive work</h3><p>Cleanup must show paths, sizes, hashes, keep/delete decisions, and bytes freed before apply.</p></div>
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 22: <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+- 40: <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg" alt="Isotope app admin-style wide screen">
+- 75: <pre>http://127.0.0.1:3000/__admin</pre>
+- 79: <pre>http://127.0.0.1:3000/__admin/browser-proof</pre>
+- 100: <p>Shows best backup, candidates, canonical path status, and repair actions.</p>
+- 125: <p>More detail: <a href="https://github.com/Suydev/isotope-code/blob/main/ADMIN.md">ADMIN.md</a> and <a href="./supabase-connection-map.md">Supabase connection map</a>.</p>
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 118: <div><h3>Admin keys stay server-side</h3><p>The service-role key and PAT must never be written into HTML, bundled assets, localStorage, or logs.</p></div>
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 60: SUPABASE_SERVICE_ROLE_KEY=&lt;service-role-key&gt;</pre>
+- 125: <p>More detail: <a href="https://github.com/Suydev/isotope-code/blob/main/ADMIN.md">ADMIN.md</a> and <a href="./supabase-connection-map.md">Supabase connection map</a>.</p>
+- external services: http://127.0.0.1:3000/__admin, http://127.0.0.1:3000/__admin/browser-proof, https://github.com/Suydev/isotope-code, https://github.com/Suydev/isotope-code/blob/main/ADMIN.md, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0248-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: docs/admin.html inspected; no file-specific high-risk issue confirmed
+  observed evidence: docs/admin.html inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/release.yml, README.md, docs/assets/site.js
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

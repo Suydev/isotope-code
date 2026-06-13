@@ -1,0 +1,200 @@
+FILE IDENTITY
+
+- original path: public/assets/useQuotesStore-C7b4gZp0.js
+- audit path: audit/public/assets/useQuotesStore-C7b4gZp0.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 4599
+- SHA-256: e0e5c27ceb6c3feacedbc4c2cf92c54205b58ee3206ccd6995b9925454ca9d3e
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3340 - "file": "useQuotesStore-C7b4gZp0.js",
+- artifacts/asset-diff/asset-report.json:3343 - "remote_url": "https://isotopeai.in/assets/useQuotesStore-C7b4gZp0.js",
+- artifacts/asset-diff/local-assets.txt:186 - useQuotesStore-C7b4gZp0.js
+- artifacts/asset-diff/summary.md:160 - | useQuotesStore-C7b4gZp0.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/Analytics-D74gQMjN.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJFSVW.js","assets/index-CrO6t5EW.css","assets/App-pJGjDiPw.js
+- public/assets/AnalyticsToday-BTdRNTb0.js:1 - import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";import{S as V}from"./SafeResponsiveContainer-D7o6DE97.js";impor
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/Dashboard-dypAV-0H.js:82 - } from "./useQuotesStore-C7b4gZp0.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:179 - } from "./useQuotesStore-C7b4gZp0.js";
+
+INTERNAL STRUCTURE
+
+- line count: 148
+- imports:
+- 1: import {
+- 7: } from "./App-pJGjDiPw.js";
+- exports:
+- 146: export {
+- functions/async flows:
+- 43: addQuote: (e, o, t = 1) => {
+- 57: updateQuote: (e, o) => {
+- 65: deleteQuote: e => {
+- 70: toggleQuoteActive: e => {
+- 78: setQuotePriority: (e, o) => {
+- 87: getRandomQuote: () => {
+- 96: getDailyQuote: () => {
+- 104: importDefaultQuotes: () => {
+- 110: }) => {
+- 124: resetToDefaults: () => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 8: const s = () => new Date().toISOString(),
+- 44: const a = {
+- 88: const e = n().getActiveQuotes();
+- 90: const o = e.reduce((a, r) => a + r.priority, 0);
+- 91: let t = Math.random() * o;
+- 97: const e = n().getActiveQuotes();
+- 99: const o = new Date,
+- 105: const e = new Set(n().quotes.map(t => t.text.toLowerCase())),
+- 125: const e = d.map(({
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+No environment variable names observed.
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 51: updatedAt: s()
+- 57: updateQuote: (e, o) => {
+- 61: updatedAt: s()
+- 65: deleteQuote: e => {
+- 74: updatedAt: s()
+- 82: updatedAt: s()
+- 118: updatedAt: s()
+- 135: updatedAt: s()
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 1: import {
+- 7: } from "./App-pJGjDiPw.js";
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0459-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/useQuotesStore-C7b4gZp0.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/useQuotesStore-C7b4gZp0.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 4599
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/Analytics-D74gQMjN.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJ
+  - public/assets/AnalyticsToday-BTdRNTb0.js:1: import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";imp
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/Dashboard-dypAV-0H.js:82: } from "./useQuotesStore-C7b4gZp0.js";
+  - public/assets/SettingsLayout-B4OgCkQ5.js:179: } from "./useQuotesStore-C7b4gZp0.js";
+  - artifacts/asset-diff/local-assets.txt:186: useQuotesStore-C7b4gZp0.js
+  - artifacts/asset-diff/asset-report.json:3340: "file": "useQuotesStore-C7b4gZp0.js",
+  - artifacts/asset-diff/asset-report.json:3343: "remote_url": "https://isotopeai.in/assets/useQuotesStore-C7b4gZp0.js",
+  - artifacts/asset-diff/summary.md:160: | useQuotesStore-C7b4gZp0.js | 200 | unexpected HTML fallback for .js request |

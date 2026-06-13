@@ -1,0 +1,198 @@
+FILE IDENTITY
+
+- original path: logo.svg
+- audit path: audit/logo.svg.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: image
+- MIME type: image/svg+xml
+- size in bytes: 476
+- SHA-256: 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: static asset
+- primary auditor: static-asset-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Static or binary asset used by the browser app, documentation, screenshots, installer output, or comparison artifacts.
+
+ROLE IN THE APPLICATION
+
+- subsystem: static asset
+- runtime stage: development, installation, or documentation
+- user-visible feature: visual asset
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/pages.yml:9 - - logo.svg
+- .github/workflows/release.yml:196 - docs/logo.svg
+- README.md:2 - <img src="./logo.svg" alt="IsotopeAI logo" width="76" height="76">
+- docs/admin.html:8 - <link rel="icon" href="./logo.svg" type="image/svg+xml">
+- docs/admin.html:15 - <a class="brand" href="./"><img class="brand-logo" src="./logo.svg" alt="" width="38" height="38"><span>IsotopeAI</span></a>
+- docs/gallery.html:8 - <link rel="icon" href="./logo.svg" type="image/svg+xml">
+- docs/gallery.html:15 - <a class="brand" href="./"><img class="brand-logo" src="./logo.svg" alt="" width="38" height="38"><span>IsotopeAI</span></a>
+- docs/index.html:8 - <link rel="icon" href="./logo.svg" type="image/svg+xml">
+- docs/index.html:16 - <img class="brand-logo" src="./logo.svg" alt="" width="38" height="38">
+- docs/install.html:8 - <link rel="icon" href="./logo.svg" type="image/svg+xml">
+- docs/install.html:15 - <a class="brand" href="./"><img class="brand-logo" src="./logo.svg" alt="" width="38" height="38"><span>IsotopeAI</span></a>
+- docs/motion.html:8 - <link rel="icon" href="./logo.svg" type="image/svg+xml">
+- docs/motion.html:15 - <a class="brand" href="./"><img class="brand-logo" src="./logo.svg" alt="" width="38" height="38"><span>IsotopeAI</span></a>
+- docs/sync.html:8 - <link rel="icon" href="./logo.svg" type="image/svg+xml">
+- docs/sync.html:15 - <a class="brand" href="./"><img class="brand-logo" src="./logo.svg" alt="" width="38" height="38"><span>IsotopeAI</span></a>
+- scripts/validate-docs.mjs:182 - const badLogo = DOCS_HTML.includes('logo.svg') && !existsSync(join(ROOT, 'logo.svg'));
+- scripts/validate-docs.mjs:184 - warn('docs/index.html references logo.svg but file does not exist in repo root');
+- scripts/validate-docs.mjs:227 - 'docs/logo.svg',
+
+INTERNAL STRUCTURE
+
+- line count: 5
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- M15: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/IsotopeLogoIcon-oPk5Ru-_.js:1, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:69, docs/logo.svg:4, logo.svg:4, public/assets/IsotopeLogoIcon-oPk5Ru-_.js:22, public/assets/QuickActionsMenu-ojdsCiqG.js:50, public/assets/vendor-icons-CqruUz7g.js:181, public/assets/vendor-icons-CqruUz7g.js:185, public/assets/vendor-icons-CqruUz7g.js:358, public/assets/vendor-icons-CqruUz7g.js:362, public/assets/vendor-icons-CqruUz7g.js:389, public/assets/vendor-icons-CqruUz7g.js:624
+- M20: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/IsotopeLogoIcon-oPk5Ru-_.js:1, docs/logo.svg:3, logo.svg:3, public/assets/IsotopeLogoIcon-oPk5Ru-_.js:20, public/assets/QuickActionsMenu-ojdsCiqG.js:48, public/assets/vendor-icons-CqruUz7g.js:177, public/assets/vendor-icons-CqruUz7g.js:366, public/assets/vendor-icons-CqruUz7g.js:385, public/assets/vendor-icons-CqruUz7g.js:620, public/assets/vendor-icons-CqruUz7g.js:1150, public/assets/vendor-icons-CqruUz7g.js:1734, public/assets/vendor-icons-CqruUz7g.js:1738
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://www.w3.org/2000/svg
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 1: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+- 3: <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z" />
+- 4: <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z" />
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: http://www.w3.org/2000/svg
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness mainly depends on file presence, MIME mapping, cache headers, and consumer references.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0269-01
+  severity: LOW
+  category: duplication
+  status: CONFIRMED
+  confidence: HIGH
+  affected lines or byte-level evidence: SHA-256 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789 shared by logo.svg, public/icons/icon-192x192.svg, public/icons/icon-96x96.svg, public/icons/icon.svg, public/logo-full.svg, public/logo-icon.svg
+  observed evidence: SHA-256 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789 shared by logo.svg, public/icons/icon-192x192.svg, public/icons/icon-96x96.svg, public/icons/icon.svg, public/logo-full.svg, public/logo-icon.svg
+  inferred impact: Byte-identical duplicates may waste repository or install size.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep duplicates only when required by platform paths or comparison artifacts.
+  related files: public/icons/icon-192x192.svg, public/icons/icon-96x96.svg, public/icons/icon.svg, public/logo-full.svg, public/logo-icon.svg
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Confirm visible rendering or media playback only in consuming UI/docs if the asset is active.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Static or binary asset used by the browser app, documentation, screenshots, installer output, or comparison artifacts.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers
+
+SPECIAL ASSET AUDIT
+
+- format: SVG
+- viewBox: 0 0 24 24
+- width: 2
+- scripts: no script tag observed
+- externalLinks: contains external URL(s)
+- dimensions: not available from safe metadata
+- format: SVG
+- MIME type: image/svg+xml
+- file size: 476
+- duration: not applicable or not extracted
+- codec: not applicable or not extracted
+- frame count: not extracted
+- alpha/transparency: not determined
+- SVG viewBox: 0 0 24 24
+- SVG scripts or external links: no script tag observed; contains external URL(s)
+- font family/style/weight: not applicable / not applicable / not applicable
+- visible use location: .github/workflows/pages.yml:9, .github/workflows/release.yml:196, README.md:2, docs/admin.html:8, docs/admin.html:15, docs/gallery.html:8, docs/gallery.html:15, docs/index.html:8, docs/index.html:16, docs/install.html:8
+- source references: 18
+- service-worker caching: not browser-served unless copied
+- accessibility handling: verify in consuming markup/components; not encoded in asset metadata
+- duplicate candidates: public/icons/icon-192x192.svg, public/icons/icon-96x96.svg, public/icons/icon.svg, public/logo-full.svg, public/logo-icon.svg
+- byte-identical duplicates: logo.svg, public/icons/icon-192x192.svg, public/icons/icon-96x96.svg, public/icons/icon.svg, public/logo-full.svg, public/logo-icon.svg
+- near-duplicate candidates: not computed perceptually
+- optimisation potential: low or unknown
+- provenance information when documented: not documented in nearby references
+- licensing information when documented: not documented
+- whether the asset appears unused: no, referenced directly

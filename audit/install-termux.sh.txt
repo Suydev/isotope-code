@@ -1,0 +1,290 @@
+FILE IDENTITY
+
+- original path: install-termux.sh
+- audit path: audit/install-termux.sh.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: script
+- MIME type: application/x-sh
+- size in bytes: 13861
+- SHA-256: 864e128b1d98690e925ff8f4dc0a6288a7bb71a15887e58dbe47acda3183f326
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: installer/platform
+- primary auditor: installer-platform-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+
+ROLE IN THE APPLICATION
+
+- subsystem: installer/platform
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/ci.yml:43 - install-termux.sh \
+- .github/workflows/ci.yml:74 - install-termux.sh \
+- .github/workflows/ci.yml:191 - install-termux.sh
+- .github/workflows/ci.yml:272 - bash -n install-termux.sh
+- .github/workflows/ci.yml:275 - grep -q 'TERMUX_VERSION' setup.sh install-termux.sh
+- .github/workflows/ci.yml:335 - for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql
+- README.md:58 - bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+- TERMUX_WIDGET.md:12 - bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+- TERMUX_WIDGET.md:18 - pkg install curl && bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+- TERMUX_WIDGET.md:168 - Run `bash setup.sh` or `bash install-termux.sh` to reinstall the global command.
+- bin/isotope:432 - [ -f "$project/install-termux.sh" ] && info "[ok]  install-termux.sh" || warn "[warn] install-termux.sh missing"
+- docs/index.html:132 - <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)</pre>
+- docs/install.html:58 - <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)</pre>
+- scripts/validate-docs.mjs:135 - ['install-termux.sh', 'install-termux.sh'],
+- scripts/validate-docs.mjs:204 - 'install-termux.sh',
+
+INTERNAL STRUCTURE
+
+- line count: 323
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+- 34: has() { command -v "$1" >/dev/null 2>&1; }
+- 36: ts()  { date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || printf '%s' 'now'; }
+- 40: log() {
+- 46: fail() {
+- 53: warn() {
+- 58: step() {
+- 63: ok() {
+- 114: unlock_wake() {
+- 170: install_pkg() {
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- CURRENT_BRANCH: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:245, install-termux.sh:246, install-termux.sh:248, install-termux.sh:250
+- ERROR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:87, .github/workflows/schema-lint.yml:152, .github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:163, .github/workflows/schema-lint.yml:165, .github/workflows/schema-lint.yml:168, .github/workflows/schema-lint.yml:171, .github/workflows/schema-lint.yml:190, .github/workflows/schema-lint.yml:205, .github/workflows/schema-lint.yml:207, .github/workflows/schema-lint.yml:220, .github/workflows/schema-lint.yml:222
+- EXIT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/regenerate-release.yml:133, .github/workflows/release.yml:219, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, install-termux.sh:120, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8, setup.sh:118
+- HOME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:20, bin/isotope:21, bin/isotope:22, bin/isotope:23, bin/isotope:24, bin/isotope:47, bin/isotope:73, bin/isotope:180, bin/isotope:387, install-termux.sh:15, install-termux.sh:16
+- HOME_FREE_KB: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:233, install-termux.sh:234, install-termux.sh:235, install-termux.sh:237
+- IFS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:182, install-termux.sh:102, install-termux.sh:152, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup.sh:147, setup.sh:331, setup.sh:339, setup.sh:417
+- INSTALL_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:15, install-termux.sh:240, install-termux.sh:242, install-termux.sh:244, install-termux.sh:255, install-termux.sh:256, install-termux.sh:257, install-termux.sh:259, install-termux.sh:264, install-termux.sh:266, install-termux.sh:269, install-termux.sh:288
+- INTERNET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:124, install-termux.sh:126, install-termux.sh:128, install-termux.sh:130
+- ISO_HOME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:20, bin/isotope:21, bin/isotope:22, bin/isotope:23, bin/isotope:24, bin/isotope:47, bin/isotope.bat:4, bin/isotope.bat:5, bin/isotope.bat:6, bin/isotope.bat:7, bin/isotope.bat:8, bin/isotope.bat:13
+- LOCAL_SHA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:169, bin/isotope.bat:171, bin/isotope.bat:174, bin/isotope.bat:176, install-termux.sh:247, install-termux.sh:249
+- LOG_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:24, bin/isotope:25, bin/isotope:26, bin/isotope:47, bin/isotope.bat:8, bin/isotope.bat:9, bin/isotope.bat:10, bin/isotope.bat:14, install-termux.sh:17, install-termux.sh:18, install-termux.sh:38, setup-termux-widget.sh:19
+- LOG_FILE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:18, install-termux.sh:43, install-termux.sh:49, install-termux.sh:139, install-termux.sh:160, install-termux.sh:179, install-termux.sh:202, install-termux.sh:246, install-termux.sh:250, install-termux.sh:259, install-termux.sh:264, install-termux.sh:279
+- NODE_MAJOR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:199, install-termux.sh:200, install-termux.sh:224, install-termux.sh:225, setup.bat:42, setup.bat:43
+- NO_START: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:23, install-termux.sh:28, install-termux.sh:303, setup.bat:5, setup.bat:7, setup.bat:110, setup.sh:19, setup.sh:31, setup.sh:35, setup.sh:79, setup.sh:487
+- PKG_UPDATE_OK: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:136, install-termux.sh:140, install-termux.sh:146
+- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
+- PORT_VALUE: classification=public/configuration; required=optional/defaulted; uses=bin/isotope.bat:65, bin/isotope.bat:68, bin/isotope.bat:72, bin/isotope.bat:74, bin/isotope.bat:98, bin/isotope.bat:105, bin/isotope.bat:108, bin/isotope.bat:208, bin/isotope.bat:209, bin/isotope.bat:238, bin/isotope.bat:241, install-termux.sh:19
+- PREFIX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:43, install-termux.sh:71, setup-termux-widget.sh:12, setup-termux-widget.sh:28, setup-termux-widget.sh:30, setup-termux-widget.sh:31, setup.sh:66, setup.sh:379
+- REMOTE_SHA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:170, bin/isotope.bat:171, bin/isotope.bat:174, bin/isotope.bat:176, bin/isotope.bat:178, install-termux.sh:248, install-termux.sh:249
+- REPO_BRANCH: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:14, install-termux.sh:259, install-termux.sh:264
+- REPO_URL: classification=public/configuration; required=unknown from static map; inspect use locations; uses=install-termux.sh:13, install-termux.sh:259, install-termux.sh:264
+- SC2086: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:277
+- SETUP_FLAGS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:273, install-termux.sh:274, install-termux.sh:275, install-termux.sh:278
+- SKIP_UPGRADE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:22, install-termux.sh:27, install-termux.sh:134, install-termux.sh:275, setup.sh:23, setup.sh:37, setup.sh:125
+- STEP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:1734, community-patch-v4.sql:1744, community-patch-v4.sql:1750, community-patch-v4.sql:1765, community-patch-v4.sql:1785, community-patch-v4.sql:1798, community-patch-v4.sql:1820, community-patch-v4.sql:1833, community-patch-v4.sql:1840, community-patch-v4.sql:1848, community-patch-v4.sql:1863, community-patch-v4.sql:1874
+- TERMUX_APK_SOURCE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:81, install-termux.sh:83
+- TERMUX_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:275, bin/isotope:43, bin/isotope:367, bin/isotope:370, install-termux.sh:71, install-termux.sh:76, install-termux.sh:91, setup-termux-widget.sh:12, setup.sh:14, setup.sh:38, setup.sh:66, setup.sh:84
+- TERMUX_VER_NUM: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:91, install-termux.sh:92, install-termux.sh:94
+- WAKE_LOCKED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install-termux.sh:109, install-termux.sh:111, install-termux.sh:115, setup.sh:106, setup.sh:110, setup.sh:114
+- WARN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:30, bin/isotope.bat:238, bin/isotope.bat:239, install-termux.sh:54, public/assets/messaging-BP0KfJxy.js:622, public/assets/messaging-BP0KfJxy.js:628, public/assets/messaging-BP0KfJxy.js:637, public/assets/messaging-BP0KfJxy.js:684, setup-termux-widget.sh:10, setup.bat:50, setup.bat:51, setup.sh:44
+- YES: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:352, install-termux.sh:21, install-termux.sh:26, install-termux.sh:100, install-termux.sh:103, install-termux.sh:150, install-termux.sh:153, setup.sh:20, setup.sh:32, setup.sh:35, setup.sh:79, setup.sh:145
+- command-line arguments: script-like file; inspect internal structure for argv/flags
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- https://f-droid.org/packages/com.termux/
+- https://github.com
+- https://github.com/Suydev/isotope-code.git
+- https://github.com/termux/termux-app/releases
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 79: # The Play Store version stopped receiving updates in 2020 and has known bugs.
+- 95: The Play Store version stopped receiving updates in 2020 and may fail.
+- 133: # ── Termux repo update + upgrade ──────────────────────────────────────────────
+- 136: PKG_UPDATE_OK=0
+- 138: log "pkg update attempt $attempt"
+- 139: if pkg update -y >> "$LOG_FILE" 2>&1; then
+- 140: PKG_UPDATE_OK=1
+- 143: warn "pkg update attempt $attempt failed (repo issue?). Retrying in 3s..."
+- 146: if [ "$PKG_UPDATE_OK" -eq 0 ]; then
+- 147: warn "pkg update failed after 3 attempts.
+- 151: printf '  Continue without update? [y/N]: '
+- 156: ok "pkg update complete"
+- 163: log "Skipping pkg update/upgrade (--skip-upgrade)"
+- 164: warn "Skipped pkg update/upgrade. Packages may be outdated."
+- 239: # ── Clone or update the repo ──────────────────────────────────────────────────
+- 251: ok "Updated to latest version"
+- 293: printf '    isotope update   — pull latest version\n'
+- 299: printf '    Choose: isotope-start, isotope-update, isotope-open\n'
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: shell/OS/platform commands likely required
+- Node core modules:
+- 5: #   bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+- 8: #   curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh -o install-termux.sh
+- 13: REPO_URL="https://github.com/Suydev/isotope-code.git"
+- 73: Install Termux from F-Droid: https://f-droid.org/packages/com.termux/
+- 97: https://f-droid.org/packages/com.termux/
+- 98: https://github.com/termux/termux-app/releases
+- 126: curl -fsSL --connect-timeout 8 --max-time 10 https://github.com -o /dev/null 2>/dev/null && INTERNET=1
+- 128: wget -q --timeout=10 --tries=1 https://github.com -O /dev/null 2>/dev/null && INTERNET=1
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 1: #!/usr/bin/env bash
+- 5: #   bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+- 8: #   curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh -o install-termux.sh
+- 9: #   bash install-termux.sh [--yes] [--skip-upgrade] [--no-start] [--port=3000]
+- 13: REPO_URL="https://github.com/Suydev/isotope-code.git"
+- 71: if [ -z "${TERMUX_VERSION:-}" ] && ! printf '%s' "${PREFIX:-}" | grep -q 'com.termux'; then
+- 73: Install Termux from F-Droid: https://f-droid.org/packages/com.termux/
+- 80: # pkg info shows the source; alternatively check if pkg itself is very old.
+- 83: TERMUX_APK_SOURCE="$(dpkg -l com.termux 2>/dev/null || true)"
+- 85: if [ -f "/data/data/com.termux/files/usr/etc/apt/sources.list" ]; then
+- 86: if grep -q 'packages-24.termux.net\|termux.net' "/data/data/com.termux/files/usr/etc/apt/sources.list" 2>/dev/null; then
+- 97: https://f-droid.org/packages/com.termux/
+- 98: https://github.com/termux/termux-app/releases
+- 110: if has termux-wake-lock; then
+- 111: termux-wake-lock >/dev/null 2>&1 && WAKE_LOCKED=1 && log "Wake lock acquired"
+- 115: if [ "$WAKE_LOCKED" -eq 1 ] && has termux-wake-unlock; then
+- 116: termux-wake-unlock >/dev/null 2>&1 || true
+- 125: if has curl; then
+- 126: curl -fsSL --connect-timeout 8 --max-time 10 https://github.com -o /dev/null 2>/dev/null && INTERNET=1
+- 138: log "pkg update attempt $attempt"
+- 139: if pkg update -y >> "$LOG_FILE" 2>&1; then
+- 143: warn "pkg update attempt $attempt failed (repo issue?). Retrying in 3s..."
+- 147: warn "pkg update failed after 3 attempts.
+- 148: Try running:  termux-change-repo
+- 153: case "$reply" in y|Y|yes|YES) : ;; *) fail "Aborted. Fix pkg repos first." ;; esac
+- 156: ok "pkg update complete"
+- 160: pkg upgrade -y >> "$LOG_FILE" 2>&1 || warn "pkg upgrade had non-fatal errors (continuing)"
+- 161: ok "pkg upgrade complete"
+- 163: log "Skipping pkg update/upgrade (--skip-upgrade)"
+- 164: warn "Skipped pkg update/upgrade. Packages may be outdated."
+- 168: step "Installing required packages (nodejs git curl wget unzip zip openssl termux-api)..."
+- 179: if pkg install -y "$pkg_name" >> "$LOG_FILE" 2>&1; then
+- 188: Try manually: pkg install $pkg_name
+- 189: Or repair repos: termux-change-repo"
+- 197: # Check if 'node' command exists; if not, try 'nodejs' package
+- 198: if has node; then
+- 199: NODE_MAJOR="$(node -e "process.stdout.write(process.versions.node.split('.')[0])" 2>/dev/null || echo 0)"
+- 201: warn "Node.js $(node --version) is too old (need 18+). Reinstalling..."
+- 202: pkg install -y nodejs >> "$LOG_FILE" 2>&1 || true
+- 204: ok "node $(node --version) already installed"
+- 210: install_pkg git critical
+- 211: install_pkg curl optional
+- 216: install_pkg termux-api optional
+- 220: has node  || fail "node is not available after install. Run: pkg install nodejs"
+- 221: has git   || fail "git is not available after install. Run: pkg install git"
+- 222: has curl || has wget || warn "Neither curl nor wget found. Some features may not work."
+- 224: NODE_MAJOR="$(node -e "process.stdout.write(process.versions.node.split('.')[0])" 2>/dev/null || echo 0)"
+- 225: [ "$NODE_MAJOR" -ge 18 ] 2>/dev/null || fail "Node.js 18+ is required; got $(node --version). Run: pkg install nodejs"
+- 227: ok "node $(node --version)"
+- 228: ok "git $(git --version | awk '{print $3}')"
+- 229: has npm && ok "npm $(npm --version)" || warn "npm not found (the app has zero runtime npm deps — this is OK)"
+- 242: if [ -d "$INSTALL_DIR/.git" ]; then
+- 245: CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)"
+- 246: git fetch origin "$CURRENT_BRANCH" >> "$LOG_FILE" 2>&1 || warn "git fetch failed — using existing code"
+- 247: LOCAL_SHA="$(git rev-parse HEAD 2>/dev/null || echo)"
+- 248: REMOTE_SHA="$(git rev-parse "origin/$CURRENT_BRANCH" 2>/dev/null || echo)"
+- 250: git merge --ff-only "origin/$CURRENT_BRANCH" >> "$LOG_FILE" 2>&1 || warn "Could not fast-forward — using existing code"
+- 256: warn "$INSTALL_DIR exists but is not a git repo. Moving it to ${INSTALL_DIR}.bak"
+- 259: git clone --branch "$REPO_BRANCH" --depth 20 "$REPO_URL" "$INSTALL_DIR" >> "$LOG_FILE" 2>&1 \
+- 260: || fail "git clone failed. Check internet and try again."
+- 264: git clone --branch "$REPO_BRANCH" --depth 20 "$REPO_URL" "$INSTALL_DIR" >> "$LOG_FILE" 2>&1 \
+- 265: || fail "git clone failed. Check internet and try again."
+- 278: PORT="$PORT_VALUE" bash setup.sh $SETUP_FLAGS \
+- 279: || fail "setup.sh failed. Check log: $LOG_FILE"
+- Supabase interfaces:
+None observed.
+- external services: https://f-droid.org/packages/com.termux/, https://github.com, https://github.com/Suydev/isotope-code.git, https://github.com/termux/termux-app/releases, https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0265-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: install-termux.sh inspected; no file-specific high-risk issue confirmed
+  observed evidence: install-termux.sh inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/ci.yml, .github/workflows/ci.yml, .github/workflows/ci.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

@@ -1,0 +1,6 @@
+Dead/unused candidates
+
+- No public asset without direct textual reference found.
+Second-pass stale bundle hazard notes:
+- public/assets/index-qd2KF3Jd.js is a large older entry candidate that references wrapper chunks such as vendor-supabase-CdzVlbop.js. Do not treat it as current unless a live HTML/SW cache path loads it.
+- artifacts/asset-diff/remote-assets/vendor-supabase-CdzVlbop.js is HTML fallback content despite a .js filename.

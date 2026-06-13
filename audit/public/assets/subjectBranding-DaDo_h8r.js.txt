@@ -1,0 +1,223 @@
+FILE IDENTITY
+
+- original path: public/assets/subjectBranding-DaDo_h8r.js
+- audit path: audit/public/assets/subjectBranding-DaDo_h8r.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 7718
+- SHA-256: 9c6a5684787ca0ce502cad749ae5dd0bfb1e27d52064715a25256dfd310891fb
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3088 - "file": "subjectBranding-DaDo_h8r.js",
+- artifacts/asset-diff/asset-report.json:3091 - "remote_url": "https://isotopeai.in/assets/subjectBranding-DaDo_h8r.js",
+- artifacts/asset-diff/local-assets.txt:172 - subjectBranding-DaDo_h8r.js
+- artifacts/asset-diff/summary.md:20 - | subjectBranding-DaDo_h8r.js | 7718 | 5762 | 200 |
+- public/assets/Analytics-D74gQMjN.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJFSVW.js","assets/index-CrO6t5EW.css","assets/App-pJGjDiPw.js
+- public/assets/Analytics-D74gQMjN.js:2 - import{_ as Ie}from"./index-BPYJFSVW.js";import{r as A,j as o,f as fa}from"./vendor-react-BfU3Zn2J.js";import{S as nn,D as rn}from"./DashboardHeader-DNuRMna8.js";import{g as te,q as _e,p as pt,j as on,h as sn,u as cn,k as ln,c as dn,d as un
+- public/assets/AnalyticsPeriod-CGXbfYQB.js:1 - import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{A as ae,C as T,X as $,Y as W,T as A,L as X,a as Z,P as pe,c 
+- public/assets/AnalyticsSubjects-DOh8aXlW.js:1 - import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T}from"./timeFormat-CMPo-BX2.js";import{B as D,a as f,T as v,
+- public/assets/AnalyticsTasks-DOfUf9Sd.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{S as x}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as L}from"./useChartAnimation-C6FTIqbw.js";import{A as $,C as u,X as j,Y as g,T as m,a as K,B as N,L as k,b as v,P as B,c as D
+- public/assets/AnalyticsToday-BTdRNTb0.js:1 - import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";import{S as V}from"./SafeResponsiveContainer-D7o6DE97.js";impor
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/Dashboard-dypAV-0H.js:96 - import "./subjectBranding-DaDo_h8r.js";
+- public/assets/Focus-BmgY-9vP.js:85 - } from "./subjectBranding-DaDo_h8r.js";
+- public/assets/IsotopeWrapped2-B4zl9ERi.js:1 - import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as re,b0 as oe,cW as ce,b1 as le,am as de,l as G,J as ue,d as 
+- public/assets/Onboarding-qvAqCBbb.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Step1Identity-BZBwnoJ8.js", "assets/vendor-react-BfU3Zn2J.js", "assets/OnboardingNavigation-C6kIq5HV.js", "assets/vendor-icons-CqruUz7g.js", "assets/App-pJGjDiPw.j
+- public/assets/RealAnalyticsOverview-bpioXKtW.js:1 - import{j as t}from"./vendor-react-BfU3Zn2J.js";import{g as E,h as me,j as ue,u as xe,f as he}from"./useFocusStore-CX_Nyp1h.js";import{t as fe,a as be}from"./subjectBranding-DaDo_h8r.js";import{h as ge}from"./App-pJGjDiPw.js";import{S as L}f
+- public/assets/SessionEditModal-CNi_rT0l.js:29 - } from "./subjectBranding-DaDo_h8r.js";
+- public/assets/SessionLogTable-CclRAAwc.js:1 - import{r as m,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as ie,g as w}from"./useFocusStore-CX_Nyp1h.js";import{u as C}from"./useAIStore-B2cv1FZz.js";import{c as oe,h as ce,O as v,g as le}from"./App-pJGjDiPw.js";import{S as de}from"./S
+- public/assets/SettingsLayout-B4OgCkQ5.js:190 - import "./subjectBranding-DaDo_h8r.js";
+- public/assets/Step2Academic-BUGsFsTy.js:1 - import{r as m,j as t}from"./vendor-react-BfU3Zn2J.js";import{u as E}from"./Onboarding-qvAqCBbb.js";import{O as z}from"./OnboardingNavigation-C6kIq5HV.js";import{C as u}from"./ChipMultiSelect-BU74OOip.js";import{S as C}from"./SubjectCreateMo
+- public/assets/Study-pAdAenIl.js:104 - } from "./subjectBranding-DaDo_h8r.js";
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:12 - } from "./subjectBranding-DaDo_h8r.js";
+- public/assets/SubjectIcon-CyCDqtel.js:6 - } from "./subjectBranding-DaDo_h8r.js";
+- public/assets/Syllabus-DZSnov0t.js:22 - } from "./subjectBranding-DaDo_h8r.js";
+- public/assets/Tasks-BYRFOrek.js:48 - } from "./subjectBranding-DaDo_h8r.js";
+
+INTERNAL STRUCTURE
+
+- line count: 224
+- imports:
+None observed.
+- exports:
+- 222: export {
+- functions/async flows:
+- 3: function i(t) {
+- 7: function d(t) {
+- 136: function l(t, r = !1) {
+- 149: function $(t, r = !1) {
+- 153: function b(t, r) {
+- 168: function s(t, r = !1) {
+- 176: function m(t) {
+- 180: function y(t, r = "to right", e = !1) {
+- 191: function h(t, r = 15) {
+- 199: function k(t) {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 1: const c = "#3b82f6";
+- 8: const r = t.match(/^(?:text|bg)-\[(.+)\](?:\/[0-9.]+)?$/);
+- 11: const g = {
+- 139: const e = d(t);
+- 141: const a = r ? p : g;
+- 143: const n = t.replace(/^(text-|bg-)/, "");
+- 145: const x = n.replace(/-\d{3}$/, "-500");
+- 154: const e = t.replace("#", "");
+- 160: const a = parseInt(e.substring(0, 2), 16),
+- 170: const e = t.match(/\/(\d{1,3})$/),
+- 183: const a = t.split(/\s+/),
+- 192: const e = t.replace("#", ""),
+- 208: const e = ["BookOpen", "Calculator", "FlaskConical", "Globe", "Palette", "Music", "Camera", "Code", "Cpu", "Database", "FileText", "GraduationCap", "History", "Languages", "Leaf", "Microscope", "Pencil", "Scale", "Sparkl
+- 213: const a = e.find(n => n.toLowerCase() === t.toLowerCase());
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+No environment variable names observed.
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0445-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/subjectBranding-DaDo_h8r.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/subjectBranding-DaDo_h8r.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 7718
+- file kind: text/source or unknown
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/Analytics-D74gQMjN.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJ
+  - public/assets/Analytics-D74gQMjN.js:2: import{_ as Ie}from"./index-BPYJFSVW.js";import{r as A,j as o,f as fa}from"./vendor-react-BfU3Zn2J.js";import{S as nn,D as rn}from"./DashboardHeader-DNuRMna8.js";import{g as te,q a
+  - public/assets/AnalyticsPeriod-CGXbfYQB.js:1: import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{
+  - public/assets/AnalyticsSubjects-DOh8aXlW.js:1: import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T
+  - public/assets/AnalyticsTasks-DOfUf9Sd.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{S as x}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as L}from"./useChartAnimation-C6FTIqbw.js";import{A as $,C as u,X 
+  - public/assets/AnalyticsToday-BTdRNTb0.js:1: import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";imp
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/Dashboard-dypAV-0H.js:96: import "./subjectBranding-DaDo_h8r.js";
+  - public/assets/Focus-BmgY-9vP.js:85: } from "./subjectBranding-DaDo_h8r.js";
+  - public/assets/IsotopeWrapped2-B4zl9ERi.js:1: import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as
+  - public/assets/SessionEditModal-CNi_rT0l.js:29: } from "./subjectBranding-DaDo_h8r.js";
+  - public/assets/SettingsLayout-B4OgCkQ5.js:190: import "./subjectBranding-DaDo_h8r.js";
+  - public/assets/Step2Academic-BUGsFsTy.js:1: import{r as m,j as t}from"./vendor-react-BfU3Zn2J.js";import{u as E}from"./Onboarding-qvAqCBbb.js";import{O as z}from"./OnboardingNavigation-C6kIq5HV.js";import{C as u}from"./ChipM
+  - public/assets/Syllabus-DZSnov0t.js:22: } from "./subjectBranding-DaDo_h8r.js";
+  - public/assets/Tasks-BYRFOrek.js:48: } from "./subjectBranding-DaDo_h8r.js";
+  - public/assets/Onboarding-qvAqCBbb.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Step1Identity-BZBwnoJ8.js", "assets/vendor-react-BfU3Zn2J.js", "assets/OnboardingNavigation-C6kIq5HV.js
+  - public/assets/RealAnalyticsOverview-bpioXKtW.js:1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{g as E,h as me,j as ue,u as xe,f as he}from"./useFocusStore-CX_Nyp1h.js";import{t as fe,a as be}from"./subjectBranding-DaDo_h8
+  - public/assets/SessionLogTable-CclRAAwc.js:1: import{r as m,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as ie,g as w}from"./useFocusStore-CX_Nyp1h.js";import{u as C}from"./useAIStore-B2cv1FZz.js";import{c as oe,h as ce,O 
+  - public/assets/Study-pAdAenIl.js:104: } from "./subjectBranding-DaDo_h8r.js";
+  - public/assets/SubjectCreateModal-DhD_Cwbk.js:12: } from "./subjectBranding-DaDo_h8r.js";

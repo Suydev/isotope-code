@@ -1,0 +1,199 @@
+FILE IDENTITY
+
+- original path: public/assets/PremiumEffects-BX6T03yQ.js
+- audit path: audit/public/assets/PremiumEffects-BX6T03yQ.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 3403
+- SHA-256: 47245de7309b1c8a7da2bd46622171ff2b149689d1e124e5451d282f5e925e06
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:1990 - "file": "PremiumEffects-BX6T03yQ.js",
+- artifacts/asset-diff/asset-report.json:1993 - "remote_url": "https://isotopeai.in/assets/PremiumEffects-BX6T03yQ.js",
+- artifacts/asset-diff/local-assets.txt:111 - PremiumEffects-BX6T03yQ.js
+- artifacts/asset-diff/summary.md:94 - | PremiumEffects-BX6T03yQ.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/About-DbJqhVWT.js:1 - import{j as e,f as x}from"./vendor-react-BfU3Zn2J.js";import{N as m,F as p}from"./Navbar-BJMJUymI.js";import{m as s}from"./vendor-motion-Cp_NPzpZ.js";import{S as u,k as g,l as b,m as y,L as f,n as w,f as k,U as j,o as v,p as N,T as z,q as I
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/Dashboard-dypAV-0H.js:95 - } from "./PremiumEffects-BX6T03yQ.js";
+- public/assets/Focus-BmgY-9vP.js:92 - } from "./PremiumEffects-BX6T03yQ.js";
+- public/assets/Landing-CWRNt7E9.js:54 - import "./PremiumEffects-BX6T03yQ.js";
+- public/assets/Navbar-BJMJUymI.js:24 - } from "./PremiumEffects-BX6T03yQ.js";
+- public/assets/NotFound-X23NBnde.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as o}from"./PageLayout-B8yOy6kS.js";import{j as i,H as s}from"./vendor-icons-CqruUz7g.js";import{L as a}from"./vendor-router-CmoTwRnm.js";import"./Navbar-BJMJUymI.js";import"./App-pJGj
+- public/assets/Privacy-ClP3A1gm.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUA
+- public/assets/Tasks-BYRFOrek.js:127 - } from "./PremiumEffects-BX6T03yQ.js";
+- public/assets/Terms-BXixZPB6.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUA
+
+INTERNAL STRUCTURE
+
+- line count: 92
+- imports:
+- 1: import {
+- 3: } from "./vendor-react-BfU3Zn2J.js";
+- 4: import {
+- 6: } from "./utils-D8mZnxMk.js";
+- 7: import {
+- 9: } from "./App-pJGjDiPw.js";
+- exports:
+- 90: export {
+- functions/async flows:
+- 33: }) => {
+- 64: }) => {
+- 82: }) => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 10: const i = {
+- 48: const l = i[o === "ranker" ? "ranker" : "scholar"];
+- 69: const o = i[e === "ranker" ? "ranker" : "scholar"];
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- RANKER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/PremiumEffects-BX6T03yQ.js:25
+- SCHOLAR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Landing-CWRNt7E9.js:331, public/assets/PremiumEffects-BX6T03yQ.js:17
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 1: import {
+- 3: } from "./vendor-react-BfU3Zn2J.js";
+- 4: import {
+- 6: } from "./utils-D8mZnxMk.js";
+- 7: import {
+- 9: } from "./App-pJGjDiPw.js";
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0384-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/PremiumEffects-BX6T03yQ.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/PremiumEffects-BX6T03yQ.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 3403
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/About-DbJqhVWT.js:1: import{j as e,f as x}from"./vendor-react-BfU3Zn2J.js";import{N as m,F as p}from"./Navbar-BJMJUymI.js";import{m as s}from"./vendor-motion-Cp_NPzpZ.js";import{S as u,k as g,l as b,m 
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/Dashboard-dypAV-0H.js:95: } from "./PremiumEffects-BX6T03yQ.js";
+  - public/assets/Focus-BmgY-9vP.js:92: } from "./PremiumEffects-BX6T03yQ.js";
+  - public/assets/NotFound-X23NBnde.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as o}from"./PageLayout-B8yOy6kS.js";import{j as i,H as s}from"./vendor-icons-CqruUz7g.js";import{L as a}from"./vendor-router
+  - public/assets/Tasks-BYRFOrek.js:127: } from "./PremiumEffects-BX6T03yQ.js";
+  - public/assets/Terms-BXixZPB6.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js
+  - public/assets/Landing-CWRNt7E9.js:54: import "./PremiumEffects-BX6T03yQ.js";
+  - public/assets/Navbar-BJMJUymI.js:24: } from "./PremiumEffects-BX6T03yQ.js";
+  - public/assets/Privacy-ClP3A1gm.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js
+  - artifacts/asset-diff/local-assets.txt:111: PremiumEffects-BX6T03yQ.js
+  - artifacts/asset-diff/asset-report.json:1990: "file": "PremiumEffects-BX6T03yQ.js",
+  - artifacts/asset-diff/asset-report.json:1993: "remote_url": "https://isotopeai.in/assets/PremiumEffects-BX6T03yQ.js",
+  - artifacts/asset-diff/summary.md:94: | PremiumEffects-BX6T03yQ.js | 200 | unexpected HTML fallback for .js request |

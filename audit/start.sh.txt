@@ -1,0 +1,156 @@
+FILE IDENTITY
+
+- original path: start.sh
+- audit path: audit/start.sh.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: script
+- MIME type: application/x-sh
+- size in bytes: 513
+- SHA-256: 52bb347d5418a0d4c73253a1cbdbcd8f4da70eb02f7a8350cc263b325eaf7350
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: application project
+- primary auditor: installer-platform-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the application project subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: application project
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/ci.yml:45 - start.sh \
+- .github/workflows/ci.yml:76 - start.sh \
+- .github/workflows/ci.yml:195 - start.sh
+- scripts/validate-docs.mjs:208 - 'start.sh',
+
+INTERNAL STRUCTURE
+
+- line count: 23
+- imports:
+None observed.
+- exports:
+- 6: export ISOTOPE_PROJECT_DIR="$DIR"
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BASH_SOURCE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, doctor.sh:5, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup-termux-widget.sh:17, start.sh:5, update.sh:4
+- DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=doctor.sh:5, doctor.sh:6, doctor.sh:12, doctor.sh:13, scripts/capture-screenshots.mjs:5, scripts/capture-screenshots.mjs:16, scripts/capture-screenshots.mjs:39, scripts/capture-screenshots.mjs:224, scripts/capture-screenshots.mjs:239, scripts/capture-screenshots.mjs:283, scripts/capture-screenshots.mjs:324, scripts/capture-screenshots.mjs:340
+- ERROR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:87, .github/workflows/schema-lint.yml:152, .github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:163, .github/workflows/schema-lint.yml:165, .github/workflows/schema-lint.yml:168, .github/workflows/schema-lint.yml:171, .github/workflows/schema-lint.yml:190, .github/workflows/schema-lint.yml:205, .github/workflows/schema-lint.yml:207, .github/workflows/schema-lint.yml:220, .github/workflows/schema-lint.yml:222
+- ISOTOPE_PROJECT_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:60, bin/isotope:61, bin/isotope.bat:41, bin/isotope.bat:42, bin/isotope.bat:43, doctor.sh:6, setup-termux-widget.sh:66, setup-termux-widget.sh:104, start.sh:6, update.sh:5
+- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
+- command-line arguments: script-like file; inspect internal structure for argv/flags
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 1: #!/usr/bin/env bash
+- 3: # Usage: bash start.sh [--port=3000]
+- 22: printf 'ERROR: isotope command not installed. Run: bash setup.sh\n' >&2
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0636-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: start.sh inspected; no file-specific high-risk issue confirmed
+  observed evidence: start.sh inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/ci.yml, .github/workflows/ci.yml, .github/workflows/ci.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

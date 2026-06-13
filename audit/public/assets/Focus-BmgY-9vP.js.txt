@@ -1,0 +1,480 @@
+FILE IDENTITY
+
+- original path: public/assets/Focus-BmgY-9vP.js
+- audit path: audit/public/assets/Focus-BmgY-9vP.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 125076
+- SHA-256: 686180bd9099be94649024f1ffa450b555bae47b0cdac01e1901da93763971ea
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:586 - "file": "Focus-BmgY-9vP.js",
+- artifacts/asset-diff/asset-report.json:589 - "remote_url": "https://isotopeai.in/assets/Focus-BmgY-9vP.js",
+- artifacts/asset-diff/local-assets.txt:33 - Focus-BmgY-9vP.js
+- artifacts/asset-diff/summary.md:69 - | Focus-BmgY-9vP.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/App-pJGjDiPw.js:8343 - import ("./Focus-BmgY-9vP.js"), __vite__mapDeps([32, 2, 23, 6, 7, 5, 8, 21, 1, 3, 22, 24, 20, 19, 12, 25, 26, 33, 34, 29, 10, 11, 18, 17, 9, 35, 15]))),
+- public/sw.js:43 - '/assets/Focus-BmgY-9vP.js',
+- public/sw.js:69 - '/assets/Focus-BmgY-9vP.js',
+- server.mjs:131 - '/assets/Focus-BmgY-9vP.js',
+- server.mjs:3558 - const FOCUS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Focus-BmgY-9vP.js');
+
+INTERNAL STRUCTURE
+
+- line count: 2537
+- imports:
+- 1: import {
+- 6: } from "./vendor-react-BfU3Zn2J.js";
+- 7: import {
+- 13: } from "./DashboardHeader-DNuRMna8.js";
+- 14: import {
+- 17: } from "./vendor-motion-Cp_NPzpZ.js";
+- 18: import {
+- 56: } from "./vendor-icons-CqruUz7g.js";
+- 57: import {
+- 60: } from "./timeFormat-CMPo-BX2.js";
+- 61: import {
+- 68: } from "./useFocusStore-CX_Nyp1h.js";
+- 69: import {
+- 78: } from "./App-pJGjDiPw.js";
+- 79: import {
+- 82: } from "./SessionEditModal-CNi_rT0l.js";
+- 83: import {
+- 85: } from "./subjectBranding-DaDo_h8r.js";
+- 86: import {
+- 89: } from "./useNotificationStore-BS4df28T.js";
+- 90: import {
+- 92: } from "./PremiumEffects-BX6T03yQ.js";
+- 93: import {
+- 95: } from "./useAIStore-B2cv1FZz.js";
+- 96: import {
+- 102: } from "./focusBackground-t8AknbRg.js";
+- 103: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- 104: import "./useOnlineStatus-BJOTUERN.js";
+- 105: import "./MarkdownRenderer-CIV1x0Uq.js";
+- 106: import "./index-BPYJFSVW.js";
+- 107: import "./vendor-router-CmoTwRnm.js";
+- 108: import "./useSyncStore-vWs_TdIc.js";
+- 109: import "./IsotopeLogoIcon-oPk5Ru-_.js";
+- 110: import "./vendor-supabase-DAiUAuun.js";
+- 111: import "./studyTimeMaps-B0T_-AX0.js";
+- 112: import "./taskAvailability-B1aDS_ww.js";
+- 113: import "./utils-D8mZnxMk.js";
+- 114: import "./vendor-charts-CFLJvnG7.js";
+- 115: import "./SubjectIcon-CyCDqtel.js";
+- exports:
+- 2534: export {
+- functions/async flows:
+- 166: }) => {
+- 302: }) => {
+- 400: }) => {
+- 405: } = Y(), i = Qs(w ?.studyPreferences), x = t.useMemo(() => {
+- 412: for (;;) {
+- 456: }) => {
+- 465: } = De(), l = i ?.studyPreferences ?.dayOffset ?? 0, [c, b] = t.useState(!1), [m, j] = t.useState(6), [p, N] = t.useState(!1), [h, o] = t.useState(0), [n, u] = t.useState([]), [k, T] = t.useState(!1), [z, $] = t.useState
+- 472: return L.forEach(O => {
+- 473: O.subjectIds && O.subjectIds.forEach(K => {
+- 484: }, [l, i ?.studyPreferences, w]), U = t.useMemo(() => {
+- 486: return n.map(y => {
+- 498: t.useEffect(() => {
+- 501: Object.entries(y).forEach(([I, L]) => {
+- 508: const V = () => {
+- 521: W = () => {
+- 530: Q = () => {
+- 533: if (r >= 0) {
+- 542: Z = r => {
+- 784: }) => {
+- 793: } = B(), [b, m] = we.useState(null), [j, p] = we.useState(!1), N = () => {
+- 817: }, h = [...a].filter(n => n.completed).sort((n, u) => new Date(u.startTime).getTime() - new Date(n.startTime).getTime()).slice(0, 5), o = n => {
+- 849: onClose: () => {
+- 895: un = () => {
+- 917: } = De(), z = Y(r => r.profile ?.focusSettings ?.focusTypes), [$, f] = t.useState(!1), [M, R] = t.useState(""), G = u.map(r => T.find(y => y.id === r)).filter(Boolean), F = k.map(r => {
+- 918: for (const y of T) {
+- 929: if (t.useEffect(() => {
+- 934: }, [h, o]), t.useEffect(() => {
+- 936: const r = y => {
+- 958: if (c > 0 && V > 0) {
+- 962: const ee = r => {
+- 1143: onClick: () => {
+- 1158: }) => {
+- 1175: return t.useEffect(() => {
+- 1178: if (c && c.url) {
+- 1183: }, [a]), t.useEffect(() => {
+- 1231: xn = () => {
+- 1266: }) => {
+- 1268: t.useEffect(() => {
+- 1269: (async () => {
+- 1277: }, []), t.useEffect(() => {
+- 1280: const d = l => {
+- 1318: }) => {
+- 1324: t.useEffect(() => {
+- 1325: (async () => {
+- 1333: }, []), t.useEffect(() => {
+- 1337: m = o => {
+- 1347: j = o => {
+- 1352: p = o => {
+- 1355: N = async o => {
+- 1421: }) => {
+- 1423: t.useEffect(() => {
+- 1425: }, [i]), t.useEffect(() => {
+- 1427: const n = setInterval(() => {
+- 1430: u = setInterval(() => {
+- 1433: return () => {
+- 1436: }, [c]), t.useEffect(() => {
+- 1456: return () => {
+- 1462: const h = () => {
+- 1465: o = n => {
+- 1541: }) => {
+- 1543: t.useEffect(() => {
+- 1545: const T = () => {
+- 1554: const m = t.useCallback(() => {
+- 1557: j = t.useCallback(() => {
+- 1560: p = t.useCallback(() => {
+- 1563: N = t.useCallback(() => {
+- 1806: gn = () => {
+- 1814: wn = s => {
+- 1818: kn = s => {
+- 1833: vn = () => {
+- 1846: t.useEffect(() => {
+- 1849: const h = t.useCallback(() => {
+- 1852: o = t.useCallback(() => {
+- 1862: t.useEffect(() => {
+- 1863: const f = () => {
+- 1867: }, []), t.useEffect(() => {
+- 1874: const n = t.useCallback(() => {
+- 1885: })), h(), j.current = setTimeout(() => {
+- 1889: u = t.useCallback(() => {
+- 1895: })), m.current = setTimeout(() => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 116: const an = ({
+- 303: const p = i === "break" ? "Skip Break" : "Skip to Break",
+- 406: const d = ne(new Date, i),
+- 410: let m = 0;
+- 411: const j = new Date;
+- 413: const p = ne(j, i);
+- 466: const r = i ?.studyPreferences ?.dailyQuestionGoal || 0,
+- 474: const ie = O.questionsAttempted || 0,
+- 485: const r = E.questionsBySubject;
+- 487: const I = r[y.subjectId] || 0,
+- 499: const r = [],
+- 508: const V = () => {
+- 509: const r = Math.max(1, Math.min(24, m)),
+- 522: const r = { ...i ?.studyPreferences,
+- 532: const r = n.findIndex(y => y.subjectId === z);
+- 534: const y = [...n];
+- 794: const n = {
+- 818: const u = new Date(n),
+- 919: const I = y.chapters.find(L => L.id === r);
+- 936: const r = y => {
+- 954: const V = s === "stopwatch" ? Math.max(0, b) : Math.max(0, j - m),
+- 956: let Q = null,
+- 959: const r = c / j * V;
+- 962: const ee = r => {
+- 965: const y = Math.floor(r / 60),
+- 1144: const r = parseInt(M, 10);
+- 1177: const c = l.find(b => b.id === a);
+- 1179: const b = new Audio(c.url);
+- 1232: const s = [{
+- 1270: const l = await ve.getItem("focus-distractions");
+- 1280: const d = l => {
+- 1319: const a = B(o => o.currentTaskIds),
+- 1326: const o = await ve.getItem("session-custom-goals");
+- 1336: const b = w.filter(o => a.includes(o.id)),
+- 1339: const n = {
+- 1356: const n = w.find(k => k.id === o);
+- 1358: const u = n.status === "done" ? "in-progress" : "done";
+- 1427: const n = setInterval(() => {
+- 1438: const n = window.AudioContext || window.webkitAudioContext;
+- 1440: const u = p.current,
+- 1444: const z = u.createOscillator();
+- 1446: const $ = u.createGain();
+- 1462: const h = () => {
+- 1466: const u = Math.floor(n / 86400),
+- 1545: const T = () => {
+- 1546: const $ = Date.now(),
+- 1551: const z = setInterval(T, 1e3);
+- 1554: const m = t.useCallback(() => {
+- 1807: const s = "ontouchstart" in window || navigator.maxTouchPoints > 0,
+- 1815: const a = s.mode === "pomodoro" ? Math.max(0, s.totalTime - s.timeLeft) : Math.max(0, s.stopwatchTime);
+- 1819: const a = Math.floor(s / 60),
+- 1849: const h = t.useCallback(() => {
+- 1853: const f = N.current;
+- 1855: const M = B.getState();
+- 1863: const f = () => {
+- 1874: const n = t.useCallback(() => {
+- 1875: const f = B.getState();
+- 1877: const M = Date.now(),
+- 1891: const f = Math.max(1, b) * 60 * 1e3,
+- 1924: const f = setInterval(() => {
+- 1990: const v = I.filter(S => h.includes(S.id)).map(S => ({
+- 2016: const St = t.useMemo(() => {
+- 2018: const v = l === "pomodoro" ? Math.max(0, b - c) : Math.max(0, m);
+- 2035: const v = await tn();
+- 2039: const Ke = () => {
+- 2040: const v = prompt("Enter the URL of the image you want to use as background:");
+- 2042: const S = sn(v);
+- 2059: const S = await window.documentPictureInPicture.requestWindow({
+- 2064: const A = S.document.createElement("div");
+- 2066: const X = () => {
+- 2068: const Zt = B.getState(),
+- 2096: let fe;
+- 2098: const cs = nt === "pomodoro" ? "Pomodoro" : "Stopwatch",
+- 2136: const ms = S.document.getElementById("pip-correct"),
+- 2142: const ot = S.prompt("Set target questions", String(ze || ""));
+- 2148: const Vt = B.subscribe(() => {
+- 2174: const v = () => {
+- 2185: const P = C === "running" && !Tt || Se,
+- handlers/lifecycle candidates:
+- 952: return window.addEventListener("keydown", r), () => window.removeEventListener("keydown", r)
+- 1427: const n = setInterval(() => {
+- 1430: u = setInterval(() => {
+- 1551: const z = setInterval(T, 1e3);
+- 1866: return f(), window.addEventListener("resize", f), () => window.removeEventListener("resize", f)
+- 1885: })), h(), j.current = setTimeout(() => {
+- 1895: })), m.current = setTimeout(() => {
+- 1924: const f = setInterval(() => {
+- 2141: ms ?.addEventListener("click", () => Ce("correct")), xs ?.addEventListener("click", () => Ce("incorrect")), bs ?.addEventListener("click", () => Ce("skipped")), hs ?.addEventListener("click", () => as()), ps ?.addEventLi
+- 2146: Wt = setInterval(X, 1e3);
+- 2151: S.addEventListener("pagehide", () => {
+- 2175: Ne(!0), oe.current && clearTimeout(oe.current), oe.current = setTimeout(() => {
+- 2179: return window.addEventListener("mousemove", v), window.addEventListener("keydown", v), window.addEventListener("click", v), () => {
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- AX0: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3070, artifacts/asset-diff/asset-report.json:3073, artifacts/asset-diff/local-assets.txt:171, artifacts/asset-diff/summary.md:19, public/assets/Analytics-D74gQMjN.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/Focus-BmgY-9vP.js:111, public/assets/SessionEditModal-CNi_rT0l.js:20, public/assets/SessionLogTable-CclRAAwc.js:1, public/assets/Study-pAdAenIl.js:97, public/assets/Syllabus-DZSnov0t.js:108
+- B0T_: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3070, artifacts/asset-diff/asset-report.json:3073, artifacts/asset-diff/local-assets.txt:171, artifacts/asset-diff/summary.md:19, public/assets/Analytics-D74gQMjN.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/Focus-BmgY-9vP.js:111, public/assets/SessionEditModal-CNi_rT0l.js:20, public/assets/SessionLogTable-CclRAAwc.js:1, public/assets/Study-pAdAenIl.js:97, public/assets/Syllabus-DZSnov0t.js:108
+- BJOTUERN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3322, artifacts/asset-diff/asset-report.json:3325, artifacts/asset-diff/local-assets.txt:185, artifacts/asset-diff/summary.md:22, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- BPYJFSVW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2908, artifacts/asset-diff/asset-report.json:2911, artifacts/asset-diff/local-assets.txt:162, artifacts/asset-diff/summary.md:141, public/assets/AIAssistant--spCOe6W.js:58, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsTasks-DOfUf9Sd.js:1
+- BX2: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3142, artifacts/asset-diff/asset-report.json:3145, artifacts/asset-diff/local-assets.txt:175, artifacts/asset-diff/summary.md:21, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- FOCUS_SESSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Focus-BmgY-9vP.js:1822, public/assets/useFocusStore-CX_Nyp1h.js:2398, public/assets/useFocusStore-CX_Nyp1h.js:2649, public/assets/useFocusStore-CX_Nyp1h.js:2660, public/assets/useNotificationStore-BS4df28T.js:13
+- INPUT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-motion-Cp_NPzpZ.js:1, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:49, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:496, public/assets/ChapterHub-BXRydU0B.js:42, public/assets/Focus-BmgY-9vP.js:937, public/assets/Tasks-BYRFOrek.js:4462, public/assets/index-qd2KF3Jd.js:26, public/assets/vendor-motion-Cp_NPzpZ.js:1977, public/assets/vendor-react-BfU3Zn2J.js:8520
+- PIP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Focus-BmgY-9vP.js:2155, public/assets/useAIStore-B2cv1FZz.js:3674
+- START: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, public/assets/Focus-BmgY-9vP.js:1520, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- TEXTAREA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-motion-Cp_NPzpZ.js:1, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/ChapterHub-BXRydU0B.js:42, public/assets/Focus-BmgY-9vP.js:937, public/assets/Tasks-BYRFOrek.js:4462, public/assets/vendor-motion-Cp_NPzpZ.js:1977, public/assets/vendor-sentry-VzeXdCeF.js:11077, public/assets/vendor-sentry-VzeXdCeF.js:13143, public/assets/vendor-sentry-VzeXdCeF.js:14365, public/assets/vendor-sentry-VzeXdCeF.js:15943
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: filesystem or asset file dependency likely
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 103: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- 299: onRemoveTime: b,
+- 462: updateProfile: x
+- 814: updatedAt: ge()
+- 952: return window.addEventListener("keydown", r), () => window.removeEventListener("keydown", r)
+- 1180: b.loop = !0, b.volume = i / 100, b.play().catch(m => console.error("Audio play failed:", m)), d.current = b
+- 1274: console.error("Failed to parse distractions:", c)
+- 1321: i = Ae(o => o.updateTask),
+- 1330: console.error("Failed to parse custom goals:", n)
+- 1449: console.error("Audio context error", n)
+- 1829: url: `${window.location.origin}/focus`
+- 1866: return f(), window.addEventListener("resize", f), () => window.removeEventListener("resize", f)
+- 2155: console.error("Failed to open PIP window", v)
+- 2180: window.removeEventListener("mousemove", v), window.removeEventListener("keydown", v), window.removeEventListener("click", v), oe.current && clearTimeout(oe.current)
+- 2330: title: "Remove Background",
+- 2430: onRemoveTime: Ft,
+- 2484: title: "Remove Background",
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 5: b as fs
+- 1163: url: "/sounds/rain.wav"
+- 1168: url: "/sounds/crickets.wav"
+- 1173: url: "/sounds/wind.wav"
+- 1178: if (c && c.url) {
+- 1179: const b = new Audio(c.url);
+- 1571: return s ? fs.createPortal(e.jsx(_, {
+- 1829: url: `${window.location.origin}/focus`
+- 2046: }), xe(S)) : alert("Please enter a valid image URL starting with http:// or https://")
+- 2088: os = at ?.showQuestionTrackingInTimerPip ?? !0,
+- 2090: rt = os && !!he,
+- 2240: backgroundImage: `url(${D})`,
+- external libraries:
+- 1: import {
+- 6: } from "./vendor-react-BfU3Zn2J.js";
+- 7: import {
+- 13: } from "./DashboardHeader-DNuRMna8.js";
+- 14: import {
+- 17: } from "./vendor-motion-Cp_NPzpZ.js";
+- 18: import {
+- 56: } from "./vendor-icons-CqruUz7g.js";
+- 57: import {
+- 60: } from "./timeFormat-CMPo-BX2.js";
+- 61: import {
+- 68: } from "./useFocusStore-CX_Nyp1h.js";
+- 69: import {
+- 78: } from "./App-pJGjDiPw.js";
+- 79: import {
+- 82: } from "./SessionEditModal-CNi_rT0l.js";
+- 83: import {
+- 85: } from "./subjectBranding-DaDo_h8r.js";
+- 86: import {
+- 89: } from "./useNotificationStore-BS4df28T.js";
+- 90: import {
+- 92: } from "./PremiumEffects-BX6T03yQ.js";
+- 93: import {
+- 95: } from "./useAIStore-B2cv1FZz.js";
+- 96: import {
+- 102: } from "./focusBackground-t8AknbRg.js";
+- 103: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- 104: import "./useOnlineStatus-BJOTUERN.js";
+- 105: import "./MarkdownRenderer-CIV1x0Uq.js";
+- 106: import "./index-BPYJFSVW.js";
+- 107: import "./vendor-router-CmoTwRnm.js";
+- 108: import "./useSyncStore-vWs_TdIc.js";
+- 109: import "./IsotopeLogoIcon-oPk5Ru-_.js";
+- 110: import "./vendor-supabase-DAiUAuun.js";
+- 111: import "./studyTimeMaps-B0T_-AX0.js";
+- 112: import "./taskAvailability-B1aDS_ww.js";
+- 113: import "./utils-D8mZnxMk.js";
+- 114: import "./vendor-charts-CFLJvnG7.js";
+- 115: import "./SubjectIcon-CyCDqtel.js";
+- local files: see References and Consumers above
+- browser APIs:
+- 89: } from "./useNotificationStore-BS4df28T.js";
+- 937: if (!(document.activeElement ?.tagName === "INPUT" || document.activeElement ?.tagName === "TEXTAREA")) switch (y.key.toLowerCase()) {
+- 952: return window.addEventListener("keydown", r), () => window.removeEventListener("keydown", r)
+- 1438: const n = window.AudioContext || window.webkitAudioContext;
+- 1804: }), document.body) : null
+- 1807: const s = "ontouchstart" in window || navigator.maxTouchPoints > 0,
+- 1808: a = window.innerWidth,
+- 1822: Nt.getState().sendNotification(Xs.FOCUS_SESSION, "⏰ Session Check-in", {
+- 1829: url: `${window.location.origin}/focus`
+- 1866: return f(), window.addEventListener("resize", f), () => window.removeEventListener("resize", f)
+- 2059: const S = await window.documentPictureInPicture.requestWindow({
+- 2063: se.current = S, S.document.body.style.backgroundColor = s ? "#000000" : "#f4f4f5", S.document.body.style.color = s ? "white" : "black", S.document.body.style.margin = "0", S.document.body.style.padding = "0", S.document.body.style.fontFamily = "system-ui, sans
+- 2064: const A = S.document.createElement("div");
+- 2065: A.id = "pip-root", A.style.display = "flex", A.style.flexDirection = "column", A.style.alignItems = "center", A.style.justifyContent = "center", A.style.height = "100vh", A.style.width = "100vw", A.style.backgroundColor = s ? "#000000" : "#f4f4f5", A.style.col
+- 2136: const ms = S.document.getElementById("pip-correct"),
+- 2137: xs = S.document.getElementById("pip-incorrect"),
+- 2138: bs = S.document.getElementById("pip-skipped"),
+- 2139: hs = S.document.getElementById("pip-undo"),
+- 2140: ps = S.document.getElementById("pip-target");
+- 2171: Se ? (document.fullscreenElement && document.exitFullscreen().catch(() => {}), Ve(!1)) : (document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}), Ve(!0))
+- 2179: return window.addEventListener("mousemove", v), window.addEventListener("keydown", v), window.addEventListener("click", v), () => {
+- 2180: window.removeEventListener("mousemove", v), window.removeEventListener("keydown", v), window.removeEventListener("click", v), oe.current && clearTimeout(oe.current)
+- 2224: "Notification" in window && Notification.permission === "default" && Nt.getState().requestPermission(), $(v, S)
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 110: import "./vendor-supabase-DAiUAuun.js";
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Large text/code file; focused tests and decomposition would reduce regression risk.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0306-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/Focus-BmgY-9vP.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/Focus-BmgY-9vP.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 125076
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: large file >=100KB; same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - server.mjs:131: '/assets/Focus-BmgY-9vP.js',
+  - server.mjs:3558: const FOCUS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Focus-BmgY-9vP.js');
+  - public/sw.js:43: '/assets/Focus-BmgY-9vP.js',
+  - public/sw.js:69: '/assets/Focus-BmgY-9vP.js',
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/App-pJGjDiPw.js:8343: import ("./Focus-BmgY-9vP.js"), __vite__mapDeps([32, 2, 23, 6, 7, 5, 8, 21, 1, 3, 22, 24, 20, 19, 12, 25, 26, 33, 34, 29, 10, 11, 18, 17, 9, 35, 15]))),
+  - artifacts/asset-diff/local-assets.txt:33: Focus-BmgY-9vP.js
+  - artifacts/asset-diff/asset-report.json:586: "file": "Focus-BmgY-9vP.js",
+  - artifacts/asset-diff/asset-report.json:589: "remote_url": "https://isotopeai.in/assets/Focus-BmgY-9vP.js",
+  - artifacts/asset-diff/summary.md:69: | Focus-BmgY-9vP.js | 200 | unexpected HTML fallback for .js request |

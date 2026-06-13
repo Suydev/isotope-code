@@ -1,0 +1,280 @@
+FILE IDENTITY
+
+- original path: ADMIN.md
+- audit path: audit/ADMIN.md.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: markdown
+- MIME type: text/markdown
+- size in bytes: 21453
+- SHA-256: 1aaf4021fa3e873f94ef2c7dd71bbafcce54e4d6509882a1dbdbeae79c8ed23e
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: documentation
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: documentation
+- runtime stage: development, installation, or documentation
+- user-visible feature: documentation
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/ci.yml:208 - ADMIN.md
+- .github/workflows/regenerate-release.yml:113 - ADMIN.md
+- .github/workflows/release.yml:198 - ADMIN.md
+- README.md:47 - - Admin guide: [ADMIN.md](./ADMIN.md)
+- docs/admin.html:125 - <p>More detail: <a href="https://github.com/Suydev/isotope-code/blob/main/ADMIN.md">ADMIN.md</a> and <a href="./supabase-connection-map.md">Supabase connection map</a>.</p>
+
+INTERNAL STRUCTURE
+
+- line count: 543
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+- 375: The server intercepts specific edge function calls before they hit Supabase:
+- 488: 1. **`_is_group_member(group_id, user_id)`** — SECURITY DEFINER helper prevents RLS infinite recursion. Every group membership policy must use this function instead of direct `EXISTS (SELECT 1 FROM group_members …)`.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ADMIN_EMAIL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.env.example:28, .env.example:29, .env.example:32, ADMIN.md:31, ADMIN.md:32, ADMIN.md:50, ADMIN.md:51, ADMIN.md:195, ADMIN.md:428, ADMIN.md:429, ADMIN.md:450, ADMIN.md:459
+- ADMIN_EMAILS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.env.example:29, ADMIN.md:32, ADMIN.md:51, ADMIN.md:429, CHANGELOG.md:128, CHANGELOG.md:365, server.mjs:223, server.mjs:224, server.mjs:228, server.mjs:321, server.mjs:355, server.mjs:370
+- ADMIN_PASSWORD: classification=secret; required=unknown from static map; inspect use locations; uses=ADMIN.md:52, ADMIN.md:430, ADMIN.md:447, ADMIN.md:459, ADMIN.md:523, CHANGELOG.md:566, artifacts/isotope/.env:31, server.mjs:220, server.mjs:8362, server.mjs:8363, server.mjs:8587, server.mjs:8588
+- ADMIN_SECRET: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:25, .github/workflows/ci.yml:242, .github/workflows/ci.yml:285, ADMIN.md:29, ADMIN.md:47, ADMIN.md:54, ADMIN.md:431, ADMIN.md:539, CHANGELOG.md:365, CHANGELOG.md:489, CHANGELOG.md:565, README.md:238
+- CORS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:240, ADMIN.md:371, server.mjs:5628, server.mjs:8106
+- DEFINER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:73, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:75, ADMIN.md:197, ADMIN.md:232, ADMIN.md:488, CHANGELOG.md:476, CHANGELOG.md:493, CHANGELOG.md:575, CONTRIBUTING.md:105, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:514
+- DML: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:461, server.mjs:8421, server.mjs:8470, server.mjs:8471, server.mjs:8583, server.mjs:8614
+- ENABLE_ADMIN_MODE: classification=public/configuration; required=optional/defaulted; uses=.env.example:18, .env.example:19, ADMIN.md:28, ADMIN.md:46, ADMIN.md:440, ADMIN.md:441, CHANGELOG.md:489, README.md:175, README.md:187, README.md:188, README.md:237, artifacts/isotope/.env:24
+- EXISTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:63, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:66, .github/workflows/schema-lint.yml:69, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125
+- FROM: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:178, .github/workflows/schema-lint.yml:186, ADMIN.md:488, LICENSE:7, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:119, community-patch-v4.sql:148, community-patch-v4.sql:174, community-patch-v4.sql:205, community-patch-v4.sql:236, community-patch-v4.sql:338, community-patch-v4.sql:347
+- GEMINI_API_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:42, ADMIN.md:412, ADMIN.md:433, artifacts/isotope/.env:36, bin/isotope:36, server.mjs:166, server.mjs:393, server.mjs:5864, server.mjs:5917, server.mjs:8243, server.mjs:8372, server.mjs:8377
+- GIF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:266, public/assets/ChapterHub-BXRydU0B.js:12
+- GROQ_API_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:43, ADMIN.md:413, ADMIN.md:432, artifacts/isotope/.env:40, bin/isotope:36, server.mjs:167, server.mjs:394, server.mjs:5864, server.mjs:5917, server.mjs:8243, server.mjs:8373, server.mjs:8377
+- ISOTOPE_ENV_FILE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:439, README.md:186, scripts/prove-supabase-sync.mjs:4, setup.sh:26, setup.sh:254, setup.sh:255, setup.sh:258
+- JPEG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:266, ADMIN.md:267, ADMIN.md:268
+- JSONB: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:471, CHANGELOG.md:500, CHANGELOG.md:521, community-patch-v4.sql:1751, isotope-schema.sql:31, isotope-schema.sql:185, server.mjs:6528
+- MISSING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:228, ADMIN.md:519, server.mjs:5720, server.mjs:7327, server.mjs:7340, server.mjs:7358, server.mjs:7364, server.mjs:7371, server.mjs:7378, server.mjs:7555, server.mjs:7577, server.mjs:7583
+- PAT: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:38, .env.example:39, ADMIN.md:40, ADMIN.md:213, ADMIN.md:220, ADMIN.md:427, ADMIN.md:499, docs/admin.html:118, docs/supabase-connection-map.md:29, performance-indexes.sql:6, scripts/validate-docs.mjs:118, scripts/validate-docs.mjs:119
+- PDF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:267, ADMIN.md:268, public/assets/ChapterHub-BXRydU0B.js:12, public/assets/FocusStore-D5cRXSIr.js:7, public/assets/useAIStore-B2cv1FZz.js:3677
+- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
+- RECURSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:520, server.mjs:7389
+- REPL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:310, README.md:298
+- REST: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:188, CHANGELOG.md:81, CHANGELOG.md:232, CHANGELOG.md:252, CHANGELOG.md:349, CHANGELOG.md:376, CHANGELOG.md:378, CHANGELOG.md:483, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:8, community-patch-v4.sql:607, community-patch-v4.sql:2378, docs/supabase-connection-map.md:25
+- RPC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:11, ADMIN.md:127, ADMIN.md:151, ADMIN.md:153, ADMIN.md:176, ADMIN.md:233, ADMIN.md:234, ADMIN.md:258, ADMIN.md:379, ADMIN.md:490, CHANGELOG.md:135, CHANGELOG.md:148
+- SECURITY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:73, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:75, ADMIN.md:197, ADMIN.md:232, ADMIN.md:488, CHANGELOG.md:476, CHANGELOG.md:493, CHANGELOG.md:575, CONTRIBUTING.md:105, community-patch-v4.sql:514, community-patch-v4.sql:529
+- SELECT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:177, .github/workflows/schema-lint.yml:185, ADMIN.md:488, CHANGELOG.md:177, CHANGELOG.md:196, CHANGELOG.md:231, CHANGELOG.md:269, CHANGELOG.md:270, CHANGELOG.md:274
+- SHA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:354, ADMIN.md:356, CHANGELOG.md:251, CHANGELOG.md:295, CHANGELOG.md:312, CHANGELOG.md:317, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:27, docs/BUG_FIXES.md:17, docs/BUG_FIXES.md:22, docs/BUG_FIXES.md:29, docs/BUG_FIXES.md:32, docs/BUG_FIXES.md:68
+- SUPABASE_ACCESS_TOKEN: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:36, .github/workflows/ci.yml:242, ADMIN.md:33, ADMIN.md:40, ADMIN.md:49, ADMIN.md:427, artifacts/isotope/.env:20, server.mjs:7079, server.mjs:7139
+- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
+- SUPABASE_SERVICE_ROLE_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:22, .github/workflows/ci.yml:242, ADMIN.md:30, ADMIN.md:48, ADMIN.md:426, ADMIN.md:449, ADMIN.md:491, README.md:242, artifacts/isotope/.env:16, docs/admin.html:60, scripts/prove-new-browser-restore.mjs:10, scripts/prove-supabase-sync.mjs:25
+- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
+- TXT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:267, ADMIN.md:268
+- YOUR_ANON_KEY: classification=public/configuration; required=unknown from static map; inspect use locations; uses=ADMIN.md:411
+- YOUR_SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=ADMIN.md:410
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- https://YOUR_SUPABASE_URL
+- https://supabase.com/dashboard/account/tokens
+- https://{SUPABASE_URL}/storage/v1/object/public/avatars/{user_id}/avatar.jpg
+- browser storage:
+- 338: caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload())
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 15: | Removed Events | `/__admin/events*` | Removed-feature JSON response; Events admin is not active |
+- 117: Cleanup never deletes canonical latest paths or the selected best backup.
+- 127: Runs diagnostics against your configured Supabase project. In admin mode, table/RPC/bucket checks can use the server-side service-role key. Results are grouped by schema, RPC, RLS, server health, community, removed-feature, and storage checks.
+- 201: Events and Store checks are intentionally absent because those product surfaces were removed.
+- 236: | v7 | Removed Events and Store cleanup retained as an idempotent compatibility patch |
+- 246: ## 4. Removed Events/Admin Surface
+- 248: Events and Store were removed from the product in v3.0.0. They are not active admin tools and should not be reintroduced without an explicit new implementation request.
+- 254: | `/__admin/events*` | Removed-feature 404 JSON |
+- 255: | `/api/events*` | Removed-feature 404 JSON |
+- 256: | `/api/community-events` | Removed-feature 404 JSON |
+- 258: The cleanup SQL in `community-patch-v4.sql` and `events-expansion.sql` removes Events/Store tables, RPCs, policies, triggers, views, and storage bucket residue.
+- 274: - Authenticated users can upload to their own folder (`{user_id}/filename`)
+- 275: - Owners can update or delete their own files
+- 278: - Authenticated users can read, write, update, delete their own folder only
+- 281: ### Avatar upload path convention
+- 338: caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload())
+- 355: | `POST` | `/api/restart` | None | Legacy no-op. Returns `isotope update` guidance and never stops the server |
+- 356: | `GET` | `/api/check-update` | None | Checks GitHub for a newer version, falling back to SHA when needed |
+- 357: | `GET` | `/api/community-events`, `/api/events*` | None | Removed-feature 404; Events has been removed |
+- 401: | `Community` / `CommunityHub` bundles | Store and Events navigation/cards removed |
+- 460: 3. **Creates public.users row** — upserts `{id, email, username, plan_type:'ranker'}` for the admin
+- 497: ### Apply schema updates
+- 523: 1. Update `ADMIN_EMAIL` and `ADMIN_PASSWORD` in your env vars / `.env`
+- 537: | `/__admin/events*` | Any | ✓ | Removed-feature 404 JSON; Events admin is inactive |
+- 543: _Last updated: v3.1.x — 2026-06-05_
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 77: ```http
+- 98: ```http
+- 104: ```http
+- 177: | `create_checkout` | Disabled — `{url:null, disabled:true}` |
+- 178: | `create_customer_portal_session` | Disabled — `{url:null, disabled:true}` |
+- 220: 2. Get a PAT from [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens)
+- 281: ### Avatar upload path convention
+- 285: Public URL: `https://{SUPABASE_URL}/storage/v1/object/public/avatars/{user_id}/avatar.jpg`
+- 384: | `create_checkout` | Returns `{url:null, disabled:true}` |
+- 385: | `create_customer_portal_session` | Returns `{url:null, disabled:true}` |
+- 410: supa:  "https://YOUR_SUPABASE_URL",
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 308: `/auth-bridge.js` is loaded synchronously from `index.html` before the React app starts. It defines `window.__isoLogin(email, password)` and `window.__isoUp(email, password)` for patched or stale Auth bundles that call those globals.
+- 313: typeof window.__isoLogin
+- 314: typeof window.__isoUp
+- 338: caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload())
+- 344: typeof window.__isoGetValidJwt
+- 397: | `AI store` | `getApiKey()` → reads from `window.__IK__` (injected by server from env vars) |
+- 402: | `PWAManager` bundle | Service-worker activation reload routed through `window.__isoReloadGuard()` |
+- 405: ### `window.__IK__` injection
+- 409: window.__IK__ = {
+- operating-system commands:
+- 319: ```bash
+- 320: npm run test:auth-bridge
+- 325: ```bash
+- 326: npm run test:runtime-glue
+- 331: ```bash
+- 332: npm run test:supabase-sync
+- Supabase interfaces:
+- 14: | SQL Patch | `/__admin/patch` | Apply community SQL patches to Supabase |
+- 23: Normal local users only need `SUPABASE_URL` and `SUPABASE_ANON_KEY`. All `/__admin/*` routes show an "admin mode disabled" page unless owner/admin mode is explicitly enabled.
+- 30: SUPABASE_SERVICE_ROLE_KEY=
+- 33: SUPABASE_ACCESS_TOKEN=
+- 40: `SUPABASE_ACCESS_TOKEN` is only needed for SQL apply through `/__admin/patch`. The service-role key and PAT must stay private and server-side.
+- 48: | `SUPABASE_SERVICE_ROLE_KEY` | _(empty)_ | Required for owner/admin data management |
+- 49: | `SUPABASE_ACCESS_TOKEN` | _(empty)_ | Optional; applies SQL through Supabase Management API |
+- 50: | `ADMIN_EMAIL` | _(empty)_ | Optional Supabase admin email for browser unlock and auto-create/check |
+- 51: | `ADMIN_EMAILS` | _(empty)_ | Optional comma-separated Supabase admin email allowlist |
+- 54: Open `/__admin/login` in the browser. You can unlock with `ADMIN_SECRET`, or click **Use Supabase Login** after signing into the app as an allowed admin email or a user with an active `owner`, `admin`, or `super_admin` role in `user_roles`.
+- 127: Runs diagnostics against your configured Supabase project. In admin mode, table/RPC/bucket checks can use the server-side service-role key. Results are grouped by schema, RPC, RLS, server health, community, removed-feature, and storage checks.
+- 188: | `Supabase REST reachable` | HTTP < 500 |
+- 189: | `Supabase Auth reachable` | HTTP < 500 |
+- 213: - **One-click apply** via Supabase Personal Access Token (PAT) — no copy-paste needed
+- 215: - **Copy to clipboard** for manual Supabase SQL Editor paste
+- 220: 2. Get a PAT from [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens)
+- 240: `POST /__admin/apply-sql` — accepts `{pat: string, sql: string}` and executes via Supabase Management API. Used by the one-click apply button. Avoids browser CORS restrictions on `api.supabase.com`.
+- 262: Supabase storage buckets provisioned for this project:
+- 285: Public URL: `https://{SUPABASE_URL}/storage/v1/object/public/avatars/{user_id}/avatar.jpg`
+- 288: All storage requests from the frontend go through the `/__supa/storage/v1/*` proxy on the server, which adds the `apikey` header automatically. The frontend does not need to know the Supabase URL directly.
+- 294: These are not admin routes. They are user-facing auth routes protected by Supabase auth and local rate limits.
+- 298: | `POST` | `/__auth/signup` | `{username: email, password}` | Create Supabase user + public.users row + Supabase session |
+- 329: For an end-to-end Supabase Auth + private `user-content` Storage sync proof, run:
+- 332: npm run test:supabase-sync
+- 341: If the header sync button returns `Authentication required`, the app has no valid Supabase JWT for cloud sync. Sign out, sign in again through `/auth`, then confirm in the browser console:
+- 353: | `GET` | `/api/health` | None | Returns local server and Supabase health checks |
+- 361: ## 8. Supabase Proxy — `/__supa/*`
+- 363: All Supabase API calls from the frontend are proxied through `/__supa/*`. The server:
+- 366: 2. Forwards to your `SUPABASE_URL`
+- 368: 4. Adds `apikey: SUPABASE_ANON_KEY` if missing
+- 371: This allows the app to work behind the local preview proxy without CORS issues, and makes swapping Supabase projects (via env vars) transparent to the frontend.
+- 375: The server intercepts specific edge function calls before they hit Supabase:
+- 398: | `Focus/AI bundle` | Replaces hardcoded production Supabase URL with self-hosted URL |
+- 410: supa:  "https://YOUR_SUPABASE_URL",
+- 424: | `SUPABASE_URL` | Yes | Built-in project | Your Supabase project URL |
+- 425: | `SUPABASE_ANON_KEY` | Yes | Built-in key | Public/anon JWT key |
+- 426: | `SUPABASE_SERVICE_ROLE_KEY` | Strongly recommended | _(none)_ | Bypasses RLS; needed for community features |
+- 427: | `SUPABASE_ACCESS_TOKEN` | Yes (for patch) | _(none)_ | Management API PAT for one-click patch |
+- 428: | `ADMIN_EMAIL` | Optional | _(empty)_ | Supabase admin email for browser unlock and optional bootstrap |
+- 429: | `ADMIN_EMAILS` | Optional | _(empty)_ | Comma-separated Supabase admin email allowlist |
+- 440: - Existing values are preserved. Setup does not overwrite Supabase values or blank out `ENABLE_ADMIN_MODE`.
+- 446: - Using the built-in Supabase project (not your own)
+- 449: - `SUPABASE_SERVICE_ROLE_KEY` missing or short
+- 459: 2. **Creates admin user** — calls Supabase Admin API to create `ADMIN_EMAIL` / `ADMIN_PASSWORD` user in `auth.users` if not already present
+- 491: 4. **Server-side Supabase proxy** — uses `SUPABASE_SERVICE_ROLE_KEY` only inside server handlers. Browser bundles receive the anon key only.
+- 499: 2. Enter Supabase PAT
+- 524: 2. Change the Supabase user password via Supabase Dashboard → Authentication → Users
+- external services: https://YOUR_SUPABASE_URL, https://supabase.com/dashboard/account/tokens, https://{SUPABASE_URL}/storage/v1/object/public/avatars/{user_id}/avatar.jpg
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0020-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: ADMIN.md inspected; no file-specific high-risk issue confirmed
+  observed evidence: ADMIN.md inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/ci.yml, .github/workflows/regenerate-release.yml, .github/workflows/release.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

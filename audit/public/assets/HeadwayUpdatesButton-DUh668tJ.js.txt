@@ -1,0 +1,287 @@
+FILE IDENTITY
+
+- original path: public/assets/HeadwayUpdatesButton-DUh668tJ.js
+- audit path: audit/public/assets/HeadwayUpdatesButton-DUh668tJ.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 14874
+- SHA-256: 7eeb505bdf8aa247329381e6f53d7a38181b423cde2f9cf68e72776252ca37e1
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:730 - "file": "HeadwayUpdatesButton-DUh668tJ.js",
+- artifacts/asset-diff/asset-report.json:733 - "remote_url": "https://isotopeai.in/assets/HeadwayUpdatesButton-DUh668tJ.js",
+- artifacts/asset-diff/local-assets.txt:41 - HeadwayUpdatesButton-DUh668tJ.js
+- artifacts/asset-diff/summary.md:77 - | HeadwayUpdatesButton-DUh668tJ.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/AIWeeklySummary-fVbvFqu3.js:1 - import{j as s}from"./vendor-react-BfU3Zn2J.js";import{A as E}from"./AIAnalysisCard-qrpOk1g6.js";import{u as f,f as z}from"./useAIStore-B2cv1FZz.js";import{h as C,j as _,f as q,e as p}from"./useFocusStore-CX_Nyp1h.js";import{h as P}from"./Ap
+- public/assets/About-DbJqhVWT.js:1 - import{j as e,f as x}from"./vendor-react-BfU3Zn2J.js";import{N as m,F as p}from"./Navbar-BJMJUymI.js";import{m as s}from"./vendor-motion-Cp_NPzpZ.js";import{S as u,k as g,l as b,m as y,L as f,n as w,f as k,U as j,o as v,p as N,T as z,q as I
+- public/assets/Analytics-D74gQMjN.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJFSVW.js","assets/index-CrO6t5EW.css","assets/App-pJGjDiPw.js
+- public/assets/AnalyticsPeriod-CGXbfYQB.js:1 - import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{A as ae,C as T,X as $,Y as W,T as A,L as X,a as Z,P as pe,c 
+- public/assets/AnalyticsSubjects-DOh8aXlW.js:1 - import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T}from"./timeFormat-CMPo-BX2.js";import{B as D,a as f,T as v,
+- public/assets/AnalyticsToday-BTdRNTb0.js:1 - import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";import{S as V}from"./SafeResponsiveContainer-D7o6DE97.js";impor
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/Community-DIqF5406.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-query-Rjz85D0S.js","assets/App-pJGjDiPw.js","
+- public/assets/CommunityHub-gANxZssO.js:2 - import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a as ae,f as G}from"./t
+- public/assets/Dashboard-dypAV-0H.js:101 - import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/DashboardHeader-DNuRMna8.js:13 - } from "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/ExamDetailPage-q_jDT5_x.js:1 - import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./useFocusStore-CX_Nyp1h.js";import{a as yt,b as dt,T as xt,S as 
+- public/assets/Exams-C3jymPwe.js:117 - import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Focus-BmgY-9vP.js:103 - import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/IsotopeWrapped2-B4zl9ERi.js:1 - import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as re,b0 as oe,cW as ce,b1 as le,am as de,l as G,J as ue,d as 
+- public/assets/Landing-CWRNt7E9.js:52 - import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Navbar-BJMJUymI.js:21 - } from "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/NotFound-X23NBnde.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as o}from"./PageLayout-B8yOy6kS.js";import{j as i,H as s}from"./vendor-icons-CqruUz7g.js";import{L as a}from"./vendor-router-CmoTwRnm.js";import"./Navbar-BJMJUymI.js";import"./App-pJGj
+- public/assets/Privacy-ClP3A1gm.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUA
+- public/assets/SettingsLayout-B4OgCkQ5.js:186 - import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Study-pAdAenIl.js:117 - import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Subscription-UaefsAtQ.js:50 - import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Syllabus-DZSnov0t.js:109 - import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Tasks-BYRFOrek.js:140 - import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Terms-BXixZPB6.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUA
+
+INTERNAL STRUCTURE
+
+- line count: 341
+- imports:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 5: import {
+- 7: } from "./useOnlineStatus-BJOTUERN.js";
+- 8: import {
+- 14: } from "./vendor-icons-CqruUz7g.js";
+- 15: import {
+- 21: } from "./App-pJGjDiPw.js";
+- 22: import {
+- 25: } from "./vendor-motion-Cp_NPzpZ.js";
+- exports:
+- 339: export {
+- functions/async flows:
+- 30: }) => {
+- 33: } = S(), [a, c] = r.useState(!1), i = r.useId(), t = r.useRef(null), s = () => {
+- 35: }, b = () => {
+- 36: s(), t.current = window.setTimeout(() => {
+- 40: return r.useEffect(() => () => {
+- 44: onMouseEnter: () => {
+- 48: onFocusCapture: () => {
+- 51: onBlurCapture: u => {
+- 61: onKeyDown: u => {
+- 100: }) => {
+- 107: h = () => {
+- 110: v = () => {
+- 111: h(), f.current = window.setTimeout(() => {
+- 115: r.useEffect(() => D(n => {
+- 131: if (r.useEffect(() => {
+- 133: return (async () => {
+- 136: })(), () => {
+- 139: }, []), r.useEffect(() => () => {
+- 141: }, []), r.useEffect(() => {
+- 145: j = async () => {
+- 150: onMouseEnter: () => {
+- 154: onFocusCapture: () => {
+- 157: onBlurCapture: n => {
+- 167: onKeyDown: n => {
+- 195: onMouseDown: n => {
+- 198: onClick: () => {
+- 214: onClick: async () => {
+- 232: }) => {
+- 289: }) => {
+- 290: const o = r.useMemo(() => {
+- 297: return r.useEffect(() => {
+- 304: i = () => {
+- 305: if (!a) {
+- 323: return () => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 26: const M = "Local study tools still work. Community, invites, and billing are unavailable until your connection returns.",
+- 52: const f = u.relatedTarget;
+- 101: const l = C(n => n.isAuthenticated),
+- 118: const d = r.useMemo(() => a.lastRecoveryAt || a.backupModeActive ? {
+- 132: let n = !0;
+- 134: const N = await x.getItem(g);
+- 144: const y = d.icon,
+- 158: const p = n.relatedTarget;
+- 290: const o = r.useMemo(() => {
+- 291: const l = Math.random().toString(36).slice(2);
+- 299: let l, a = !1;
+- 300: const c = { ...F,
+- 318: const s = document.createElement("script");
+- handlers/lifecycle candidates:
+- 36: s(), t.current = window.setTimeout(() => {
+- 111: h(), f.current = window.setTimeout(() => {
+- 310: l = window.setTimeout(i, 150)
+- 314: if (t) t.addEventListener("load", i, {
+- 319: s.id = k, s.src = H, s.async = !0, s.addEventListener("load", i, {
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BJOTUERN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3322, artifacts/asset-diff/asset-report.json:3325, artifacts/asset-diff/local-assets.txt:185, artifacts/asset-diff/summary.md:22, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- JRVAXJ: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/HeadwayUpdatesButton-DUh668tJ.js:276
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- https://cdn.headwayapp.co/widget.js
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 142: d && s && s !== d.fingerprint && (b(null), x.removeItem(g))
+- 282: title: "Product updates"
+- 329: "aria-label": "View product updates",
+- 330: title: "Product updates",
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 286: H = "https://cdn.headwayapp.co/widget.js",
+- external libraries:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 5: import {
+- 7: } from "./useOnlineStatus-BJOTUERN.js";
+- 8: import {
+- 14: } from "./vendor-icons-CqruUz7g.js";
+- 15: import {
+- 21: } from "./App-pJGjDiPw.js";
+- 22: import {
+- 25: } from "./vendor-motion-Cp_NPzpZ.js";
+- local files: see References and Consumers above
+- browser APIs:
+- 34: t.current !== null && (window.clearTimeout(t.current), t.current = null)
+- 36: s(), t.current = window.setTimeout(() => {
+- 108: f.current !== null && (window.clearTimeout(f.current), f.current = null)
+- 111: h(), f.current = window.setTimeout(() => {
+- 306: if (window.Headway ?.init && document.querySelector(c.selector)) {
+- 307: window.Headway.init(c);
+- 310: l = window.setTimeout(i, 150)
+- 313: t = document.getElementById(k);
+- 318: const s = document.createElement("script");
+- 321: }), document.body.appendChild(s)
+- 324: a = !0, l !== void 0 && window.clearTimeout(l)
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: https://cdn.headwayapp.co/widget.js
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0314-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/HeadwayUpdatesButton-DUh668tJ.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/HeadwayUpdatesButton-DUh668tJ.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 14874
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/AIWeeklySummary-fVbvFqu3.js:1: import{j as s}from"./vendor-react-BfU3Zn2J.js";import{A as E}from"./AIAnalysisCard-qrpOk1g6.js";import{u as f,f as z}from"./useAIStore-B2cv1FZz.js";import{h as C,j as _,f as q,e as
+  - public/assets/About-DbJqhVWT.js:1: import{j as e,f as x}from"./vendor-react-BfU3Zn2J.js";import{N as m,F as p}from"./Navbar-BJMJUymI.js";import{m as s}from"./vendor-motion-Cp_NPzpZ.js";import{S as u,k as g,l as b,m 
+  - public/assets/Analytics-D74gQMjN.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJ
+  - public/assets/AnalyticsPeriod-CGXbfYQB.js:1: import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{
+  - public/assets/AnalyticsSubjects-DOh8aXlW.js:1: import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T
+  - public/assets/AnalyticsToday-BTdRNTb0.js:1: import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";imp
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/Community-DIqF5406.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css",
+  - public/assets/CommunityHub-gANxZssO.js:2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s
+  - public/assets/Dashboard-dypAV-0H.js:101: import "./HeadwayUpdatesButton-DUh668tJ.js";
+  - public/assets/DashboardHeader-DNuRMna8.js:13: } from "./HeadwayUpdatesButton-DUh668tJ.js";
+  - public/assets/ExamDetailPage-q_jDT5_x.js:1: import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./use
+  - public/assets/Exams-C3jymPwe.js:117: import "./HeadwayUpdatesButton-DUh668tJ.js";
+  - public/assets/Focus-BmgY-9vP.js:103: import "./HeadwayUpdatesButton-DUh668tJ.js";
+  - public/assets/IsotopeWrapped2-B4zl9ERi.js:1: import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as
+  - public/assets/NotFound-X23NBnde.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as o}from"./PageLayout-B8yOy6kS.js";import{j as i,H as s}from"./vendor-icons-CqruUz7g.js";import{L as a}from"./vendor-router
+  - public/assets/SettingsLayout-B4OgCkQ5.js:186: import "./HeadwayUpdatesButton-DUh668tJ.js";
+  - public/assets/Subscription-UaefsAtQ.js:50: import "./HeadwayUpdatesButton-DUh668tJ.js";
+  - public/assets/Syllabus-DZSnov0t.js:109: import "./HeadwayUpdatesButton-DUh668tJ.js";
+  - public/assets/Tasks-BYRFOrek.js:140: import "./HeadwayUpdatesButton-DUh668tJ.js";

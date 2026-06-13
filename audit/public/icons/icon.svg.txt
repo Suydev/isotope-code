@@ -1,0 +1,301 @@
+FILE IDENTITY
+
+- original path: public/icons/icon.svg
+- audit path: audit/public/icons/icon.svg.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: image
+- MIME type: image/svg+xml
+- size in bytes: 476
+- SHA-256: 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: static asset
+- primary auditor: static-asset-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Static or binary asset used by the browser app, documentation, screenshots, installer output, or comparison artifacts.
+
+ROLE IN THE APPLICATION
+
+- subsystem: static asset
+- runtime stage: browser/runtime or static serving
+- user-visible feature: visual asset
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/AIWeeklySummary-fVbvFqu3.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/About-DbJqhVWT.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Analytics-D74gQMjN.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/AnalyticsPeriod-CGXbfYQB.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/AnalyticsSubjects-DOh8aXlW.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/AnalyticsTasks-DOfUf9Sd.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/AnalyticsToday-BTdRNTb0.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/App-Bcp_57Ks.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/App-pJGjDiPw.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/AppAccessGate-B975UtK7.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Auth-Cw0VAaCZ.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/ChallengesHub-C50y_K_l.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/ChapterHub-BXRydU0B.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/ChipMultiSelect-BU74OOip.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Community-DIqF5406.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/CommunityHub-gANxZssO.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/CompletionCelebration-ngx4eqoP.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Dashboard-dypAV-0H.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/DashboardHeader-DNuRMna8.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/DemoLauncher-CdcwMBr6.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/EnhancedChallengeCard-BKErZxiW.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/EventsCalendar-COHF8nOK.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/ExamCreateEditModal-BdlzfeFO.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/ExamDetailPage-q_jDT5_x.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/ExamPrimitives-K6hgnm_l.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/ExamTemplateSelectorModal-DsEPEF5X.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Exams-C3jymPwe.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/FAQ-DuTZR-ip.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/FeaturesSection-DQ9ZRk3R.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Focus-BmgY-9vP.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/FocusStore-D5cRXSIr.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/GlobalPresenceBroadcaster-C5JADiwL.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/GlobalQuickActionsModals-BIoAwrDz.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/GlobalTimer-DUR6TMoR.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/GroupChat-j6zM76h9.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/GroupDiscovery-DUcFr2JQ.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/GroupInviteGenerator-B-iMSSXc.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/HeadwayUpdatesButton-DUh668tJ.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/HowItWorks-BS-VN8qB.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/InviteOnlineOnlyRoute-CZgdOWgx.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/IsotopeWrapped2-B4zl9ERi.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Landing-CWRNt7E9.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Leaderboard-BkEBFdG7.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/MarkdownRenderer-CIV1x0Uq.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/MarkdownRendererContent-DBrMkHal.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/MemberProfile-D-l2e-2X.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/MobileAppTeaser-BkZkKuC5.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Navbar-BJMJUymI.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/NetworkRequiredState-O9ZdVBEy.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/NotFound-X23NBnde.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Onboarding-qvAqCBbb.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/OnboardingNavigation-C6kIq5HV.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/PWAManager-DjIYufp2.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/PageLayout-B8yOy6kS.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/PremiumEffects-BX6T03yQ.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/PremiumGate-CX1zS69D.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Pricing-D9PNd5BR.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Privacy-ClP3A1gm.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/QueryProvider-DusNhG9D.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/QuestionMasterCard-DVOBGNnl.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/QuickActionsMenu-ojdsCiqG.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/QuickChatMenu-BUr6NG9I.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/RadioCard-BtzZXn6i.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/RealAnalyticsOverview-bpioXKtW.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/ResetPassword-mBBJZV4T.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/SessionEditModal-CNi_rT0l.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/SessionLogTable-CclRAAwc.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/SettingsLayout-B4OgCkQ5.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/SharedAnalyticsComponents-DMxLJbRk.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/SingleGroup-DU1IhoNK.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Step1Identity-BZBwnoJ8.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Step2Academic-BUGsFsTy.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Step3StudyGoals-CQ0yWK1r.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Step4Preferences-D6oDNUqn.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Step5Community-BvHWgTaf.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Step6Personalization-CNdBQkFI.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Story-TXs13Cjc.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Study-pAdAenIl.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/SubjectCreateModal-DhD_Cwbk.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/SubjectIcon-CyCDqtel.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Subscription-UaefsAtQ.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/SupportMessage-BE7j-Ezd.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/SupportPromptDialog-Bkl24oin.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Syllabus-DZSnov0t.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/SyncListener-BMsBLWig.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/TaskCardModal-DZvd1GWt.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/TaskController-BUyiMYKC.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Tasks-BYRFOrek.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Terms-BXixZPB6.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/Testimonials-CnzXcixO.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/ToolsModal-BMUG81iV.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/WebsiteShowcase-DUy56Ho8.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/WelcomeTeaser-B96rmBi8.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/analyticsWorker-BnmTlfYB.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/bootstrap-D1vc155U.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/demoCommunity-DUJ4Y1zo.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/endOfDay-CZDDeNMb.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/endOfMonth-BISTJu4P.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/focusBackground-t8AknbRg.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/groupCache-DVHvdGlY.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/index-B45N-99N.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/index-BPYJFSVW.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/index-CrO6t5EW.css:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/index-Der0FgF3.css:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/index-L1EjXFqL.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/index-qd2KF3Jd.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/messaging-BP0KfJxy.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/sessionSync-mloIEnTd.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/studyPreferences-BBZvHe-O.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/taskAvailability-B1aDS_ww.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/taskCompletion-DkuS3Ybf.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/useAIStore-B2cv1FZz.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/useChartAnimation-C6FTIqbw.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/useFocusStore-CX_Nyp1h.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/useGroupChallenges-N8BLPr3m.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/useGroupPresence-BmkfUzH6.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/useGroups-vEjDKzZY.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+- artifacts/asset-diff/remote-assets/useInvites-D9RLFwf8.js:67 - <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+
+INTERNAL STRUCTURE
+
+- line count: 5
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- M15: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/IsotopeLogoIcon-oPk5Ru-_.js:1, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:69, docs/logo.svg:4, logo.svg:4, public/assets/IsotopeLogoIcon-oPk5Ru-_.js:22, public/assets/QuickActionsMenu-ojdsCiqG.js:50, public/assets/vendor-icons-CqruUz7g.js:181, public/assets/vendor-icons-CqruUz7g.js:185, public/assets/vendor-icons-CqruUz7g.js:358, public/assets/vendor-icons-CqruUz7g.js:362, public/assets/vendor-icons-CqruUz7g.js:389, public/assets/vendor-icons-CqruUz7g.js:624
+- M20: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/IsotopeLogoIcon-oPk5Ru-_.js:1, docs/logo.svg:3, logo.svg:3, public/assets/IsotopeLogoIcon-oPk5Ru-_.js:20, public/assets/QuickActionsMenu-ojdsCiqG.js:48, public/assets/vendor-icons-CqruUz7g.js:177, public/assets/vendor-icons-CqruUz7g.js:366, public/assets/vendor-icons-CqruUz7g.js:385, public/assets/vendor-icons-CqruUz7g.js:620, public/assets/vendor-icons-CqruUz7g.js:1150, public/assets/vendor-icons-CqruUz7g.js:1734, public/assets/vendor-icons-CqruUz7g.js:1738
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://www.w3.org/2000/svg
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 1: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+- 3: <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z" />
+- 4: <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z" />
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: http://www.w3.org/2000/svg
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness mainly depends on file presence, MIME mapping, cache headers, and consumer references.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0512-01
+  severity: LOW
+  category: duplication
+  status: CONFIRMED
+  confidence: HIGH
+  affected lines or byte-level evidence: SHA-256 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789 shared by logo.svg, public/icons/icon-192x192.svg, public/icons/icon-96x96.svg, public/icons/icon.svg, public/logo-full.svg, public/logo-icon.svg
+  observed evidence: SHA-256 760355a8f173ce29fb178f4def9b09f9e2ab3f5840a203dc73a2ebd433b00789 shared by logo.svg, public/icons/icon-192x192.svg, public/icons/icon-96x96.svg, public/icons/icon.svg, public/logo-full.svg, public/logo-icon.svg
+  inferred impact: Byte-identical duplicates may waste repository or install size.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep duplicates only when required by platform paths or comparison artifacts.
+  related files: logo.svg, public/icons/icon-192x192.svg, public/icons/icon-96x96.svg, public/logo-full.svg, public/logo-icon.svg
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Confirm visible rendering or media playback only in consuming UI/docs if the asset is active.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Static or binary asset used by the browser app, documentation, screenshots, installer output, or comparison artifacts.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers
+
+SPECIAL ASSET AUDIT
+
+- format: SVG
+- viewBox: 0 0 24 24
+- width: 2
+- scripts: no script tag observed
+- externalLinks: contains external URL(s)
+- dimensions: not available from safe metadata
+- format: SVG
+- MIME type: image/svg+xml
+- file size: 476
+- duration: not applicable or not extracted
+- codec: not applicable or not extracted
+- frame count: not extracted
+- alpha/transparency: not determined
+- SVG viewBox: 0 0 24 24
+- SVG scripts or external links: no script tag observed; contains external URL(s)
+- font family/style/weight: not applicable / not applicable / not applicable
+- visible use location: artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:67, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:67, artifacts/asset-diff/remote-assets/AIWeeklySummary-fVbvFqu3.js:67, artifacts/asset-diff/remote-assets/About-DbJqhVWT.js:67, artifacts/asset-diff/remote-assets/Analytics-D74gQMjN.js:67, artifacts/asset-diff/remote-assets/AnalyticsPeriod-CGXbfYQB.js:67, artifacts/asset-diff/remote-assets/AnalyticsSubjects-DOh8aXlW.js:67, artifacts/asset-diff/remote-assets/AnalyticsTasks-DOfUf9Sd.js:67, artifacts/asset-diff/remote-assets/AnalyticsToday-BTdRNTb0.js:67, artifacts/asset-diff/remote-assets/App-Bcp_57Ks.js:67
+- source references: 120
+- service-worker caching: eligible if matched by service worker/static serving rules
+- accessibility handling: verify in consuming markup/components; not encoded in asset metadata
+- duplicate candidates: logo.svg, public/icons/icon-192x192.svg, public/icons/icon-96x96.svg, public/logo-full.svg, public/logo-icon.svg
+- byte-identical duplicates: logo.svg, public/icons/icon-192x192.svg, public/icons/icon-96x96.svg, public/icons/icon.svg, public/logo-full.svg, public/logo-icon.svg
+- near-duplicate candidates: not computed perceptually
+- optimisation potential: low or unknown
+- provenance information when documented: not documented in nearby references
+- licensing information when documented: not documented
+- whether the asset appears unused: no, referenced directly

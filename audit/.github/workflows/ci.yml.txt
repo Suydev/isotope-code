@@ -1,0 +1,248 @@
+FILE IDENTITY
+
+- original path: .github/workflows/ci.yml
+- audit path: audit/.github/workflows/ci.yml.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: configuration
+- MIME type: application/yaml
+- size in bytes: 14479
+- SHA-256: 236817812c4e3d60a3edf88d384de71d9b85cd7c2b2e59245214b1033dedeadf
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: CI/CD
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the CI/CD subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: CI/CD
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- scripts/validate-docs.mjs:282 - const CI = readText('.github/workflows/ci.yml');
+- scripts/validate-docs.mjs:284 - ok('.github/workflows/ci.yml exists');
+- scripts/validate-docs.mjs:292 - warn('.github/workflows/ci.yml not found');
+
+INTERNAL STRUCTURE
+
+- line count: 366
+- imports:
+- 122: import assert from 'node:assert/strict';
+- 129: } from './public/sync/backup-normalizer.js';
+- 318: VERSION="$(node -e "process.stdout.write(require('./package.json').version)")"
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 131: const rich = normalizeAnyBackup({
+- 149: const emptyNewer = normalizeAnyBackup({
+- 173: const merged = mergeBackupData(emptyNewer, rich);
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ADMIN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:208, .github/workflows/ci.yml:242, .github/workflows/ci.yml:285, .github/workflows/regenerate-release.yml:113, .github/workflows/release.yml:198, README.md:47, README.md:175, README.md:187, README.md:188, README.md:237, README.md:238, README.md:239
+- ADMIN_SECRET: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:25, .github/workflows/ci.yml:242, .github/workflows/ci.yml:285, ADMIN.md:29, ADMIN.md:47, ADMIN.md:54, ADMIN.md:431, ADMIN.md:539, CHANGELOG.md:365, CHANGELOG.md:489, CHANGELOG.md:565, README.md:238
+- CHANGELOG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:17, .github/workflows/ci.yml:209, .github/workflows/release.yml:70, .github/workflows/release.yml:71, .github/workflows/release.yml:73, .github/workflows/release.yml:78, .github/workflows/release.yml:80, .github/workflows/release.yml:92, .github/workflows/release.yml:94, .github/workflows/release.yml:138, .github/workflows/release.yml:140, .github/workflows/release.yml:145
+- CREATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/ci.yml:259, .github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, .github/workflows/schema-lint.yml:91
+- END: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/ci.yml:259, .github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:80, .github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89
+- FAIL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:39, .github/workflows/ci.yml:54, .github/workflows/ci.yml:60, .github/workflows/ci.yml:70, .github/workflows/ci.yml:93, .github/workflows/ci.yml:184, .github/workflows/ci.yml:229, .github/workflows/ci.yml:232, .github/workflows/ci.yml:334, .github/workflows/ci.yml:340, .github/workflows/ci.yml:344, scripts/prove-new-browser-restore.mjs:35
+- FUNCTION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:259, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:81, .github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, CHANGELOG.md:403, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:45
+- MISSING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:228, ADMIN.md:519, server.mjs:5720, server.mjs:7327, server.mjs:7340, server.mjs:7358, server.mjs:7364, server.mjs:7371, server.mjs:7378, server.mjs:7555, server.mjs:7577, server.mjs:7583
+- NODE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:121, .github/workflows/ci.yml:178, .github/workflows/ci.yml:286, bin/isotope:130, bin/isotope:138, bin/isotope:294, bin/isotope:301, bin/isotope:305, bin/isotope:311, bin/isotope:342, bin/isotope:345, bin/isotope:528
+- NODE_ENV: classification=public/configuration; required=optional/defaulted; uses=.github/workflows/ci.yml:286, vite.config.ts:35
+- PID: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:289, .github/workflows/ci.yml:291, .github/workflows/ci.yml:304, .github/workflows/ci.yml:305, .github/workflows/regenerate-release.yml:132, .github/workflows/regenerate-release.yml:133, .github/workflows/release.yml:218, .github/workflows/release.yml:219, CHANGELOG.md:304, TERMUX_WIDGET.md:64, TERMUX_WIDGET.md:176, bin/isotope:22
+- POLICY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:64, CONTRIBUTING.md:55, community-patch-v4.sql:909, community-patch-v4.sql:912, community-patch-v4.sql:918, community-patch-v4.sql:924, community-patch-v4.sql:927, community-patch-v4.sql:933, community-patch-v4.sql:936, community-patch-v4.sql:942
+- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
+- README: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:207, .github/workflows/ci.yml:348, .github/workflows/pages.yml:8, .github/workflows/regenerate-release.yml:112, .github/workflows/release.yml:197, CHANGELOG.md:201, CHANGELOG.md:207, CHANGELOG.md:222, CHANGELOG.md:238, CHANGELOG.md:279, CHANGELOG.md:328, CHANGELOG.md:340
+- REPLACE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:259, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, CHANGELOG.md:129, CHANGELOG.md:403, CONTRIBUTING.md:54, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:20, artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:10, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- REQUIRED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:185, .github/workflows/ci.yml:224, artifacts/isotope/.env:4, artifacts/isotope/.env:8, artifacts/isotope/.env:11, public/assets/useAIStore-B2cv1FZz.js:6245, server.mjs:4449, server.mjs:4451, server.mjs:5218, server.mjs:5612, server.mjs:6475, server.mjs:6799
+- SC1090: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:80, .github/workflows/ci.yml:83, bin/isotope:101
+- SC1091: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:81, .github/workflows/ci.yml:83, setup.sh:241
+- SC2148: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:82
+- SERVER_PID: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:289, .github/workflows/ci.yml:291, .github/workflows/ci.yml:304, .github/workflows/ci.yml:305
+- SESSION_SECRET: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:50, .github/workflows/ci.yml:284, .github/workflows/regenerate-release.yml:130, .github/workflows/release.yml:216, artifacts/isotope/.env:47
+- STATUS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:292, .github/workflows/ci.yml:295, .github/workflows/ci.yml:297, .github/workflows/ci.yml:298, .github/workflows/ci.yml:306, .github/workflows/ci.yml:308, .github/workflows/ci.yml:309, .github/workflows/regenerate-release.yml:135, .github/workflows/regenerate-release.yml:136, .github/workflows/regenerate-release.yml:137, .github/workflows/regenerate-release.yml:142, .github/workflows/release.yml:221
+- SUPABASE_ACCESS_TOKEN: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:36, .github/workflows/ci.yml:242, ADMIN.md:33, ADMIN.md:40, ADMIN.md:49, ADMIN.md:427, artifacts/isotope/.env:20, server.mjs:7079, server.mjs:7139
+- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
+- SUPABASE_SERVICE_ROLE_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:22, .github/workflows/ci.yml:242, ADMIN.md:30, ADMIN.md:48, ADMIN.md:426, ADMIN.md:449, ADMIN.md:491, README.md:242, artifacts/isotope/.env:16, docs/admin.html:60, scripts/prove-new-browser-restore.mjs:10, scripts/prove-supabase-sync.mjs:25
+- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
+- TABLE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, CHANGELOG.md:173, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:65
+- TERMUX_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:275, bin/isotope:43, bin/isotope:367, bin/isotope:370, install-termux.sh:71, install-termux.sh:76, install-termux.sh:91, setup-termux-widget.sh:12, setup.sh:14, setup.sh:38, setup.sh:66, setup.sh:84
+- TERMUX_WIDGET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/labeler.yml:43, .github/workflows/ci.yml:210, scripts/validate-docs.mjs:218
+- TMPDIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:331, .github/workflows/ci.yml:332, .github/workflows/ci.yml:336, .github/workflows/ci.yml:343, .github/workflows/regenerate-release.yml:91, .github/workflows/regenerate-release.yml:92, .github/workflows/regenerate-release.yml:117, .github/workflows/regenerate-release.yml:119, .github/workflows/regenerate-release.yml:123, .github/workflows/regenerate-release.yml:131, .github/workflows/regenerate-release.yml:133, .github/workflows/release.yml:169
+- VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/bug_report.md:26, .github/workflows/ci.yml:275, .github/workflows/ci.yml:318, .github/workflows/ci.yml:319, .github/workflows/ci.yml:320, .github/workflows/ci.yml:328, .github/workflows/ci.yml:332, .github/workflows/ci.yml:343, .github/workflows/regenerate-release.yml:45, .github/workflows/regenerate-release.yml:47, .github/workflows/regenerate-release.yml:72, .github/workflows/regenerate-release.yml:73
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://127.0.0.1:3099/__isotope/ping
+- https://placeholder.supabase.co
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 44: update.sh \
+- 75: update.sh \
+- 138: tasks: [{ id: 'task-1', updatedAt: '2026-06-01T00:00:00.000Z' }],
+- 139: sessions: [{ id: 'session-1', updatedAt: '2026-06-01T00:00:00.000Z' }],
+- 140: subjects: [{ id: 'subject-1', updatedAt: '2026-06-01T00:00:00.000Z' }],
+- 177: console.log('✅ backup normalizer protects rich data from empty overwrite');
+- 193: update.sh
+- 194: update.bat
+- 239: echo "❌ .env is tracked; remove it before release"
+- 279: - name: 🚀 Smoke test — server starts and responds
+- 356: # ── Upload logs on failure ────────────────────────────────────────────────
+- 357: - name: 📤 Upload CI logs on failure
+- 359: uses: actions/upload-artifact@v4
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 282: SUPABASE_URL=https://placeholder.supabase.co \
+- 296: http://127.0.0.1:3099/__isotope/ping 2>/dev/null || echo "000")
+- 362: path: |
+- external libraries:
+- 122: import assert from 'node:assert/strict';
+- 129: } from './public/sync/backup-normalizer.js';
+- 318: VERSION="$(node -e "process.stdout.write(require('./package.json').version)")"
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 19: name: Node ${{ matrix.node }} on ubuntu-latest
+- 23: node: ['20', '22']
+- 30: - name: 🟢 Setup Node.js ${{ matrix.node }}
+- 31: uses: actions/setup-node@v4
+- 33: node-version: ${{ matrix.node }}
+- 36: - name: 🐚 Shell syntax check (bash -n)
+- 41: setup.sh \
+- 42: setup-termux-widget.sh \
+- 43: install-termux.sh \
+- 44: update.sh \
+- 45: start.sh \
+- 46: doctor.sh \
+- 49: if bash -n "$f" 2>/dev/null; then
+- 53: bash -n "$f" || true
+- 72: setup.sh \
+- 73: setup-termux-widget.sh \
+- 74: install-termux.sh \
+- 75: update.sh \
+- 76: start.sh \
+- 77: doctor.sh \
+- 114: node --check "$f"
+- 121: node --input-type=module <<'NODE'
+- 122: import assert from 'node:assert/strict';
+- 188: setup.sh
+- 191: install-termux.sh
+- 192: setup-termux-widget.sh
+- 193: update.sh
+- 195: start.sh
+- 197: doctor.sh
+- 238: if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+- 242: if git grep -nE 'SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=[[:space:]]*eyJ|SUPABASE_ACCESS_TOKEN[[:space:]]*=[[:space:]]*sbp_|ADMIN_SECRET[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{24,}' -- \
+- 271: bash -n setup.sh
+- 272: bash -n install-termux.sh
+- 273: bash -n setup-termux-widget.sh
+- 274: bash -n bin/isotope
+- 275: grep -q 'TERMUX_VERSION' setup.sh install-termux.sh
+- 288: node server.mjs &
+- 295: STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+- 318: VERSION="$(node -e "process.stdout.write(require('./package.json').version)")"
+- 321: --exclude ".git/*" \
+- 335: for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql docs/sync-system.md
+- 351: node scripts/validate-docs.mjs || {
+- 361: name: ci-logs-node${{ matrix.node }}-${{ github.run_id }}
+- Supabase interfaces:
+- 109: scripts/verify-supabase-security.mjs
+- 213: docs/supabase-connection-map.md
+- 220: scripts/verify-supabase-security.mjs
+- 242: if git grep -nE 'SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=[[:space:]]*eyJ|SUPABASE_ACCESS_TOKEN[[:space:]]*=[[:space:]]*sbp_|ADMIN_SECRET[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{24,}' -- \
+- 282: SUPABASE_URL=https://placeholder.supabase.co \
+- 283: SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature \
+- 335: for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql docs/sync-system.md
+- external services: http://127.0.0.1:3099/__isotope/ping, https://placeholder.supabase.co
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0009-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: .github/workflows/ci.yml inspected; no file-specific high-risk issue confirmed
+  observed evidence: .github/workflows/ci.yml inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: scripts/validate-docs.mjs, scripts/validate-docs.mjs, scripts/validate-docs.mjs
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the CI/CD subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

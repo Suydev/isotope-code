@@ -1,0 +1,184 @@
+FILE IDENTITY
+
+- original path: install.ps1
+- audit path: audit/install.ps1.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: script
+- MIME type: text/plain
+- size in bytes: 3505
+- SHA-256: 1c7cdd2e782c5c2fc9716aab486d98548837188a5d6b7a104181fadac533d80a
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: installer/platform
+- primary auditor: installer-platform-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+
+ROLE IN THE APPLICATION
+
+- subsystem: installer/platform
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/labeler.yml:27 - - 'install.ps1'
+- .github/workflows/ci.yml:190 - install.ps1
+- CHANGELOG.md:385 - - Safer cross-platform `setup.sh`, `update.sh`, `setup.bat`, `update.bat`, and `install.ps1`.
+- README.md:100 - .\install.ps1
+- docs/install.html:94 - .\install.ps1</pre>
+- scripts/validate-docs.mjs:134 - ['install.ps1',    'install.ps1'],
+- scripts/validate-docs.mjs:203 - 'install.ps1',
+
+INTERNAL STRUCTURE
+
+- line count: 95
+- imports:
+- 62: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l
+- exports:
+None observed.
+- functions/async flows:
+- 8: function HasCommand($Name) {
+- 12: function Fail($Message) {
+- 29: if (HasCommand winget) {
+- 36: if (HasCommand winget) {
+- 46: if ($nodeMajor -lt 18) { Fail "Node.js 18+ is required." }
+- 49: if (Test-Path ".env") {
+- 62: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l
+- 63: if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+- 71: if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+- 90: if (-not $NoStart) {
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- LASTEXITCODE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install.ps1:63, install.ps1:71
+- LTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=install.ps1:30, setup.bat:25
+- PATH: classification=secret; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:288, TERMUX_WIDGET.md:114, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:21, bin/isotope:52, bin/isotope:64, bin/isotope:65, bin/isotope:414, bin/isotope:416, install.ps1:83, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup-termux-widget.sh:27
+- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
+- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
+- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
+- USERPROFILE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:4, bin/isotope.bat:57, bin/isotope.bat:58, install.ps1:73, install.ps1:74, setup.bat:91, setup.bat:92
+- command-line arguments: script-like file; inspect internal structure for argv/flags
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: filesystem or asset file dependency likely
+- database data:
+None observed.
+- network responses:
+- https://nodejs.org
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 62: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l.slice(0,i).trim()===k)return l.slice(i+
+- 86: Write-Host "  isotope update"
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: shell/OS/platform commands likely required
+- Node core modules:
+- 42: Fail "Node.js 18+ is required. Install it from https://nodejs.org and run install.ps1 again."
+- 62: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l.slice(0,i).trim()===k)return l.slice(i+
+- 78: Set-Content -Path (Join-Path $isoHome "project-path") -Value (Get-Location).Path
+- external libraries:
+- 62: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 27: if (-not (HasCommand node)) {
+- 34: if (-not (HasCommand git)) {
+- 41: if (-not (HasCommand node)) {
+- 45: $nodeMajor = [int](node -e "process.stdout.write(process.versions.node.split('.')[0])")
+- 47: Write-Host "Node $(node --version) ready"
+- 59: Write-Host "It is not website hosting. The app runs locally through node server.mjs."
+- 62: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l.slice(0,i).trim()===k)return l.slice(i+
+- 66: if ((Test-Path "package.json") -and (HasCommand npm)) {
+- 67: npm install
+- 70: node --check server.mjs
+- Supabase interfaces:
+- 19: Write-Host "This is a downloadable local app. Supabase is used only for cloud sync/backend services."
+- 58: Write-Host "Supabase is used for auth, database, storage, realtime, and community sync."
+- 60: Write-Host "Edit .env if you want to use your own Supabase project."
+- 62: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l.slice(0,i).trim()===k)return l.slice(i+
+- 64: Write-Host "Supabase cloud sync config is present. Secrets were not printed."
+- external services: https://nodejs.org
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0266-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: install.ps1 inspected; no file-specific high-risk issue confirmed
+  observed evidence: install.ps1 inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/labeler.yml, .github/workflows/ci.yml, CHANGELOG.md
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

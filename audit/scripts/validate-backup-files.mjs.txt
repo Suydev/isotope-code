@@ -1,0 +1,181 @@
+FILE IDENTITY
+
+- original path: scripts/validate-backup-files.mjs
+- audit path: audit/scripts/validate-backup-files.mjs.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 1552
+- SHA-256: 3f1b5441056669ae3faa5bf880835c211565a28cfec60946ce3b58c4505b1b3e
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: offline/sync/backup
+- primary auditor: lead-coordinator
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: offline/sync/backup
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/ci.yml:105 - scripts/validate-backup-files.mjs
+- .github/workflows/ci.yml:216 - scripts/validate-backup-files.mjs
+- .github/workflows/regenerate-release.yml:61 - node --check scripts/validate-backup-files.mjs
+- .github/workflows/regenerate-release.yml:103 - scripts/validate-backup-files.mjs
+- .github/workflows/release.yml:58 - node --check scripts/validate-backup-files.mjs
+- .github/workflows/release.yml:179 - scripts/validate-backup-files.mjs
+- README.md:275 - node scripts/validate-backup-files.mjs --user <user-id>
+- README.md:342 - node scripts/validate-backup-files.mjs --user <user-id>
+- package.json:24 - "backup:validate": "node scripts/validate-backup-files.mjs",
+
+INTERNAL STRUCTURE
+
+- line count: 43
+- imports:
+- 2: import fs from 'fs';
+- 3: import crypto from 'crypto';
+- 4: import { normalizeAnyBackup } from '../public/sync/backup-normalizer.js';
+- 5: import { createScriptBackupManager, loadEnv, parseArgs, printCandidate } from './storage-backup-lib.mjs';
+- exports:
+None observed.
+- functions/async flows:
+- 9: function reportLocal(file) {
+- 28: if (localFiles.length) {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 7: const args = parseArgs();
+- 10: const text = fs.readFileSync(file, 'utf8');
+- 11: const hash = crypto.createHash('sha256').update(text).digest('hex');
+- 12: const normalized = normalizeAnyBackup(text, { path: file, hash, size_bytes: Buffer.byteLength(text) });
+- 27: const localFiles = process.argv.slice(2).filter((arg) => !arg.startsWith('--') && fs.existsSync(arg));
+- 33: const userId = args.user || '3f56d64e-b1c5-45d6-9ba3-4e204f6bc9df';
+- 34: const env = loadEnv();
+- 35: const manager = createScriptBackupManager(env);
+- 36: const best = await manager.findBestCloudBackup(userId, env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY);
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
+- SUPABASE_SERVICE_ROLE_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:22, .github/workflows/ci.yml:242, ADMIN.md:30, ADMIN.md:48, ADMIN.md:426, ADMIN.md:449, ADMIN.md:491, README.md:242, artifacts/isotope/.env:16, docs/admin.html:60, scripts/prove-new-browser-restore.mjs:10, scripts/prove-supabase-sync.mjs:25
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: filesystem or asset file dependency likely
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 11: const hash = crypto.createHash('sha256').update(text).digest('hex');
+- 13: console.log(JSON.stringify({
+- 38: console.log(`user=${userId}`);
+- 39: console.log('selected=');
+- 41: else console.log('null');
+- 42: console.log('candidates=');
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 2: import fs from 'fs';
+- 3: import crypto from 'crypto';
+- 10: const text = fs.readFileSync(file, 'utf8');
+- 11: const hash = crypto.createHash('sha256').update(text).digest('hex');
+- 12: const normalized = normalizeAnyBackup(text, { path: file, hash, size_bytes: Buffer.byteLength(text) });
+- 27: const localFiles = process.argv.slice(2).filter((arg) => !arg.startsWith('--') && fs.existsSync(arg));
+- external libraries:
+- 2: import fs from 'fs';
+- 3: import crypto from 'crypto';
+- 4: import { normalizeAnyBackup } from '../public/sync/backup-normalizer.js';
+- 5: import { createScriptBackupManager, loadEnv, parseArgs, printCandidate } from './storage-backup-lib.mjs';
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 1: #!/usr/bin/env node
+- Supabase interfaces:
+- 36: const best = await manager.findBestCloudBackup(userId, env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY);
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0560-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: scripts/validate-backup-files.mjs inspected; no file-specific high-risk issue confirmed
+  observed evidence: scripts/validate-backup-files.mjs inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/ci.yml, .github/workflows/ci.yml, .github/workflows/regenerate-release.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

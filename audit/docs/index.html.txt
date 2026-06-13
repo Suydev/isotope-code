@@ -1,0 +1,195 @@
+FILE IDENTITY
+
+- original path: docs/index.html
+- audit path: audit/docs/index.html.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: html
+- MIME type: text/html
+- size in bytes: 7526
+- SHA-256: 368a3a83d043811754f858358797581f90e03791ff036ab2f09e03461389c3e3
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: documentation
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: documentation
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/labeler.yml:50 - - 'index.html'
+- .github/workflows/regenerate-release.yml:96 - public/index.html
+- .github/workflows/release.yml:188 - docs/index.html
+- ADMIN.md:308 - `/auth-bridge.js` is loaded synchronously from `index.html` before the React app starts. It defines `window.__isoLogin(email, password)` and `window.__isoUp(email, password)` for patched or stale Auth bundles that call those globals.
+- docs/assets/site.js:39 - var path = location.pathname.split('/').pop() || 'index.html';
+- docs/assets/site.js:42 - if ((path === 'index.html' && href === './') || href.endsWith(path)) {
+- docs/motion.html:105 - docs/index.html
+- public/404.html:9 - // index.html then reads '?p=' and restores the path via history.replaceState
+- public/sw.js:13 - '/index.html',
+- public/sw.js:53 - '/index.html',
+- public/sw.js:141 - await shell.put('/index.html', response.clone());
+- public/sw.js:145 - return (await shell.match('/index.html')) ||
+- public/workbox-1d81fbea.js:975 - directoryIndex: s = "index.html",
+- scripts/test-auth-bridge.mjs:103 - // The bridge is loaded before server-injected globals in index.html. Prove it
+- scripts/validate-docs.mjs:6 - *   2. All image paths referenced in docs/index.html and docs/index.md exist
+- scripts/validate-docs.mjs:16 - *   --fix     Auto-fix version numbers in README and docs/index.html
+- scripts/validate-docs.mjs:48 - const DOCS_HTML = readText('docs/index.html');
+- scripts/validate-docs.mjs:148 - // ── 3. docs/index.html checks ─────────────────────────────────────────────────
+- scripts/validate-docs.mjs:149 - info('Checking docs/index.html...');
+- scripts/validate-docs.mjs:151 - warn('docs/index.html not found');
+- scripts/validate-docs.mjs:153 - ok('docs/index.html exists', `(${DOCS_HTML.length} chars)`);
+- scripts/validate-docs.mjs:160 - warn(`docs/index.html version (${docVer}) does not match package.json (${pkgVersion})`);
+- scripts/validate-docs.mjs:162 - ok(`docs/index.html version matches package.json (${pkgVersion})`);
+- scripts/validate-docs.mjs:165 - warn('No version number found in docs/index.html');
+- scripts/validate-docs.mjs:184 - warn('docs/index.html references logo.svg but file does not exist in repo root');
+- scripts/validate-docs.mjs:219 - 'docs/index.html',
+- server.mjs:116 - '/index.html',
+- server.mjs:8201 - res.setHeader('Cache-Control', cacheHeaderForRequest('/index.html'));
+- server.mjs:8206 - const indexPath = path.join(__dirname, 'index.html');
+- server.mjs:8344 - const idxInDir = path.join(filePath, 'index.html');
+
+INTERNAL STRUCTURE
+
+- line count: 165
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BLOCK: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/index.html:59, docs/index.html:137
+- BLOCKED_EMPTY_OVERWRITE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=README.md:227, docs/index.html:137, docs/index.md:35, docs/sync-system.md:29, docs/sync.html:93, scripts/prove-new-browser-restore.mjs:44, server.mjs:901, server.mjs:988, server.mjs:1052, server.mjs:4452, server.mjs:4459, server.mjs:5603
+- README: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:207, .github/workflows/ci.yml:348, .github/workflows/pages.yml:8, .github/workflows/regenerate-release.yml:112, .github/workflows/release.yml:197, CHANGELOG.md:201, CHANGELOG.md:207, CHANGELOG.md:222, CHANGELOG.md:238, CHANGELOG.md:279, CHANGELOG.md:328, CHANGELOG.md:340
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- https://github.com/Suydev/isotope-code
+- https://github.com/Suydev/isotope-code/blob/main/README.md
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-47-09-37_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 86: <p>Explains canonical backup paths, restore-first behavior, and why empty uploads are blocked.</p>
+- 136: <p>If this device has no study data and cloud has a rich backup, upload is blocked until restore succeeds.</p>
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 25: <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+- 56: <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png" alt="IsotopeAI landing page with floating study cards">
+- 73: <h2>Pick one path.</h2>
+- 106: <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Focus timer screen">
+- 110: <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Task board screen">
+- 114: <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Study screen">
+- 118: <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-47-09-37_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Progress screen">
+- 132: <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)</pre>
+- 161: <p>Repository: <a href="https://github.com/Suydev/isotope-code">Suydev/isotope-code</a>. Full README: <a href="https://github.com/Suydev/isotope-code/blob/main/README.md">GitHub README</a>.</p>
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 132: <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)</pre>
+- Supabase interfaces:
+- 35: <p class="lead">IsotopeAI runs on your own device. It helps with focus sessions, tasks, subjects, habits, exams, tests, and study stats. Supabase adds login, backup, restore, avatars, and groups.</p>
+- 75: <p>Each page is short and direct. Use install first, then Supabase, then browser proof if you want to verify real cloud sync.</p>
+- external services: https://github.com/Suydev/isotope-code, https://github.com/Suydev/isotope-code/blob/main/README.md, https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-47-09-37_e4424258c8b8649f6e67d283a50a2cbc.jpg
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0252-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: docs/index.html inspected; no file-specific high-risk issue confirmed
+  observed evidence: docs/index.html inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/labeler.yml, .github/workflows/regenerate-release.yml, .github/workflows/release.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

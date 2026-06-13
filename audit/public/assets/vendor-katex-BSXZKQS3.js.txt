@@ -1,0 +1,298 @@
+FILE IDENTITY
+
+- original path: public/assets/vendor-katex-BSXZKQS3.js
+- audit path: audit/public/assets/vendor-katex-BSXZKQS3.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 265162
+- SHA-256: c51df660313f53dbf89d1caf9631e5ed1371b58d8bec4a81f103223a0b16304b
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3556 - "file": "vendor-katex-BSXZKQS3.js",
+- artifacts/asset-diff/asset-report.json:3559 - "remote_url": "https://isotopeai.in/assets/vendor-katex-BSXZKQS3.js",
+- artifacts/asset-diff/local-assets.txt:198 - vendor-katex-BSXZKQS3.js
+- artifacts/asset-diff/remote-assets/CodeHighlighter-DSemo1-_.js:1 - import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-CDo2wmi8.js";import"./vendor-markdown-core-Pkt6xPHa.js";impo
+- artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:1 - import{g as yr,j as mt}from"./vendor-react-BfU3Zn2J.js";import{k as dn}from"./vendor-katex-BSXZKQS3.js";function yn(e){const n=[],t=String(e||"");let r=t.indexOf(","),i=0,o=!1;for(;!o;){r===-1&&(r=t.length,o=!0);const l=t.slice(i,r).trim();
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/ChapterHub-BXRydU0B.js:1 - import{j as e,r as s,f as Re,b as hs}from"./vendor-react-BfU3Zn2J.js";import{c as ye}from"./utils-D8mZnxMk.js";import{I as zt}from"./IsotopeLogoIcon-oPk5Ru-_.js";import{u as xe,h as de,j as Be,k as lt}from"./useFocusStore-CX_Nyp1h.js";impor
+- public/assets/CodeHighlighter-DSemo1-_.js:1 - import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-CDo2wmi8.js";import"./vendor-markdown-core-Pkt6xPHa.js";impo
+- public/assets/MarkdownRenderer-CIV1x0Uq.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/MarkdownRendererContent-DBrMkHal.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-katex-BSXZKQS3.js"
+- public/assets/MarkdownRendererContent-DBrMkHal.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CodeHighlighter-DSemo1-_.js","assets/vendor-react-BfU3Zn2J.js","assets/vendor-syntax-highlighter-CDo2wmi8.js","assets/vendor-markdown-core-Pkt6xPHa.js","assets/vendor-katex-BS
+- public/assets/MarkdownRendererContent-DBrMkHal.js:2 - import{_ as k}from"./index-BPYJFSVW.js";import{r as i,j as t,f as b}from"./vendor-react-BfU3Zn2J.js";import"./vendor-katex-BSXZKQS3.js";import{n as y}from"./App-pJGjDiPw.js";import{r as N,a as z,b as v,M as $}from"./vendor-markdown-core-Pkt
+- public/assets/index-qd2KF3Jd.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-L1EjXFqL.js","assets/vendor-charts-BN-djq5a.js","assets/App-Bcp_57Ks.js","assets/vendor-markdown-core-B0W_OS7u.js","assets/vendor-katex-BSXZKQS3.js","assets/vendor-katex
+- public/assets/index-qd2KF3Jd.js:2 - import{j as Ke}from"./vendor-markdown-core-B0W_OS7u.js";import{t as vg,u as bg,g as Ag,R as Em}from"./vendor-charts-BN-djq5a.js";import"./vendor-katex-BSXZKQS3.js";(function(){const i=document.createElement("link").relList;if(i&&i.supports&
+- public/assets/vendor-markdown-core-B0W_OS7u.js:1 - import{g as wr}from"./vendor-charts-BN-djq5a.js";import{k as xn}from"./vendor-katex-BSXZKQS3.js";var gt={exports:{}},Be={};/**
+- public/assets/vendor-markdown-core-Pkt6xPHa.js:1 - import{g as yr,j as mt}from"./vendor-react-BfU3Zn2J.js";import{k as dn}from"./vendor-katex-BSXZKQS3.js";function yn(e){const n=[],t=String(e||"");let r=t.indexOf(","),i=0,o=!1;for(;!o;){r===-1&&(r=t.length,o=!0);const l=t.slice(i,r).trim();
+
+INTERNAL STRUCTURE
+
+- line count: 261
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+- 1: class u0{constructor(e,t,a){this.lexer=void 0,this.start=void 0,this.end=void 0,this.lexer=e,this.start=t,this.end=a}static range(e,t){return t?!e||!e.loc||!t.loc||e.loc.lexer!==t.loc.lexer?null:new u0(e.loc.lexer,e.loc.
+- 255: -470,-1265c-4.7,-6,-9.7,-11.7,-15,-17c-0.7,-0.7,-6.7,-1,-18,-1z`;default:throw new Error("Unknown stretchy delimiter.")}};class oe{constructor(e){this.children=void 0,this.classes=void 0,this.height=void 0,this.depth=voi
+- 256: `+P+" children.");for(var r0=0;r0<P;r0++){var e0=new V0(O[r0]),Y0=new C0([e0],{width:"400em",height:A(U),viewBox:"0 0 "+h+" "+H,preserveAspectRatio:Y[r0]+" slice"}),s0=b.makeSvgSpan([j[r0]],[Y0],t);if(P===1)return{span:s
+- 260: `,this.tokenRegex.lastIndex);return s===-1?(this.tokenRegex.lastIndex=e.length,this.settings.reportNonstrict("commentAtEnd","% comment has no terminating newline; LaTeX would fail because of commenting the end of math mo
+- classes:
+- 1: class u0{constructor(e,t,a){this.lexer=void 0,this.start=void 0,this.end=void 0,this.lexer=e,this.start=t,this.end=a}static range(e,t){return t?!e||!e.loc||!t.loc||e.loc.lexer!==t.loc.lexer?null:new u0(e.loc.lexer,e.loc.
+- 255: -470,-1265c-4.7,-6,-9.7,-11.7,-15,-17c-0.7,-0.7,-6.7,-1,-18,-1z`;default:throw new Error("Unknown stretchy delimiter.")}};class oe{constructor(e){this.children=void 0,this.classes=void 0,this.height=void 0,this.depth=voi
+- 259: ?)[ \r	]*`,ct="[̀-ͯ]",a4=new RegExp(ct+"+$"),n4="("+ia+"+)|"+(r4+"|")+"([!-\\[\\]-‧‪-퟿豈-￿]"+(ct+"*")+"|[\uD800-\uDBFF][\uDC00-\uDFFF]"+(ct+"*")+"|\\\\verb\\*([^]).*?\\4|\\\\verb([^*a-zA-Z]).*?\\5"+("|"+t4)+("|"+e4+")");c
+- 260: `,this.tokenRegex.lastIndex);return s===-1?(this.tokenRegex.lastIndex=e.length,this.settings.reportNonstrict("commentAtEnd","% comment has no terminating newline; LaTeX would fail because of commenting the end of math mo
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+- 256: `+P+" children.");for(var r0=0;r0<P;r0++){var e0=new V0(O[r0]),Y0=new C0([e0],{width:"400em",height:A(U),viewBox:"0 0 "+h+" "+H,preserveAspectRatio:Y[r0]+" slice"}),s0=b.makeSvgSpan([j[r0]],[Y0],t);if(P===1)return{span:s
+- 260: `,this.tokenRegex.lastIndex);return s===-1?(this.tokenRegex.lastIndex=e.length,this.settings.reportNonstrict("commentAtEnd","% comment has no terminating newline; LaTeX would fail because of commenting the end of math mo
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- AMS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:255, public/assets/vendor-katex-BSXZKQS3.js:255
+- BASESIZE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:255, public/assets/vendor-katex-BSXZKQS3.js:255
+- DISPLAY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:1, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:255, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:256, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, public/assets/vendor-katex-BSXZKQS3.js:1, public/assets/vendor-katex-BSXZKQS3.js:255, public/assets/vendor-katex-BSXZKQS3.js:256, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6
+- DOTSB: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:260, public/assets/vendor-katex-BSXZKQS3.js:260
+- DOTSI: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:260, public/assets/vendor-katex-BSXZKQS3.js:260
+- DOTSX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:260, public/assets/vendor-katex-BSXZKQS3.js:260
+- EOF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/release.yml:78, .github/workflows/release.yml:80, .github/workflows/release.yml:92, .github/workflows/release.yml:94, .github/workflows/release.yml:138, .github/workflows/release.yml:140, .github/workflows/release.yml:145, .github/workflows/release.yml:147, .github/workflows/release.yml:233, .github/workflows/release.yml:253, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:256, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:259
+- H1012: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:17, public/assets/vendor-katex-BSXZKQS3.js:17
+- H1013: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:25, public/assets/vendor-katex-BSXZKQS3.js:25
+- H1014: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:37, public/assets/vendor-katex-BSXZKQS3.js:37
+- H1017: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:43, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:48, public/assets/vendor-katex-BSXZKQS3.js:43, public/assets/vendor-katex-BSXZKQS3.js:48
+- H145: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:231, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:233, public/assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:231, public/assets/vendor-katex-BSXZKQS3.js:233
+- H188: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- H263: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:228, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:229, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:239, public/assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:228, public/assets/vendor-katex-BSXZKQS3.js:229, public/assets/vendor-katex-BSXZKQS3.js:239
+- H300: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- H319: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:227, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:228, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:236, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:237, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:238, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:239, public/assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:227, public/assets/vendor-katex-BSXZKQS3.js:228, public/assets/vendor-katex-BSXZKQS3.js:236, public/assets/vendor-katex-BSXZKQS3.js:237
+- H347: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:228, public/assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:228
+- H355: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- H367: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:236, public/assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:236
+- H399408: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:227, public/assets/vendor-katex-BSXZKQS3.js:227
+- H399500: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:214, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:219, public/assets/vendor-katex-BSXZKQS3.js:214, public/assets/vendor-katex-BSXZKQS3.js:219
+- H399908: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:215, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:219, public/assets/vendor-katex-BSXZKQS3.js:215, public/assets/vendor-katex-BSXZKQS3.js:219
+- H40: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:9, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:17, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:24, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:36, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:43, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:48, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:74, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:92, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:98, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:99, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:100
+- H400000: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:9, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:24, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:36, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:43, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:48, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:92, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:98, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:99, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:100, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:223, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:227
+- H403: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:74, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:228, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:236, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:237, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:238, public/assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:74, public/assets/vendor-katex-BSXZKQS3.js:228, public/assets/vendor-katex-BSXZKQS3.js:236, public/assets/vendor-katex-BSXZKQS3.js:237, public/assets/vendor-katex-BSXZKQS3.js:238
+- H410: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- H417: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- H435C64: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:79, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:81, public/assets/vendor-katex-BSXZKQS3.js:79, public/assets/vendor-katex-BSXZKQS3.js:81
+- H504: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- H521: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- H583: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- H666: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:227, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:238, public/assets/vendor-katex-BSXZKQS3.js:227, public/assets/vendor-katex-BSXZKQS3.js:238
+- H845: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:9, public/assets/vendor-katex-BSXZKQS3.js:9
+- L145: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:48, public/assets/vendor-katex-BSXZKQS3.js:48
+- LARGE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:256, public/assets/vendor-katex-BSXZKQS3.js:256
+- M100: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:73, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:157, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:204, public/assets/vendor-katex-BSXZKQS3.js:73, public/assets/vendor-katex-BSXZKQS3.js:157, public/assets/vendor-katex-BSXZKQS3.js:204
+- M1021: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:121, public/assets/vendor-katex-BSXZKQS3.js:121
+- M1181: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:190, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:191, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:192, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:194, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:195, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:196, public/assets/vendor-katex-BSXZKQS3.js:190, public/assets/vendor-katex-BSXZKQS3.js:191, public/assets/vendor-katex-BSXZKQS3.js:192, public/assets/vendor-katex-BSXZKQS3.js:194, public/assets/vendor-katex-BSXZKQS3.js:195, public/assets/vendor-katex-BSXZKQS3.js:196
+- M145: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:229, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:231, public/assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:229, public/assets/vendor-katex-BSXZKQS3.js:231
+- M188: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:231, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:233, public/assets/vendor-katex-BSXZKQS3.js:231, public/assets/vendor-katex-BSXZKQS3.js:233
+- M199572: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:108, public/assets/vendor-katex-BSXZKQS3.js:108
+- M200: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:104, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:167, public/assets/WelcomeTeaser-B96rmBi8.js:200, public/assets/vendor-katex-BSXZKQS3.js:104, public/assets/vendor-katex-BSXZKQS3.js:167
+- M200428: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:104, public/assets/vendor-katex-BSXZKQS3.js:104
+- M257: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- M262: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- M263: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:12, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:12, public/assets/vendor-katex-BSXZKQS3.js:52
+- M291: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- M312: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- M319: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:236, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:237, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:238, public/assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:236, public/assets/vendor-katex-BSXZKQS3.js:237, public/assets/vendor-katex-BSXZKQS3.js:238
+- M344: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:171, public/assets/vendor-katex-BSXZKQS3.js:171
+- M347: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:228, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:229, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:239, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:240, public/assets/vendor-katex-BSXZKQS3.js:228, public/assets/vendor-katex-BSXZKQS3.js:229, public/assets/vendor-katex-BSXZKQS3.js:239, public/assets/vendor-katex-BSXZKQS3.js:240
+- M367: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:234, public/assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:234
+- M377: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:183, public/assets/vendor-katex-BSXZKQS3.js:183
+- M384: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- M399738: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:60, public/assets/vendor-katex-BSXZKQS3.js:60
+- M399747: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:143, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:146, public/assets/vendor-katex-BSXZKQS3.js:143, public/assets/vendor-katex-BSXZKQS3.js:146
+- M399859: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:150, public/assets/vendor-katex-BSXZKQS3.js:150
+- M399960: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:153, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:154, public/assets/vendor-katex-BSXZKQS3.js:153, public/assets/vendor-katex-BSXZKQS3.js:154
+- M399994: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:133, public/assets/vendor-katex-BSXZKQS3.js:133
+- M40: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:48, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:67, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:78, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:80, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:95, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:98, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:99, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:100, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:130, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:154, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:162, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:197
+- M400000: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:48, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:67, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:78, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:80, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:95, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:130, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:154, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:162, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:197, public/assets/vendor-katex-BSXZKQS3.js:48, public/assets/vendor-katex-BSXZKQS3.js:67, public/assets/vendor-katex-BSXZKQS3.js:78
+- M403: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:227, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:228, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:238, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:239, public/assets/vendor-katex-BSXZKQS3.js:227, public/assets/vendor-katex-BSXZKQS3.js:228, public/assets/vendor-katex-BSXZKQS3.js:238, public/assets/vendor-katex-BSXZKQS3.js:239
+- M410: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:236, public/assets/vendor-katex-BSXZKQS3.js:236
+- M424: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:31, public/assets/vendor-katex-BSXZKQS3.js:31
+- M457: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- M473: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:41, public/assets/vendor-katex-BSXZKQS3.js:41
+- M478: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:52
+- M500: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:223, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:227, public/assets/vendor-katex-BSXZKQS3.js:223, public/assets/vendor-katex-BSXZKQS3.js:227
+- M507: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:210, public/assets/vendor-katex-BSXZKQS3.js:210
+- M512: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:112, public/assets/vendor-katex-BSXZKQS3.js:112
+- M529: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:189, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:193, public/assets/vendor-katex-BSXZKQS3.js:189, public/assets/vendor-katex-BSXZKQS3.js:193
+- M53: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:223, public/assets/vendor-katex-BSXZKQS3.js:223
+- M593: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:214, public/assets/vendor-katex-BSXZKQS3.js:214
+- M681: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:118, public/assets/vendor-katex-BSXZKQS3.js:118
+- M702: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:48, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:52, public/assets/vendor-katex-BSXZKQS3.js:48, public/assets/vendor-katex-BSXZKQS3.js:52
+- M757: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:115, public/assets/vendor-katex-BSXZKQS3.js:115
+- M76: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:247, public/assets/vendor-katex-BSXZKQS3.js:247
+- M786: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:175, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:179, public/assets/vendor-katex-BSXZKQS3.js:175, public/assets/vendor-katex-BSXZKQS3.js:179
+- M863: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:240, public/assets/vendor-katex-BSXZKQS3.js:240
+- M93: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:92, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:223, public/assets/vendor-katex-BSXZKQS3.js:92, public/assets/vendor-katex-BSXZKQS3.js:223
+- M95: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:1, public/assets/vendor-katex-BSXZKQS3.js:1
+- M983: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:22, public/assets/vendor-katex-BSXZKQS3.js:22
+- MM319: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:237, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:238, public/assets/vendor-katex-BSXZKQS3.js:237, public/assets/vendor-katex-BSXZKQS3.js:238
+- SCRIPT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:1, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:255, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:256, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:49, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, public/assets/index-qd2KF3Jd.js:26, public/assets/vendor-katex-BSXZKQS3.js:1, public/assets/vendor-katex-BSXZKQS3.js:255, public/assets/vendor-katex-BSXZKQS3.js:256, public/assets/vendor-react-BfU3Zn2J.js:8474, public/assets/vendor-react-BfU3Zn2J.js:8506, public/assets/vendor-sentry-VzeXdCeF.js:13142
+- SCRIPTSCRIPT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:1, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:255, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:256, public/assets/vendor-katex-BSXZKQS3.js:1, public/assets/vendor-katex-BSXZKQS3.js:255, public/assets/vendor-katex-BSXZKQS3.js:256
+- SETTINGS_SCHEMA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:261, public/assets/vendor-katex-BSXZKQS3.js:261
+- TEXT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:1, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:255, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:256, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:191, public/assets/useAIStore-B2cv1FZz.js:4503, public/assets/useAIStore-B2cv1FZz.js:4752, public/assets/useAIStore-B2cv1FZz.js:4767, public/assets/useAIStore-B2cv1FZz.js:4839, public/assets/useAIStore-B2cv1FZz.js:4843, public/assets/useAIStore-B2cv1FZz.js:4848, public/assets/useAIStore-B2cv1FZz.js:8080
+- V1759: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:227, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:228, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:229, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:238, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:239, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:240, public/assets/vendor-katex-BSXZKQS3.js:227, public/assets/vendor-katex-BSXZKQS3.js:228, public/assets/vendor-katex-BSXZKQS3.js:229, public/assets/vendor-katex-BSXZKQS3.js:238, public/assets/vendor-katex-BSXZKQS3.js:239, public/assets/vendor-katex-BSXZKQS3.js:240
+- V241: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:98, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:99, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:100, public/assets/vendor-katex-BSXZKQS3.js:98, public/assets/vendor-katex-BSXZKQS3.js:99, public/assets/vendor-katex-BSXZKQS3.js:100
+- V281: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:153, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:154, public/assets/vendor-katex-BSXZKQS3.js:153, public/assets/vendor-katex-BSXZKQS3.js:154
+- V428: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:98, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:99, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:153, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:154, public/assets/vendor-katex-BSXZKQS3.js:98, public/assets/vendor-katex-BSXZKQS3.js:99, public/assets/vendor-katex-BSXZKQS3.js:153, public/assets/vendor-katex-BSXZKQS3.js:154
+- V602: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:236, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:237, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:238, public/assets/vendor-katex-BSXZKQS3.js:236, public/assets/vendor-katex-BSXZKQS3.js:237, public/assets/vendor-katex-BSXZKQS3.js:238
+- V84: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:227, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:228, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:238, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:239, public/assets/vendor-katex-BSXZKQS3.js:227, public/assets/vendor-katex-BSXZKQS3.js:228, public/assets/vendor-katex-BSXZKQS3.js:238, public/assets/vendor-katex-BSXZKQS3.js:239
+- V94: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:98, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:99, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:153, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:154, public/assets/vendor-katex-BSXZKQS3.js:98, public/assets/vendor-katex-BSXZKQS3.js:99, public/assets/vendor-katex-BSXZKQS3.js:153, public/assets/vendor-katex-BSXZKQS3.js:154
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://www.w3.org/1998/Math/MathML
+- http://www.w3.org/2000/svg
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 1: class u0{constructor(e,t,a){this.lexer=void 0,this.start=void 0,this.end=void 0,this.lexer=e,this.start=t,this.end=a}static range(e,t){return t?!e||!e.loc||!t.loc||e.loc.lexer!==t.loc.lexer?null:new u0(e.loc.lexer,e.loc.start,t.loc.end):e&&e.loc}}class m0{cons
+- 255: -470,-1265c-4.7,-6,-9.7,-11.7,-15,-17c-0.7,-0.7,-6.7,-1,-18,-1z`;default:throw new Error("Unknown stretchy delimiter.")}};class oe{constructor(e){this.children=void 0,this.classes=void 0,this.height=void 0,this.depth=void 0,this.maxFontSize=void 0,this.style=v
+- 256: `+P+" children.");for(var r0=0;r0<P;r0++){var e0=new V0(O[r0]),Y0=new C0([e0],{width:"400em",height:A(U),viewBox:"0 0 "+h+" "+H,preserveAspectRatio:Y[r0]+" slice"}),s0=b.makeSvgSpan([j[r0]],[Y0],t);if(P===1)return{span:s0,minWidth:G,height:U};s0.style.height=A
+- 259: ?)[ \r	]*`,ct="[̀-ͯ]",a4=new RegExp(ct+"+$"),n4="("+ia+"+)|"+(r4+"|")+"([!-\\[\\]-‧‪-퟿豈-￿]"+(ct+"*")+"|[\uD800-\uDBFF][\uDC00-\uDFFF]"+(ct+"*")+"|\\\\verb\\*([^]).*?\\4|\\\\verb([^*a-zA-Z]).*?\\5"+("|"+t4)+("|"+e4+")");class mr{constructor(e,t){this.input=void
+- 260: `,this.tokenRegex.lastIndex);return s===-1?(this.tokenRegex.lastIndex=e.length,this.settings.reportNonstrict("commentAtEnd","% comment has no terminating newline; LaTeX would fail because of commenting the end of math mode (e.g. $)")):this.tokenRegex.lastIndex
+- 261: please report what input caused this bug`);return a=a.slice(1,-1),{type:"verb",mode:"text",body:a,star:n}}pr.hasOwnProperty(t[0])&&!$[this.mode][t[0]]&&(this.settings.strict&&this.mode==="math"&&this.settings.reportNonstrict("unicodeTextInMathMode",'Accented U
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 1: class u0{constructor(e,t,a){this.lexer=void 0,this.start=void 0,this.end=void 0,this.lexer=e,this.start=t,this.end=a}static range(e,t){return t?!e||!e.loc||!t.loc||e.loc.lexer!==t.loc.lexer?null:new u0(e.loc.lexer,e.loc.start,t.loc.end):e&&e.loc}}class m0{cons
+- 255: -470,-1265c-4.7,-6,-9.7,-11.7,-15,-17c-0.7,-0.7,-6.7,-1,-18,-1z`;default:throw new Error("Unknown stretchy delimiter.")}};class oe{constructor(e){this.children=void 0,this.classes=void 0,this.height=void 0,this.depth=void 0,this.maxFontSize=void 0,this.style=v
+- 256: `+P+" children.");for(var r0=0;r0<P;r0++){var e0=new V0(O[r0]),Y0=new C0([e0],{width:"400em",height:A(U),viewBox:"0 0 "+h+" "+H,preserveAspectRatio:Y[r0]+" slice"}),s0=b.makeSvgSpan([j[r0]],[Y0],t);if(P===1)return{span:s0,minWidth:G,height:U};s0.style.height=A
+- 260: `,this.tokenRegex.lastIndex);return s===-1?(this.tokenRegex.lastIndex=e.length,this.settings.reportNonstrict("commentAtEnd","% comment has no terminating newline; LaTeX would fail because of commenting the end of math mode (e.g. $)")):this.tokenRegex.lastIndex
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 255: -470,-1265c-4.7,-6,-9.7,-11.7,-15,-17c-0.7,-0.7,-6.7,-1,-18,-1z`;default:throw new Error("Unknown stretchy delimiter.")}};class oe{constructor(e){this.children=void 0,this.classes=void 0,this.height=void 0,this.depth=void 0,this.maxFontSize=void 0,this.style=v
+- 261: please report what input caused this bug`);return a=a.slice(1,-1),{type:"verb",mode:"text",body:a,star:n}}pr.hasOwnProperty(t[0])&&!$[this.mode][t[0]]&&(this.settings.strict&&this.mode==="math"&&this.settings.reportNonstrict("unicodeTextInMathMode",'Accented U
+- operating-system commands:
+- 255: -470,-1265c-4.7,-6,-9.7,-11.7,-15,-17c-0.7,-0.7,-6.7,-1,-18,-1z`;default:throw new Error("Unknown stretchy delimiter.")}};class oe{constructor(e){this.children=void 0,this.classes=void 0,this.height=void 0,this.depth=void 0,this.maxFontSize=void 0,this.style=v
+- 256: `+P+" children.");for(var r0=0;r0<P;r0++){var e0=new V0(O[r0]),Y0=new C0([e0],{width:"400em",height:A(U),viewBox:"0 0 "+h+" "+H,preserveAspectRatio:Y[r0]+" slice"}),s0=b.makeSvgSpan([j[r0]],[Y0],t);if(P===1)return{span:s0,minWidth:G,height:U};s0.style.height=A
+- Supabase interfaces:
+None observed.
+- external services: http://www.w3.org/1998/Math/MathML, http://www.w3.org/2000/svg
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0471-01
+  severity: LOW
+  category: duplication
+  status: CONFIRMED
+  confidence: HIGH
+  affected lines or byte-level evidence: SHA-256 c51df660313f53dbf89d1caf9631e5ed1371b58d8bec4a81f103223a0b16304b shared by artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js, public/assets/vendor-katex-BSXZKQS3.js
+  observed evidence: SHA-256 c51df660313f53dbf89d1caf9631e5ed1371b58d8bec4a81f103223a0b16304b shared by artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js, public/assets/vendor-katex-BSXZKQS3.js
+  inferred impact: Byte-identical duplicates may waste repository or install size.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep duplicates only when required by platform paths or comparison artifacts.
+  related files: artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 265162
+- file kind: text/source or unknown
+- hazard reasons: large file >=100KB; vendor/generated dependency chunk family
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/ChapterHub-BXRydU0B.js:1: import{j as e,r as s,f as Re,b as hs}from"./vendor-react-BfU3Zn2J.js";import{c as ye}from"./utils-D8mZnxMk.js";import{I as zt}from"./IsotopeLogoIcon-oPk5Ru-_.js";import{u as xe,h a
+  - public/assets/CodeHighlighter-DSemo1-_.js:1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-
+  - public/assets/MarkdownRenderer-CIV1x0Uq.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/MarkdownRendererContent-DBrMkHal.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "a
+  - public/assets/vendor-markdown-core-B0W_OS7u.js:1: import{g as wr}from"./vendor-charts-BN-djq5a.js";import{k as xn}from"./vendor-katex-BSXZKQS3.js";var gt={exports:{}},Be={};/**
+  - public/assets/vendor-markdown-core-Pkt6xPHa.js:1: import{g as yr,j as mt}from"./vendor-react-BfU3Zn2J.js";import{k as dn}from"./vendor-katex-BSXZKQS3.js";function yn(e){const n=[],t=String(e||"");let r=t.indexOf(","),i=0,o=!1;for(
+  - public/assets/MarkdownRendererContent-DBrMkHal.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CodeHighlighter-DSemo1-_.js","assets/vendor-react-BfU3Zn2J.js","assets/vendor-syntax-highlighter-CDo2wmi8.js","asse
+  - public/assets/MarkdownRendererContent-DBrMkHal.js:2: import{_ as k}from"./index-BPYJFSVW.js";import{r as i,j as t,f as b}from"./vendor-react-BfU3Zn2J.js";import"./vendor-katex-BSXZKQS3.js";import{n as y}from"./App-pJGjDiPw.js";import
+  - public/assets/index-qd2KF3Jd.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-L1EjXFqL.js","assets/vendor-charts-BN-djq5a.js","assets/App-Bcp_57Ks.js","assets/vendor-markdown-core-B0W_OS7
+  - public/assets/index-qd2KF3Jd.js:2: import{j as Ke}from"./vendor-markdown-core-B0W_OS7u.js";import{t as vg,u as bg,g as Ag,R as Em}from"./vendor-charts-BN-djq5a.js";import"./vendor-katex-BSXZKQS3.js";(function(){cons
+  - artifacts/asset-diff/local-assets.txt:198: vendor-katex-BSXZKQS3.js
+  - artifacts/asset-diff/asset-report.json:3556: "file": "vendor-katex-BSXZKQS3.js",
+  - artifacts/asset-diff/asset-report.json:3559: "remote_url": "https://isotopeai.in/assets/vendor-katex-BSXZKQS3.js",
+  - artifacts/asset-diff/remote-assets/CodeHighlighter-DSemo1-_.js:1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-
+  - artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:1: import{g as yr,j as mt}from"./vendor-react-BfU3Zn2J.js";import{k as dn}from"./vendor-katex-BSXZKQS3.js";function yn(e){const n=[],t=String(e||"");let r=t.indexOf(","),i=0,o=!1;for(

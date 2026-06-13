@@ -1,0 +1,242 @@
+FILE IDENTITY
+
+- original path: public/assets/vendor-charts-BN-djq5a.js
+- audit path: audit/public/assets/vendor-charts-BN-djq5a.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 431709
+- SHA-256: 78ffbd3cdddbd2711f371b4dc5cd8dc605c1a782da496d29956fa810dcef0450
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3430 - "file": "vendor-charts-BN-djq5a.js",
+- artifacts/asset-diff/asset-report.json:3433 - "remote_url": "https://isotopeai.in/assets/vendor-charts-BN-djq5a.js",
+- artifacts/asset-diff/local-assets.txt:191 - vendor-charts-BN-djq5a.js
+- artifacts/asset-diff/summary.md:164 - | vendor-charts-BN-djq5a.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/index-qd2KF3Jd.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-L1EjXFqL.js","assets/vendor-charts-BN-djq5a.js","assets/App-Bcp_57Ks.js","assets/vendor-markdown-core-B0W_OS7u.js","assets/vendor-katex-BSXZKQS3.js","assets/vendor-katex
+- public/assets/index-qd2KF3Jd.js:2 - import{j as Ke}from"./vendor-markdown-core-B0W_OS7u.js";import{t as vg,u as bg,g as Ag,R as Em}from"./vendor-charts-BN-djq5a.js";import"./vendor-katex-BSXZKQS3.js";(function(){const i=document.createElement("link").relList;if(i&&i.supports&
+- public/assets/vendor-markdown-core-B0W_OS7u.js:1 - import{g as wr}from"./vendor-charts-BN-djq5a.js";import{k as xn}from"./vendor-katex-BSXZKQS3.js";var gt={exports:{}},Be={};/**
+
+INTERNAL STRUCTURE
+
+- line count: 84
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+- 1: function _x(e,t){for(var r=0;r<t.length;r++){const n=t[r];if(typeof n!="string"&&!Array.isArray(n)){for(const i in n)if(i!=="default"&&!(i in e)){const a=Object.getOwnPropertyDescriptor(n,i);a&&Object.defineProperty(e,i,
+- 9: */var ff;function jx(){if(ff)return U;ff=1;var e=Symbol.for("react.transitional.element"),t=Symbol.for("react.portal"),r=Symbol.for("react.fragment"),n=Symbol.for("react.strict_mode"),i=Symbol.for("react.profiler"),a=Sym
+- 17: */var vf;function kx(){if(vf)return Fe;vf=1;var e=ni();function t(l){var s="https://react.dev/errors/"+l;if(1<arguments.length){s+="?args[]="+encodeURIComponent(arguments[1]);for(var c=2;c<arguments.length;c++)s+="&args[
+- 20: A`).concat(a,",").concat(a,",0,1,1,").concat(o,",").concat(i),className:"recharts-legend-icon"});if(l==="rect")return d.createElement("path",{stroke:"none",fill:u,d:"M0,".concat(ct/8,"h").concat(ct,"v").concat(ct*3/4,"h"
+- 28: */var ad;function bP(){if(ad)return Au;ad=1;var e=ni();function t(f,v){return f===v&&(f!==0||1/f===1/v)||f!==f&&v!==v}var r=typeof Object.is=="function"?Object.is:t,n=e.useState,i=e.useEffect,a=e.useLayoutEffect,o=e.useD
+- 36: */var ud;function wP(){if(ud)return Pu;ud=1;var e=ni(),t=xP();function r(s,c){return s===c&&(s!==0||1/s===1/c)||s!==s&&c!==c}var n=typeof Object.is=="function"?Object.is:r,i=t.useSyncExternalStore,a=e.useRef,o=e.useEffec
+- 39: height and width.`,O,A,i,a,o,u,r),d.createElement("div",{id:f?"".concat(f):void 0,className:Y("recharts-responsive-container",v),style:Fd(Fd({},m),{},{width:i,height:a,minWidth:o,minHeight:u,maxHeight:l}),ref:h},d.create
+- 49: A `,",",",0,0,",",",","," Z"])),e,t+l*h,h,h,c,e+s*h,t,e+r-s*h,t,h,h,c,e+r,t+l*h,e+r,t+n-l*h,h,h,c,e+r-s*h,t+n,e+s*h,t+n,h,h,c,e,t+n-l*h)}else f=we(hv||(hv=St(["M ",","," h "," v "," h "," Z"])),e,t,r,n,-r);return f},xv={
+- 56: `,","," Z"])),p.x,p.y,n,n,+(Math.abs(u)>180),+(a<=l),v.x,v.y)}else f+=we(Ev||(Ev=Er(["L ",","," Z"])),t,r);return f},pE=e=>{var{cx:t,cy:r,innerRadius:n,outerRadius:i,cornerRadius:a,forceCornerRadius:o,cornerIsExternal:u,
+- 66: A`,",",",0,0,",",",",","Z"])),A.x,A.y,a,a,+(c<0),O.x,O.y,n,n,+(k>180),+(c>0),x.x,x.y,a,a,+(c<0),P.x,P.y)}else b+=we(Iv||(Iv=Er(["L",",","Z"])),t,r);return b},hE={cx:0,cy:0,innerRadius:0,outerRadius:0,startAngle:0,endAngl
+- 68: `).concat(P.x,",").concat(P.y),O=ie(e.id)?zn("recharts-radial-line-"):e.id;return d.createElement("text",Bt({},n,{dominantBaseline:"central",className:Y("recharts-radial-bar-label",o)}),d.createElement("defs",null,d.crea
+- 76: */var wh;function nD(){if(wh)return ce;wh=1;var e=Symbol.for("react.transitional.element"),t=Symbol.for("react.portal"),r=Symbol.for("react.fragment"),n=Symbol.for("react.strict_mode"),i=Symbol.for("react.profiler"),a=Sy
+- 84: */var Zh;function T$(){if(Zh)return xl;Zh=1;var e=ni();function t(l,s){return l===s&&(l!==0||1/l===1/s)||l!==l&&s!==s}var r=typeof Object.is=="function"?Object.is:t,n=e.useSyncExternalStore,i=e.useRef,a=e.useEffect,o=e.u
+- classes:
+- 17: */var vf;function kx(){if(vf)return Fe;vf=1;var e=ni();function t(l){var s="https://react.dev/errors/"+l;if(1<arguments.length){s+="?args[]="+encodeURIComponent(arguments[1]);for(var c=2;c<arguments.length;c++)s+="&args[
+- 36: */var ud;function wP(){if(ud)return Pu;ud=1;var e=ni(),t=xP();function r(s,c){return s===c&&(s!==0||1/s===1/c)||s!==s&&c!==c}var n=typeof Object.is=="function"?Object.is:r,i=t.useSyncExternalStore,a=e.useRef,o=e.useEffec
+- 39: height and width.`,O,A,i,a,o,u,r),d.createElement("div",{id:f?"".concat(f):void 0,className:Y("recharts-responsive-container",v),style:Fd(Fd({},m),{},{width:i,height:a,minWidth:o,minHeight:u,maxHeight:l}),ref:h},d.create
+- 66: A`,",",",0,0,",",",",","Z"])),A.x,A.y,a,a,+(c<0),O.x,O.y,n,n,+(k>180),+(c>0),x.x,x.y,a,a,+(c<0),P.x,P.y)}else b+=we(Iv||(Iv=Er(["L",",","Z"])),t,r);return b},hE={cx:0,cy:0,innerRadius:0,outerRadius:0,startAngle:0,endAngl
+- 76: */var wh;function nD(){if(wh)return ce;wh=1;var e=Symbol.for("react.transitional.element"),t=Symbol.for("react.portal"),r=Symbol.for("react.fragment"),n=Symbol.for("react.strict_mode"),i=Symbol.for("react.profiler"),a=Sy
+- 84: */var Zh;function T$(){if(Zh)return xl;Zh=1;var e=ni();function t(l,s){return l===s&&(l!==0||1/l===1/s)||l!==l&&s!==s}var r=typeof Object.is=="function"?Object.is:t,n=e.useSyncExternalStore,i=e.useRef,a=e.useEffect,o=e.u
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+- 36: */var ud;function wP(){if(ud)return Pu;ud=1;var e=ni(),t=xP();function r(s,c){return s===c&&(s!==0||1/s===1/c)||s!==s&&c!==c}var n=typeof Object.is=="function"?Object.is:r,i=t.useSyncExternalStore,a=e.useRef,o=e.useEffec
+- 39: height and width.`,O,A,i,a,o,u,r),d.createElement("div",{id:f?"".concat(f):void 0,className:Y("recharts-responsive-container",v),style:Fd(Fd({},m),{},{width:i,height:a,minWidth:o,minHeight:u,maxHeight:l}),ref:h},d.create
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- CHILDREN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:60, public/assets/vendor-charts-BN-djq5a.js:84, public/assets/vendor-charts-CFLJvnG7.js:22096
+- EPS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:52, public/assets/vendor-charts-BN-djq5a.js:76, public/assets/vendor-charts-CFLJvnG7.js:17454
+- INIT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:20, public/assets/vendor-charts-BN-djq5a.js:36, public/assets/vendor-charts-CFLJvnG7.js:2909, public/assets/vendor-charts-CFLJvnG7.js:3004, public/assets/vendor-charts-CFLJvnG7.js:3018
+- LICENSE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:259, README.md:358, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:11, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:19, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:59, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:8, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:16, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:24, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:32, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:40, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:55, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:63
+- LN10: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:9801, public/assets/vendor-charts-CFLJvnG7.js:10090, public/assets/vendor-charts-CFLJvnG7.js:10105, public/assets/vendor-charts-CFLJvnG7.js:10106, public/assets/vendor-charts-CFLJvnG7.js:10240, public/assets/vendor-charts-CFLJvnG7.js:10251, public/assets/vendor-charts-CFLJvnG7.js:10252
+- MAX_SAFE_INTEGER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:4, public/assets/ExamPrimitives-K6hgnm_l.js:23, public/assets/Study-pAdAenIl.js:2111, public/assets/Study-pAdAenIl.js:2112, public/assets/Tasks-BYRFOrek.js:1055, public/assets/useFocusStore-CX_Nyp1h.js:374, public/assets/useFocusStore-CX_Nyp1h.js:928, public/assets/useFocusStore-CX_Nyp1h.js:1492, public/assets/vendor-charts-BN-djq5a.js:20, public/assets/vendor-charts-CFLJvnG7.js:2229, src/hooks/use-toast.ts:28
+- MAX_VALUE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:7082
+- MIT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:259, README.md:358, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:10, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:18, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:58, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:7, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:15, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:23, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:31, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:39, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:54, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:62
+- PROBE_UNKNOWN_ACTION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:20, public/assets/vendor-charts-BN-djq5a.js:36, public/assets/vendor-charts-CFLJvnG7.js:2911, public/assets/vendor-charts-CFLJvnG7.js:3021
+- REPLACE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:259, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, CHANGELOG.md:129, CHANGELOG.md:403, CONTRIBUTING.md:54, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:20, artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:10, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- ROUND_CEIL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:10239
+- ROUND_DOWN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:10239
+- ROUND_FLOOR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:10239
+- ROUND_HALF_CEIL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:10239
+- ROUND_HALF_DOWN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:10239
+- ROUND_HALF_EVEN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:10239
+- ROUND_HALF_FLOOR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:10239
+- ROUND_HALF_UP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:10239
+- ROUND_UP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:10239
+- UTC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/codeql.yml:9, .github/workflows/stale.yml:5, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:50, public/assets/Analytics-D74gQMjN.js:2, public/assets/IsotopeWrapped2-B4zl9ERi.js:1, public/assets/SessionLogTable-CclRAAwc.js:25, public/assets/SingleGroup-DU1IhoNK.js:1, public/assets/useFocusStore-CX_Nyp1h.js:156, public/assets/useFocusStore-CX_Nyp1h.js:157, public/assets/vendor-charts-BN-djq5a.js:66, public/assets/vendor-charts-CFLJvnG7.js:8698, public/assets/vendor-charts-CFLJvnG7.js:8707
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: filesystem or asset file dependency likely
+- database data:
+None observed.
+- network responses:
+- http://www.w3.org/1999/xhtml
+- https://bit.ly/3cXEKWf
+- https://react.dev/errors/
+- https://redux-toolkit.js.org/Errors?code=${e}
+- https://redux.js.org/Errors?code=${e}
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 9: */var ff;function jx(){if(ff)return U;ff=1;var e=Symbol.for("react.transitional.element"),t=Symbol.for("react.portal"),r=Symbol.for("react.fragment"),n=Symbol.for("react.strict_mode"),i=Symbol.for("react.profiler"),a=Symbol.for("react.consumer"),o=Symbol.for("
+- 17: */var vf;function kx(){if(vf)return Fe;vf=1;var e=ni();function t(l){var s="https://react.dev/errors/"+l;if(1<arguments.length){s+="?args[]="+encodeURIComponent(arguments[1]);for(var c=2;c<arguments.length;c++)s+="&args[]="+encodeURIComponent(arguments[c])}ret
+- 20: A`).concat(a,",").concat(a,",0,1,1,").concat(o,",").concat(i),className:"recharts-legend-icon"});if(l==="rect")return d.createElement("path",{stroke:"none",fill:u,d:"M0,".concat(ct/8,"h").concat(ct,"v").concat(ct*3/4,"h").concat(-ct,"z"),className:"recharts-le
+- 36: */var ud;function wP(){if(ud)return Pu;ud=1;var e=ni(),t=xP();function r(s,c){return s===c&&(s!==0||1/s===1/c)||s!==s&&c!==c}var n=typeof Object.is=="function"?Object.is:r,i=t.useSyncExternalStore,a=e.useRef,o=e.useEffect,u=e.useMemo,l=e.useDebugValue;return P
+- 39: height and width.`,O,A,i,a,o,u,r),d.createElement("div",{id:f?"".concat(f):void 0,className:Y("recharts-responsive-container",v),style:Fd(Fd({},m),{},{width:i,height:a,minWidth:o,minHeight:u,maxHeight:l}),ref:h},d.createElement("div",{style:_A({width:i,height:
+- 49: A `,",",",0,0,",",",","," Z"])),e,t+l*h,h,h,c,e+s*h,t,e+r-s*h,t,h,h,c,e+r,t+l*h,e+r,t+n-l*h,h,h,c,e+r-s*h,t+n,e+s*h,t+n,h,h,c,e,t+n-l*h)}else f=we(hv||(hv=St(["M ",","," h "," v "," h "," Z"])),e,t,r,n,-r);return f},xv={x:0,y:0,width:0,height:0,radius:0,isAnim
+- 66: A`,",",",0,0,",",",",","Z"])),A.x,A.y,a,a,+(c<0),O.x,O.y,n,n,+(k>180),+(c>0),x.x,x.y,a,a,+(c<0),P.x,P.y)}else b+=we(Iv||(Iv=Er(["L",",","Z"])),t,r);return b},hE={cx:0,cy:0,innerRadius:0,outerRadius:0,startAngle:0,endAngle:0,cornerRadius:0,forceCornerRadius:!1,
+- 68: `).concat(P.x,",").concat(P.y),O=ie(e.id)?zn("recharts-radial-line-"):e.id;return d.createElement("text",Bt({},n,{dominantBaseline:"central",className:Y("recharts-radial-bar-label",o)}),d.createElement("defs",null,d.createElement("path",{id:O,d:w})),d.createEl
+- 76: */var wh;function nD(){if(wh)return ce;wh=1;var e=Symbol.for("react.transitional.element"),t=Symbol.for("react.portal"),r=Symbol.for("react.fragment"),n=Symbol.for("react.strict_mode"),i=Symbol.for("react.profiler"),a=Symbol.for("react.consumer"),o=Symbol.for(
+- 84: */var Zh;function T$(){if(Zh)return xl;Zh=1;var e=ni();function t(l,s){return l===s&&(l!==0||1/l===1/s)||l!==l&&s!==s}var r=typeof Object.is=="function"?Object.is:t,n=e.useSyncExternalStore,i=e.useRef,a=e.useEffect,o=e.useMemo,u=e.useDebugValue;return xl.useSy
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 17: */var vf;function kx(){if(vf)return Fe;vf=1;var e=ni();function t(l){var s="https://react.dev/errors/"+l;if(1<arguments.length){s+="?args[]="+encodeURIComponent(arguments[1]);for(var c=2;c<arguments.length;c++)s+="&args[]="+encodeURIComponent(arguments[c])}ret
+- 20: A`).concat(a,",").concat(a,",0,1,1,").concat(o,",").concat(i),className:"recharts-legend-icon"});if(l==="rect")return d.createElement("path",{stroke:"none",fill:u,d:"M0,".concat(ct/8,"h").concat(ct,"v").concat(ct*3/4,"h").concat(-ct,"z"),className:"recharts-le
+- 36: */var ud;function wP(){if(ud)return Pu;ud=1;var e=ni(),t=xP();function r(s,c){return s===c&&(s!==0||1/s===1/c)||s!==s&&c!==c}var n=typeof Object.is=="function"?Object.is:r,i=t.useSyncExternalStore,a=e.useRef,o=e.useEffect,u=e.useMemo,l=e.useDebugValue;return P
+- 39: height and width.`,O,A,i,a,o,u,r),d.createElement("div",{id:f?"".concat(f):void 0,className:Y("recharts-responsive-container",v),style:Fd(Fd({},m),{},{width:i,height:a,minWidth:o,minHeight:u,maxHeight:l}),ref:h},d.createElement("div",{style:_A({width:i,height:
+- 49: A `,",",",0,0,",",",","," Z"])),e,t+l*h,h,h,c,e+s*h,t,e+r-s*h,t,h,h,c,e+r,t+l*h,e+r,t+n-l*h,h,h,c,e+r-s*h,t+n,e+s*h,t+n,h,h,c,e,t+n-l*h)}else f=we(hv||(hv=St(["M ",","," h "," v "," h "," Z"])),e,t,r,n,-r);return f},xv={x:0,y:0,width:0,height:0,radius:0,isAnim
+- 66: A`,",",",0,0,",",",",","Z"])),A.x,A.y,a,a,+(c<0),O.x,O.y,n,n,+(k>180),+(c>0),x.x,x.y,a,a,+(c<0),P.x,P.y)}else b+=we(Iv||(Iv=Er(["L",",","Z"])),t,r);return b},hE={cx:0,cy:0,innerRadius:0,outerRadius:0,startAngle:0,endAngle:0,cornerRadius:0,forceCornerRadius:!1,
+- 68: `).concat(P.x,",").concat(P.y),O=ie(e.id)?zn("recharts-radial-line-"):e.id;return d.createElement("text",Bt({},n,{dominantBaseline:"central",className:Y("recharts-radial-bar-label",o)}),d.createElement("defs",null,d.createElement("path",{id:O,d:w})),d.createEl
+- 76: */var wh;function nD(){if(wh)return ce;wh=1;var e=Symbol.for("react.transitional.element"),t=Symbol.for("react.portal"),r=Symbol.for("react.fragment"),n=Symbol.for("react.strict_mode"),i=Symbol.for("react.profiler"),a=Symbol.for("react.consumer"),o=Symbol.for(
+- 84: */var Zh;function T$(){if(Zh)return xl;Zh=1;var e=ni();function t(l,s){return l===s&&(l!==0||1/l===1/s)||l!==l&&s!==s}var r=typeof Object.is=="function"?Object.is:t,n=e.useSyncExternalStore,i=e.useRef,a=e.useEffect,o=e.useMemo,u=e.useDebugValue;return xl.useSy
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 9: */var ff;function jx(){if(ff)return U;ff=1;var e=Symbol.for("react.transitional.element"),t=Symbol.for("react.portal"),r=Symbol.for("react.fragment"),n=Symbol.for("react.strict_mode"),i=Symbol.for("react.profiler"),a=Symbol.for("react.consumer"),o=Symbol.for("
+- 28: */var ad;function bP(){if(ad)return Au;ad=1;var e=ni();function t(f,v){return f===v&&(f!==0||1/f===1/v)||f!==f&&v!==v}var r=typeof Object.is=="function"?Object.is:t,n=e.useState,i=e.useEffect,a=e.useLayoutEffect,o=e.useDebugValue;function u(f,v){var p=v(),m=n(
+- 36: */var ud;function wP(){if(ud)return Pu;ud=1;var e=ni(),t=xP();function r(s,c){return s===c&&(s!==0||1/s===1/c)||s!==s&&c!==c}var n=typeof Object.is=="function"?Object.is:r,i=t.useSyncExternalStore,a=e.useRef,o=e.useEffect,u=e.useMemo,l=e.useDebugValue;return P
+- 39: height and width.`,O,A,i,a,o,u,r),d.createElement("div",{id:f?"".concat(f):void 0,className:Y("recharts-responsive-container",v),style:Fd(Fd({},m),{},{width:i,height:a,minWidth:o,minHeight:u,maxHeight:l}),ref:h},d.createElement("div",{style:_A({width:i,height:
+- 66: A`,",",",0,0,",",",",","Z"])),A.x,A.y,a,a,+(c<0),O.x,O.y,n,n,+(k>180),+(c>0),x.x,x.y,a,a,+(c<0),P.x,P.y)}else b+=we(Iv||(Iv=Er(["L",",","Z"])),t,r);return b},hE={cx:0,cy:0,innerRadius:0,outerRadius:0,startAngle:0,endAngle:0,cornerRadius:0,forceCornerRadius:!1,
+- 76: */var wh;function nD(){if(wh)return ce;wh=1;var e=Symbol.for("react.transitional.element"),t=Symbol.for("react.portal"),r=Symbol.for("react.fragment"),n=Symbol.for("react.strict_mode"),i=Symbol.for("react.profiler"),a=Symbol.for("react.consumer"),o=Symbol.for(
+- 84: */var Zh;function T$(){if(Zh)return xl;Zh=1;var e=ni();function t(l,s){return l===s&&(l!==0||1/l===1/s)||l!==l&&s!==s}var r=typeof Object.is=="function"?Object.is:t,n=e.useSyncExternalStore,i=e.useRef,a=e.useEffect,o=e.useMemo,u=e.useDebugValue;return xl.useSy
+- operating-system commands:
+- 68: `).concat(P.x,",").concat(P.y),O=ie(e.id)?zn("recharts-radial-line-"):e.id;return d.createElement("text",Bt({},n,{dominantBaseline:"central",className:Y("recharts-radial-bar-label",o)}),d.createElement("defs",null,d.createElement("path",{id:O,d:w})),d.createEl
+- 84: */var Zh;function T$(){if(Zh)return xl;Zh=1;var e=ni();function t(l,s){return l===s&&(l!==0||1/l===1/s)||l!==l&&s!==s}var r=typeof Object.is=="function"?Object.is:t,n=e.useSyncExternalStore,i=e.useRef,a=e.useEffect,o=e.useMemo,u=e.useDebugValue;return xl.useSy
+- Supabase interfaces:
+- 17: */var vf;function kx(){if(vf)return Fe;vf=1;var e=ni();function t(l){var s="https://react.dev/errors/"+l;if(1<arguments.length){s+="?args[]="+encodeURIComponent(arguments[1]);for(var c=2;c<arguments.length;c++)s+="&args[]="+encodeURIComponent(arguments[c])}ret
+- 20: A`).concat(a,",").concat(a,",0,1,1,").concat(o,",").concat(i),className:"recharts-legend-icon"});if(l==="rect")return d.createElement("path",{stroke:"none",fill:u,d:"M0,".concat(ct/8,"h").concat(ct,"v").concat(ct*3/4,"h").concat(-ct,"z"),className:"recharts-le
+- 36: */var ud;function wP(){if(ud)return Pu;ud=1;var e=ni(),t=xP();function r(s,c){return s===c&&(s!==0||1/s===1/c)||s!==s&&c!==c}var n=typeof Object.is=="function"?Object.is:r,i=t.useSyncExternalStore,a=e.useRef,o=e.useEffect,u=e.useMemo,l=e.useDebugValue;return P
+- 66: A`,",",",0,0,",",",",","Z"])),A.x,A.y,a,a,+(c<0),O.x,O.y,n,n,+(k>180),+(c>0),x.x,x.y,a,a,+(c<0),P.x,P.y)}else b+=we(Iv||(Iv=Er(["L",",","Z"])),t,r);return b},hE={cx:0,cy:0,innerRadius:0,outerRadius:0,startAngle:0,endAngle:0,cornerRadius:0,forceCornerRadius:!1,
+- 68: `).concat(P.x,",").concat(P.y),O=ie(e.id)?zn("recharts-radial-line-"):e.id;return d.createElement("text",Bt({},n,{dominantBaseline:"central",className:Y("recharts-radial-bar-label",o)}),d.createElement("defs",null,d.createElement("path",{id:O,d:w})),d.createEl
+- 76: */var wh;function nD(){if(wh)return ce;wh=1;var e=Symbol.for("react.transitional.element"),t=Symbol.for("react.portal"),r=Symbol.for("react.fragment"),n=Symbol.for("react.strict_mode"),i=Symbol.for("react.profiler"),a=Symbol.for("react.consumer"),o=Symbol.for(
+- external services: http://www.w3.org/1999/xhtml, https://bit.ly/3cXEKWf, https://react.dev/errors/, https://redux-toolkit.js.org/Errors?code=${e}, https://redux.js.org/Errors?code=${e}
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0464-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/vendor-charts-BN-djq5a.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/vendor-charts-BN-djq5a.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 431709
+- file kind: text/source or unknown
+- hazard reasons: large file >=100KB; vendor/generated dependency chunk family; same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/vendor-markdown-core-B0W_OS7u.js:1: import{g as wr}from"./vendor-charts-BN-djq5a.js";import{k as xn}from"./vendor-katex-BSXZKQS3.js";var gt={exports:{}},Be={};/**
+  - public/assets/index-qd2KF3Jd.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-L1EjXFqL.js","assets/vendor-charts-BN-djq5a.js","assets/App-Bcp_57Ks.js","assets/vendor-markdown-core-B0W_OS7
+  - public/assets/index-qd2KF3Jd.js:2: import{j as Ke}from"./vendor-markdown-core-B0W_OS7u.js";import{t as vg,u as bg,g as Ag,R as Em}from"./vendor-charts-BN-djq5a.js";import"./vendor-katex-BSXZKQS3.js";(function(){cons
+  - artifacts/asset-diff/local-assets.txt:191: vendor-charts-BN-djq5a.js
+  - artifacts/asset-diff/asset-report.json:3430: "file": "vendor-charts-BN-djq5a.js",
+  - artifacts/asset-diff/asset-report.json:3433: "remote_url": "https://isotopeai.in/assets/vendor-charts-BN-djq5a.js",
+  - artifacts/asset-diff/summary.md:164: | vendor-charts-BN-djq5a.js | 200 | unexpected HTML fallback for .js request |

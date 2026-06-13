@@ -1,0 +1,242 @@
+FILE IDENTITY
+
+- original path: public/assets/workbox-window.prod.es5-BIl4cyR9.js
+- audit path: audit/public/assets/workbox-window.prod.es5-BIl4cyR9.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 8974
+- SHA-256: f451aad8ae82eb311388832160285f5762f0fe8cbfe6ec8b487f39d84c95fb83
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3790 - "file": "workbox-window.prod.es5-BIl4cyR9.js",
+- artifacts/asset-diff/asset-report.json:3793 - "remote_url": "https://isotopeai.in/assets/workbox-window.prod.es5-BIl4cyR9.js",
+- artifacts/asset-diff/local-assets.txt:211 - workbox-window.prod.es5-BIl4cyR9.js
+- artifacts/asset-diff/summary.md:32 - | workbox-window.prod.es5-BIl4cyR9.js | 8974 | 5761 | 200 |
+- public/assets/PWAManager-DjIYufp2.js:105 - import ("./workbox-window.prod.es5-BIl4cyR9.js");
+
+INTERNAL STRUCTURE
+
+- line count: 257
+- imports:
+None observed.
+- exports:
+- 255: export {
+- functions/async flows:
+- 5: function b(n, r) {
+- 14: function P(n, r) {
+- 20: function j(n, r) {
+- 21: for (var t = 0; t < r.length; t++) {
+- 27: function S(n, r) {
+- 31: if (f) {
+- 52: function w(n, r) {
+- 58: function W(n) {
+- 62: if (f !== void 0) {
+- 81: function y(n, r) {
+- 89: function l(n, r, t) {
+- 93: function k() {}
+- 98: function E(n, r) {
+- 102: function r(c, a) {
+- 240: function n() {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 7: var o = new MessageChannel;
+- 22: var o = r[t];
+- 28: var t = typeof Symbol < "u" && n[Symbol.iterator] || n["@@iterator"];
+- 33: var a = {}.toString.call(f).slice(8, -1);
+- 38: var o = 0;
+- 59: var r = (function(t, o) {
+- 61: var f = t[Symbol.toPrimitive];
+- 63: var c = f.call(t, o);
+- 74: var m = function() {
+- 75: var n = this;
+- 82: var t = location.href;
+- 85: var d = function(n, r) {
+- 94: var L = {
+- 101: var O = (function(n) {
+- 103: var e, i;
+- 105: var u = e.fn,
+- 109: var s = e.fn,
+- 122: var s = e.hn,
+- 131: var s = u.data,
+- 151: var t, o;
+- 153: var f = r.prototype;
+- 155: var a = (c === void 0 ? {} : c).immediate,
+- 158: var i = this;
+- 160: var v = u();
+- 171: var s = i.fn.waiting;
+- 202: var c = navigator.serviceWorker.controller;
+- 206: var c = this;
+- 209: var i = a()
+- 243: var r = n.prototype;
+- handlers/lifecycle candidates:
+- 107: e.tn > 0 || !y(s.scriptURL, e.sn.toString()) || performance.now() > e.un + 6e4 ? (e.vn = s, u.removeEventListener("updatefound", e.cn)) : (e.hn = s, e.an.add(s), e.rn.resolve(s)), ++e.tn, s.addEventListener("statechange"
+- 118: !p && e.mn && (g.isUpdate = !0), e.dispatchEvent(new d(h, g)), h === "installed" ? e.wn = self.setTimeout((function() {
+- 149: }), e.sn = c, e.nn = a, navigator.serviceWorker.addEventListener("message", e.gn), e
+- 164: return window.addEventListener("load", u)
+- 168: i.fn = u, i.dn && (i.hn = i.dn, i.en.resolve(i.dn), i.on.resolve(i.dn), i.dn.addEventListener("statechange", i.ln, {
+- 177: })).then((function() {}))), i.hn && (i.rn.resolve(i.hn), i.an.add(i.hn)), i.fn.addEventListener("updatefound", i.cn), navigator.serviceWorker.addEventListener("controllerchange", i.yn), i.fn
+- 244: return r.addEventListener = function(t, o) {
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- SKIP_WAITING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/workbox-window.prod.es5-BIl4cyR9.js:2, public/assets/workbox-window.prod.es5-BIl4cyR9.js:95, public/pwa-local.js:170, public/sw.js:183
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+- 123: v = s !== navigator.serviceWorker.controller;
+- 149: }), e.sn = c, e.nn = a, navigator.serviceWorker.addEventListener("message", e.gn), e
+- 167: return i.mn = !!navigator.serviceWorker.controller, i.dn = i.pn(), l(i.bn(), (function(u) {
+- 177: })).then((function() {}))), i.hn && (i.rn.resolve(i.hn), i.an.add(i.hn)), i.fn.addEventListener("updatefound", i.cn), navigator.serviceWorker.addEventListener("controllerchange", i.yn), i.fn
+- 202: var c = navigator.serviceWorker.controller;
+- 215: return l(navigator.serviceWorker.register(c.sn, c.nn), (function(a) {
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 10: }, n.postMessage(r, [o.port2])
+- 82: var t = location.href;
+- 107: e.tn > 0 || !y(s.scriptURL, e.sn.toString()) || performance.now() > e.un + 6e4 ? (e.vn = s, u.removeEventListener("updatefound", e.cn)) : (e.hn = s, e.an.add(s), e.rn.resolve(s)), ++e.tn, s.addEventListener("statechange", e.ln)
+- 118: !p && e.mn && (g.isUpdate = !0), e.dispatchEvent(new d(h, g)), h === "installed" ? e.wn = self.setTimeout((function() {
+- 119: h === "installed" && s.waiting === v && e.dispatchEvent(new d("waiting", g))
+- 124: e.dispatchEvent(new d("controlling", {
+- 128: isUpdate: e.mn
+- 135: e.an.has(h) && e.dispatchEvent(new d("message", {
+- 173: i.dispatchEvent(new d("waiting", {
+- 177: })).then((function() {}))), i.hn && (i.rn.resolve(i.hn), i.an.add(i.hn)), i.fn.addEventListener("updatefound", i.cn), navigator.serviceWorker.addEventListener("controllerchange", i.yn), i.fn
+- 183: }, f.update = function() {
+- 185: return this.fn ? l(E(this.fn.update())) : l()
+- 246: }, r.removeEventListener = function(t, o) {
+- 247: this.jn(t).delete(o)
+- 248: }, r.dispatchEvent = function(t) {
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 123: v = s !== navigator.serviceWorker.controller;
+- 149: }), e.sn = c, e.nn = a, navigator.serviceWorker.addEventListener("message", e.gn), e
+- 163: if (!e && document.readyState !== "complete") return E(new Promise((function(u) {
+- 164: return window.addEventListener("load", u)
+- 167: return i.mn = !!navigator.serviceWorker.controller, i.dn = i.pn(), l(i.bn(), (function(u) {
+- 177: })).then((function() {}))), i.hn && (i.rn.resolve(i.hn), i.an.add(i.hn)), i.fn.addEventListener("updatefound", i.cn), navigator.serviceWorker.addEventListener("controllerchange", i.yn), i.fn
+- 202: var c = navigator.serviceWorker.controller;
+- 215: return l(navigator.serviceWorker.register(c.sn, c.nn), (function(a) {
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 34: return a === "Object" && f.constructor && (a = f.constructor.name), a === "Map" || a === "Set" ? Array.from(f) : a === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(a) ? P(f, c) : void 0
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0484-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/workbox-window.prod.es5-BIl4cyR9.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/workbox-window.prod.es5-BIl4cyR9.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 8974
+- file kind: text/source or unknown
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/PWAManager-DjIYufp2.js:105: import ("./workbox-window.prod.es5-BIl4cyR9.js");
+  - artifacts/asset-diff/local-assets.txt:211: workbox-window.prod.es5-BIl4cyR9.js
+  - artifacts/asset-diff/asset-report.json:3790: "file": "workbox-window.prod.es5-BIl4cyR9.js",
+  - artifacts/asset-diff/asset-report.json:3793: "remote_url": "https://isotopeai.in/assets/workbox-window.prod.es5-BIl4cyR9.js",
+  - artifacts/asset-diff/summary.md:32: | workbox-window.prod.es5-BIl4cyR9.js | 8974 | 5761 | 200 |

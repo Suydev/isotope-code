@@ -108,6 +108,61 @@ const MIME_TYPES = {
   '.mkv':   'video/x-matroska',
 };
 
+const NO_STORE_CACHE = 'no-cache, no-store, must-revalidate';
+const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
+const SHORT_CACHE = 'no-cache';
+const RUNTIME_GLUE_PATHS = new Set([
+  '/',
+  '/index.html',
+  '/auth-bridge.js',
+  '/restore-and-launch.js',
+  '/pwa-local.js',
+  '/boot-recovery.js',
+  '/ux-setup.js',
+  '/focus-bg-import.js',
+  '/update-checker.js',
+  '/sw.js',
+  '/manifest.webmanifest',
+]);
+const RUNTIME_PATCHED_ASSET_PATHS = new Set([
+  '/assets/useAIStore-B2cv1FZz.js',
+  '/assets/App-pJGjDiPw.js',
+  '/assets/Auth-Cw0VAaCZ.js',
+  '/assets/Focus-BmgY-9vP.js',
+  '/assets/Onboarding-qvAqCBbb.js',
+  '/assets/SingleGroup-DU1IhoNK.js',
+  '/assets/useLeaderboard-BpvH5FXA.js',
+  '/assets/SettingsLayout-B4OgCkQ5.js',
+  '/assets/useSyncStore-vWs_TdIc.js',
+  '/assets/AppAccessGate-B975UtK7.js',
+  '/assets/sessionSync-mloIEnTd.js',
+  '/assets/useInvites-D9RLFwf8.js',
+  '/assets/Community-DIqF5406.js',
+  '/assets/CommunityHub-gANxZssO.js',
+  '/assets/FocusStore-D5cRXSIr.js',
+  '/assets/EventsCalendar-COHF8nOK.js',
+  '/assets/PWAManager-DjIYufp2.js',
+]);
+
+function isRuntimePatchedAsset(pathname) {
+  const clean = String(pathname || '/').split('?')[0] || '/';
+  return RUNTIME_PATCHED_ASSET_PATHS.has(clean);
+}
+
+function isHashedStaticAsset(pathname) {
+  const base = path.basename(String(pathname || '').split('?')[0]);
+  return /[-_][A-Za-z0-9_-]{6,14}\.(?:js|css|woff2?)$/i.test(base);
+}
+
+function cacheHeaderForRequest(pathname) {
+  const clean = String(pathname || '/').split('?')[0] || '/';
+  if (RUNTIME_GLUE_PATHS.has(clean) || clean.startsWith('/sync/')) return NO_STORE_CACHE;
+  if (isRuntimePatchedAsset(clean)) return NO_STORE_CACHE;
+  if (clean.endsWith('.html')) return NO_STORE_CACHE;
+  if (clean.startsWith('/assets/') && isHashedStaticAsset(clean)) return IMMUTABLE_CACHE;
+  return SHORT_CACHE;
+}
+
 const GEMINI_API_KEY      = process.env.GEMINI_API_KEY      || '';
 const GROQ_API_KEY        = process.env.GROQ_API_KEY        || '';
 
@@ -297,7 +352,7 @@ function sendAdminLogin(req, res, message = '') {
     else if (u.pathname.startsWith('/__admin/') && u.pathname !== '/__admin/login') next = u.pathname + u.search;
   } catch {}
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-  res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Isotope Admin Login</title><style>body{font-family:system-ui;background:#0a0a0a;color:#eee;margin:0;padding:32px}.box{max-width:500px;margin:8vh auto;background:#111;border:1px solid #333;border-radius:10px;padding:24px}input{width:100%;box-sizing:border-box;background:#050505;color:#fff;border:1px solid #333;border-radius:8px;padding:12px;margin:10px 0 14px}button{background:#7c3aed;color:white;border:0;border-radius:8px;padding:11px 16px;font-weight:700;margin-right:8px}.secondary{background:#27272a}.err{color:#fca5a5;font-size:13px}.muted{color:#aaa;font-size:13px;line-height:1.5}</style></head><body><main class="box"><h1>Admin Unlock</h1><p class="muted">Enter your local <code>ADMIN_SECRET</code>, or use the Supabase account already logged into this browser. Supabase unlock requires the account email in private <code>ADMIN_EMAIL</code>/<code>ADMIN_EMAILS</code> or an active admin role in <code>user_roles</code>.</p>${message ? `<p class="err">${escapeHtml(message)}</p>` : ''}<form id="adminForm" method="post" action="/__admin/login"><input type="hidden" name="next" value="${escapeHtml(next)}"><input type="hidden" id="supabaseToken" name="token" value=""><input type="password" name="secret" autocomplete="current-password" autofocus placeholder="ADMIN_SECRET"><button type="submit">Open with Secret</button><button class="secondary" id="useSession" type="button">Use Supabase Login</button></form><p id="sessionMsg" class="muted"></p></main><script>(function(){var msg=document.getElementById('sessionMsg');function parse(raw){try{var p=JSON.parse(raw);if(p&&p.access_token)return p.access_token;if(p&&p.session&&p.session.access_token)return p.session.access_token;if(p&&p.currentSession&&p.currentSession.access_token)return p.currentSession.access_token;if(p&&p.state&&p.state.session&&p.state.session.access_token)return p.state.session.access_token;}catch(e){}return ''}function token(){try{var raw=localStorage.getItem('isotope-auth-token');var t=parse(raw);if(t)return t;for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('sb-')===0&&/-auth-token$/.test(k)){t=parse(localStorage.getItem(k));if(t)return t;}}}catch(e){}return ''}document.getElementById('useSession').onclick=function(){var t=token();if(!t){msg.textContent='No logged-in Supabase session found in this browser. Log into the app first, then reopen admin.';return;}document.getElementById('supabaseToken').value=t;document.getElementById('adminForm').submit();};})();</script></body></html>`);
+  res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Isotope Admin Login</title><style>body{font-family:system-ui;background:#0a0a0a;color:#eee;margin:0;padding:32px}.box{max-width:500px;margin:8vh auto;background:#111;border:1px solid #333;border-radius:10px;padding:24px}input{width:100%;box-sizing:border-box;background:#050505;color:#fff;border:1px solid #333;border-radius:8px;padding:12px;margin:10px 0 14px}button{background:#7c3aed;color:white;border:0;border-radius:8px;padding:11px 16px;font-weight:700;margin-right:8px}.secondary{background:#27272a}.err{color:#fca5a5;font-size:13px}.muted{color:#aaa;font-size:13px;line-height:1.5}</style></head><body><main class="box"><h1>Admin Unlock</h1><p class="muted">Enter your local <code>ADMIN_SECRET</code>, or use the Supabase account already logged into this browser. Supabase unlock requires the account email in private <code>ADMIN_EMAIL</code>/<code>ADMIN_EMAILS</code> or an active admin role in <code>user_roles</code>.</p>${message ? `<p class="err">${escapeHtml(message)}</p>` : ''}<form id="adminForm" method="post" action="/__admin/login"><input type="hidden" name="next" value="${escapeHtml(next)}"><input type="hidden" id="supabaseToken" name="token" value=""><input type="password" name="secret" autocomplete="current-password" autofocus placeholder="ADMIN_SECRET"><button type="submit">Open with Secret</button><button class="secondary" id="useSession" type="button">Use Supabase Login</button></form><p id="sessionMsg" class="muted"></p></main><script>(function(){var msg=document.getElementById('sessionMsg');function parse(raw){try{var p=JSON.parse(raw);if(p&&p.access_token)return p.access_token;if(p&&p.session&&p.session.access_token)return p.session.access_token;if(p&&p.currentSession&&p.currentSession.access_token)return p.currentSession.access_token;if(p&&p.state&&p.state.session&&p.state.session.access_token)return p.state.session.access_token;}catch(e){}return ''}function token(){try{var keys=['isotope-last-session-raw','isotope-auth-token'];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('sb-')===0&&/-auth-token$/.test(k))keys.push(k);}for(var j=0;j<keys.length;j++){var t=parse(localStorage.getItem(keys[j]));if(t)return t;}}catch(e){}return ''}document.getElementById('useSession').onclick=function(){var t=token();if(!t){msg.textContent='No logged-in Supabase session found in this browser. Log into the app first, then reopen admin.';return;}document.getElementById('supabaseToken').value=t;document.getElementById('adminForm').submit();};})();</script></body></html>`);
 }
 
 function sendAdminDisabled(req, res) {
@@ -405,6 +460,19 @@ function buildUsernameAuthScript() {
     return null;
   }
 
+  function clearStoredSession() {
+    try {
+      var keys = ['isotope-auth-token', 'isotope-last-jwt', 'isotope-last-rt', 'isotope-last-session-raw'];
+      if (SUPA_REF) keys.push('sb-' + SUPA_REF + '-auth-token');
+      for (var i = 0; i < localStorage.length; i++) {
+        var lk = localStorage.key(i);
+        if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) keys.push(lk);
+      }
+      keys.forEach(function(k) { try { localStorage.removeItem(k); } catch(e) {} });
+      writeSyncMetadata({ last_sync_status: 'paused_auth', last_error: 'Signed out. Log in again to sync.' });
+    } catch(e) {}
+  }
+
   // ── localStorage write interceptor ────────────────────────────────────────
   // Captures the JWT the moment Supabase (or any auth code) writes ANY session
   // key to localStorage — regardless of key name, nesting depth, or format.
@@ -441,7 +509,7 @@ function buildUsernameAuthScript() {
       for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
       keys.forEach(function(k) {
         if (!k) return;
-        if ((k.startsWith('sb-') && k.endsWith('-auth-token')) || k === 'isotope-auth-token') {
+        if ((k.startsWith('sb-') && k.endsWith('-auth-token')) || k === 'isotope-auth-token' || k === 'isotope-last-session-raw') {
           var raw = localStorage.getItem(k);
           if (!raw) return;
           try {
@@ -465,6 +533,9 @@ function buildUsernameAuthScript() {
     var s = JSON.stringify(session);
     localStorage.setItem('sb-' + SUPA_REF + '-auth-token', s);  // Supabase JS v2 standard key
     localStorage.setItem('isotope-auth-token', s);               // restore-and-launch.js legacy key
+    localStorage.setItem('isotope-last-jwt', session.access_token);
+    if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
+    localStorage.setItem('isotope-last-session-raw', s);
   }
 
   function parseSessionToken(raw) {
@@ -478,7 +549,9 @@ function buildUsernameAuthScript() {
     var raw = SUPA_REF ? localStorage.getItem('sb-' + SUPA_REF + '-auth-token') : null;
     // Priority 2: our legacy key (written by __isoLogin, may be stale after token refresh)
     if (!raw) raw = localStorage.getItem('isotope-auth-token');
-    // Priority 3: scan all sb-*-auth-token keys as fallback
+    // Priority 3: last raw session snapshot captured from any auth writer
+    if (!raw) raw = localStorage.getItem('isotope-last-session-raw');
+    // Priority 4: scan all sb-*-auth-token keys as fallback
     if (!raw) {
       for (var i = 0; i < localStorage.length; i++) {
         var lk = localStorage.key(i);
@@ -490,27 +563,31 @@ function buildUsernameAuthScript() {
   }
 
   function currentJwt() {
-    // 1. Fastest path: pre-captured JWT written by the localStorage interceptor
-    var captured = localStorage.getItem('isotope-last-jwt');
-    if (captured && captured.startsWith('eyJ')) return captured;
-    // 2. Primary Supabase key (deep-scan handles all formats)
+    // 1. Primary Supabase key (deep-scan handles all formats)
     var raw = SUPA_REF ? localStorage.getItem('sb-' + SUPA_REF + '-auth-token') : null;
     var at = raw ? parseSessionToken(raw) : null;
     if (at) return at;
-    // 3. Our own saved key
+    // 2. Our own saved key
     raw = localStorage.getItem('isotope-auth-token');
+    at = raw ? parseSessionToken(raw) : null;
+    if (at) return at;
+    // 3. Last captured raw session snapshot
+    raw = localStorage.getItem('isotope-last-session-raw');
     at = raw ? parseSessionToken(raw) : null;
     if (at) return at;
     // 4. Scan ALL localStorage for any sb-*-auth-token key
     for (var i = 0; i < localStorage.length; i++) {
       var lk = localStorage.key(i);
       if (!lk) continue;
-      if ((lk.startsWith('sb-') && lk.endsWith('-auth-token')) || lk === 'isotope-last-session-raw') {
+      if (lk.startsWith('sb-') && lk.endsWith('-auth-token')) {
         raw = localStorage.getItem(lk);
         at = raw ? parseSessionToken(raw) : null;
         if (at) return at;
       }
     }
+    // 5. Last captured JWT is only a fallback when raw session formats are absent.
+    var captured = localStorage.getItem('isotope-last-jwt');
+    if (captured && captured.startsWith('eyJ')) return captured;
     return null;
   }
 
@@ -565,9 +642,9 @@ function buildUsernameAuthScript() {
     return null;
   }
 
-  // Returns a valid (non-expired) JWT.  Auto-refreshes if the stored token is
-  // expired or expiring within 120 seconds.  Falls back to the stored token if
-  // refresh fails (lets the server return a proper 401 rather than silently breaking).
+  // Returns a valid (non-expired) JWT. Auto-refreshes if the stored token is
+  // expired or expiring within 120 seconds. If refresh fails, return null so the
+  // sync pipeline does not send a known-bad token and then claim progress.
   async function getValidJwt() {
     var at = currentJwt();
     if (!at) return null;
@@ -584,14 +661,20 @@ function buildUsernameAuthScript() {
     } catch(e) {}
     if (!needsRefresh) return at;
     var fresh = await _refreshSession(_getRefreshToken());
-    return fresh || at; // Fall back to old token if refresh fails
+    return fresh || null;
   }
 
   // Force-refresh regardless of expiry (used after receiving a 401 response).
   async function forceRefreshJwt() {
     var fresh = await _refreshSession(_getRefreshToken());
-    return fresh || currentJwt();
+    return fresh || null;
   }
+
+  window.__isoCurrentJwt = currentJwt;
+  window.__isoGetValidJwt = getValidJwt;
+  window.__isoForceRefreshJwt = forceRefreshJwt;
+  window.__isoWriteSession = saveSession;
+  window.__isoClearAuthSession = clearStoredSession;
 
   function writeSyncMetadata(patch) {
     try {
@@ -1026,13 +1109,18 @@ function buildUsernameAuthScript() {
     var text = d.backup_json || '';
     if (!text) return { ok: true, skipped: true, reason: 'empty' };
     var hash = await hashText(text);
+    var snapshotAt = (d.cloud_snapshot && (d.cloud_snapshot.exported_at || d.cloud_snapshot.downloaded_at))
+      || (d.selected_backup && (d.selected_backup.exported_at || d.selected_backup.updated_at || d.selected_backup.created_at))
+      || d.synced_at
+      || new Date().toISOString();
     writeSyncMetadata({
       last_sync_status: 'synced',
       last_downloaded_hash: hash,
       last_downloaded_bytes: text.length,
+      last_snapshot_at: snapshotAt,
       last_error: null
     });
-    return { ok: true, backup_json: text, hash: hash, bytes: text.length, cloud_snapshot: d.cloud_snapshot || null, selected_backup: d.selected_backup || null, collection_counts: d.collection_counts || null };
+    return { ok: true, backup_json: text, hash: hash, bytes: text.length, snapshot_at: snapshotAt, cloud_snapshot: d.cloud_snapshot || null, selected_backup: d.selected_backup || null, collection_counts: d.collection_counts || null };
   }
 
   async function importBackupPayload(backupJson, mode, options) {
@@ -1308,7 +1396,14 @@ function buildUsernameAuthScript() {
             imported = true;
           }
         }
-        writeSyncMetadata({ last_sync_status: 'synced', last_error: null, pending_count: 0 });
+        var snapshotAt = result && result.snapshot_at
+          || (result && result.cloud_snapshot && (result.cloud_snapshot.exported_at || result.cloud_snapshot.downloaded_at))
+          || (result && result.selected_backup && (result.selected_backup.exported_at || result.selected_backup.updated_at || result.selected_backup.created_at))
+          || readSyncMetadata().last_snapshot_at
+          || (result && result.backup_json ? new Date().toISOString() : null);
+        var syncedPatch = { last_sync_status: 'synced', last_error: null, pending_count: 0 };
+        if (snapshotAt) syncedPatch.last_snapshot_at = snapshotAt;
+        writeSyncMetadata(syncedPatch);
         writeSyncHistory({ op: 'download_import', status: result && result.skipped ? 'skipped' : 'ok', source: _src, bytes: result && result.bytes || 0, hash: result && result.hash || null, imported: imported });
         return { ok: true, imported: imported, downloaded: !!(result && result.backup_json), hash: result && result.hash || null };
       } catch(e) {
@@ -2015,12 +2110,12 @@ function buildLocalDataGuardScript() {
   }
   function session() {
     try {
-      var raw = localStorage.getItem('isotope-auth-token');
+      var raw = SUPA_REF ? localStorage.getItem('sb-' + SUPA_REF + '-auth-token') : null;
       if (raw) return parse(raw);
-      if (SUPA_REF) {
-        raw = localStorage.getItem('sb-' + SUPA_REF + '-auth-token');
-        if (raw) return parse(raw);
-      }
+      raw = localStorage.getItem('isotope-auth-token');
+      if (raw) return parse(raw);
+      raw = localStorage.getItem('isotope-last-session-raw');
+      if (raw) return parse(raw);
       for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i);
         if (k && k.indexOf('sb-') === 0 && /-auth-token$/.test(k)) {
@@ -2243,28 +2338,42 @@ const PREMIUM_SCRIPT = `<script>
       // ── Helper: get current user ID from localStorage ─────────────────────
       function getUid() {
         try {
+          var _keys = ['isotope-last-session-raw', 'isotope-auth-token'];
           for (var _i = 0; _i < localStorage.length; _i++) {
             var _lk = localStorage.key(_i);
-            if (_lk && _lk.startsWith('sb-') && _lk.endsWith('-auth-token')) {
-              var _sd = JSON.parse(localStorage.getItem(_lk) || '{}');
-              return (_sd.user && _sd.user.id)
-                  || (_sd.session && _sd.session.user && _sd.session.user.id)
-                  || null;
-            }
+            if (_lk && _lk.startsWith('sb-') && _lk.endsWith('-auth-token')) _keys.push(_lk);
+          }
+          for (var _j = 0; _j < _keys.length; _j++) {
+            var _sd = JSON.parse(localStorage.getItem(_keys[_j]) || '{}');
+            var _uid = (_sd.user && _sd.user.id)
+                || (_sd.session && _sd.session.user && _sd.session.user.id)
+                || (_sd.currentSession && _sd.currentSession.user && _sd.currentSession.user.id)
+                || (_sd.state && _sd.state.session && _sd.state.session.user && _sd.state.session.user.id)
+                || null;
+            if (_uid) return _uid;
           }
         } catch {} return null;
       }
 
       function getJwt() {
         try {
+          if (typeof window.__isoCurrentJwt === 'function') {
+            var _jwt = window.__isoCurrentJwt();
+            if (_jwt) return _jwt;
+          }
+          var _keys = ['isotope-last-session-raw', 'isotope-auth-token'];
           for (var _i = 0; _i < localStorage.length; _i++) {
             var _lk = localStorage.key(_i);
-            if (_lk && _lk.startsWith('sb-') && _lk.endsWith('-auth-token')) {
-              var _sd = JSON.parse(localStorage.getItem(_lk) || '{}');
-              return (_sd.access_token)
-                  || (_sd.session && _sd.session.access_token)
-                  || null;
-            }
+            if (_lk && _lk.startsWith('sb-') && _lk.endsWith('-auth-token')) _keys.push(_lk);
+          }
+          for (var _j = 0; _j < _keys.length; _j++) {
+            var _sd = JSON.parse(localStorage.getItem(_keys[_j]) || '{}');
+            var _token = (_sd.access_token)
+                || (_sd.session && _sd.session.access_token)
+                || (_sd.currentSession && _sd.currentSession.access_token)
+                || (_sd.state && _sd.state.session && _sd.state.session.access_token)
+                || null;
+            if (_token) return _token;
           }
         } catch {} return null;
       }
@@ -2524,15 +2633,24 @@ const PREMIUM_SCRIPT = `<script>
       // Fallback: pull JWT from localStorage (same logic as _handleLeaderboard)
       if (!jwt) {
         try {
+          if (typeof window.__isoCurrentJwt === 'function') jwt = window.__isoCurrentJwt();
+        } catch {}
+      }
+      if (!jwt) {
+        try {
+          var _keys = ['isotope-last-session-raw', 'isotope-auth-token'];
           for (var _i = 0; _i < localStorage.length; _i++) {
             var _lk = localStorage.key(_i);
-            if (_lk && _lk.startsWith('sb-') && _lk.endsWith('-auth-token')) {
-              var _sd = JSON.parse(localStorage.getItem(_lk) || '{}');
-              jwt = (_sd.access_token)
-                 || (_sd.session && _sd.session.access_token)
-                 || null;
-              if (jwt) break;
-            }
+            if (_lk && _lk.startsWith('sb-') && _lk.endsWith('-auth-token')) _keys.push(_lk);
+          }
+          for (var _j = 0; _j < _keys.length; _j++) {
+            var _sd = JSON.parse(localStorage.getItem(_keys[_j]) || '{}');
+            jwt = (_sd.access_token)
+               || (_sd.session && _sd.session.access_token)
+               || (_sd.currentSession && _sd.currentSession.access_token)
+               || (_sd.state && _sd.state.session && _sd.state.session.access_token)
+               || null;
+            if (jwt) break;
           }
         } catch {}
       }
@@ -2678,6 +2796,16 @@ const PREMIUM_SCRIPT = `<script>
             });
           }
         });
+      });
+    }
+
+    // Intercept Supabase logout so compatibility session keys cannot survive sign-out.
+    if (url.indexOf(SUPA + '/auth/v1/logout') !== -1) {
+      return _orig.call(this, input, init).then(function(res) {
+        if (res.ok) {
+          try { clearStoredSession(); } catch(_e) {}
+        }
+        return patchResp(res);
       });
     }
 
@@ -2965,7 +3093,17 @@ function buildAuthGuardScript() {
   function getStoredSessionEvidence() {
     try {
       var raw = localStorage.getItem('sb-' + SUPA_REF + '-auth-token')
-             || localStorage.getItem('isotope-auth-token');
+             || localStorage.getItem('isotope-auth-token')
+             || localStorage.getItem('isotope-last-session-raw');
+      if (!raw) {
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf('sb-') === 0 && /-auth-token$/.test(k)) {
+            raw = localStorage.getItem(k);
+            if (raw) break;
+          }
+        }
+      }
       if (!raw) return null;
       var sess = JSON.parse(raw);
       var stateSession = sess && sess.state && sess.state.session;
@@ -3096,6 +3234,7 @@ const COMMUNITY_HUB_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityHub-g
 const STORE_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'FocusStore-D5cRXSIr.js');
 const EVENTS_BUNDLE_ABS        = path.join(PUBLIC_DIR, 'assets', 'EventsCalendar-COHF8nOK.js');
 const SERVICE_WORKER_ABS       = path.join(PUBLIC_DIR, 'sw.js');
+const USE_SYNC_STORE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useSyncStore-vWs_TdIc.js');
 const PWA_MANAGER_BUNDLE_ABS   = path.join(PUBLIC_DIR, 'assets', 'PWAManager-DjIYufp2.js');
 const REMOVED_FEATURE_MODULE   = Buffer.from('export default function RemovedFeature(){return null;}\\n', 'utf8');
 
@@ -3342,12 +3481,12 @@ function getPatchedAppBundle() {
     );
     appPatch(
       's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e), await this.pullCloudSnapshot(e, t)',
-      '(window.__isoBuildBackup = async () => await Dn(), window.__isoApplyBackup = async r => await Xr(r, { mode: "merge" })), s && await this.pushProfile(e, s), await (window.__isoRunManualCloudSync ? window.__isoRunManualCloudSync(window.__isoBuildBackup, window.__isoApplyBackup, "manual_full_sync") : (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "manual_full_sync" }) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("manual_full_sync") : Promise.resolve())))',
+      '(window.__isoBuildBackup = async () => await Dn(), window.__isoApplyBackup = async r => await Xr(r, { mode: "merge" })), await (window.__isoRunManualCloudSync ? window.__isoRunManualCloudSync(window.__isoBuildBackup, window.__isoApplyBackup, "manual_full_sync") : (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "manual_full_sync" }) : Promise.resolve()))',
       'Manual full sync uses full Storage backup JSON'
     );
     appPatch(
       's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e)\n        })',
-      '(window.__isoBuildBackup = window.__isoBuildBackup || (async () => await Dn()), window.__isoApplyBackup = window.__isoApplyBackup || (async r => await Xr(r, { mode: "merge" }))), s && await this.pushProfile(e, s), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "upload_dirty_local" }) : (window.__isoRefreshCloudSnapshot ? window.__isoRefreshCloudSnapshot("upload_dirty_local") : Promise.resolve()))\n        })',
+      '(window.__isoBuildBackup = window.__isoBuildBackup || (async () => await Dn()), window.__isoApplyBackup = window.__isoApplyBackup || (async r => await Xr(r, { mode: "merge" }))), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "upload_dirty_local" }) : Promise.resolve())\n        })',
       'Upload-only sync uses full Storage backup JSON'
     );
     appPatch(
@@ -3658,17 +3797,32 @@ function getPatchedSettingsBundle() {
     patch('avatar: void 0', 'avatar: null', 'avatar remove sends explicit null');
     patch(
       '} = ae(), l = f(), [z, N] = ne.useState(!1);',
-      '} = ae(), l = f(), __isoMeta = (() => { try { return JSON.parse(localStorage.getItem("isotope_sync_metadata") || "{}") || {} } catch { return {} } })(), __isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !!__isoMeta.last_snapshot_at && !__isoMeta.last_error, __isoBusyStates = ["syncing","selecting_backup","restoring_cloud","verifying_restore","uploading_local"], __isoDisplayStatus = __isoBusyStates.includes(__isoMeta.last_sync_status) ? "syncing" : (__isoMeta.last_sync_status === "blocked_empty_overwrite" ? "error" : g), [z, N] = ne.useState(!1);',
+      '} = ae(), l = f(), __isoMeta = (() => { try { return JSON.parse(localStorage.getItem("isotope_sync_metadata") || "{}") || {} } catch { return {} } })(), __isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !__isoMeta.last_error, __isoBusyStates = ["syncing","selecting_backup","restoring_cloud","verifying_restore","uploading_local"], __isoDisplayStatus = __isoBusyStates.includes(__isoMeta.last_sync_status) ? "syncing" : (__isoMeta.last_sync_status === "blocked_empty_overwrite" ? "error" : g), [z, N] = ne.useState(!1);',
       'sync status reads snapshot metadata'
+    );
+    patch(
+      '__isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !!__isoMeta.last_snapshot_at && !__isoMeta.last_error',
+      '__isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !__isoMeta.last_error',
+      'synced metadata does not require legacy snapshot timestamp'
     );
     patch('if (g !== "syncing") {', 'if (__isoDisplayStatus !== "syncing") {', 'sync button treats restore/upload stages as busy');
     patch('})(g),\n            d = o.icon,', '})(__isoDisplayStatus),\n            d = o.icon,', 'sync icon uses mapped display status');
     patch('disabled: g === "syncing" || !l', 'disabled: __isoDisplayStatus === "syncing" || !l', 'sync button disabled during detailed busy states');
     patch('label: "Synced manually"', 'label: __isoSnapshotOk ? "Synced" : "Pending"', 'synced label requires snapshot');
     patch(
+      'label: __isoSnapshotOk ? "Synced" : "Pending"',
+      'label: __isoSnapshotOk || w === "success" ? "Synced" : "Pending"',
+      'success status never renders green pending'
+    );
+    patch(
       'description: "Local data and cloud data were synced successfully."',
       'description: __isoSnapshotOk ? "Last cloud upload/download completed successfully." : "Waiting for verified cloud snapshot upload."',
       'synced description requires snapshot'
+    );
+    patch(
+      'description: __isoSnapshotOk ? "Last cloud upload/download completed successfully." : "Waiting for verified cloud snapshot upload."',
+      'description: __isoSnapshotOk || w === "success" ? "Last cloud upload/download completed successfully." : "Waiting for verified cloud snapshot upload."',
+      'success status never renders pending description'
     );
     patch('label: "Local mode"', 'label: "Pending/offline"', 'degraded label');
     patch('label: "Sync failed"', 'label: "Failed"', 'failed label');
@@ -3698,10 +3852,145 @@ function getPatchedSettingsBundle() {
       '}), await Xs(), await (window.__isoImportBackupJSON ? window.__isoImportBackupJSON(C, "merge", { source: "manual_import" }) : Promise.resolve()), b("Backup imported locally and cloud snapshot checked.")',
       'manual import writes supported cloud fields'
     );
-    console.log('[SettingsPatch] ' + applied + '/15 settings patches applied');
+    console.log('[SettingsPatch] ' + applied + '/18 settings patches applied');
     patchedSettingsBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[SettingsPatch] Error:', e.message); patchedSettingsBundle = null; }
   return patchedSettingsBundle;
+}
+
+// ── Sync store patch: header sync uses runtime Storage backup helpers ────────
+let patchedUseSyncStoreBundle = null;
+function getPatchedUseSyncStoreBundle() {
+  if (patchedUseSyncStoreBundle) return patchedUseSyncStoreBundle;
+  try {
+    let raw = fs.readFileSync(USE_SYNC_STORE_BUNDLE_ABS, 'utf8');
+    let applied = 0;
+    const patch = (from, to, label) => {
+      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
+      else console.warn('[SyncStorePatch] Not found:', label);
+    };
+    patch(
+      `        triggerSync: async () => {
+            const t = u.getState(),
+                {
+                    userId: r,
+                    isAuthenticated: s
+                } = t,
+                a = t.isPremium();
+            if (!s || !r || !a) return;
+            const o = await n();
+            await o.fullManualSync(r, a), await l(), o.getState().status === "success" && e({
+                needsCloudBootstrap: !1,
+                bootstrapChecked: !0
+            })
+        },`,
+      `        triggerSync: async () => {
+            const t = u.getState(),
+                {
+                    userId: r,
+                    isAuthenticated: s
+                } = t,
+                a = t.isPremium();
+            if (!s || !r || String(r).startsWith("local-")) {
+                const o = new Error("Cloud session missing. Log in again before syncing.");
+                e({ status: "error", error: o.message });
+                throw o
+            }
+            if (!a) {
+                const o = new Error("Cloud sync requires premium access.");
+                e({ status: "error", error: o.message });
+                throw o
+            }
+            if (typeof window < "u" && typeof window.__isoGetValidJwt == "function") {
+                const o = await window.__isoGetValidJwt();
+                if (!o) {
+                    const c = new Error("Cloud session missing. Log in again before syncing.");
+                    typeof window.__isoSyncAuthBlock == "function" && window.__isoSyncAuthBlock(c.message);
+                    e({ status: "error", error: c.message });
+                    throw c
+                }
+            }
+            e({ status: "syncing", error: null });
+            try {
+                typeof window < "u" && typeof window.__isoRunManualCloudSync == "function" ? await window.__isoRunManualCloudSync(null, null, "header_manual_sync") : await (await n()).fullManualSync(r, a);
+                await l(), e({
+                    status: "success",
+                    lastSyncAt: new Date().toISOString(),
+                    error: null,
+                    needsCloudBootstrap: !1,
+                    bootstrapChecked: !0
+                })
+            } catch (c) {
+                const b = c && c.message ? c.message : "Sync failed";
+                e({ status: "error", error: b });
+                throw c
+            }
+        },`,
+      'header sync uses runtime manual cloud sync'
+    );
+    patch(
+      `        downloadCloudSnapshot: async () => {
+            const t = u.getState(),
+                {
+                    userId: r,
+                    isAuthenticated: s
+                } = t,
+                a = t.isPremium();
+            if (!s || !r || !a) return;
+            const o = await n();
+            await o.downloadCloudSnapshot(r, a), await l(), o.getState().status === "success" && e({
+                needsCloudBootstrap: !1,
+                bootstrapChecked: !0
+            })
+        },`,
+      `        downloadCloudSnapshot: async () => {
+            const t = u.getState(),
+                {
+                    userId: r,
+                    isAuthenticated: s
+                } = t,
+                a = t.isPremium();
+            if (!s || !r || String(r).startsWith("local-")) {
+                const o = new Error("Cloud session missing. Log in again before downloading cloud data.");
+                e({ status: "error", error: o.message });
+                throw o
+            }
+            if (!a) {
+                const o = new Error("Cloud restore requires premium access.");
+                e({ status: "error", error: o.message });
+                throw o
+            }
+            if (typeof window < "u" && typeof window.__isoGetValidJwt == "function") {
+                const o = await window.__isoGetValidJwt();
+                if (!o) {
+                    const c = new Error("Cloud session missing. Log in again before downloading cloud data.");
+                    typeof window.__isoSyncAuthBlock == "function" && window.__isoSyncAuthBlock(c.message);
+                    e({ status: "error", error: c.message });
+                    throw c
+                }
+            }
+            e({ status: "syncing", error: null });
+            try {
+                typeof window < "u" && typeof window.__isoDownloadAndImportBackup == "function" ? await window.__isoDownloadAndImportBackup(null, "header_download_cloud_data") : await (await n()).downloadCloudSnapshot(r, a);
+                await l(), e({
+                    status: "success",
+                    lastSyncAt: new Date().toISOString(),
+                    error: null,
+                    needsCloudBootstrap: !1,
+                    bootstrapChecked: !0
+                })
+            } catch (c) {
+                const b = c && c.message ? c.message : "Cloud data download failed";
+                e({ status: "error", error: b });
+                throw c
+            }
+        },`,
+      'header download uses runtime download/import helper'
+    );
+    console.log('[SyncStorePatch] ' + applied + '/2 patches applied');
+    patchedUseSyncStoreBundle = Buffer.from(raw, 'utf8');
+  } catch (e) { console.error('[SyncStorePatch] Error:', e.message); patchedUseSyncStoreBundle = null; }
+  return patchedUseSyncStoreBundle;
 }
 
 // ── AppAccessGate bundle patch: empty devices automatically import cloud backup
@@ -7627,6 +7916,7 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       }
     }
     if (!rawToken) { rawToken = localStorage.getItem('isotope-auth-token'); tokenKey = 'isotope-auth-token'; }
+    if (!rawToken) { rawToken = localStorage.getItem('isotope-last-session-raw'); tokenKey = 'isotope-last-session-raw'; }
 
     var jwt = rawToken ? parseToken(rawToken) : null;
     var payload = jwt ? decodeJwtPayload(jwt) : null;
@@ -7715,6 +8005,8 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
         }
         try { var p = JSON.parse(localStorage.getItem('isotope-auth-token')||'{}');
           return p.access_token||(p.currentSession&&p.currentSession.access_token)||''; } catch(e) {}
+        try { var q = JSON.parse(localStorage.getItem('isotope-last-session-raw')||'{}');
+          return q.access_token||(q.session&&q.session.access_token)||(q.currentSession&&q.currentSession.access_token)||(q.state&&q.state.session&&q.state.session.access_token)||''; } catch(e) {}
         return '';
       })() }
     }).then(function(r) {
@@ -7906,6 +8198,7 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
   res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
 
   const serveHtml = (buf) => {
+    res.setHeader('Cache-Control', cacheHeaderForRequest('/index.html'));
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(injectKeys(buf));
   };
@@ -7920,25 +8213,23 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
     const ext = path.extname(fp).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
     const basename = path.basename(fp);
-    const isHashedAsset = /[-_][A-Za-z0-9_-]{6,14}\.(js|css|woff2?)$/.test(basename);
+    const isHashedAsset = urlPath.startsWith('/assets/') && !isRuntimePatchedAsset(urlPath) && isHashedStaticAsset(urlPath);
+    const cacheHeader = cacheHeaderForRequest(urlPath);
     const acceptsGzip = /gzip/.test(req.headers['accept-encoding'] || '');
     const gzippable = /\.(js|mjs|css|svg|json)$/.test(ext);
 
     function send(buf) {
-      const isSwFile = (basename === 'sw.js' || basename === 'pwa-local.js');
-      const cc = (ext === '.html' || isSwFile) ? 'no-cache' :
-                 isHashedAsset   ? 'public, max-age=31536000, immutable' :
-                                   'public, max-age=3600';
-      res.setHeader('Cache-Control', cc);
+      res.setHeader('Cache-Control', cacheHeader);
+      if (basename === 'sw.js') res.setHeader('Service-Worker-Allowed', '/');
       if (acceptsGzip && gzippable && buf.length > 1024) {
-        const cached = _gzipCache.get(fp);
+        const cached = isHashedAsset ? _gzipCache.get(fp) : null;
         if (cached) {
           res.writeHead(200, { 'Content-Type': contentType, 'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding' });
           res.end(cached);
         } else {
           zlib.gzip(buf, { level: 6 }, (err, gz) => {
             if (err) { res.writeHead(200, { 'Content-Type': contentType }); res.end(buf); return; }
-            if (isHashedAsset || isSwFile) _gzipCache.set(fp, gz); // cache immutable + sw files
+            if (isHashedAsset) _gzipCache.set(fp, gz);
             res.writeHead(200, { 'Content-Type': contentType, 'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding' });
             res.end(gz);
           });
@@ -7961,7 +8252,8 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
         const patched = raw
           .replace(/__ISOTOPE_APP_VERSION__/g, LOCAL_VERSION.version)
           .replace(/__ISOTOPE_APP_SHA__/g, String(DEPLOYED_SHA).slice(0, 12));
-        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Cache-Control', cacheHeaderForRequest('/sw.js'));
+        res.setHeader('Service-Worker-Allowed', '/');
         res.writeHead(200, { 'Content-Type': contentType });
         res.end(patched);
       });
@@ -7995,6 +8287,10 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const buf = getPatchedSettingsBundle();
       if (buf) { send(buf); return; }
     }
+    if (fp === USE_SYNC_STORE_BUNDLE_ABS) {
+      const buf = getPatchedUseSyncStoreBundle();
+      if (buf) { send(buf); return; }
+    }
     if (fp === APP_ACCESS_GATE_BUNDLE_ABS) {
       const buf = getPatchedAppAccessGateBundle();
       if (buf) { send(buf); return; }
@@ -8026,7 +8322,7 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
 
     fs.readFile(fp, (err, data) => {
       if (err) {
-        if (ext === '.js' && reqPath.startsWith('/assets/')) {
+        if (ext === '.js' && urlPath.startsWith('/assets/')) {
           fetchRemoteAsset(path.basename(fp))
             .then((buf) => send(buf))
             .catch(() => { res.writeHead(404); res.end('Not found'); });
@@ -8086,6 +8382,7 @@ server.listen(port, '0.0.0.0', () => {
     getPatchedSingleGroupBundle();
     getPatchedLeaderboardBundle();
     getPatchedSettingsBundle();
+    getPatchedUseSyncStoreBundle();
     getPatchedAppAccessGateBundle();
     getPatchedSessionSyncBundle();
     getPatchedInvitesBundle();
@@ -8103,6 +8400,7 @@ server.listen(port, '0.0.0.0', () => {
       [SINGLE_GROUP_BUNDLE_ABS,    getPatchedSingleGroupBundle()],
       [LEADERBOARD_BUNDLE_ABS,     getPatchedLeaderboardBundle()],
       [SETTINGS_BUNDLE_ABS,        getPatchedSettingsBundle()],
+      [USE_SYNC_STORE_BUNDLE_ABS,   getPatchedUseSyncStoreBundle()],
       [APP_ACCESS_GATE_BUNDLE_ABS, getPatchedAppAccessGateBundle()],
       [SESSION_SYNC_BUNDLE_ABS,    getPatchedSessionSyncBundle()],
       [INVITES_BUNDLE_ABS,         getPatchedInvitesBundle()],

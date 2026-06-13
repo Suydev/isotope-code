@@ -1,0 +1,195 @@
+FILE IDENTITY
+
+- original path: public/assets/CommunityHub-gANxZssO.js
+- audit path: audit/public/assets/CommunityHub-gANxZssO.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 34659
+- SHA-256: 174216f41a82cd29af9f68b52b4bc4c2a0ef48f92bbb8951a460560054bf2eff
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:334 - "file": "CommunityHub-gANxZssO.js",
+- artifacts/asset-diff/asset-report.json:337 - "remote_url": "https://isotopeai.in/assets/CommunityHub-gANxZssO.js",
+- artifacts/asset-diff/local-assets.txt:19 - CommunityHub-gANxZssO.js
+- artifacts/asset-diff/summary.md:55 - | CommunityHub-gANxZssO.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/Community-DIqF5406.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-query-Rjz85D0S.js","assets/App-pJGjDiPw.js","
+- public/assets/Community-DIqF5406.js:2 - import{_ as s}from"./index-BPYJFSVW.js";import{j as e,f as _,r as t}from"./vendor-react-BfU3Zn2J.js";import{c as w}from"./App-pJGjDiPw.js";import{S as N,D as k}from"./DashboardHeader-DNuRMna8.js";import{m as o,A as E}from"./vendor-motion-Cp
+- public/sw.js:47 - '/assets/CommunityHub-gANxZssO.js',
+- public/sw.js:79 - '/assets/CommunityHub-gANxZssO.js',
+- server.mjs:141 - '/assets/CommunityHub-gANxZssO.js',
+- server.mjs:3233 - const COMMUNITY_HUB_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityHub-gANxZssO.js');
+
+INTERNAL STRUCTURE
+
+- line count: 6
+- imports:
+- 2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a a
+- exports:
+None observed.
+- functions/async flows:
+- 2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a a
+- 6: `,children:[m,o===m&&e.jsx("span",{className:"absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0c0c0e]"})]},m))})]})]})},Le=()=>{const{data:t,isLoading:n,error:i}=ze(),
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/sessionSync-mloIEnTd.js","assets/App-pJGjDiPw.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-s
+- handlers/lifecycle candidates:
+- 6: `,children:[m,o===m&&e.jsx("span",{className:"absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0c0c0e]"})]},m))})]})]})},Le=()=>{const{data:t,isLoading:n,error:i}=ze(),
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ARC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/CommunityHub-gANxZssO.js:6
+- BJOTUERN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3322, artifacts/asset-diff/asset-report.json:3325, artifacts/asset-diff/local-assets.txt:185, artifacts/asset-diff/summary.md:22, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- BPYJFSVW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2908, artifacts/asset-diff/asset-report.json:2911, artifacts/asset-diff/local-assets.txt:162, artifacts/asset-diff/summary.md:141, public/assets/AIAssistant--spCOe6W.js:58, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsTasks-DOfUf9Sd.js:1
+- BX2: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3142, artifacts/asset-diff/asset-report.json:3145, artifacts/asset-diff/local-assets.txt:175, artifacts/asset-diff/summary.md:21, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- CROWN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/CommunityHub-gANxZssO.js:6
+- DONE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/CommunityHub-gANxZssO.js:6, public/assets/useAIStore-B2cv1FZz.js:1777, public/assets/useAIStore-B2cv1FZz.js:4362
+- EMBER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/CommunityHub-gANxZssO.js:6
+- FOCUS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Analytics-D74gQMjN.js:2, public/assets/ChapterHub-BXRydU0B.js:12, public/assets/ChapterHub-BXRydU0B.js:42, public/assets/CommunityHub-gANxZssO.js:6, public/assets/WelcomeTeaser-B96rmBi8.js:323, public/assets/useAIStore-B2cv1FZz.js:4212, public/assets/useAIStore-B2cv1FZz.js:4629
+- HEAT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/CommunityHub-gANxZssO.js:6
+- LIVE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsToday-BTdRNTb0.js:8, public/assets/CommunityHub-gANxZssO.js:6
+- LUNAR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/CommunityHub-gANxZssO.js:6
+- RUN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/CommunityHub-gANxZssO.js:6
+- SYNC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:8, public/assets/CommunityHub-gANxZssO.js:6, public/assets/vendor-supabase-DAiUAuun.js:1589, server.mjs:2001, server.mjs:2009, server.mjs:2831, server.mjs:3237, server.mjs:3866, server.mjs:4020, server.mjs:4025, server.mjs:5450, server.mjs:5451
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+- group_challenge_participants
+- group_challenges
+- network responses:
+None observed.
+- browser storage:
+- 6: `,children:[m,o===m&&e.jsx("span",{className:"absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0c0c0e]"})]},m))})]})]})},Le=()=>{const{data:t,isLoading:n,error:i}=ze(),{data:l,isLoading:o,error:m}=ie(),c=$e()
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a as ae,f as G}from"./timeFormat-CMPo-BX2.j
+- 6: `,children:[m,o===m&&e.jsx("span",{className:"absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0c0c0e]"})]},m))})]})]})},Le=()=>{const{data:t,isLoading:n,error:i}=ze(),{data:l,isLoading:o,error:m}=ie(),c=$e()
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a a
+- local files: see References and Consumers above
+- browser APIs:
+- 2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a as ae,f as G}from"./timeFormat-CMPo-BX2.j
+- 6: `,children:[m,o===m&&e.jsx("span",{className:"absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0c0c0e]"})]},m))})]})]})},Le=()=>{const{data:t,isLoading:n,error:i}=ze(),{data:l,isLoading:o,error:m}=ie(),c=$e()
+- operating-system commands:
+- 2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a as ae,f as G}from"./timeFormat-CMPo-BX2.j
+- Supabase interfaces:
+- 1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/sessionSync-mloIEnTd.js","assets/App-pJGjDiPw.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-supabase-DAiUAuun.js","assets/vendor-moti
+- 2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a as ae,f as G}from"./timeFormat-CMPo-BX2.j
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0292-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/CommunityHub-gANxZssO.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/CommunityHub-gANxZssO.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 34659
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - server.mjs:141: '/assets/CommunityHub-gANxZssO.js',
+  - server.mjs:3233: const COMMUNITY_HUB_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityHub-gANxZssO.js');
+  - public/sw.js:47: '/assets/CommunityHub-gANxZssO.js',
+  - public/sw.js:79: '/assets/CommunityHub-gANxZssO.js',
+  - public/assets/Community-DIqF5406.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css",
+  - public/assets/Community-DIqF5406.js:2: import{_ as s}from"./index-BPYJFSVW.js";import{j as e,f as _,r as t}from"./vendor-react-BfU3Zn2J.js";import{c as w}from"./App-pJGjDiPw.js";import{S as N,D as k}from"./DashboardHead
+  - artifacts/asset-diff/local-assets.txt:19: CommunityHub-gANxZssO.js
+  - artifacts/asset-diff/asset-report.json:334: "file": "CommunityHub-gANxZssO.js",
+  - artifacts/asset-diff/asset-report.json:337: "remote_url": "https://isotopeai.in/assets/CommunityHub-gANxZssO.js",
+  - artifacts/asset-diff/summary.md:55: | CommunityHub-gANxZssO.js | 200 | unexpected HTML fallback for .js request |

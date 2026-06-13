@@ -1,0 +1,148 @@
+FILE IDENTITY
+
+- original path: .github/ISSUE_TEMPLATE/feature_request.md
+- audit path: audit/.github/ISSUE_TEMPLATE/feature_request.md.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: markdown
+- MIME type: text/markdown
+- size in bytes: 679
+- SHA-256: 36e57939a6e46d57bc5bea31351d152f276b7edebf957d71f13cac59af076083
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: CI/CD
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: CI/CD
+- runtime stage: development, installation, or documentation
+- user-visible feature: documentation
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- CONTRIBUTING.md:96 - Use the **[Feature Request template](https://github.com/Suydev/isotope-code/issues/new?template=feature_request.md)**.
+
+INTERNAL STRUCTURE
+
+- line count: 26
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- FEAT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/feature_request.md:4
+- JEE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/feature_request.md:19, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0004-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: .github/ISSUE_TEMPLATE/feature_request.md inspected; no file-specific high-risk issue confirmed
+  observed evidence: .github/ISSUE_TEMPLATE/feature_request.md inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: CONTRIBUTING.md
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

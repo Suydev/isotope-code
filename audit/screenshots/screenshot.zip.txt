@@ -1,0 +1,185 @@
+FILE IDENTITY
+
+- original path: screenshots/screenshot.zip
+- audit path: audit/screenshots/screenshot.zip.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: untracked (untracked:safe-project-artifact)
+- file type: archive
+- MIME type: application/zip
+- size in bytes: 5245159
+- SHA-256: bac4f7980c644c8d8f1a4e27b5aba18255f0b84fd487400ea031ecbb4c2dfaa4
+- text encoding when applicable: not applicable
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: static asset
+- primary auditor: static-asset-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM; binary metadata only
+
+PURPOSE
+
+Static or binary asset used by the browser app, documentation, screenshots, installer output, or comparison artifacts.
+
+ROLE IN THE APPLICATION
+
+- subsystem: static asset
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .gitignore:15 - /screenshot.zip
+
+INTERNAL STRUCTURE
+
+Binary/static metadata only. No code-level internal structure was parsed.
+- format: archive
+- listing: screenshot/	0 bytes
+screenshot/Screenshot_2026-06-08-08-47-09-37_e4424258c8b8649f6e67d283a50a2cbc.jpg	436745 bytes
+screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg	683546 bytes
+screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg	984602 bytes
+screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg	616074 bytes
+screenshot/Screenshot_2026-06-08-08-46-00-34_e4424258c8b8649f6e67d283a50a2cbc.jpg	535847 bytes
+screenshot/Screenshot_2026-06-08-08-45-47-93_e4424258c8b8649f6e67d283a50a2cbc.jpg	657521 bytes
+screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg	721433 bytes
+screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg	608081 bytes
+screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg	296412 bytes
+screenshot/Screenshot_2026-06-07-13-58-43-64_e4424258c8b8649f6e67d283a50a2cbc.jpg	565267 bytes
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+No environment variable names observed.
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness mainly depends on file presence, MIME mapping, cache headers, and consumer references.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- Large file (5245159 bytes); affects clone/install/cache or browser parse/download if active.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0539-01
+  severity: LOW
+  category: duplication
+  status: CONFIRMED
+  confidence: HIGH
+  affected lines or byte-level evidence: SHA-256 bac4f7980c644c8d8f1a4e27b5aba18255f0b84fd487400ea031ecbb4c2dfaa4 shared by screenshot, screenshot.zip, screenshots/screenshot.zip
+  observed evidence: SHA-256 bac4f7980c644c8d8f1a4e27b5aba18255f0b84fd487400ea031ecbb4c2dfaa4 shared by screenshot, screenshot.zip, screenshots/screenshot.zip
+  inferred impact: Byte-identical duplicates may waste repository or install size.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep duplicates only when required by platform paths or comparison artifacts.
+  related files: screenshot, screenshot.zip
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Included as a project-related untracked artifact with source state recorded.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Confirm visible rendering or media playback only in consuming UI/docs if the asset is active.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Static or binary asset used by the browser app, documentation, screenshots, installer output, or comparison artifacts.
+- activity status: referenced
+- reliability: MEDIUM; binary metadata only; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers
+
+SPECIAL ASSET AUDIT
+
+- format: archive
+- listing: screenshot/	0 bytes
+screenshot/Screenshot_2026-06-08-08-47-09-37_e4424258c8b8649f6e67d283a50a2cbc.jpg	436745 bytes
+screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg	683546 bytes
+screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg	984602 bytes
+screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg	616074 bytes
+screenshot/Screenshot_2026-06-08-08-46-00-34_e4424258c8b8649f6e67d283a50a2cbc.jpg	535847 bytes
+screenshot/Screenshot_2026-06-08-08-45-47-93_e4424258c8b8649f6e67d283a50a2cbc.jpg	657521 bytes
+screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg	721433 bytes
+screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg	608081 bytes
+screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg	296412 bytes
+screenshot/Screenshot_2026-06-07-13-58-43-64_e4424258c8b8649f6e67d283a50a2cbc.jpg	565267 bytes
+- dimensions: not available from safe metadata
+- format: archive
+- MIME type: application/zip
+- file size: 5245159
+- duration: not applicable or not extracted
+- codec: not applicable or not extracted
+- frame count: not extracted
+- alpha/transparency: not determined
+- SVG viewBox: not applicable or not present
+- SVG scripts or external links: not applicable; 
+- font family/style/weight: not applicable / not applicable / not applicable
+- visible use location: .gitignore:15
+- source references: 1
+- service-worker caching: not browser-served unless copied
+- accessibility handling: verify in consuming markup/components; not encoded in asset metadata
+- duplicate candidates: screenshot, screenshot.zip
+- byte-identical duplicates: screenshot, screenshot.zip, screenshots/screenshot.zip
+- near-duplicate candidates: not computed perceptually
+- optimisation potential: review compression/resizing if active
+- provenance information when documented: not documented in nearby references
+- licensing information when documented: not documented
+- whether the asset appears unused: no, referenced directly

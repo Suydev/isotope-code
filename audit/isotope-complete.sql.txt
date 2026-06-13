@@ -1,0 +1,539 @@
+FILE IDENTITY
+
+- original path: isotope-complete.sql
+- audit path: audit/isotope-complete.sql.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: sql
+- MIME type: application/sql
+- size in bytes: 98869
+- SHA-256: fbe700da26bc21f0744da28fc33906caf45c5efe5c139cba331f2a02a2c03cd3
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: application project
+- primary auditor: lead-coordinator
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the application project subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: application project
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/PULL_REQUEST_TEMPLATE.md:16 - - [ ] If I changed the DB schema, I updated `isotope-complete.sql`
+- .github/labeler.yml:7 - - 'isotope-complete.sql'
+- .github/workflows/ci.yml:201 - isotope-complete.sql
+- .github/workflows/ci.yml:253 - for f in isotope-complete.sql community-patch-v4.sql sql/006_security_policy_cleanup.sql sql/backup_manifests.sql sql/verify-security.sql performance-patch.sql; do
+- .github/workflows/regenerate-release.yml:107 - isotope-complete.sql
+- .github/workflows/schema-lint.yml:42 - for f in isotope-complete.sql community-patch-v4.sql sql/*.sql performance-patch.sql; do
+- .github/workflows/schema-lint.yml:58 - if [ ! -f isotope-complete.sql ]; then
+- .github/workflows/schema-lint.yml:59 - echo "⚠️ isotope-complete.sql not found — skipping pattern checks"
+- .github/workflows/schema-lint.yml:64 - UNSAFE_DROPS=$(grep -nE '^\s*DROP (TABLE|FUNCTION|POLICY|INDEX|TRIGGER)\s' isotope-complete.sql | grep -v 'IF EXISTS' || true)
+- .github/workflows/schema-lint.yml:74 - SEC_DEF=$(awk '/SECURITY DEFINER/{n++} END{print n+0}' isotope-complete.sql)
+- .github/workflows/schema-lint.yml:79 - FUNCTIONS=$(awk '/CREATE OR REPLACE FUNCTION/{n++} END{print n+0}' isotope-complete.sql)
+- .github/workflows/schema-lint.yml:80 - GRANTS=$(awk '/GRANT EXECUTE/{n++} END{print n+0}' isotope-complete.sql)
+- .github/workflows/schema-lint.yml:128 - - name: 🗄️ Test isotope-complete.sql against PostgreSQL
+- .github/workflows/schema-lint.yml:132 - if [ ! -f isotope-complete.sql ]; then
+- .github/workflows/schema-lint.yml:133 - echo "⚠️ isotope-complete.sql not found — skipping execution test"
+- .github/workflows/schema-lint.yml:147 - isotope-complete.sql > /tmp/schema_test.sql
+- .github/workflows/schema-lint.yml:191 - echo "❌ isotope-complete.sql must execute cleanly against the Supabase compatibility shim"
+- .github/workflows/welcome.yml:79 - - [ ] \`isotope-complete.sql\` updated if DB schema changed
+- CHANGELOG.md:129 - - **8 live-DB functions missing from `isotope-complete.sql`** — Full pg_proc audit found 8 functions present in the live Supabase DB that were never documented in the master schema file. A fresh install using only `isotope-complete.sql` wou
+- CHANGELOG.md:138 - - **Missing GRANTs for `create_community_group`, `check_user_role`, `get_my_role`** — All three functions had no `GRANT EXECUTE TO authenticated`. Applied to live DB and added to §18 grants block in `isotope-complete.sql`.
+- CHANGELOG.md:145 - | 2 | 8 undocumented functions added to `isotope-complete.sql` §18 | ✅ with triggers + grants |
+- CHANGELOG.md:155 - - **`user_tours` table missing from `isotope-complete.sql` and live DB** — Parallel subagent audit found `community-patch-v4.sql` §v11 (lines 2327–2367) defines `public.user_tours` (persistent tour/guide state: which onboarding walks a user
+- CHANGELOG.md:156 - - **`/__admin/schema` served missing `isotope-schema.sql` file** — Route handler at `server.mjs:5584` referenced `isotope-schema.sql` (an old/nonexistent file), causing the download button in the admin panel to return HTTP 500. Fixed to ser
+- CHANGELOG.md:163 - | 2 | `user_tours` added to `isotope-complete.sql` §13b | ✅ DDL + RLS + trigger + realtime |
+- CHANGELOG.md:164 - | 3 | `/__admin/schema` now serves correct file | ✅ `isotope-complete.sql` (was broken `isotope-schema.sql`) |
+- CHANGELOG.md:165 - | 4 | All 24 tables now in master schema | ✅ isotope-complete.sql updated |
+- CHANGELOG.md:177 - - **`isotope-complete.sql`** — New single-file authoritative schema covering all 23 tables, all indexes, all RLS policies (with `(SELECT auth.uid())` optimisation), all RPCs (18 functions), triggers (`handle_new_user`, `sync_user_onboarding
+- CHANGELOG.md:189 - | 7 | `isotope-complete.sql` pushed to GitHub | ✅ New file, 23 tables, 18 RPCs |
+- CONTRIBUTING.md:30 - 4. **Update `isotope-complete.sql`** if you add/change any DB table, column, index, RLS, trigger, or function
+- CONTRIBUTING.md:40 - | `isotope-complete.sql` | Authoritative DB schema — idempotent, run on fresh Supabase |
+- CONTRIBUTING.md:54 - 1. Write the change in `isotope-complete.sql` using `CREATE OR REPLACE` / `IF NOT EXISTS` guards
+- CONTRIBUTING.md:56 - 3. Test it by running `isotope-complete.sql` on a clean Supabase project
+- README.md:161 - 3. Paste and run [isotope-complete.sql](./isotope-complete.sql).
+- README.md:292 - | Storage permission error | Re-run `isotope-complete.sql` |
+- docs/supabase-connection-map.md:36 - - `isotope-complete.sql`
+- docs/supabase-connection-map.md:43 - 1. `isotope-complete.sql`
+- docs/supabase-connection-map.md:47 - `isotope-complete.sql` now includes `sync_items` and `backup_manifests` for fresh installs.
+- performance-patch.sql:4 - -- Run this in the Supabase SQL Editor (or via psql) after isotope-complete.sql
+- performance-patch.sql:39 - -- (events-expansion.sql drops it; isotope-complete.sql re-creates it).
+- performance-patch.sql:142 - -- isotope-complete.sql re-creating it first.
+- scripts/validate-docs.mjs:214 - 'isotope-complete.sql',
+- server.mjs:7048 - const sqlPath = path.join(__dirname, 'isotope-complete.sql');
+- server.mjs:7052 - 'Content-Disposition': 'attachment; filename="isotope-complete.sql"',
+- sql/verify-security.sql:2 - -- Run after isotope-complete.sql and migrations.
+
+INTERNAL STRUCTURE
+
+- line count: 1808
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+- 21: -- ── §0. Drop function overloads with return-type drift ───────────────────────
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ADD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:65, community-patch-v4.sql:66, community-patch-v4.sql:67, community-patch-v4.sql:68, community-patch-v4.sql:69, community-patch-v4.sql:70, community-patch-v4.sql:71, community-patch-v4.sql:86, community-patch-v4.sql:87, community-patch-v4.sql:88
+- AFTER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:130, CHANGELOG.md:134, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:1162, community-patch-v4.sql:1730, community-patch-v4.sql:1988, community-patch-v4.sql:2025, community-patch-v4.sql:2121, community-patch-v4.sql:2176, isotope-complete.sql:1396, isotope-complete.sql:1424, isotope-complete.sql:1437
+- ALL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:8, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:26, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:43, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:913, community-patch-v4.sql:919, community-patch-v4.sql:928, community-patch-v4.sql:937, community-patch-v4.sql:943, community-patch-v4.sql:949, community-patch-v4.sql:960
+- ALTER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:139, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:65, community-patch-v4.sql:66, community-patch-v4.sql:67, community-patch-v4.sql:68, community-patch-v4.sql:69, community-patch-v4.sql:70, community-patch-v4.sql:71, community-patch-v4.sql:74, community-patch-v4.sql:77, community-patch-v4.sql:86
+- ALWAYS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:496, community-patch-v4.sql:123, community-patch-v4.sql:204, community-patch-v4.sql:338, community-patch-v4.sql:347, community-patch-v4.sql:356, community-patch-v4.sql:365, community-patch-v4.sql:374, community-patch-v4.sql:383, isotope-complete.sql:120, isotope-complete.sql:127, isotope-complete.sql:134
+- AND: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=LICENSE:7, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:120, community-patch-v4.sql:150, community-patch-v4.sql:176, community-patch-v4.sql:177, community-patch-v4.sql:181, community-patch-v4.sql:207, community-patch-v4.sql:208, community-patch-v4.sql:218, community-patch-v4.sql:230
+- ANY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=LICENSE:7, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, isotope-complete.sql:914, isotope-complete.sql:927, performance-patch.sql:194, performance-patch.sql:208, performance-patch.sql:215, performance-patch.sql:229, performance-patch.sql:262, performance-patch.sql:276, performance-patch.sql:296, public/assets/messaging-BP0KfJxy.js:24
+- ARRAY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:1693, community-patch-v4.sql:2181, community-patch-v4.sql:2383, isotope-complete.sql:1010, isotope-complete.sql:1480, performance-patch.sql:63
+- ASC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:486, community-patch-v4.sql:501, community-patch-v4.sql:1279, community-patch-v4.sql:1280, community-patch-v4.sql:1675, community-patch-v4.sql:1702, community-patch-v4.sql:1753, community-patch-v4.sql:1769, community-patch-v4.sql:1805, community-patch-v4.sql:1823, community-patch-v4.sql:1826
+- BEFORE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:132, CHANGELOG.md:133, community-patch-v4.sql:2356, isotope-complete.sql:1473, isotope-complete.sql:1684, isotope-complete.sql:1698, isotope-complete.sql:1701, isotope-complete.sql:1713, server.mjs:3074
+- BEGIN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, .github/workflows/schema-lint.yml:122, CHANGELOG.md:174, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:73, community-patch-v4.sql:76, community-patch-v4.sql:102, community-patch-v4.sql:117, community-patch-v4.sql:146, community-patch-v4.sql:172
+- CASCADE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:173, community-patch-v4.sql:486, community-patch-v4.sql:501, community-patch-v4.sql:1279, community-patch-v4.sql:1280, community-patch-v4.sql:1753, community-patch-v4.sql:1769, community-patch-v4.sql:1823, community-patch-v4.sql:1826, community-patch-v4.sql:1829, community-patch-v4.sql:2061, community-patch-v4.sql:2272
+- CASE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:689, community-patch-v4.sql:707, community-patch-v4.sql:794, community-patch-v4.sql:855, community-patch-v4.sql:1906, community-patch-v4.sql:1941, community-patch-v4.sql:2128, isotope-complete.sql:1108, isotope-complete.sql:1118, isotope-complete.sql:1165, isotope-complete.sql:1199
+- CHECK: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:913, community-patch-v4.sql:919, community-patch-v4.sql:928, community-patch-v4.sql:937, community-patch-v4.sql:943, community-patch-v4.sql:949, community-patch-v4.sql:960, community-patch-v4.sql:966, community-patch-v4.sql:976, community-patch-v4.sql:990
+- COALESCE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:594, community-patch-v4.sql:595, community-patch-v4.sql:606, community-patch-v4.sql:622, community-patch-v4.sql:623, community-patch-v4.sql:629, community-patch-v4.sql:648, community-patch-v4.sql:700, community-patch-v4.sql:701, community-patch-v4.sql:702, community-patch-v4.sql:703
+- COLUMN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:65, community-patch-v4.sql:66, community-patch-v4.sql:67, community-patch-v4.sql:68, community-patch-v4.sql:69, community-patch-v4.sql:70, community-patch-v4.sql:71, community-patch-v4.sql:74, community-patch-v4.sql:77, community-patch-v4.sql:86, community-patch-v4.sql:87, community-patch-v4.sql:88
+- CONFLICT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:588, community-patch-v4.sql:816, community-patch-v4.sql:832, community-patch-v4.sql:842, community-patch-v4.sql:1134, community-patch-v4.sql:1144, community-patch-v4.sql:1147, community-patch-v4.sql:1151, community-patch-v4.sql:1154, community-patch-v4.sql:1196, community-patch-v4.sql:1203, community-patch-v4.sql:1208
+- CONSTRAINT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:153, community-patch-v4.sql:240, community-patch-v4.sql:1821, community-patch-v4.sql:1822, community-patch-v4.sql:1824, community-patch-v4.sql:1825, community-patch-v4.sql:1827, community-patch-v4.sql:1828, community-patch-v4.sql:1830, community-patch-v4.sql:1831, isotope-complete.sql:232
+- COUNT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:535, community-patch-v4.sql:649, community-patch-v4.sql:818, community-patch-v4.sql:1324, community-patch-v4.sql:1344, community-patch-v4.sql:1854, community-patch-v4.sql:1916, isotope-complete.sql:1021, isotope-complete.sql:1087, isotope-complete.sql:1174, isotope-complete.sql:1217
+- CREATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/ci.yml:259, .github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, .github/workflows/schema-lint.yml:91
+- CRITICAL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:44, CHANGELOG.md:45, CHANGELOG.md:77, CHANGELOG.md:173, community-patch-v4.sql:163, community-patch-v4.sql:191, community-patch-v4.sql:1021, isotope-complete.sql:903, public/assets/Dashboard-dypAV-0H.js:669, public/assets/DashboardHeader-DNuRMna8.js:275, public/assets/SessionLogTable-CclRAAwc.js:15, public/assets/SessionLogTable-CclRAAwc.js:31
+- CURRENT_DATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:654, community-patch-v4.sql:777, community-patch-v4.sql:1857, community-patch-v4.sql:1893, isotope-complete.sql:1090, isotope-complete.sql:1154, isotope-schema.sql:414
+- DECLARE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:201, community-patch-v4.sql:336, community-patch-v4.sql:345, community-patch-v4.sql:354, community-patch-v4.sql:363, community-patch-v4.sql:372, community-patch-v4.sql:381, community-patch-v4.sql:560, community-patch-v4.sql:775, community-patch-v4.sql:1113, community-patch-v4.sql:1309
+- DEFAULT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:93, .github/workflows/schema-lint.yml:95, .github/workflows/schema-lint.yml:107, .github/workflows/schema-lint.yml:112, .github/workflows/schema-lint.yml:117, .github/workflows/schema-lint.yml:118, .github/workflows/schema-lint.yml:119, CHANGELOG.md:408, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:66, community-patch-v4.sql:67
+- DEFINER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:73, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:75, ADMIN.md:197, ADMIN.md:232, ADMIN.md:488, CHANGELOG.md:476, CHANGELOG.md:493, CHANGELOG.md:575, CONTRIBUTING.md:105, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:514
+- DESC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:457, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:185, community-patch-v4.sql:257, community-patch-v4.sql:392, community-patch-v4.sql:393, community-patch-v4.sql:402, community-patch-v4.sql:403, community-patch-v4.sql:424, community-patch-v4.sql:444, community-patch-v4.sql:495, community-patch-v4.sql:509
+- DIAGNOSTICS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:818, community-patch-v4.sql:1916, isotope-complete.sql:1174
+- DISTINCT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:649, community-patch-v4.sql:1175, community-patch-v4.sql:1176, community-patch-v4.sql:1854, isotope-complete.sql:1087, isotope-schema.sql:381, isotope-schema.sql:409, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- DROP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:63, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:65, .github/workflows/schema-lint.yml:66, .github/workflows/schema-lint.yml:67, .github/workflows/schema-lint.yml:69, .github/workflows/schema-lint.yml:142, CHANGELOG.md:129, CHANGELOG.md:173, CHANGELOG.md:401, CHANGELOG.md:403, CHANGELOG.md:410
+- EACH: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:1163, community-patch-v4.sql:1989, community-patch-v4.sql:2026, community-patch-v4.sql:2122, community-patch-v4.sql:2177, community-patch-v4.sql:2357, isotope-complete.sql:1397, isotope-complete.sql:1425, isotope-complete.sql:1438, isotope-complete.sql:1474, isotope-complete.sql:1652
+- ELSE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:692, community-patch-v4.sql:709, community-patch-v4.sql:796, community-patch-v4.sql:857, community-patch-v4.sql:1708, community-patch-v4.sql:1907, community-patch-v4.sql:1942, community-patch-v4.sql:2105, community-patch-v4.sql:2131, isotope-complete.sql:1108, isotope-complete.sql:1118
+- ELSIF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:221, isotope-complete.sql:448, isotope-complete.sql:1724
+- ENABLE: classification=public/configuration; required=optional/defaulted; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:886, community-patch-v4.sql:887, community-patch-v4.sql:888, community-patch-v4.sql:889, community-patch-v4.sql:890, community-patch-v4.sql:891, community-patch-v4.sql:892, community-patch-v4.sql:893, community-patch-v4.sql:894, community-patch-v4.sql:895, community-patch-v4.sql:896
+- END: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/ci.yml:259, .github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:80, .github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89
+- EVENT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:141, .github/workflows/schema-lint.yml:142, LICENSE:7, isotope-complete.sql:1679, isotope-complete.sql:1680
+- EXCEPTION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, community-patch-v4.sql:75, community-patch-v4.sql:78, community-patch-v4.sql:112, community-patch-v4.sql:219, community-patch-v4.sql:1370, community-patch-v4.sql:1371, community-patch-v4.sql:1372, community-patch-v4.sql:1373, community-patch-v4.sql:1374
+- EXCLUDED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:833, community-patch-v4.sql:1135, community-patch-v4.sql:1136, community-patch-v4.sql:1925, community-patch-v4.sql:2009, community-patch-v4.sql:2112, community-patch-v4.sql:2113, community-patch-v4.sql:2114, community-patch-v4.sql:2137, community-patch-v4.sql:2138, community-patch-v4.sql:2158, community-patch-v4.sql:2185
+- EXECUTE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:80, .github/workflows/schema-lint.yml:81, CHANGELOG.md:138, community-patch-v4.sql:34, community-patch-v4.sql:863, community-patch-v4.sql:865, community-patch-v4.sql:867, community-patch-v4.sql:869, community-patch-v4.sql:871, community-patch-v4.sql:873, community-patch-v4.sql:875, community-patch-v4.sql:877
+- EXISTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:63, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:66, .github/workflows/schema-lint.yml:69, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125
+- FOR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:132, CHANGELOG.md:133, CHANGELOG.md:231, LICENSE:7, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:909, community-patch-v4.sql:913, community-patch-v4.sql:919, community-patch-v4.sql:924, community-patch-v4.sql:928, community-patch-v4.sql:933, community-patch-v4.sql:937
+- FOREIGN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:1823, community-patch-v4.sql:1826, community-patch-v4.sql:1829, isotope-complete.sql:583, isotope-complete.sql:586, isotope-complete.sql:589, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- FOUND: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:573, community-patch-v4.sql:791, community-patch-v4.sql:1317, community-patch-v4.sql:1660, community-patch-v4.sql:1904, community-patch-v4.sql:1966, isotope-complete.sql:1042, isotope-complete.sql:1163, isotope-complete.sql:1211, isotope-complete.sql:1293, isotope-complete.sql:1315, isotope-schema.sql:345
+- FROM: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:178, .github/workflows/schema-lint.yml:186, ADMIN.md:488, LICENSE:7, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:119, community-patch-v4.sql:148, community-patch-v4.sql:174, community-patch-v4.sql:205, community-patch-v4.sql:236, community-patch-v4.sql:338, community-patch-v4.sql:347
+- FUNCTION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:259, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:81, .github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, CHANGELOG.md:403, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:45
+- GENERATED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:496, community-patch-v4.sql:123, community-patch-v4.sql:199, community-patch-v4.sql:334, isotope-complete.sql:118, isotope-complete.sql:356, isotope-complete.sql:435
+- GIN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:73, community-patch-v4.sql:76, community-patch-v4.sql:102, community-patch-v4.sql:117, community-patch-v4.sql:133, community-patch-v4.sql:146, community-patch-v4.sql:172, community-patch-v4.sql:203, community-patch-v4.sql:215, community-patch-v4.sql:234, community-patch-v4.sql:337, community-patch-v4.sql:346
+- GRANT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:78, .github/workflows/schema-lint.yml:80, .github/workflows/schema-lint.yml:81, CHANGELOG.md:138, CHANGELOG.md:146, CHANGELOG.md:147, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:34, community-patch-v4.sql:863, community-patch-v4.sql:865, community-patch-v4.sql:867, community-patch-v4.sql:869
+- GREATEST: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:801, community-patch-v4.sql:1910, isotope-complete.sql:1168, isotope-complete.sql:1725
+- GROUP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:180, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:546, community-patch-v4.sql:655, community-patch-v4.sql:1795, community-patch-v4.sql:1858, isotope-complete.sql:712, isotope-complete.sql:1030, isotope-complete.sql:1091, isotope-schema.sql:320, isotope-schema.sql:389
+- IIT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:1406, community-patch-v4.sql:1430, community-patch-v4.sql:1495, isotope-complete.sql:1601, isotope-complete.sql:1619
+- INCLUDE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:233, isotope-complete.sql:613, performance-patch.sql:80
+- INDEX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:64, CHANGELOG.md:96, CHANGELOG.md:174, CHANGELOG.md:420, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:133, community-patch-v4.sql:134, community-patch-v4.sql:135, community-patch-v4.sql:136, community-patch-v4.sql:137, community-patch-v4.sql:138
+- INSERT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:130, CHANGELOG.md:132, CHANGELOG.md:133, CHANGELOG.md:134, CHANGELOG.md:497, CHANGELOG.md:602, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:8, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:35, community-patch-v4.sql:321, community-patch-v4.sql:326, community-patch-v4.sql:586
+- INTO: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:204, community-patch-v4.sql:338, community-patch-v4.sql:347, community-patch-v4.sql:356, community-patch-v4.sql:365, community-patch-v4.sql:374, community-patch-v4.sql:383, community-patch-v4.sql:568, community-patch-v4.sql:586, community-patch-v4.sql:805, community-patch-v4.sql:830
+- JEE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/feature_request.md:19, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52
+- JOIN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:8, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:541, community-patch-v4.sql:542, community-patch-v4.sql:628, community-patch-v4.sql:651, community-patch-v4.sql:713, community-patch-v4.sql:750, community-patch-v4.sql:751, community-patch-v4.sql:1530, community-patch-v4.sql:1531, community-patch-v4.sql:1673
+- KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:93, .github/workflows/schema-lint.yml:105, .github/workflows/schema-lint.yml:112, bin/isotope:36, bin/isotope:331, bin/isotope:435, community-patch-v4.sql:273, community-patch-v4.sql:309, community-patch-v4.sql:419, community-patch-v4.sql:430, community-patch-v4.sql:450, community-patch-v4.sql:472
+- LANGUAGE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:122, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:514, community-patch-v4.sql:529, community-patch-v4.sql:557, community-patch-v4.sql:615, community-patch-v4.sql:644, community-patch-v4.sql:682
+- LAST: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:693, community-patch-v4.sql:694, community-patch-v4.sql:714, community-patch-v4.sql:740, community-patch-v4.sql:753, isotope-complete.sql:1108, isotope-complete.sql:1109, isotope-complete.sql:1121, public/assets/useAIStore-B2cv1FZz.js:4199, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- LEFT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:542, community-patch-v4.sql:628, community-patch-v4.sql:751, community-patch-v4.sql:1531, community-patch-v4.sql:1673, community-patch-v4.sql:1792, community-patch-v4.sql:1869, isotope-complete.sql:710, isotope-complete.sql:1026, isotope-complete.sql:1077, isotope-complete.sql:1136
+- LEVEL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:886, community-patch-v4.sql:887, community-patch-v4.sql:888, community-patch-v4.sql:889, community-patch-v4.sql:890, community-patch-v4.sql:891, community-patch-v4.sql:892, community-patch-v4.sql:893, community-patch-v4.sql:894, community-patch-v4.sql:895, community-patch-v4.sql:896
+- LIKE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, isotope-complete.sql:1668, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- LIMIT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:571, community-patch-v4.sql:715, community-patch-v4.sql:754, community-patch-v4.sql:1217, community-patch-v4.sql:1534, isotope-complete.sql:1041, isotope-complete.sql:1122, isotope-complete.sql:1139, isotope-complete.sql:1787, isotope-schema.sql:256, isotope-schema.sql:289
+- LOOP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:1703, community-patch-v4.sql:1717, isotope-complete.sql:1665, isotope-complete.sql:1676, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- NEET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:80
+- NEW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:1119, community-patch-v4.sql:1120, community-patch-v4.sql:1121, community-patch-v4.sql:1123, community-patch-v4.sql:1124, community-patch-v4.sql:1130, community-patch-v4.sql:1144, community-patch-v4.sql:1147, community-patch-v4.sql:1151, community-patch-v4.sql:1154, community-patch-v4.sql:1156, community-patch-v4.sql:1983
+- NOT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:14, .github/PULL_REQUEST_TEMPLATE.md:15, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125, CHANGELOG.md:96, CHANGELOG.md:269
+- NOTE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=isotope-complete.sql:1737
+- NOTHING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:588, community-patch-v4.sql:816, community-patch-v4.sql:1144, community-patch-v4.sql:1147, community-patch-v4.sql:1151, community-patch-v4.sql:1154, community-patch-v4.sql:1196, community-patch-v4.sql:1203, community-patch-v4.sql:1208, community-patch-v4.sql:1213, community-patch-v4.sql:1322, community-patch-v4.sql:1915
+- NULL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, CHANGELOG.md:269, CHANGELOG.md:457, CHANGELOG.md:516, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:66, community-patch-v4.sql:67, community-patch-v4.sql:71, community-patch-v4.sql:75, community-patch-v4.sql:78
+- NULLIF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:1119, community-patch-v4.sql:1123, community-patch-v4.sql:1182, community-patch-v4.sql:2000, community-patch-v4.sql:2004, community-patch-v4.sql:2102, community-patch-v4.sql:2130, community-patch-v4.sql:2149, community-patch-v4.sql:2153, isotope-complete.sql:1369, isotope-complete.sql:1373
+- NULLS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:693, community-patch-v4.sql:694, community-patch-v4.sql:714, community-patch-v4.sql:740, community-patch-v4.sql:753, isotope-complete.sql:1108, isotope-complete.sql:1109, isotope-complete.sql:1121
+- OFFSET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:716, isotope-complete.sql:1122, isotope-schema.sql:257
+- OLD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=isotope-complete.sql:1725
+- ORDER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:181, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:656, community-patch-v4.sql:688, community-patch-v4.sql:714, community-patch-v4.sql:740, community-patch-v4.sql:753, community-patch-v4.sql:1523, community-patch-v4.sql:1533, community-patch-v4.sql:1675, community-patch-v4.sql:1702, community-patch-v4.sql:1858
+- OTHERS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:75, community-patch-v4.sql:78, community-patch-v4.sql:112, community-patch-v4.sql:219, community-patch-v4.sql:1370, community-patch-v4.sql:1371, community-patch-v4.sql:1372, community-patch-v4.sql:1373, community-patch-v4.sql:1374, community-patch-v4.sql:1375, community-patch-v4.sql:1376, community-patch-v4.sql:2036
+- OVER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:687, community-patch-v4.sql:739, community-patch-v4.sql:1523, isotope-complete.sql:1107, isotope-complete.sql:1131, isotope-schema.sql:244, isotope-schema.sql:278, public/assets/Tasks-BYRFOrek.js:4324, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- POLICY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:64, CONTRIBUTING.md:55, community-patch-v4.sql:909, community-patch-v4.sql:912, community-patch-v4.sql:918, community-patch-v4.sql:924, community-patch-v4.sql:927, community-patch-v4.sql:933, community-patch-v4.sql:936, community-patch-v4.sql:942
+- PRIMARY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:93, .github/workflows/schema-lint.yml:105, .github/workflows/schema-lint.yml:112, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:273, community-patch-v4.sql:309, community-patch-v4.sql:419, community-patch-v4.sql:430, community-patch-v4.sql:450, community-patch-v4.sql:472, community-patch-v4.sql:485, community-patch-v4.sql:501
+- PUBLICATION: classification=public/configuration; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:139, community-patch-v4.sql:1370, community-patch-v4.sql:1371, community-patch-v4.sql:1372, community-patch-v4.sql:1373, community-patch-v4.sql:1374, community-patch-v4.sql:1375, community-patch-v4.sql:1376, community-patch-v4.sql:2036, community-patch-v4.sql:2037, community-patch-v4.sql:2038, community-patch-v4.sql:2039
+- QUERY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:685, isotope-complete.sql:1105, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- RAISE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=isotope-complete.sql:1755
+- REFERENCES: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:486, community-patch-v4.sql:501, community-patch-v4.sql:1279, community-patch-v4.sql:1280, community-patch-v4.sql:1566, community-patch-v4.sql:1746, community-patch-v4.sql:1753, community-patch-v4.sql:1769, community-patch-v4.sql:1771, community-patch-v4.sql:1823, community-patch-v4.sql:1826
+- REPLACE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:259, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, CHANGELOG.md:129, CHANGELOG.md:403, CONTRIBUTING.md:54, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:20, artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:10, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- RETURN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, .github/workflows/schema-lint.yml:122, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:514, community-patch-v4.sql:522, community-patch-v4.sql:556, community-patch-v4.sql:565, community-patch-v4.sql:574, community-patch-v4.sql:578
+- RETURNING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:1604, isotope-complete.sql:1253, isotope-complete.sql:1764
+- RETURNS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, community-patch-v4.sql:514, community-patch-v4.sql:522, community-patch-v4.sql:556, community-patch-v4.sql:614, community-patch-v4.sql:639, community-patch-v4.sql:668, community-patch-v4.sql:726, community-patch-v4.sql:771
+- ROW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:561, community-patch-v4.sql:687, community-patch-v4.sql:739, community-patch-v4.sql:818, community-patch-v4.sql:886, community-patch-v4.sql:887, community-patch-v4.sql:888, community-patch-v4.sql:889, community-patch-v4.sql:890, community-patch-v4.sql:891, community-patch-v4.sql:892
+- ROWTYPE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:561, community-patch-v4.sql:1311, community-patch-v4.sql:1961, isotope-complete.sql:1037, isotope-complete.sql:1207, isotope-complete.sql:1310, isotope-schema.sql:334
+- ROW_COUNT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:818, community-patch-v4.sql:1916, isotope-complete.sql:1174
+- ROW_NUMBER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:687, community-patch-v4.sql:739, community-patch-v4.sql:1523, isotope-complete.sql:1107, isotope-complete.sql:1131, isotope-schema.sql:244, isotope-schema.sql:278
+- RPC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:11, ADMIN.md:127, ADMIN.md:151, ADMIN.md:153, ADMIN.md:176, ADMIN.md:233, ADMIN.md:234, ADMIN.md:258, ADMIN.md:379, ADMIN.md:490, CHANGELOG.md:135, CHANGELOG.md:148
+- SECURITY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:73, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:75, ADMIN.md:197, ADMIN.md:232, ADMIN.md:488, CHANGELOG.md:476, CHANGELOG.md:493, CHANGELOG.md:575, CONTRIBUTING.md:105, community-patch-v4.sql:514, community-patch-v4.sql:529
+- SELECT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:177, .github/workflows/schema-lint.yml:185, ADMIN.md:488, CHANGELOG.md:177, CHANGELOG.md:196, CHANGELOG.md:231, CHANGELOG.md:269, CHANGELOG.md:270, CHANGELOG.md:274
+- SET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:74, community-patch-v4.sql:77, community-patch-v4.sql:105, community-patch-v4.sql:108, community-patch-v4.sql:110, community-patch-v4.sql:111, community-patch-v4.sql:180, community-patch-v4.sql:217, community-patch-v4.sql:230, community-patch-v4.sql:231, community-patch-v4.sql:558
+- STABLE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, community-patch-v4.sql:514, community-patch-v4.sql:529, community-patch-v4.sql:615, community-patch-v4.sql:644, community-patch-v4.sql:682, community-patch-v4.sql:736, community-patch-v4.sql:1355, community-patch-v4.sql:1520, community-patch-v4.sql:1668
+- STORED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=community-patch-v4.sql:129, isotope-complete.sql:360
+- SUM: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:648, community-patch-v4.sql:1853, isotope-complete.sql:1086, isotope-schema.sql:382, isotope-schema.sql:408, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- TABLE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, CHANGELOG.md:173, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:65
+- TAG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/regenerate-release.yml:36, .github/workflows/regenerate-release.yml:38, .github/workflows/regenerate-release.yml:40, .github/workflows/regenerate-release.yml:41, .github/workflows/regenerate-release.yml:44, .github/workflows/regenerate-release.yml:45, .github/workflows/regenerate-release.yml:46, .github/workflows/regenerate-release.yml:150, .github/workflows/regenerate-release.yml:153, .github/workflows/regenerate-release.yml:154, .github/workflows/regenerate-release.yml:155, .github/workflows/release.yml:33
+- TG_OP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=isotope-complete.sql:1722, isotope-complete.sql:1724
+- THEN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, CHANGELOG.md:174, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:75, community-patch-v4.sql:78, community-patch-v4.sql:112, community-patch-v4.sql:121, community-patch-v4.sql:151, community-patch-v4.sql:178, community-patch-v4.sql:210
+- TRIGGER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:141, .github/workflows/schema-lint.yml:142, CHANGELOG.md:129, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:1160, community-patch-v4.sql:1161, community-patch-v4.sql:1986, community-patch-v4.sql:1987, community-patch-v4.sql:2023, community-patch-v4.sql:2024, community-patch-v4.sql:2119
+- TRUE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, bin/isotope:352, community-patch-v4.sql:210, community-patch-v4.sql:340, community-patch-v4.sql:349, community-patch-v4.sql:358, community-patch-v4.sql:367, community-patch-v4.sql:376, community-patch-v4.sql:385, isotope-complete.sql:122, isotope-complete.sql:129, isotope-complete.sql:136
+- UNIQUE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:459, CHANGELOG.md:460, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:153, community-patch-v4.sql:240, community-patch-v4.sql:477, community-patch-v4.sql:1774, community-patch-v4.sql:1831, community-patch-v4.sql:2338, isotope-complete.sql:216, isotope-complete.sql:235, isotope-complete.sql:257
+- UPDATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:133, CHANGELOG.md:506, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:8, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:43, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:104, community-patch-v4.sql:108, community-patch-v4.sql:179, community-patch-v4.sql:216, community-patch-v4.sql:230, community-patch-v4.sql:231, community-patch-v4.sql:591
+- USING: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:133, community-patch-v4.sql:909, community-patch-v4.sql:913, community-patch-v4.sql:919, community-patch-v4.sql:924, community-patch-v4.sql:928, community-patch-v4.sql:933, community-patch-v4.sql:937, community-patch-v4.sql:943, community-patch-v4.sql:949, community-patch-v4.sql:954
+- VALUES: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:587, community-patch-v4.sql:807, community-patch-v4.sql:831, community-patch-v4.sql:839, community-patch-v4.sql:1129, community-patch-v4.sql:1144, community-patch-v4.sql:1147, community-patch-v4.sql:1151, community-patch-v4.sql:1154, community-patch-v4.sql:1321, community-patch-v4.sql:1386
+- VIEW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:409, CHANGELOG.md:410, CHANGELOG.md:419, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, bin/isotope:157, community-patch-v4.sql:1787, community-patch-v4.sql:1788, community-patch-v4.sql:2272, events-expansion.sql:13, isotope-complete.sql:705, isotope-complete.sql:706, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- WHEN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:75, community-patch-v4.sql:78, community-patch-v4.sql:112, community-patch-v4.sql:219, community-patch-v4.sql:690, community-patch-v4.sql:691, community-patch-v4.sql:708, community-patch-v4.sql:794
+- WHERE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:179, .github/workflows/schema-lint.yml:187, CHANGELOG.md:457, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:106, community-patch-v4.sql:108, community-patch-v4.sql:120, community-patch-v4.sql:134, community-patch-v4.sql:135, community-patch-v4.sql:137, community-patch-v4.sql:138, community-patch-v4.sql:149
+- WITH: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=LICENSE:7, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:913, community-patch-v4.sql:919, community-patch-v4.sql:928, community-patch-v4.sql:937, community-patch-v4.sql:943, community-patch-v4.sql:949, community-patch-v4.sql:960, community-patch-v4.sql:966, community-patch-v4.sql:976, community-patch-v4.sql:990
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+- "avatars_public_read" on storage.objects
+- "avatars_user_delete_own" on storage.objects
+- "avatars_user_insert_own" on storage.objects
+- "avatars_user_update_own" on storage.objects
+- "private_content_owner_delete" on storage.objects
+- "private_content_owner_insert" on storage.objects
+- "private_content_owner_read" on storage.objects
+- "private_content_owner_update" on storage.objects
+- "sync_items_delete_own" on public.sync_items
+- "sync_items_insert_own" on public.sync_items
+- "sync_items_select_own" on public.sync_items
+- "sync_items_update_own" on public.sync_items
+- "user_onboarding_insert_own" on public.user_onboarding
+- "user_onboarding_select_own" on public.user_onboarding
+- "user_onboarding_update_own" on public.user_onboarding
+- "user_tours_own" on public.user_tours
+- AS
+- IF
+- backup_manifests_delete_own on public.backup_manifests
+- backup_manifests_insert_own on public.backup_manifests
+- backup_manifests_select_own on public.backup_manifests
+- backup_manifests_update_own on public.backup_manifests
+- ce_read_public on public.community_events
+- ce_service_write on public.community_events
+- cea_own on public.community_event_attendees
+- cea_read_auth on public.community_event_attendees
+- daily_own on public.daily_user_stats
+- daily_select_all on public.daily_user_stats
+- gann_read on public.group_announcements
+- gann_write on public.group_announcements
+- gchall_read on public.group_challenges
+- gchall_write on public.group_challenges
+- gchat_delete_own on public.group_chat_messages
+- gchat_read_members on public.group_chat_messages
+- gchat_send on public.group_chat_messages
+- gcpart_own on public.group_challenge_participants
+- gcpart_read_members on public.group_challenge_participants
+- ginv_create on public.group_invites
+- ginv_delete on public.group_invites
+- ginv_read on public.group_invites
+- gm_insert on public.group_members
+- gm_own_write on public.group_members
+- gm_read_members on public.group_members
+- gmile_read on public.group_milestones
+- groups
+- groups_auth_insert on public.groups
+- groups_member_read on public.groups
+- groups_owner_write on public.groups
+- groups_read_public on public.groups
+- inventory_own on public.user_inventory
+- notif_own on public.notifications
+- points_own_write on public.user_points
+- points_read_all on public.user_points
+- presence_own_write on public.user_presence
+- presence_read_auth on public.user_presence
+- profiles_own on public.user_profiles
+- public._is_group_member
+- public.accept_invite
+- public.backup_manifests
+- public.check_user_role
+- public.cleanup_old_notifications
+- public.community_event_attendees
+- public.community_events
+- public.create_community_event
+- public.create_community_group
+- public.daily_user_stats
+- public.delete_community_event
+- public.expire_stale_presence
+- public.finish_session_sync
+- public.get_event_attendees
+- public.get_group_analytics_from_snapshots
+- public.get_group_leaderboard
+- public.get_invite_details
+- public.get_leaderboard
+- public.get_membership_snapshot
+- public.get_my_group_ids
+- public.get_my_role
+- public.group_announcements
+- public.group_challenge_participants
+- public.group_challenges
+- public.group_chat_messages
+- public.group_invites
+- public.group_members
+- public.group_milestones
+- public.groups
+- public.handle_new_user
+- public.handle_new_user_profile
+- public.is_premium_user
+- public.join_community_event
+- public.leave_community_event
+- public.notifications
+- public.purchase_store_item
+- public.rls_auto_enable
+- public.set_group_slug_from_name
+- public.set_user_tours_updated_at
+- public.store_items
+- public.study_sessions_log
+- public.sync_group_member_count
+- public.sync_group_visibility
+- public.sync_items
+- public.sync_user_onboarding_from_profile
+- public.update_community_event
+- public.user_inventory
+- public.user_onboarding
+- public.user_points
+- public.user_presence
+- public.user_profiles
+- public.user_roles
+- public.user_settings
+- public.user_stats_summary
+- public.user_tours
+- public.users
+- sessions_own on public.study_sessions_log
+- stats_own on public.user_stats_summary
+- stats_select_all on public.user_stats_summary
+- store_read_all on public.store_items
+- uroles_own_read on public.user_roles
+- uroles_service_write on public.user_roles
+- users_own on public.users
+- users_read_public on public.users
+- users_select_display on public.users
+- usettings_own on public.user_settings
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 48: id              uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+- 60: updated_at      timestamptz NOT NULL DEFAULT now()
+- 69: ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at      timestamptz NOT NULL DEFAULT now();
+- 78: user_id      uuid        PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+- 80: updated_at   timestamptz NOT NULL DEFAULT now()
+- 83: ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS updated_at   timestamptz NOT NULL DEFAULT now();
+- 86: user_id        uuid    PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+- 89: updated_at     timestamptz NOT NULL DEFAULT now()
+- 93: ALTER TABLE public.user_points ADD COLUMN IF NOT EXISTS updated_at      timestamptz NOT NULL DEFAULT now();
+- 96: user_id             uuid    PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+- 109: updated_at          timestamptz NOT NULL DEFAULT now()
+- 116: ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS updated_at          timestamptz NOT NULL DEFAULT now();
+- 185: user_id         uuid        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+- 189: updated_at      timestamptz NOT NULL DEFAULT now()
+- 193: user_id      uuid PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+- 198: updated_at   timestamptz NOT NULL DEFAULT now()
+- 203: user_id    uuid        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+- 206: updated_at timestamptz NOT NULL DEFAULT now()
+- 211: user_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+- 213: granted_by uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
+- 231: updated_at       timestamptz NOT NULL DEFAULT now(),
+- 238: ON public.backup_manifests(user_id, selected_as_best DESC, score DESC, updated_at DESC);
+- 242: user_id        uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+- 253: deleted_at     timestamptz,
+- 255: updated_at     timestamptz NOT NULL DEFAULT now(),
+- 265: user_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+- 323: deleted_at   timestamptz,
+- 325: updated_at   timestamptz NOT NULL DEFAULT now()
+- 335: ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS updated_at   timestamptz NOT NULL DEFAULT now();
+- 336: ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS deleted_at   timestamptz;
+- 342: UPDATE public.groups SET is_public = (visibility NOT IN ('private','invite_only')) WHERE is_public IS NULL;
+- 343: UPDATE public.groups SET is_public = true WHERE is_public IS NULL;
+- 401: deleted_at   timestamptz,
+- 407: ALTER TABLE public.group_chat_messages ADD COLUMN IF NOT EXISTS deleted_at   timestamptz;
+- 415: UPDATE public.group_chat_messages SET user_id = sender_id WHERE user_id IS NULL AND sender_id IS NOT NULL;
+- 445: UPDATE public.group_invites SET token = invite_code WHERE token IS NULL AND invite_code IS NOT NULL;
+- 453: UPDATE public.group_invites SET invite_code = token     WHERE invite_code IS NULL AND token IS NOT NULL;
+- 454: UPDATE public.group_invites SET token       = invite_code WHERE token IS NULL AND invite_code IS NOT NULL;
+- 541: updated_at     timestamptz NOT NULL DEFAULT now(),
+- 543: creator_id     uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
+- 544: host_user_id   uuid        REFERENCES auth.users(id) ON DELETE SET NULL
+- 559: ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS updated_at     timestamptz NOT NULL DEFAULT now();
+- 560: ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS creator_id     uuid        REFERENCES auth.users(id) ON DELETE SET NULL;
+- 561: ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS host_user_id   uuid        REFERENCES auth.users(id) ON DELETE SET NULL;
+- 564: event_id  uuid        NOT NULL REFERENCES public.community_events(id) ON DELETE CASCADE,
+- 565: user_id   uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+- 583: FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+- 586: FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+- 589: FOREIGN KEY (challenge_id) REFERENCES public.group_challenges(id) ON DELETE CASCADE;
+- 624: CREATE INDEX IF NOT EXISTS idx_presence_updated_at ON public.user_presence (updated_at DESC);
+- 652: CREATE INDEX IF NOT EXISTS idx_groups_del          ON public.groups (deleted_at) WHERE deleted_at IS NULL;
+- 807: DROP POLICY IF EXISTS "user_onboarding_insert_own" ON public.user_onboarding;
+- 808: DROP POLICY IF EXISTS "user_onboarding_update_own" ON public.user_onboarding;
+- 810: CREATE POLICY "user_onboarding_insert_own" ON public.user_onboarding FOR INSERT WITH CHECK (auth.uid() = user_id);
+- 811: CREATE POLICY "user_onboarding_update_own" ON public.user_onboarding FOR UPDATE
+- 830: DROP POLICY IF EXISTS backup_manifests_insert_own ON public.backup_manifests;
+- 831: DROP POLICY IF EXISTS backup_manifests_update_own ON public.backup_manifests;
+- 832: DROP POLICY IF EXISTS backup_manifests_delete_own ON public.backup_manifests;
+- 835: CREATE POLICY backup_manifests_insert_own ON public.backup_manifests
+- 836: FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()) AND split_part(path, '/', 1) = (SELECT auth.uid())::text);
+- 837: CREATE POLICY backup_manifests_update_own ON public.backup_manifests
+- 838: FOR UPDATE USING (user_id = (SELECT auth.uid()))
+- 840: CREATE POLICY backup_manifests_delete_own ON public.backup_manifests
+- 841: FOR DELETE USING (user_id = (SELECT auth.uid()));
+- 845: DROP POLICY IF EXISTS "sync_items_insert_own" ON public.sync_items;
+- 846: DROP POLICY IF EXISTS "sync_items_update_own" ON public.sync_items;
+- 847: DROP POLICY IF EXISTS "sync_items_delete_own" ON public.sync_items;
+- 850: CREATE POLICY "sync_items_insert_own" ON public.sync_items
+- 851: FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()));
+- 852: CREATE POLICY "sync_items_update_own" ON public.sync_items
+- 853: FOR UPDATE USING (user_id = (SELECT auth.uid()));
+- 854: CREATE POLICY "sync_items_delete_own" ON public.sync_items
+- 855: FOR DELETE USING (user_id = (SELECT auth.uid()));
+- 875: FOR SELECT USING (is_public = true AND deleted_at IS NULL);
+- 879: DROP POLICY IF EXISTS groups_auth_insert  ON public.groups;
+- 880: DROP POLICY IF EXISTS groups_owner_update ON public.groups;
+- 881: DROP POLICY IF EXISTS groups_owner_delete ON public.groups;
+- 884: CREATE POLICY groups_auth_insert ON public.groups
+- 885: FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+- 893: DROP POLICY IF EXISTS gm_insert       ON public.group_members;
+- 894: DROP POLICY IF EXISTS gm_own_delete   ON public.group_members;
+- 895: DROP POLICY IF EXISTS gm_owner_update ON public.group_members;
+- 900: CREATE POLICY gm_insert ON public.group_members
+- 901: FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+- 907: DROP POLICY IF EXISTS gchat_insert      ON public.group_chat_messages;
+- 908: DROP POLICY IF EXISTS gchat_delete_own  ON public.group_chat_messages;
+- 912: FOR INSERT WITH CHECK (
+- 918: CREATE POLICY gchat_delete_own ON public.group_chat_messages
+- 919: FOR UPDATE USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
+- 924: DROP POLICY IF EXISTS ginv_delete ON public.group_invites;
+- 931: FOR INSERT WITH CHECK (
+- 938: CREATE POLICY ginv_delete ON public.group_invites
+- 939: FOR DELETE USING (created_by = (SELECT auth.uid()));
+- 956: DROP POLICY IF EXISTS gchall_insert ON public.group_challenges;
+- 957: DROP POLICY IF EXISTS gchall_update ON public.group_challenges;
+- 1029: AND g.deleted_at IS NULL
+- 1049: INSERT INTO public.group_members (group_id, user_id, role) VALUES (v_invite.group_id, v_uid, 'member')
+- 1051: UPDATE public.group_invites SET
+- 1161: IF p_action = 'delete' THEN
+- 1162: DELETE FROM public.study_sessions_log WHERE id = p_session_id AND user_id = v_uid;
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 222: path             text        NOT NULL,
+- 233: CHECK (split_part(path, '/', 1) = user_id::text)
+- 236: ON public.backup_manifests(bucket, path);
+- 836: FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()) AND split_part(path, '/', 1) = (SELECT auth.uid())::text);
+- 839: WITH CHECK (user_id = (SELECT auth.uid()) AND split_part(path, '/', 1) = (SELECT auth.uid())::text);
+- 1738: -- alternative path useful for server-side / admin scripts.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 4: -- Single authoritative SQL file for a fresh Supabase project.
+- 17: -- Run order: run this file once in Supabase SQL Editor, then
+- 1516: -- ── §15. Supabase Realtime — publish key tables ───────────────────────────────
+- 1519: BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.group_chat_messages;        EXCEPTION WHEN OTHERS THEN NULL; END;
+- 1520: BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.user_presence;              EXCEPTION WHEN OTHERS THEN NULL; END;
+- 1521: BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;              EXCEPTION WHEN OTHERS THEN NULL; END;
+- 1522: BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.community_events;           EXCEPTION WHEN OTHERS THEN NULL; END;
+- 1523: BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.community_event_attendees;  EXCEPTION WHEN OTHERS THEN NULL; END;
+- 1524: BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.groups;                     EXCEPTION WHEN OTHERS THEN NULL; END;
+- 1525: BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.group_members;              EXCEPTION WHEN OTHERS THEN NULL; END;
+- 1526: BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.user_settings;              EXCEPTION WHEN OTHERS THEN NULL; END;
+- 1527: BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.user_tours;               EXCEPTION WHEN OTHERS THEN NULL; END;
+- 1626: -- These functions exist in the live Supabase project (confirmed via pg_proc audit).
+- 1737: -- NOTE: frontend uses direct .from("groups").insert() — this RPC is an
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Large text/code file; focused tests and decomposition would reduce regression risk.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0267-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: isotope-complete.sql inspected; no file-specific high-risk issue confirmed
+  observed evidence: isotope-complete.sql inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/PULL_REQUEST_TEMPLATE.md, .github/labeler.yml, .github/workflows/ci.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

@@ -1,0 +1,266 @@
+FILE IDENTITY
+
+- original path: public/sync/backup-normalizer.js
+- audit path: audit/public/sync/backup-normalizer.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 13822
+- SHA-256: 3af42f63a3324bc124a54317407d7ec6c493e0c0ce6e2d04df8a9ecebf4e4ef1
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: offline/sync/backup
+- primary auditor: offline-pwa-sync-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Browser-side sync/local-data support module used by restore, backup, or cloud synchronization flows.
+
+ROLE IN THE APPLICATION
+
+- subsystem: offline/sync/backup
+- runtime stage: browser/runtime or static serving
+- user-visible feature: sync/backup/restore
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/ci.yml:102 - public/sync/backup-normalizer.js
+- .github/workflows/ci.yml:129 - } from './public/sync/backup-normalizer.js';
+- .github/workflows/ci.yml:214 - public/sync/backup-normalizer.js
+- .github/workflows/ci.yml:335 - for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql
+- .github/workflows/regenerate-release.yml:59 - node --check public/sync/backup-normalizer.js
+- .github/workflows/regenerate-release.yml:97 - public/sync/backup-normalizer.js
+- .github/workflows/release.yml:56 - node --check public/sync/backup-normalizer.js
+- .github/workflows/release.yml:174 - public/sync/backup-normalizer.js
+- README.md:340 - node --check public/sync/backup-normalizer.js
+- index.html:44 - <script type="module" src="/sync/backup-normalizer.js"></script>
+- public/sw.js:26 - '/sync/backup-normalizer.js',
+- public/sync/local-data-adapter.js:8 - } from './backup-normalizer.js';
+- scripts/validate-backup-files.mjs:4 - import { normalizeAnyBackup } from '../public/sync/backup-normalizer.js';
+- server.mjs:13 - } from './public/sync/backup-normalizer.js';
+- server/backup-manager.mjs:11 - } from '../public/sync/backup-normalizer.js';
+
+INTERNAL STRUCTURE
+
+- line count: 426
+- imports:
+None observed.
+- exports:
+- 413: export {
+- functions/async flows:
+- 35: function parseJsonInput(input) {
+- 42: function stableStringify(value) {
+- 50: function hashTextFallback(text) {
+- 54: for (let i = 0; i < str.length; i += 1) {
+- 65: function dataSizeBytes(value) {
+- 75: function cleanObject(value) {
+- 79: function cleanArray(value) {
+- 83: function emptyDataShape() {
+- 98: function normalizeDataShape(...sources) {
+- 100: for (const source of sources) {
+- 106: for (const key of ARRAY_COLLECTION_KEYS) {
+- 114: function meaningfulTimestamp(value) {
+- 120: function getLatestRecordTimestamp(data) {
+- 123: for (const key of ARRAY_COLLECTION_KEYS) {
+- 124: for (const item of normalized[key]) {
+- 134: function getCollectionCounts(normalizedOrRaw) {
+- 150: function isCountsRich(counts, sizeBytes = 0) {
+- 156: function isCountsEmpty(counts) {
+- 161: function richScoreFromCounts(counts, sizeBytes = 0) {
+- 176: function normalizeAnyBackup(input, meta = {}) {
+- 178: if (!raw || typeof raw !== 'object') {
+- 242: function getBackupData(normalizedOrRaw) {
+- 246: if (normalizedOrRaw && normalizedOrRaw.collection_counts && normalizedOrRaw.raw) {
+- 252: function hashBackup(normalizedOrRaw) {
+- 257: function isBackupRich(normalized) {
+- 262: function isBackupEmpty(normalized) {
+- 267: function candidateTime(candidate) {
+- 276: function compareBackupCandidates(a, b) {
+- 300: function latestRecordTime(record) {
+- 304: function mergeById(localRecords, cloudRecords) {
+- 306: const push = (record, source) => {
+- 309: if (!id) {
+- 314: if (!existing) {
+- 320: if (!existingTime || incomingTime >= existingTime) {
+- 329: function nonEmptyObjectMerge(base, overlay) {
+- 333: if (value === null || value === '') {
+- 346: function mergeBackupData(local, cloud) {
+- 351: for (const key of ARRAY_COLLECTION_KEYS) {
+- 358: if (localTimer && cloudTimer) {
+- 366: function buildCanonicalBackupPayload(normalizedOrRaw, options = {}) {
+- 377: function buildCloudSnapshotMirror(userId, normalizedOrRaw, options = {}) {
+- 396: if (typeof window !== 'undefined') {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 1: const COLLECTION_KEYS = [
+- 14: const ARRAY_COLLECTION_KEYS = [
+- 25: const RICH_COLLECTION_KEYS = [
+- 37: const text = input.trim();
+- 51: let h1 = 2166136261;
+- 52: let h2 = 16777619;
+- 53: const str = String(text || '');
+- 55: const code = str.charCodeAt(i);
+- 99: const out = emptyDataShape();
+- 102: const profile = cleanObject(source.profile) || cleanObject(source.userProfile) || cleanObject(source.profile_data);
+- 103: const timerState = cleanObject(source.timerState) || cleanObject(source.timer_state);
+- 107: const incoming = cleanArray(source[key]);
+- 116: const time = new Date(value).getTime();
+- 121: const normalized = normalizeDataShape(data);
+- 122: let latest = meaningfulTimestamp(normalized.profile?.updatedAt || normalized.profile?.updated_at);
+- 135: const data = getBackupData(normalizedOrRaw);
+- 152: const realCollectionCount = ARRAY_COLLECTION_KEYS.reduce((sum, key) => sum + Number(counts[key] || 0), 0);
+- 162: const weighted =
+- 177: const raw = parseJsonInput(input);
+- 191: const localBackup = cleanObject(raw.local_backup);
+- 192: const localBackupData = cleanObject(localBackup?.data);
+- 193: const rawData = cleanObject(raw.data);
+- 194: const backupData = cleanObject(raw.backup_data);
+- 195: const localCollections = cleanObject(raw.local_collections);
+- 196: const profileData = cleanObject(raw.profile_data);
+- 197: const data = normalizeDataShape(
+- 204: const kind = raw.schema_version === 1
+- 207: const exportedAt = raw.exported_at
+- 214: const appVersion = raw.app_version || raw.appVersion || localBackup?.appVersion || null;
+- 215: const size = Number(meta.size_bytes || meta.size || 0) || dataSizeBytes(input);
+- 216: const counts = getCollectionCounts({ data });
+- 217: const meaningfulDataAt = getLatestRecordTimestamp(data);
+- 218: const normalized = {
+- 253: const value = normalizedOrRaw?.raw || normalizedOrRaw;
+- 258: const n = normalized?.collection_counts ? normalized : normalizeAnyBackup(normalized);
+- 263: const n = normalized?.collection_counts ? normalized : normalizeAnyBackup(normalized);
+- 277: const left = a?.normalized || a;
+- 278: const right = b?.normalized || b;
+- 288: const timeDelta = candidateTime(left) - candidateTime(right);
+- 291: const scoreDelta = Number(left.rich_score || 0) - Number(right.rich_score || 0);
+- 294: const sizeDelta = Number(left.size_bytes || left.size || 0) - Number(right.size_bytes || right.size || 0);
+- 305: const out = new Map();
+- 306: const push = (record, source) => {
+- 308: const id = record.id || record._id || null;
+- 313: const existing = out.get(id);
+- 318: const existingTime = latestRecordTime(existing);
+- 319: const incomingTime = latestRecordTime(record);
+- 330: const out = { ...(base || {}) };
+- 347: const localData = getBackupData(local || {});
+- 348: const cloudData = getBackupData(cloud || {});
+- 349: const merged = emptyDataShape();
+- 356: const localTimer = localData.timerState;
+- 357: const cloudTimer = cloudData.timerState;
+- 367: const normalized = normalizedOrRaw?.collection_counts ? normalizedOrRaw : normalizeAnyBackup(normalizedOrRaw, options);
+- 378: const backup = buildCanonicalBackupPayload(normalizedOrRaw, options);
+- 379: const normalized = normalizeAnyBackup(backup, options);
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ARRAY_COLLECTION_KEYS: classification=secret; required=unknown from static map; inspect use locations; uses=public/sync/backup-normalizer.js:14, public/sync/backup-normalizer.js:106, public/sync/backup-normalizer.js:123, public/sync/backup-normalizer.js:152, public/sync/backup-normalizer.js:157, public/sync/backup-normalizer.js:219, public/sync/backup-normalizer.js:351, public/sync/backup-normalizer.js:399, public/sync/backup-normalizer.js:415
+- COLLECTION_KEYS: classification=secret; required=unknown from static map; inspect use locations; uses=public/sync/backup-normalizer.js:1, public/sync/backup-normalizer.js:14, public/sync/backup-normalizer.js:25, public/sync/backup-normalizer.js:106, public/sync/backup-normalizer.js:123, public/sync/backup-normalizer.js:151, public/sync/backup-normalizer.js:152, public/sync/backup-normalizer.js:157, public/sync/backup-normalizer.js:219, public/sync/backup-normalizer.js:243, public/sync/backup-normalizer.js:351, public/sync/backup-normalizer.js:398
+- RICH_COLLECTION_KEYS: classification=secret; required=unknown from static map; inspect use locations; uses=public/sync/backup-normalizer.js:25, public/sync/backup-normalizer.js:151
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 122: let latest = meaningfulTimestamp(normalized.profile?.updatedAt || normalized.profile?.updated_at);
+- 127: meaningfulTimestamp(item.updatedAt || item.updated_at || item.lastModified || item.createdAt || item.created_at),
+- 212: || meta.updated_at
+- 231: updated_at: meta.updated_at || null,
+- 271: meaningfulTimestamp(candidate.updated_at),
+- 301: return meaningfulTimestamp(record?.updatedAt || record?.updated_at || record?.lastModified || record?.createdAt || record?.created_at);
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 187: source_path: meta.source_path || meta.path || null,
+- 229: source_path: meta.source_path || meta.path || null,
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 397: window.IsotopeBackupNormalizer = {
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 326: return Array.from(out.values());
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0530-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/sync/backup-normalizer.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/sync/backup-normalizer.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/ci.yml, .github/workflows/ci.yml, .github/workflows/ci.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Browser-side sync/local-data support module used by restore, backup, or cloud synchronization flows.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

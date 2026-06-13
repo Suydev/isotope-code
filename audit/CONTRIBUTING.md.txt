@@ -1,0 +1,178 @@
+FILE IDENTITY
+
+- original path: CONTRIBUTING.md
+- audit path: audit/CONTRIBUTING.md.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: markdown
+- MIME type: text/markdown
+- size in bytes: 3426
+- SHA-256: 7d5ca0a1227d44c7689043b340faa0b6758c1ee345f0d74c53d164e36d844884
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: documentation
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: documentation
+- runtime stage: development, installation, or documentation
+- user-visible feature: documentation
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/welcome.yml:43 - - 📖 Check [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) for guidelines
+
+INTERNAL STRUCTURE
+
+- line count: 113
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- CHANGELOG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:17, .github/workflows/ci.yml:209, .github/workflows/release.yml:70, .github/workflows/release.yml:71, .github/workflows/release.yml:73, .github/workflows/release.yml:78, .github/workflows/release.yml:80, .github/workflows/release.yml:92, .github/workflows/release.yml:94, .github/workflows/release.yml:138, .github/workflows/release.yml:140, .github/workflows/release.yml:145
+- CLI: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CONTRIBUTING.md:44, CONTRIBUTING.md:45, TERMUX_WIDGET.md:90, TERMUX_WIDGET.md:126, TERMUX_WIDGET.md:138, bin/isotope:2, bin/isotope:14, bin/isotope:483, bin/isotope:653, docs/supabase-connection-map.md:30, scripts/capture-screenshots.mjs:28, setup.sh:11
+- CREATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:258, .github/workflows/ci.yml:259, .github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:47, .github/workflows/schema-lint.yml:48, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:50, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:88, .github/workflows/schema-lint.yml:89, .github/workflows/schema-lint.yml:90, .github/workflows/schema-lint.yml:91
+- DEFINER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:73, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:75, ADMIN.md:197, ADMIN.md:232, ADMIN.md:488, CHANGELOG.md:476, CHANGELOG.md:493, CHANGELOG.md:575, CONTRIBUTING.md:105, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, community-patch-v4.sql:514
+- DROP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:63, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:65, .github/workflows/schema-lint.yml:66, .github/workflows/schema-lint.yml:67, .github/workflows/schema-lint.yml:69, .github/workflows/schema-lint.yml:142, CHANGELOG.md:129, CHANGELOG.md:173, CHANGELOG.md:401, CHANGELOG.md:403, CHANGELOG.md:410
+- EXISTS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:63, .github/workflows/schema-lint.yml:64, .github/workflows/schema-lint.yml:66, .github/workflows/schema-lint.yml:69, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125
+- NOT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:14, .github/PULL_REQUEST_TEMPLATE.md:15, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125, CHANGELOG.md:96, CHANGELOG.md:269
+- POLICY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:260, .github/workflows/schema-lint.yml:49, .github/workflows/schema-lint.yml:64, CONTRIBUTING.md:55, community-patch-v4.sql:909, community-patch-v4.sql:912, community-patch-v4.sql:918, community-patch-v4.sql:924, community-patch-v4.sql:927, community-patch-v4.sql:933, community-patch-v4.sql:936, community-patch-v4.sql:942
+- REPLACE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:259, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, CHANGELOG.md:129, CHANGELOG.md:403, CONTRIBUTING.md:54, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:20, artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:10, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- SECURITY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:73, .github/workflows/schema-lint.yml:74, .github/workflows/schema-lint.yml:75, ADMIN.md:197, ADMIN.md:232, ADMIN.md:488, CHANGELOG.md:476, CHANGELOG.md:493, CHANGELOG.md:575, CONTRIBUTING.md:105, community-patch-v4.sql:514, community-patch-v4.sql:529
+- YOUR_USERNAME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CONTRIBUTING.md:11
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- https://github.com/Suydev/isotope-code/issues/new?template=bug_report.md
+- https://github.com/Suydev/isotope-code/issues/new?template=feature_request.md
+- https://github.com/YOUR_USERNAME/isotope-code.git
+- browser storage:
+- 68: □ → clear localStorage + IndexedDB (DevTools → Application → Storage → Clear)
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 20: git checkout -b docs/update-readme     # for documentation
+- 30: 4. **Update `isotope-complete.sql`** if you add/change any DB table, column, index, RLS, trigger, or function
+- 43: | `public/update-checker.js` | In-app update banner |
+- 46: | `CHANGELOG.md` | All notable changes — update this with your PR |
+- 55: 2. Also update any relevant `DROP POLICY IF EXISTS` / `CREATE POLICY` blocks
+- 68: □ → clear localStorage + IndexedDB (DevTools → Application → Storage → Clear)
+- 103: - No `console.log` in server code — use `req.log` in routes
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 11: git clone https://github.com/YOUR_USERNAME/isotope-code.git
+- 83: Use the **[Bug Report template](https://github.com/Suydev/isotope-code/issues/new?template=bug_report.md)**.
+- 96: Use the **[Feature Request template](https://github.com/Suydev/isotope-code/issues/new?template=feature_request.md)**.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 68: □ → clear localStorage + IndexedDB (DevTools → Application → Storage → Clear)
+- operating-system commands:
+- 9: ```bash
+- 11: git clone https://github.com/YOUR_USERNAME/isotope-code.git
+- 15: bash setup.sh
+- 18: git checkout -b fix/your-description   # for bug fixes
+- 19: git checkout -b feat/your-feature      # for new features
+- 20: git checkout -b docs/update-readme     # for documentation
+- Supabase interfaces:
+- 29: 3. **Never fake sync success** — "Synced ✓" means the Supabase row actually changed
+- 31: 5. **Test sync end-to-end**: browser action → Supabase row/storage → clear browser cache → login again → data restores
+- 39: | `server.mjs` | Main Node.js server — all routes and Supabase proxying |
+- 40: | `isotope-complete.sql` | Authoritative DB schema — idempotent, run on fresh Supabase |
+- 56: 3. Test it by running `isotope-complete.sql` on a clean Supabase project
+- 67: □ → Supabase row/storage actually changed (check Supabase Table Editor)
+- 70: □ → data restored correctly from Supabase
+- external services: https://github.com/Suydev/isotope-code/issues/new?template=bug_report.md, https://github.com/Suydev/isotope-code/issues/new?template=feature_request.md, https://github.com/YOUR_USERNAME/isotope-code.git
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0022-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: CONTRIBUTING.md inspected; no file-specific high-risk issue confirmed
+  observed evidence: CONTRIBUTING.md inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/welcome.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

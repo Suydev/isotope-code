@@ -1,0 +1,5 @@
+Documentation drift
+
+- Compare README/ADMIN/docs claims against server.mjs route-map, package scripts, and browser runtime files.
+- Branch is ahead of origin/main by one commit at initial capture; remote docs may not reflect local runtime/cache/sync fixes until pushed.
+- Per-document drift notes are in individual audit files.

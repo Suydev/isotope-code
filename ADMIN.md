@@ -303,6 +303,47 @@ Rate limits:
 - Signup: 5 attempts per IP per 60 seconds
 - Login: 10 attempts per IP per 60 seconds
 
+### Runtime login bridge and cache troubleshooting
+
+`/auth-bridge.js` is loaded synchronously from `index.html` before the React app starts. It defines `window.__isoLogin(email, password)` and `window.__isoUp(email, password)` for patched or stale Auth bundles that call those globals.
+
+Do not test those globals in the Node REPL. Node has no `window`. Use the browser console on `/auth`:
+
+```js
+typeof window.__isoLogin
+typeof window.__isoUp
+```
+
+Both should return `"function"`. For a Node smoke test, run:
+
+```bash
+npm run test:auth-bridge
+```
+
+For cache/load-order proof against a running server, run:
+
+```bash
+npm run test:runtime-glue
+```
+
+For an end-to-end Supabase Auth + private `user-content` Storage sync proof, run:
+
+```bash
+npm run test:supabase-sync
+```
+
+If a stale PWA cache serves old runtime JavaScript, clear browser caches and reload:
+
+```js
+caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload())
+```
+
+If the header sync button returns `Authentication required`, the app has no valid Supabase JWT for cloud sync. Sign out, sign in again through `/auth`, then confirm in the browser console:
+
+```js
+typeof window.__isoGetValidJwt
+```
+
 ---
 
 ## 7. API Endpoints
@@ -391,6 +432,13 @@ This allows AI features to use server-configured API keys without them appearing
 | `GROQ_API_KEY` | Optional | _(none)_ | AI text features (Groq/LLaMA) |
 | `GEMINI_API_KEY` | Optional | _(none)_ | AI text features (Gemini) |
 | `PORT` | Auto | `3000` | HTTP server port (set by the local runtime) |
+
+Setup env file behavior:
+- `.env` is preferred.
+- `yeh.env` is copied to `.env` when `.env` is missing.
+- `ISOTOPE_ENV_FILE` is supported, copied to `.env`, and then used.
+- Existing values are preserved. Setup does not overwrite Supabase values or blank out `ENABLE_ADMIN_MODE`.
+- Missing `ENABLE_ADMIN_MODE` is set to `false`.
 
 ### Startup warnings
 

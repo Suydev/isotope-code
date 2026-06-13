@@ -1,0 +1,183 @@
+FILE IDENTITY
+
+- original path: docs/supabase-connection-map.md
+- audit path: audit/docs/supabase-connection-map.md.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: markdown
+- MIME type: text/markdown
+- size in bytes: 6456
+- SHA-256: b391d417bc9a5180b9bea336ca71f232167763591b4b9f3bd36151990ab7ab6b
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: documentation
+- primary auditor: sql-supabase-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: documentation
+- runtime stage: development, installation, or documentation
+- user-visible feature: documentation
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/ci.yml:213 - docs/supabase-connection-map.md
+- .github/workflows/ci.yml:335 - for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql
+- .github/workflows/regenerate-release.yml:111 - docs/supabase-connection-map.md
+- .github/workflows/release.yml:187 - docs/supabase-connection-map.md
+- docs/admin.html:125 - <p>More detail: <a href="https://github.com/Suydev/isotope-code/blob/main/ADMIN.md">ADMIN.md</a> and <a href="./supabase-connection-map.md">Supabase connection map</a>.</p>
+- docs/assets/site.js:72 - { title: 'Supabase connection map', desc: 'Tables, buckets, policies, and callers', href: './supabase-connection-map.md', tag: 'schema' },
+- docs/index.md:24 - - [Supabase connection map](./supabase-connection-map.md)
+
+INTERNAL STRUCTURE
+
+- line count: 47
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- CLI: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CONTRIBUTING.md:44, CONTRIBUTING.md:45, TERMUX_WIDGET.md:90, TERMUX_WIDGET.md:126, TERMUX_WIDGET.md:138, bin/isotope:2, bin/isotope:14, bin/isotope:483, bin/isotope:653, docs/supabase-connection-map.md:30, scripts/capture-screenshots.mjs:28, setup.sh:11
+- E2E: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/supabase-connection-map.md:9, docs/supabase-connection-map.md:13
+- PAT: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:38, .env.example:39, ADMIN.md:40, ADMIN.md:213, ADMIN.md:220, ADMIN.md:427, ADMIN.md:499, docs/admin.html:118, docs/supabase-connection-map.md:29, performance-indexes.sql:6, scripts/validate-docs.mjs:118, scripts/validate-docs.mjs:119
+- REST: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:188, CHANGELOG.md:81, CHANGELOG.md:232, CHANGELOG.md:252, CHANGELOG.md:349, CHANGELOG.md:376, CHANGELOG.md:378, CHANGELOG.md:483, artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:8, community-patch-v4.sql:607, community-patch-v4.sql:2378, docs/supabase-connection-map.md:25
+- RPC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=ADMIN.md:11, ADMIN.md:127, ADMIN.md:151, ADMIN.md:153, ADMIN.md:176, ADMIN.md:233, ADMIN.md:234, ADMIN.md:258, ADMIN.md:379, ADMIN.md:490, CHANGELOG.md:135, CHANGELOG.md:148
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+- 13: | Focus completion | Focus/session bundles | `sessionSync-mloIEnTd.js` patched | `isotope_sessions_v2`, IndexedDB `sessions` | Supabase proxy/RPC | `finish_session_sync`, `study_sessions_log`, stats tables | user JWT | pending queue local | RPC updates stats |
+- 15: | Tasks | Tasks bundle/store | local DB store | IndexedDB `tasks`, `isotope_tasks_v2` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- 16: | Subjects/chapters/topics | Syllabus/store | local DB store | IndexedDB `subjects`, `isotope_subjects_v2` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- 17: | Timer state | Focus store | timer persistence | IndexedDB `timerState`, `isotope_timer_state` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | timer restore test |
+- 18: | Habits | Habits/analytics store | local DB store | IndexedDB `habits`, `isotope_habits_v2` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- 19: | Exams/tests/mock tests | Exams/test stores | local DB store | IndexedDB `exams/tests/mockTests` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 3: This is the current audited connection summary for Supabase-backed features.
+- 11: | Avatar upload/delete | Settings patched by `server.mjs` | profile save with data URL/null | `isotope_user_profile_v2` | `/__auth/profile` | `avatars` bucket | user JWT | local avatar remains | upload/delete own path | partial | duplicate cleanup proof |
+- 13: | Focus completion | Focus/session bundles | `sessionSync-mloIEnTd.js` patched | `isotope_sessions_v2`, IndexedDB `sessions` | Supabase proxy/RPC | `finish_session_sync`, `study_sessions_log`, stats tables | user JWT | pending queue local | RPC updates stats |
+- 15: | Tasks | Tasks bundle/store | local DB store | IndexedDB `tasks`, `isotope_tasks_v2` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- 16: | Subjects/chapters/topics | Syllabus/store | local DB store | IndexedDB `subjects`, `isotope_subjects_v2` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- 17: | Timer state | Focus store | timer persistence | IndexedDB `timerState`, `isotope_timer_state` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | timer restore test |
+- 18: | Habits | Habits/analytics store | local DB store | IndexedDB `habits`, `isotope_habits_v2` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- 19: | Exams/tests/mock tests | Exams/test stores | local DB store | IndexedDB `exams/tests/mockTests` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- 20: | Backup export | Settings | `__isoUploadBackupJSON` | full local backup | `/__auth/backup` | `user-content/backups/*` | user JWT | export file local | uploads canonical if safe | fixed | `prove-new-browser-restore` |
+- 22: | Smart sync | Settings/useSyncStore | `__isoRunManualCloudSync` | `isotope_sync_metadata` | `/__auth/backup/best`, `/__auth/restore-best-backup`, `/__auth/backup` | Storage backups | user JWT | skips offline | restore-first then upload | fixed for overwrite |
+- 29: | GitHub update check | update checker | browser fetch | none | `/api/check-update` | GitHub API | none/PAT server env | skips offline | no Supabase | local_only_intentional: true | smoke |
+- 30: | Install/update scripts | shell scripts | CLI | `.isotope` files | none | optional Supabase env | local shell | local | no app sync | local_only_intentional: true | bash -n |
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 11: | Avatar upload/delete | Settings patched by `server.mjs` | profile save with data URL/null | `isotope_user_profile_v2` | `/__auth/profile` | `avatars` bucket | user JWT | local avatar remains | upload/delete own path | partial | duplicate cleanup proof |
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 7: | Auth | `Auth-Cw0VAaCZ.js` patched by `server.mjs` | `window.__isoLogin`, `window.__isoUp` | Supabase session keys, `isotope-auth-token` | `/__auth/login`, `/__auth/signup` | `auth.users`, `public.users` | anon + user JWT | cached session restored | bootstrap
+- 26: | Notifications | notification store | Supabase/local store | `useNotificationStore` | `/__supa/*` | `notifications` | user JWT | local cache | REST/realtime | untested | notification test |
+- operating-system commands:
+- 30: | Install/update scripts | shell scripts | CLI | `.isotope` files | none | optional Supabase env | local shell | local | no app sync | local_only_intentional: true | bash -n |
+- Supabase interfaces:
+- 1: # Supabase Connection Map
+- 3: This is the current audited connection summary for Supabase-backed features.
+- 5: | Feature | UI/component | Frontend function/store | Local cache | Server endpoint | Supabase object | Auth type | Offline behavior | Sync behavior | Status | Fix/test required |
+- 7: | Auth | `Auth-Cw0VAaCZ.js` patched by `server.mjs` | `window.__isoLogin`, `window.__isoUp` | Supabase session keys, `isotope-auth-token` | `/__auth/login`, `/__auth/signup` | `auth.users`, `public.users` | anon + user JWT | cached session restored | bootstrap
+- 13: | Focus completion | Focus/session bundles | `sessionSync-mloIEnTd.js` patched | `isotope_sessions_v2`, IndexedDB `sessions` | Supabase proxy/RPC | `finish_session_sync`, `study_sessions_log`, stats tables | user JWT | pending queue local | RPC updates stats |
+- 25: | Groups/community | Community bundles | group hooks | group cache | `/__supa/*`, RPCs | `groups`, `group_members`, chat/invites/challenges | user JWT/service proxy in admin mode | online-required | Supabase realtime/REST | untested in this pass | Phase 19 ful
+- 26: | Notifications | notification store | Supabase/local store | `useNotificationStore` | `/__supa/*` | `notifications` | user JWT | local cache | REST/realtime | untested | notification test |
+- 29: | GitHub update check | update checker | browser fetch | none | `/api/check-update` | GitHub API | none/PAT server env | skips offline | no Supabase | local_only_intentional: true | smoke |
+- 30: | Install/update scripts | shell scripts | CLI | `.isotope` files | none | optional Supabase env | local shell | local | no app sync | local_only_intentional: true | bash -n |
+- 32: ## Required Supabase Objects
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0258-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: docs/supabase-connection-map.md inspected; no file-specific high-risk issue confirmed
+  observed evidence: docs/supabase-connection-map.md inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/ci.yml, .github/workflows/ci.yml, .github/workflows/regenerate-release.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

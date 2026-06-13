@@ -1,0 +1,198 @@
+FILE IDENTITY
+
+- original path: public/assets/useOnlineStatus-BJOTUERN.js
+- audit path: audit/public/assets/useOnlineStatus-BJOTUERN.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 613
+- SHA-256: 47ba4a46b7bd6ab67f4b4bafb48ab155d9e3c9b77a1a070df6c5e171f9a14cfb
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3322 - "file": "useOnlineStatus-BJOTUERN.js",
+- artifacts/asset-diff/asset-report.json:3325 - "remote_url": "https://isotopeai.in/assets/useOnlineStatus-BJOTUERN.js",
+- artifacts/asset-diff/local-assets.txt:185 - useOnlineStatus-BJOTUERN.js
+- artifacts/asset-diff/summary.md:22 - | useOnlineStatus-BJOTUERN.js | 613 | 407 | 200 |
+- public/assets/AIWeeklySummary-fVbvFqu3.js:1 - import{j as s}from"./vendor-react-BfU3Zn2J.js";import{A as E}from"./AIAnalysisCard-qrpOk1g6.js";import{u as f,f as z}from"./useAIStore-B2cv1FZz.js";import{h as C,j as _,f as q,e as p}from"./useFocusStore-CX_Nyp1h.js";import{h as P}from"./Ap
+- public/assets/About-DbJqhVWT.js:1 - import{j as e,f as x}from"./vendor-react-BfU3Zn2J.js";import{N as m,F as p}from"./Navbar-BJMJUymI.js";import{m as s}from"./vendor-motion-Cp_NPzpZ.js";import{S as u,k as g,l as b,m as y,L as f,n as w,f as k,U as j,o as v,p as N,T as z,q as I
+- public/assets/Analytics-D74gQMjN.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJFSVW.js","assets/index-CrO6t5EW.css","assets/App-pJGjDiPw.js
+- public/assets/AnalyticsPeriod-CGXbfYQB.js:1 - import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{A as ae,C as T,X as $,Y as W,T as A,L as X,a as Z,P as pe,c 
+- public/assets/AnalyticsSubjects-DOh8aXlW.js:1 - import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T}from"./timeFormat-CMPo-BX2.js";import{B as D,a as f,T as v,
+- public/assets/AnalyticsToday-BTdRNTb0.js:1 - import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";import{S as V}from"./SafeResponsiveContainer-D7o6DE97.js";impor
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/AppAccessGate-B975UtK7.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-C
+- public/assets/AppAccessGate-B975UtK7.js:11 - } from "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Community-DIqF5406.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-query-Rjz85D0S.js","assets/App-pJGjDiPw.js","
+- public/assets/CommunityHub-gANxZssO.js:2 - import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a as ae,f as G}from"./t
+- public/assets/Dashboard-dypAV-0H.js:102 - import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/ExamDetailPage-q_jDT5_x.js:1 - import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./useFocusStore-CX_Nyp1h.js";import{a as yt,b as dt,T as xt,S as 
+- public/assets/Exams-C3jymPwe.js:118 - import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Focus-BmgY-9vP.js:104 - import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:7 - } from "./useOnlineStatus-BJOTUERN.js";
+- public/assets/InviteOnlineOnlyRoute-CZgdOWgx.js:1 - import{r as u,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as C}from"./useOnlineStatus-BJOTUERN.js";import{Q as H}from"./QueryProvider-DusNhG9D.js";import{c as y,u as A,H as j,I as S,j as N}from"./App-pJGjDiPw.js";import{u as T,a as Z}f
+- public/assets/IsotopeWrapped2-B4zl9ERi.js:1 - import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as re,b0 as oe,cW as ce,b1 as le,am as de,l as G,J as ue,d as 
+- public/assets/Landing-CWRNt7E9.js:53 - import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/NotFound-X23NBnde.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as o}from"./PageLayout-B8yOy6kS.js";import{j as i,H as s}from"./vendor-icons-CqruUz7g.js";import{L as a}from"./vendor-router-CmoTwRnm.js";import"./Navbar-BJMJUymI.js";import"./App-pJGj
+- public/assets/Privacy-ClP3A1gm.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUA
+- public/assets/SettingsLayout-B4OgCkQ5.js:133 - } from "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Study-pAdAenIl.js:118 - import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Subscription-UaefsAtQ.js:46 - } from "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Syllabus-DZSnov0t.js:110 - import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Tasks-BYRFOrek.js:141 - import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Terms-BXixZPB6.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUA
+- public/assets/bootstrap-D1vc155U.js:16 - import "./useOnlineStatus-BJOTUERN.js";
+
+INTERNAL STRUCTURE
+
+- line count: 24
+- imports:
+- 1: import {
+- 3: } from "./vendor-react-BfU3Zn2J.js";
+- exports:
+- 22: export {
+- functions/async flows:
+- 5: function a() {
+- 7: return n.useEffect(() => {
+- 8: const s = () => {
+- 11: o = () => {
+- 14: return window.addEventListener("online", s), window.addEventListener("offline", o), () => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 8: const s = () => {
+- handlers/lifecycle candidates:
+- 14: return window.addEventListener("online", s), window.addEventListener("offline", o), () => {
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+No environment variable names observed.
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 15: window.removeEventListener("online", s), window.removeEventListener("offline", o)
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 1: import {
+- 3: } from "./vendor-react-BfU3Zn2J.js";
+- local files: see References and Consumers above
+- browser APIs:
+- 6: const [r, t] = n.useState(navigator.onLine), [e, i] = n.useState(!1);
+- 14: return window.addEventListener("online", s), window.addEventListener("offline", o), () => {
+- 15: window.removeEventListener("online", s), window.removeEventListener("offline", o)
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0458-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/useOnlineStatus-BJOTUERN.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/useOnlineStatus-BJOTUERN.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 613
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - none found by direct text search

@@ -1,0 +1,202 @@
+FILE IDENTITY
+
+- original path: setup-termux-widget.sh
+- audit path: audit/setup-termux-widget.sh.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: script
+- MIME type: application/x-sh
+- size in bytes: 6912
+- SHA-256: 33f23d51fafe37ac00267d101520cc835b08127bd7aadf9145810309c46d5363
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: installer/platform
+- primary auditor: installer-platform-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+
+ROLE IN THE APPLICATION
+
+- subsystem: installer/platform
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/labeler.yml:42 - - 'setup-termux-widget.sh'
+- .github/workflows/ci.yml:42 - setup-termux-widget.sh \
+- .github/workflows/ci.yml:73 - setup-termux-widget.sh \
+- .github/workflows/ci.yml:192 - setup-termux-widget.sh
+- .github/workflows/ci.yml:273 - bash -n setup-termux-widget.sh
+- TERMUX_WIDGET.md:87 - bash setup-termux-widget.sh
+- TERMUX_WIDGET.md:165 - Run `bash setup-termux-widget.sh` to refresh shortcuts with the current command path.
+- bin/isotope:394 - warn "[warn] shortcut missing: $s (run: bash setup-termux-widget.sh)"
+- bin/isotope:398 - warn "[warn] ~/.shortcuts not found — run: bash setup-termux-widget.sh"
+- bin/isotope:490 - if is_termux && [ -f "$project/setup-termux-widget.sh" ]; then
+- bin/isotope:492 - bash "$project/setup-termux-widget.sh" || warn "Widget refresh had errors."
+- bin/isotope:509 - [ -f "$project/setup-termux-widget.sh" ] \
+- bin/isotope:510 - || fail "setup-termux-widget.sh not found in $project"
+- bin/isotope:512 - bash "$project/setup-termux-widget.sh"
+- bin/isotope:587 - if is_termux && [ -f setup-termux-widget.sh ]; then
+- bin/isotope:589 - bash setup-termux-widget.sh || warn "Widget refresh had errors."
+- scripts/validate-docs.mjs:205 - 'setup-termux-widget.sh',
+- server.mjs:7655 - ok: fileContains('setup-termux-widget.sh', '/data/data/com.termux/files/usr/bin/isotope') && !fileContains('setup-termux-widget.sh', 'command -v isotope >/dev/null 2>&1; then\n    isotope'),
+- setup.sh:422 - bash setup-termux-widget.sh || warn "Widget install had errors. Run: bash setup-termux-widget.sh"
+- setup.sh:424 - info "Skipped Termux Widget shortcuts. Run later: bash setup-termux-widget.sh"
+
+INTERNAL STRUCTURE
+
+- line count: 182
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+- 9: info() { printf '%s\n' "$*"; }
+- 10: warn() { printf 'WARN: %s\n' "$*" >&2; }
+- 41: make_shortcut() {
+- 56: run_isotope() {
+- 79: make_task() {
+- 94: run_isotope() {
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BASH_SOURCE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, doctor.sh:5, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup-termux-widget.sh:17, start.sh:5, update.sh:4
+- GLOBAL_ISO: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=setup-termux-widget.sh:31, setup-termux-widget.sh:33, setup-termux-widget.sh:35, setup-termux-widget.sh:37, setup-termux-widget.sh:61, setup-termux-widget.sh:62, setup-termux-widget.sh:99, setup-termux-widget.sh:100, setup-termux-widget.sh:162, setup-termux-widget.sh:164
+- HOME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:20, bin/isotope:21, bin/isotope:22, bin/isotope:23, bin/isotope:24, bin/isotope:47, bin/isotope:73, bin/isotope:180, bin/isotope:387, install-termux.sh:15, install-termux.sh:16
+- ISOTOPE_PROJECT_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:60, bin/isotope:61, bin/isotope.bat:41, bin/isotope.bat:42, bin/isotope.bat:43, doctor.sh:6, setup-termux-widget.sh:66, setup-termux-widget.sh:104, start.sh:6, update.sh:5
+- ISO_HOME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:20, bin/isotope:21, bin/isotope:22, bin/isotope:23, bin/isotope:24, bin/isotope:47, bin/isotope.bat:4, bin/isotope.bat:5, bin/isotope.bat:6, bin/isotope.bat:7, bin/isotope.bat:8, bin/isotope.bat:13
+- LOG_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:24, bin/isotope:25, bin/isotope:26, bin/isotope:47, bin/isotope.bat:8, bin/isotope.bat:9, bin/isotope.bat:10, bin/isotope.bat:14, install-termux.sh:17, install-termux.sh:18, install-termux.sh:38, setup-termux-widget.sh:19
+- PATH: classification=secret; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:288, TERMUX_WIDGET.md:114, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:21, bin/isotope:52, bin/isotope:64, bin/isotope:65, bin/isotope:414, bin/isotope:416, install.ps1:83, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup-termux-widget.sh:27
+- PIPESTATUS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:608, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup-termux-widget.sh:59, setup-termux-widget.sh:63, setup-termux-widget.sh:67
+- PREFIX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:43, install-termux.sh:71, setup-termux-widget.sh:12, setup-termux-widget.sh:28, setup-termux-widget.sh:30, setup-termux-widget.sh:31, setup.sh:66, setup.sh:379
+- PREFIX_BIN_ISO: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=setup-termux-widget.sh:28, setup-termux-widget.sh:30, setup-termux-widget.sh:31
+- PROJECT_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope.bat:41, bin/isotope.bat:42, bin/isotope.bat:43, bin/isotope.bat:44, bin/isotope.bat:49, bin/isotope.bat:50, bin/isotope.bat:53, bin/isotope.bat:54, bin/isotope.bat:58, bin/isotope.bat:59, bin/isotope.bat:66, bin/isotope.bat:67
+- PROJECT_PATH_FILE: classification=secret; required=unknown from static map; inspect use locations; uses=bin/isotope:21, bin/isotope:52, bin/isotope:64, bin/isotope:65, bin/isotope.bat:5, bin/isotope.bat:44, bin/isotope.bat:48, bin/isotope.bat:49, bin/isotope.bat:54, bin/isotope.bat:59, setup-termux-widget.sh:51, setup-termux-widget.sh:53
+- SHORTCUT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=setup-termux-widget.sh:20, setup-termux-widget.sh:23, setup-termux-widget.sh:44, setup-termux-widget.sh:46, setup-termux-widget.sh:74, setup-termux-widget.sh:136, setup-termux-widget.sh:142
+- SHORTCUT_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=setup-termux-widget.sh:20, setup-termux-widget.sh:23, setup-termux-widget.sh:44, setup-termux-widget.sh:136, setup-termux-widget.sh:142
+- TASK: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/useAIStore-B2cv1FZz.js:4638, public/assets/useAIStore-B2cv1FZz.js:4653, public/assets/useAIStore-B2cv1FZz.js:4670, public/assets/useAIStore-B2cv1FZz.js:8757, setup-termux-widget.sh:21, setup-termux-widget.sh:23, setup-termux-widget.sh:82, setup-termux-widget.sh:84, setup-termux-widget.sh:112, setup-termux-widget.sh:152
+- TASKS_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=setup-termux-widget.sh:21, setup-termux-widget.sh:23, setup-termux-widget.sh:82, setup-termux-widget.sh:152
+- TERMUX_BIN_ISO: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=setup-termux-widget.sh:29, setup-termux-widget.sh:32, setup-termux-widget.sh:33, setup-termux-widget.sh:57, setup-termux-widget.sh:58, setup-termux-widget.sh:95, setup-termux-widget.sh:96, setup-termux-widget.sh:159, setup-termux-widget.sh:161
+- TERMUX_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:275, bin/isotope:43, bin/isotope:367, bin/isotope:370, install-termux.sh:71, install-termux.sh:76, install-termux.sh:91, setup-termux-widget.sh:12, setup.sh:14, setup.sh:38, setup.sh:66, setup.sh:84
+- WARN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:30, bin/isotope.bat:238, bin/isotope.bat:239, install-termux.sh:54, public/assets/messaging-BP0KfJxy.js:622, public/assets/messaging-BP0KfJxy.js:628, public/assets/messaging-BP0KfJxy.js:637, public/assets/messaging-BP0KfJxy.js:684, setup-termux-widget.sh:10, setup.bat:50, setup.bat:51, setup.sh:44
+- command-line arguments: script-like file; inspect internal structure for argv/flags
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 121: make_shortcut isotope-update update
+- 139: for name in isotope-start isotope-stop isotope-restart isotope-update \
+- 179: info "     • isotope-update  — pull latest version"
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: shell/OS/platform commands likely required
+- Node core modules:
+- 24: printf '%s\n' "$PROJECT_DIR" > "$ISO_HOME/project-path"
+- 51: PROJECT_PATH_FILE="\$ISO_HOME/project-path"
+- 89: PROJECT_PATH_FILE="\$ISO_HOME/project-path"
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 1: #!/usr/bin/env bash
+- 5: # Usage: bash setup-termux-widget.sh
+- 12: if [ -z "${TERMUX_VERSION:-}" ] && ! printf '%s' "${PREFIX:-}" | grep -q 'com.termux'; then
+- 28: PREFIX_BIN_ISO="${PREFIX:-/data/data/com.termux/files/usr}/bin/isotope"
+- 29: TERMUX_BIN_ISO="/data/data/com.termux/files/usr/bin/isotope"
+- 47: #!/usr/bin/env bash
+- 69: printf '%s\n' "IsotopeAI command not found. Run: bash setup.sh"
+- 85: #!/usr/bin/env bash
+- 107: printf '%s\n' "IsotopeAI command not found. Run: bash setup.sh" >> "\$LOG_DIR/widget-$name.log"
+- 169: warn "Run bash setup.sh to install the global command."
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0566-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: setup-termux-widget.sh inspected; no file-specific high-risk issue confirmed
+  observed evidence: setup-termux-widget.sh inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/labeler.yml, .github/workflows/ci.yml, .github/workflows/ci.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

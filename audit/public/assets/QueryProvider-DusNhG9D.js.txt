@@ -1,0 +1,227 @@
+FILE IDENTITY
+
+- original path: public/assets/QueryProvider-DusNhG9D.js
+- audit path: audit/public/assets/QueryProvider-DusNhG9D.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 4534
+- SHA-256: f949af64df1b6399d78ad7e02b718813661f1cbd37a29103a63eacf75983f21e
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:2062 - "file": "QueryProvider-DusNhG9D.js",
+- artifacts/asset-diff/asset-report.json:2065 - "remote_url": "https://isotopeai.in/assets/QueryProvider-DusNhG9D.js",
+- artifacts/asset-diff/local-assets.txt:115 - QueryProvider-DusNhG9D.js
+- artifacts/asset-diff/summary.md:98 - | QueryProvider-DusNhG9D.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/AppAccessGate-B975UtK7.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-C
+- public/assets/AppAccessGate-B975UtK7.js:45 - } from "./QueryProvider-DusNhG9D.js";
+- public/assets/CommunityHub-gANxZssO.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/sessionSync-mloIEnTd.js","assets/App-pJGjDiPw.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-supabase-DAiUAuun.js"
+- public/assets/InviteOnlineOnlyRoute-CZgdOWgx.js:1 - import{r as u,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as C}from"./useOnlineStatus-BJOTUERN.js";import{Q as H}from"./QueryProvider-DusNhG9D.js";import{c as y,u as A,H as j,I as S,j as N}from"./App-pJGjDiPw.js";import{u as T,a as Z}f
+- public/assets/bootstrap-D1vc155U.js:25 - import "./QueryProvider-DusNhG9D.js";
+- public/assets/sessionSync-mloIEnTd.js:1 - import{J as S,K as E,L as d,M as l,u as A,i as D,s as p,m as y,N as m,k as g}from"./App-pJGjDiPw.js";import{a as n}from"./QueryProvider-DusNhG9D.js";import{G as u,C as c}from"./groupCache-DVHvdGlY.js";import"./index-BPYJFSVW.js";import"./ve
+- public/assets/useFocusStore-CX_Nyp1h.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/sessionSync-mloIEnTd.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-supa
+
+INTERNAL STRUCTURE
+
+- line count: 128
+- imports:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 5: import {
+- 10: } from "./App-pJGjDiPw.js";
+- 11: import {
+- 14: } from "./vendor-query-Rjz85D0S.js";
+- exports:
+- 126: export {
+- functions/async flows:
+- 38: I = r => {
+- 42: P = r => {
+- 46: Q = () => {
+- 49: const n = () => {
+- 52: p = s => {
+- 53: if (typeof window > "u") {
+- 58: if (typeof t.requestIdleCallback == "function") {
+- 59: e = t.requestIdleCallback(() => {
+- 66: r = setTimeout(() => {
+- 71: persistClient: async s => {
+- 72: n(), r = setTimeout(() => {
+- 73: r = null, p(() => {
+- 75: if (t) {
+- 80: i.setItem(o, t).catch(m => {
+- 87: restoreClient: async () => {
+- 100: removeClient: async () => {
+- 111: }) => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 15: const h = new Set(["groupActiveSessions"]),
+- 39: const e = r[0];
+- 43: const e = JSON.stringify(r);
+- 47: let r = null,
+- 49: const n = () => {
+- 57: const t = window;
+- 74: const t = P(s);
+- 89: const t = window.sessionStorage.getItem(a(o));
+- 92: const s = await i.getItem(o);
+- handlers/lifecycle candidates:
+- 66: r = setTimeout(() => {
+- 72: n(), r = setTimeout(() => {
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+No environment variable names observed.
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+- 77: window.sessionStorage.setItem(a(o), t);
+- 89: const t = window.sessionStorage.getItem(a(o));
+- 102: window.sessionStorage.removeItem(a(o));
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 44: return e.length <= c ? e : (console.warn(`[QueryProvider] Skipped persisted query cache write because payload was ${Math.round(e.length/1024)} KiB. Budget is ${Math.round(c/1024)} KiB.`), null)
+- 77: window.sessionStorage.setItem(a(o), t);
+- 81: console.error("[QueryProvider] Failed to persist query cache:", m)
+- 96: console.error("[QueryProvider] Failed to parse cached query data:", t), await i.removeItem(o);
+- 100: removeClient: async () => {
+- 102: window.sessionStorage.removeItem(a(o));
+- 105: await i.removeItem(o)
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 5: import {
+- 10: } from "./App-pJGjDiPw.js";
+- 11: import {
+- 14: } from "./vendor-query-Rjz85D0S.js";
+- local files: see References and Consumers above
+- browser APIs:
+- 50: r && (clearTimeout(r), r = null), e !== null && typeof window < "u" && (window.cancelIdleCallback ?.(e), e = null)
+- 77: window.sessionStorage.setItem(a(o), t);
+- 89: const t = window.sessionStorage.getItem(a(o));
+- 102: window.sessionStorage.removeItem(a(o));
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0388-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/QueryProvider-DusNhG9D.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/QueryProvider-DusNhG9D.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 4534
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/AppAccessGate-B975UtK7.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/A
+  - public/assets/AppAccessGate-B975UtK7.js:45: } from "./QueryProvider-DusNhG9D.js";
+  - public/assets/CommunityHub-gANxZssO.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/sessionSync-mloIEnTd.js","assets/App-pJGjDiPw.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","ass
+  - public/assets/InviteOnlineOnlyRoute-CZgdOWgx.js:1: import{r as u,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as C}from"./useOnlineStatus-BJOTUERN.js";import{Q as H}from"./QueryProvider-DusNhG9D.js";import{c as y,u as A,H as j,
+  - public/assets/sessionSync-mloIEnTd.js:1: import{J as S,K as E,L as d,M as l,u as A,i as D,s as p,m as y,N as m,k as g}from"./App-pJGjDiPw.js";import{a as n}from"./QueryProvider-DusNhG9D.js";import{G as u,C as c}from"./gro
+  - public/assets/useFocusStore-CX_Nyp1h.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/sessionSync-mloIEnTd.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-Bf
+  - public/assets/bootstrap-D1vc155U.js:25: import "./QueryProvider-DusNhG9D.js";
+  - artifacts/asset-diff/local-assets.txt:115: QueryProvider-DusNhG9D.js
+  - artifacts/asset-diff/asset-report.json:2062: "file": "QueryProvider-DusNhG9D.js",
+  - artifacts/asset-diff/asset-report.json:2065: "remote_url": "https://isotopeai.in/assets/QueryProvider-DusNhG9D.js",
+  - artifacts/asset-diff/summary.md:98: | QueryProvider-DusNhG9D.js | 200 | unexpected HTML fallback for .js request |

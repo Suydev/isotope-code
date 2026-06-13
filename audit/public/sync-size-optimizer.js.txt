@@ -1,0 +1,245 @@
+FILE IDENTITY
+
+- original path: public/sync-size-optimizer.js
+- audit path: audit/public/sync-size-optimizer.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 12074
+- SHA-256: 500d6b1e456e9caf871d7b370dc029dbfc3002d65249d9159a981c17a32c9e5f
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: offline/sync/backup
+- primary auditor: lead-coordinator
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: offline/sync/backup
+- runtime stage: browser/runtime or static serving
+- user-visible feature: sync/backup/restore
+- whether it is active: active status inferred from path and project role
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+No direct textual consumers found by path/name search.
+
+INTERNAL STRUCTURE
+
+- line count: 404
+- imports:
+None observed.
+- exports:
+- 394: if (typeof module !== 'undefined' && module.exports) {
+- 395: module.exports = {
+- functions/async flows:
+- 24: function calculateDataSize(data) {
+- 46: function decideSyncStrategy(cloudData, localData, options = {}) {
+- 56: if (cloudSize === 0 && localSize === 0) {
+- 68: if (forceDirection === 'upload') {
+- 79: if (forceDirection === 'download') {
+- 95: if (sizeRatio < 1 / SYNC_SIZE_CONFIG.SIZE_RATIO_THRESHOLD) {
+- 96: if (cloudSize > SYNC_SIZE_CONFIG.LARGE_FILE_THRESHOLD) {
+- 109: if (sizeRatio > SYNC_SIZE_CONFIG.SIZE_RATIO_THRESHOLD) {
+- 110: if (localSize > SYNC_SIZE_CONFIG.LARGE_FILE_THRESHOLD) {
+- 112: if (localSize > SYNC_SIZE_CONFIG.MAX_UPLOAD_SIZE) {
+- 147: if (sizeDifference < SYNC_SIZE_CONFIG.DELTA_SYNC_THRESHOLD) {
+- 159: if (localSize > cloudSize) {
+- 160: if (localSize > SYNC_SIZE_CONFIG.MAX_UPLOAD_SIZE) {
+- 201: function analyzeSyncBatch(collections, options = {}) {
+- 217: if (summary.totalUpload > SYNC_SIZE_CONFIG.MAX_UPLOAD_SIZE * 0.8) {
+- 221: if (summary.totalDownload > 100 * 1024 * 1024) {
+- 226: if (skips.length > 0) {
+- 237: async function compressForUpload(data) {
+- 238: if (typeof data === 'string') {
+- 256: async function decompressDownload(blob) {
+- 273: async function executeSmartSync(collectionName, cloudData, localData, syncHandlers = {}) {
+- 285: switch (decision.strategy) {
+- 287: if (onUpload) {
+- 291: if (decision.shouldCompress) {
+- 310: if (onDownload) {
+- 314: if (cloudData instanceof Blob) {
+- 333: if (onMerge) {
+- 381: if (typeof window !== 'undefined') {
+- 394: if (typeof module !== 'undefined' && module.exports) {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 13: const SYNC_SIZE_CONFIG = {
+- 27: const json = typeof data === 'string' ? data : JSON.stringify(data);
+- 52: const cloudSize = calculateDataSize(cloudData);
+- 53: const localSize = calculateDataSize(localData);
+- 91: const sizeRatio = cloudSize > 0 ? localSize / cloudSize : Infinity;
+- 92: const sizeDifference = Math.abs(cloudSize - localSize);
+- 202: const decisions = new Map();
+- 203: const summary = { totalUpload: 0, totalDownload: 0, totalSkip: 0, totalMerge: 0 };
+- 204: const recommendations = [];
+- 207: const decision = decideSyncStrategy(cloud, local, options);
+- 225: const skips = Array.from(decisions.values()).filter(d => d.strategy === 'skip');
+- 240: const blob = new Blob([data], { type: 'application/json' });
+- 241: const stream = blob.stream();
+- 242: const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
+- 243: const compressedBlob = await new Response(compressedStream).blob();
+- 258: const stream = blob.stream();
+- 259: const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
+- 260: const decompressedBlob = await new Response(decompressedStream).blob();
+- 281: const decision = decideSyncStrategy(cloudData, localData);
+- 288: const dataToUpload = localData;
+- 289: let uploadPayload = dataToUpload;
+- 311: let downloadData = cloudData;
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- COMPRESSION_THRESHOLD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sync-size-optimizer.js:18, public/sync-size-optimizer.js:72, public/sync-size-optimizer.js:126, public/sync-size-optimizer.js:139, public/sync-size-optimizer.js:151, public/sync-size-optimizer.js:174
+- DELTA_SYNC_THRESHOLD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sync-size-optimizer.js:15, public/sync-size-optimizer.js:147
+- LARGE_FILE_THRESHOLD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sync-size-optimizer.js:14, public/sync-size-optimizer.js:96, public/sync-size-optimizer.js:110
+- MAX_UPLOAD_SIZE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sync-size-optimizer.js:17, public/sync-size-optimizer.js:112, public/sync-size-optimizer.js:115, public/sync-size-optimizer.js:160, public/sync-size-optimizer.js:217
+- SIZE_RATIO_THRESHOLD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sync-size-optimizer.js:16, public/sync-size-optimizer.js:95, public/sync-size-optimizer.js:109
+- SYNC_SIZE_CONFIG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sync-size-optimizer.js:13, public/sync-size-optimizer.js:72, public/sync-size-optimizer.js:95, public/sync-size-optimizer.js:96, public/sync-size-optimizer.js:109, public/sync-size-optimizer.js:110, public/sync-size-optimizer.js:112, public/sync-size-optimizer.js:115, public/sync-size-optimizer.js:126, public/sync-size-optimizer.js:139, public/sync-size-optimizer.js:147, public/sync-size-optimizer.js:151
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 6: * - If user data is large → Upload it (cloud copy is stale)
+- 9: * Prevents unnecessary large uploads/downloads and optimizes bandwidth.
+- 17: MAX_UPLOAD_SIZE: 50 * 1024 * 1024,      // 50 MB hard limit
+- 38: *   strategy: 'download' | 'upload' | 'merge' | 'skip',
+- 49: forceDirection = null,  // 'upload' | 'download' | null
+- 68: if (forceDirection === 'upload') {
+- 70: strategy: 'upload',
+- 71: reason: 'Forced upload direction',
+- 108: // If local is significantly larger, upload it
+- 111: // Check hard upload limit
+- 112: if (localSize > SYNC_SIZE_CONFIG.MAX_UPLOAD_SIZE) {
+- 115: reason: `Local data exceeds max upload size (${(localSize / 1024 / 1024).toFixed(1)} MB > ${(SYNC_SIZE_CONFIG.MAX_UPLOAD_SIZE / 1024 / 1024).toFixed(1)} MB)`,
+- 124: strategy: 'upload',
+- 158: // Last resort: upload if local is larger
+- 160: if (localSize > SYNC_SIZE_CONFIG.MAX_UPLOAD_SIZE) {
+- 163: reason: `Local data too large to upload (${(localSize / 1024 / 1024).toFixed(1)} MB)`,
+- 172: strategy: 'upload',
+- 197: *   summary: { totalUpload, totalDownload, totalSkip },
+- 203: const summary = { totalUpload: 0, totalDownload: 0, totalSkip: 0, totalMerge: 0 };
+- 210: if (decision.strategy === 'upload') summary.totalUpload += decision.cloudSize;
+- 217: if (summary.totalUpload > SYNC_SIZE_CONFIG.MAX_UPLOAD_SIZE * 0.8) {
+- 218: recommendations.push(`⚠️ Total upload size (${(summary.totalUpload / 1024 / 1024).toFixed(1)} MB) approaching limit`);
+- 234: * Compress JSON data for upload (basic gzip-like compression via deflate)
+- 237: async function compressForUpload(data) {
+- 271: * Returns: { success, strategy, uploaded, downloaded, compressed, error? }
+- 275: onUpload,    // async (data, shouldCompress) => void
+- 283: console.log(`[SmartSync:${collectionName}]`, decision);
+- 286: case 'upload':
+- 287: if (onUpload) {
+- 288: const dataToUpload = localData;
+- 289: let uploadPayload = dataToUpload;
+- 292: uploadPayload = await compressForUpload(dataToUpload);
+- 293: console.log(`[SmartSync:${collectionName}] Compressed for upload: ${(decision.localSize / 1024).toFixed(1)} KB -> ${(uploadPayload.size / 1024).toFixed(1)} KB`);
+- 296: await onUpload(uploadPayload, decision.shouldCompress);
+- 300: strategy: 'upload',
+- 301: uploaded: decision.localSize,
+- 324: uploaded: 0,
+- 339: uploaded: 0,
+- 351: uploaded: 0,
+- 361: uploaded: 0,
+- 370: uploaded: 0,
+- 386: compressForUpload,
+- 399: compressForUpload,
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 382: window.__ISO_SYNC_OPTIMIZER__ = {
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 225: const skips = Array.from(decisions.values()).filter(d => d.strategy === 'skip');
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0529-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/sync-size-optimizer.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/sync-size-optimizer.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: See references and consumers above.
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- No direct consumer found; this uncertainty is explicitly recorded rather than hidden.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the offline/sync/backup subsystem. Its role is determined from path, content, and references.
+- activity status: active status inferred from path and project role
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

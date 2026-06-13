@@ -1,0 +1,243 @@
+FILE IDENTITY
+
+- original path: public/assets/ExamPrimitives-K6hgnm_l.js
+- audit path: audit/public/assets/ExamPrimitives-K6hgnm_l.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 17081
+- SHA-256: bb02417354c2aa76eeb4b80b00b6a55de03742f78523286e83d9ef4d93fcb106
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:496 - "file": "ExamPrimitives-K6hgnm_l.js",
+- artifacts/asset-diff/asset-report.json:499 - "remote_url": "https://isotopeai.in/assets/ExamPrimitives-K6hgnm_l.js",
+- artifacts/asset-diff/local-assets.txt:28 - ExamPrimitives-K6hgnm_l.js
+- artifacts/asset-diff/summary.md:64 - | ExamPrimitives-K6hgnm_l.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/ExamDetailPage-q_jDT5_x.js:1 - import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./useFocusStore-CX_Nyp1h.js";import{a as yt,b as dt,T as xt,S as 
+- public/assets/Exams-C3jymPwe.js:96 - } from "./ExamPrimitives-K6hgnm_l.js";
+
+INTERNAL STRUCTURE
+
+- line count: 454
+- imports:
+- 1: import {
+- 3: } from "./useFocusStore-CX_Nyp1h.js";
+- 4: import {
+- 6: } from "./vendor-react-BfU3Zn2J.js";
+- 7: import {
+- 9: } from "./utils-D8mZnxMk.js";
+- 10: import {
+- 12: } from "./vendor-motion-Cp_NPzpZ.js";
+- 13: import {
+- 17: } from "./vendor-icons-CqruUz7g.js";
+- exports:
+- 452: export {
+- functions/async flows:
+- 21: N = t => {
+- 24: if (t.start_time) {
+- 33: z = t => {
+- 40: function R(t) {
+- 61: function X(t) {
+- 92: function G(t) {
+- 95: for (const n of e.result.subject_scores ?? []) {
+- 123: function B(t, s, e = 60) {
+- 126: for (const o of r.chapter_ids ?? []) {
+- 144: function L(t, s) {
+- 158: function V(t, s, e) {
+- 165: for (const l of e) {
+- 174: for (let l = 0; l < 42; l++) {
+- 189: function Y(t) {
+- 193: for (const l of t) {
+- 210: function q(t, s, e) {
+- 218: function U(t, s) {
+- 297: }) => {
+- 337: }) => {
+- 378: }) => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 18: const h = t => typeof t == "number" && Number.isFinite(t),
+- 22: const s = y(t.date);
+- 35: const s = g(t),
+- 48: const s = g(t),
+- 69: const s = t.length,
+- 93: const s = new Map;
+- 97: const r = h(n.marks_obtained) ? n.marks_obtained : 0,
+- 124: const n = new Map;
+- 127: const c = s.get(o);
+- 129: const d = r.result.subject_scores.find(f => f.subject_id === c);
+- 131: const a = (h(d.marks_obtained) ? d.marks_obtained : 0) / d.total_marks * 100;
+- 133: const m = n.get(o) ?? {
+- 146: const e = s.filter(r => r.dday_exam_id === t.id && k(r));
+- 148: const n = g(e.map(r => r.result.percentage));
+- 159: const n = new Date(t, s, 1),
+- 162: const o = new Date;
+- 164: const c = new Map;
+- 167: const a = y(l.date);
+- 169: const m = `${a.getFullYear()}-${String(a.getMonth()+1).padStart(2,"0")}-${String(a.getDate()).padStart(2,"0")}`,
+- 173: const d = [];
+- 175: const a = new Date(r);
+- 177: const m = `${a.getFullYear()}-${String(a.getMonth()+1).padStart(2,"0")}-${String(a.getDate()).padStart(2,"0")}`;
+- 190: const s = Date.now(),
+- 195: const a = new Date(l.result.logged_at).getTime(),
+- 199: const r = g(n),
+- 219: const e = s.filter(r => k(r) ? t.exam_type === "dday" ? r.dday_exam_id === t.id : t.dday_exam_id ? r.dday_exam_id === t.dday_exam_id || r.id === t.id : r.id === t.id ? !0 : r.exam_type === t.exam_type && (r.tags ?? []).s
+- 228: const P = {
+- 298: const d = t > s,
+- 338: const f = l === "lg" ? "text-4xl sm:text-5xl font-black tracking-tighter" : l === "sm" ? "text-lg sm:text-xl font-bold tracking-tight" : "text-2xl sm:text-3xl font-bold tracking-tight";
+- 379: const l = (s - e) / 2,
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- MAX_SAFE_INTEGER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:4, public/assets/ExamPrimitives-K6hgnm_l.js:23, public/assets/Study-pAdAenIl.js:2111, public/assets/Study-pAdAenIl.js:2112, public/assets/Tasks-BYRFOrek.js:1055, public/assets/useFocusStore-CX_Nyp1h.js:374, public/assets/useFocusStore-CX_Nyp1h.js:928, public/assets/useFocusStore-CX_Nyp1h.js:1492, public/assets/vendor-charts-BN-djq5a.js:20, public/assets/vendor-charts-CFLJvnG7.js:2229, src/hooks/use-toast.ts:28
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 20: k = t => T(t.result) && !t.deleted_at,
+- 100: c ? (c.totalObtained += r, c.totalMarks += n.total_marks, c.count += 1, c.scores.push(o)) : s.set(n.subject_id, {
+- 117: bestPct: e.scores.length ? Math.max(...e.scores) : 0,
+- 118: worstPct: e.scores.length ? Math.min(...e.scores) : 0,
+- 119: trend: e.scores.length >= 2 ? e.scores[e.scores.length - 1] - e.scores[0] : 0
+- 129: const d = r.result.subject_scores.find(f => f.subject_id === c);
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 1: import {
+- 3: } from "./useFocusStore-CX_Nyp1h.js";
+- 4: import {
+- 6: } from "./vendor-react-BfU3Zn2J.js";
+- 7: import {
+- 9: } from "./utils-D8mZnxMk.js";
+- 10: import {
+- 12: } from "./vendor-motion-Cp_NPzpZ.js";
+- 13: import {
+- 17: } from "./vendor-icons-CqruUz7g.js";
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 70: e = Array.from({
+- 114: return Array.from(s.values()).map(e => ({ ...e,
+- 141: return Array.from(n.values()).sort((r, o) => r.worstPct - o.worstPct)
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0301-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/ExamPrimitives-K6hgnm_l.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/ExamPrimitives-K6hgnm_l.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 17081
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/ExamDetailPage-q_jDT5_x.js:1: import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./use
+  - public/assets/Exams-C3jymPwe.js:96: } from "./ExamPrimitives-K6hgnm_l.js";
+  - artifacts/asset-diff/local-assets.txt:28: ExamPrimitives-K6hgnm_l.js
+  - artifacts/asset-diff/asset-report.json:496: "file": "ExamPrimitives-K6hgnm_l.js",
+  - artifacts/asset-diff/asset-report.json:499: "remote_url": "https://isotopeai.in/assets/ExamPrimitives-K6hgnm_l.js",
+  - artifacts/asset-diff/summary.md:64: | ExamPrimitives-K6hgnm_l.js | 200 | unexpected HTML fallback for .js request |

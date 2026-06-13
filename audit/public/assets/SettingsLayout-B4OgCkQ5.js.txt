@@ -1,0 +1,522 @@
+FILE IDENTITY
+
+- original path: public/assets/SettingsLayout-B4OgCkQ5.js
+- audit path: audit/public/assets/SettingsLayout-B4OgCkQ5.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 260005
+- SHA-256: 54945af4e41dac072d685e4ed4dc478b44cf7a62e1c42ad20dd31c14c17ddda6
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:2242 - "file": "SettingsLayout-B4OgCkQ5.js",
+- artifacts/asset-diff/asset-report.json:2245 - "remote_url": "https://isotopeai.in/assets/SettingsLayout-B4OgCkQ5.js",
+- artifacts/asset-diff/local-assets.txt:125 - SettingsLayout-B4OgCkQ5.js
+- artifacts/asset-diff/summary.md:107 - | SettingsLayout-B4OgCkQ5.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/App-pJGjDiPw.js:8371 - import ("./SettingsLayout-B4OgCkQ5.js"), __vite__mapDeps([59, 2, 23, 6, 7, 5, 8, 21, 1, 3, 22, 24, 20, 19, 12, 25, 26, 60, 61, 15, 62, 35, 63, 40, 18, 17, 10, 11, 48, 27]))),
+- public/sw.js:73 - '/assets/SettingsLayout-B4OgCkQ5.js',
+- scripts/prove-runtime-glue.mjs:54 - const settingsBundle = await text('/assets/SettingsLayout-B4OgCkQ5.js');
+- scripts/prove-runtime-glue.mjs:70 - const settingsCache = (await head('/assets/SettingsLayout-B4OgCkQ5.js')).get('cache-control') || '';
+- server.mjs:135 - '/assets/SettingsLayout-B4OgCkQ5.js',
+- server.mjs:3786 - const SETTINGS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'SettingsLayout-B4OgCkQ5.js');
+
+INTERNAL STRUCTURE
+
+- line count: 4645
+- imports:
+- 1: import {
+- 5: } from "./vendor-react-BfU3Zn2J.js";
+- 6: import {
+- 30: } from "./App-pJGjDiPw.js";
+- 31: import {
+- 34: } from "./DashboardHeader-DNuRMna8.js";
+- 35: import {
+- 119: } from "./vendor-icons-CqruUz7g.js";
+- 120: import {
+- 122: } from "./Toggle-D54hkegy.js";
+- 123: import {
+- 127: } from "./messaging-BP0KfJxy.js";
+- 128: import {
+- 130: } from "./TaskController-BUyiMYKC.js";
+- 131: import {
+- 133: } from "./useOnlineStatus-BJOTUERN.js";
+- 134: import {
+- 139: } from "./useFocusStore-CX_Nyp1h.js";
+- 140: import {
+- 146: } from "./focusBackground-t8AknbRg.js";
+- 147: import {
+- 149: } from "./ChipMultiSelect-BU74OOip.js";
+- 150: import {
+- 152: } from "./SubjectCreateModal-DhD_Cwbk.js";
+- 153: import {
+- 156: } from "./studyPreferences-BBZvHe-O.js";
+- 157: import {
+- 163: } from "./useAIStore-B2cv1FZz.js";
+- 164: import {
+- 166: } from "./useSyncStore-vWs_TdIc.js";
+- 167: import {
+- 170: } from "./vendor-motion-Cp_NPzpZ.js";
+- 171: import {
+- 173: } from "./utils-D8mZnxMk.js";
+- 174: import {
+- 176: } from "./IsotopeLogoIcon-oPk5Ru-_.js";
+- 177: import {
+- 179: } from "./useQuotesStore-C7b4gZp0.js";
+- 180: import {
+- 183: } from "./vendor-router-CmoTwRnm.js";
+- 184: import "./index-BPYJFSVW.js";
+- 185: import "./vendor-supabase-DAiUAuun.js";
+- 186: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- 187: import "./timeFormat-CMPo-BX2.js";
+- 188: import "./MarkdownRenderer-CIV1x0Uq.js";
+- 189: import "./useNotificationStore-BS4df28T.js";
+- 190: import "./subjectBranding-DaDo_h8r.js";
+- 191: import "./SubjectIcon-CyCDqtel.js";
+- 192: import "./vendor-charts-CFLJvnG7.js";
+- exports:
+- 4642: export {
+- functions/async flows:
+- 193: const Gs = () => {
+- 211: s.useEffect(() => {
+- 247: z = async () => {
+- 255: N = (d, p) => {
+- 260: i = d => {
+- 265: w.onloadend = async () => {
+- 276: I = async () => {
+- 565: Rs = () => {
+- 720: Us = () => {
+- 725: s.useEffect(() => {
+- 727: }, [t]), s.useEffect(() => (De(h), () => {
+- 729: }), [h, t ?.personalization ?.accentColor]), s.useEffect(() => (Me(m), () => {
+- 732: const N = async () => {
+- 1012: $s = () => {
+- 1026: s.useEffect(() => {
+- 1028: }, [t]), s.useEffect(() => {
+- 1031: const E = async () => {
+- 1032: if ("Notification" in window) {
+- 1037: P = async () => {
+- 1041: if (!x.supported || !x.configured) {
+- 1045: if (!x.hasVapidKey) {
+- 1049: if (x.permission === "denied") {
+- 1053: if (x.permission !== "granted") {
+- 1065: F = async () => {
+- 1066: !d || !navigator.clipboard || (await navigator.clipboard.writeText(d), u("copied"), window.setTimeout(() => {
+- 1070: A = () => {
+- 1071: switch (I) {
+- 1089: L = async () => {
+- 1102: G = x => {
+- 1196: children: Os.map(x => {
+- 1472: Qs = () => {
+- 1481: } = js(), l = g.some(o => o.provider === "google"), z = r(), N = async () => {
+- 1483: }, i = async () => {
+- 1492: }, I = () => {
+- 1706: Hs = () => {
+- 1712: s.useEffect(() => {
+- 1713: if (t) {
+- 1717: }, [t]), s.useEffect(() => {
+- 1718: (async () => {
+- 1723: const U = async () => {
+- 1756: M = async () => {
+- 1760: Y = (a, B) => {
+- 1766: X = () => {
+- 1782: ot = a => {
+- 1783: Q(B => {
+- 1998: onKeyDown: a => {
+- 2441: pe = t => {
+- 2445: Ke = (t, j) => {
+- 2449: Vs = () => {
+- 2454: s.useEffect(() => {
+- 2473: Q = async () => {
+- 2496: V = c => {
+- 2509: q = async c => {
+- 2512: if (n) {
+- 2901: }) => {
+- 2912: } = ae(), l = f(), __isoMeta = (() => {
+- 2920: const i = async () => {
+- 2921: if (__isoDisplayStatus !== "syncing") {
+- 2922: if (b) {
+- 2929: o = (w => {
+- 2939: switch (w) {
+- 2993: p = w => {
+- 3086: Xs = async () => {
+- 3089: Zs = () => {
+- 3091: s.useEffect(() => jt(w => {
+- 3094: const N = async () => {
+- 3097: i = async () => {
+- 3114: I = () => {
+- 3117: o = async w => {
+- 3119: if (w.target.value = "", !!S) {
+- 3252: onClick: async () => {
+- 3359: ea = () => {
+- 3442: onChange: () => {}
+- 3629: sa = () => {
+- 3641: } = lt(), [l, z] = s.useState(null), N = () => {
+- 3745: }) => {
+- 3754: } = lt(), [p, w] = s.useState(""), [S, C] = s.useState(!1), [u, E] = s.useState(!1), [P, F] = s.useState(null), A = He.find(k => k.id === l.preferredModel), L = He.filter(k => k.provider === t), G = async () => {
+- 3764: }, x = () => {
+- 3945: children: L.map(k => {
+- 3983: aa = () => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 193: const Gs = () => {
+- 224: const l = (d = {}) => ({
+- 261: const p = d.target.files ?.[0];
+- 264: const w = new FileReader;
+- 266: const S = typeof w.result == "string" ? w.result : void 0;
+- 732: const N = async () => {
+- 1031: const E = async () => {
+- 1033: const x = await Notification.requestPermission();
+- 1040: const x = await gs();
+- 1057: const k = await ps() ?? await fs();
+- 1197: const k = l.includes(x);
+- 1714: const a = t.studyPreferences ?.pomodoroSettings;
+- 1719: const a = await vs();
+- 1723: const U = async () => {
+- 1750: const a = await Ss({
+- 1767: const a = V.trim();
+- 1769: const B = pt(a),
+- 1771: let H = B,
+- 1774: const Fe = ft({
+- 1784: const ee = B.filter(H => H.id !== a);
+- 2442: const j = t / 60;
+- 2446: const g = j.trim();
+- 2457: const W = As(S),
+- 2493: const c = new Set(h.map(n => n.name.trim().toLowerCase()));
+- 2497: const n = h.find(U => U.name.trim().toLowerCase() === c.trim().toLowerCase()) || null;
+- 2511: const n = h.find(M => M.name.trim().toLowerCase() === c.name.trim().toLowerCase());
+- 2520: const U = await r(c.name, c.icon);
+- 2920: const i = async () => {
+- 2995: const S = new Date(w),
+- 3094: const N = async () => {
+- 3100: const w = await Nt(),
+- 3118: const S = w.target.files ?.[0];
+- 3122: const C = await S.text();
+- 3757: const k = await z(p.trim(), t);
+- 3766: const k = L.find(R => R.isRecommended) || L[0];
+- 3946: const R = l.preferredModel === k.id;
+- 3998: const k = () => {
+- 4015: const n = JSON.stringify(t, null, 2),
+- 4024: const U = n.target.files ?.[0];
+- 4026: const M = new FileReader;
+- 4029: const Y = JSON.parse(O.target ?.result);
+- 4394: const d = [{
+- 4555: const F = P.icon,
+- handlers/lifecycle candidates:
+- 1066: !d || !navigator.clipboard || (await navigator.clipboard.writeText(d), u("copied"), window.setTimeout(() => {
+- 1493: j(!0), setTimeout(() => j(!1), 2e3)
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ACT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/SettingsLayout-B4OgCkQ5.js:2426, public/assets/Step2Academic-BUGsFsTy.js:1
+- AES: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Privacy-ClP3A1gm.js:1, public/assets/SettingsLayout-B4OgCkQ5.js:3674, public/assets/useAIStore-B2cv1FZz.js:1457
+- BITSAT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/About-DbJqhVWT.js:1, public/assets/App-pJGjDiPw.js:3364, public/assets/App-pJGjDiPw.js:3379, public/assets/App-pJGjDiPw.js:3381, public/assets/App-pJGjDiPw.js:4151, public/assets/App-pJGjDiPw.js:8025, public/assets/App-pJGjDiPw.js:8045, public/assets/App-pJGjDiPw.js:8046, public/assets/App-pJGjDiPw.js:8052, public/assets/SettingsLayout-B4OgCkQ5.js:3623, public/assets/Testimonials-CnzXcixO.js:19, public/assets/Testimonials-CnzXcixO.js:24
+- BJOTUERN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3322, artifacts/asset-diff/asset-report.json:3325, artifacts/asset-diff/local-assets.txt:185, artifacts/asset-diff/summary.md:22, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- BPYJFSVW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2908, artifacts/asset-diff/asset-report.json:2911, artifacts/asset-diff/local-assets.txt:162, artifacts/asset-diff/summary.md:141, public/assets/AIAssistant--spCOe6W.js:58, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsTasks-DOfUf9Sd.js:1
+- BX2: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3142, artifacts/asset-diff/asset-report.json:3145, artifacts/asset-diff/local-assets.txt:175, artifacts/asset-diff/summary.md:21, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- CAT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/SettingsLayout-B4OgCkQ5.js:2426, public/assets/Step2Academic-BUGsFsTy.js:1
+- CBSE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/SettingsLayout-B4OgCkQ5.js:2426, public/assets/Step2Academic-BUGsFsTy.js:1
+- FCM: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/PWAManager-DjIYufp2.js:81, public/assets/SettingsLayout-B4OgCkQ5.js:1075, public/assets/messaging-BP0KfJxy.js:2347, public/assets/messaging-BP0KfJxy.js:2348, public/assets/messaging-BP0KfJxy.js:2349, public/assets/messaging-BP0KfJxy.js:2350, public/assets/messaging-BP0KfJxy.js:2351
+- FPS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/SettingsLayout-B4OgCkQ5.js:920
+- GATE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/SettingsLayout-B4OgCkQ5.js:2426, public/assets/Step2Academic-BUGsFsTy.js:1, server.mjs:1612, server.mjs:1873, server.mjs:1967, server.mjs:2006, server.mjs:2838, server.mjs:3997, server.mjs:4002, server.mjs:8294, server.mjs:8404
+- GMAT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/SettingsLayout-B4OgCkQ5.js:2426, public/assets/Step2Academic-BUGsFsTy.js:1
+- GRE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:8031, public/assets/FAQ-DuTZR-ip.js:111, public/assets/SettingsLayout-B4OgCkQ5.js:2426, public/assets/Step2Academic-BUGsFsTy.js:1
+- ICSE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/SettingsLayout-B4OgCkQ5.js:2426, public/assets/Step2Academic-BUGsFsTy.js:1
+- JEE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/feature_request.md:19, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52
+- LMS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/SettingsLayout-B4OgCkQ5.js:1604, public/assets/useAIStore-B2cv1FZz.js:3920
+- LPU: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/SettingsLayout-B4OgCkQ5.js:3701
+- M12: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/SettingsLayout-B4OgCkQ5.js:1469, public/assets/vendor-icons-CqruUz7g.js:240, public/assets/vendor-icons-CqruUz7g.js:337, public/assets/vendor-icons-CqruUz7g.js:541, public/assets/vendor-icons-CqruUz7g.js:574, public/assets/vendor-icons-CqruUz7g.js:604, public/assets/vendor-icons-CqruUz7g.js:641, public/assets/vendor-icons-CqruUz7g.js:661, public/assets/vendor-icons-CqruUz7g.js:665, public/assets/vendor-icons-CqruUz7g.js:669, public/assets/vendor-icons-CqruUz7g.js:710, public/assets/vendor-icons-CqruUz7g.js:751
+- NEET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:80
+- SAT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:3364, public/assets/App-pJGjDiPw.js:3379, public/assets/App-pJGjDiPw.js:3381, public/assets/App-pJGjDiPw.js:4151, public/assets/App-pJGjDiPw.js:8025, public/assets/App-pJGjDiPw.js:8031, public/assets/App-pJGjDiPw.js:8045, public/assets/App-pJGjDiPw.js:8046, public/assets/App-pJGjDiPw.js:8052, public/assets/FAQ-DuTZR-ip.js:111, public/assets/SettingsLayout-B4OgCkQ5.js:2426, public/assets/SettingsLayout-B4OgCkQ5.js:3623
+- UPSC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:8031, public/assets/FAQ-DuTZR-ip.js:111, public/assets/SettingsLayout-B4OgCkQ5.js:2426, public/assets/Step2Academic-BUGsFsTy.js:1, public/assets/Study-pAdAenIl.js:3325, public/assets/useAIStore-B2cv1FZz.js:3675
+- VITE_FIREBASE_VAPID_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=public/assets/SettingsLayout-B4OgCkQ5.js:1079
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://www.w3.org/2000/svg
+- https://aistudio.google.com/app/apikey
+- https://api.dicebear.com/7.x/avataaars/svg?seed=${o}
+- https://console.groq.com/keys
+- https://discord.gg/QfmQGmKJUD
+- https://example.com/focus-background.jpg
+- https://isotope.featurebase.app
+- https://upload.wikimedia.org/wikipedia/commons/a/a2/Canvas_logo.png
+- https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg
+- https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Blackboard_Learn_logo.png/600px-Blackboard_Learn_logo.png
+- https://www.google.com/favicon.ico
+- https://www.reddit.com/r/Isotope/
+- browser storage:
+- 2914: return JSON.parse(localStorage.getItem("isotope_sync_metadata") || "{}") || {}
+- 3095: window.confirm("Delete all local data on this browser? This clears IndexedDB storage and signs you out, but it does not delete your Supabase cloud data.") && (await yt.clearAll(), await zt.clear(), await St(), await z(), window.location.reload())
+- 3249: children: f.lastRecoveryAt ? "A backup recovery happened on this device, so exporting a fresh JSON backup is strongly recommended." : f.persistentStorageGranted ? "This browser granted stronger local-storage protection, and your data is also mirrored to a loca
+- 3345: children: "Deletes only this browser's local IndexedDB cache and signs you out. Cloud data in your account is not deleted."
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 186: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- 196: updateProfile: j
+- 252: f(d.message || "Failed to save profile. Please check for restricted terms."), console.error("[ProfileSettings] Save failed:", d)
+- 272: f(C.message || "Failed to update avatar."), console.error("[ProfileSettings] Avatar update failed:", C)
+- 314: children: "Remove"
+- 319: children: "Upload New"
+- 629: children: "Update Password"
+- 707: children: "Delete Account"
+- 710: children: "Permanently delete your account and all of your content."
+- 714: children: "Delete Account"
+- 723: updateProfile: j
+- 1015: updateProfile: j
+- 1019: updates: !0
+- 1060: console.error("[NotificationSettings] Error loading Firebase broadcast status:", x), o("error"), p(null)
+- 1097: }), await Z.getState().updateFocusSettings({
+- 1242: children: "Product Updates"
+- 1249: checked: g.updates,
+- 1251: updates: !x.updates
+- 1572: src: "https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg",
+- 1614: icon: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Canvas_logo.png",
+- 1618: icon: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Blackboard_Learn_logo.png/600px-Blackboard_Learn_logo.png",
+- 1709: updateProfile: j,
+- 1710: updateFocusSettings: g
+- 1980: "aria-label": `Delete ${a.label}`,
+- 2369: }), "Remove"]
+- 2452: updateProfile: j
+- 2453: } = Z(), g = ct(c => c.tasks), y = Ee(c => c.sessions), h = ie(c => c.subjects), r = ie(c => c.addSubject), m = ie(c => c.updateSubject), [b, f] = s.useState(""), [v, l] = s.useState(""), [z, N] = s.useState([]), [i, I] = s.useState([]), [o, d] = s.useState(4)
+- 2506: updatedAt: new Date().toISOString()
+- 2918: })(), __isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !!__isoMeta.last_snapshot_at && !__isoMeta.last_error, __isoBusyStates = ["syncing", "selecting_backup", "restoring_cloud", "verifying_restore", "uploading_local"], __isoDisplayStatus = __isoBu
+- 3095: window.confirm("Delete all local data on this browser? This clears IndexedDB storage and signs you out, but it does not delete your Supabase cloud data.") && (await yt.clearAll(), await zt.clear(), await St(), await z(), window.location.reload())
+- 3109: console.error("[DataPrivacySettings] Failed to export backup:", w), b("Could not export your JSON backup. Please try again.")
+- 3127: console.error("[DataPrivacySettings] Failed to import backup:", C), b(C instanceof Error ? C.message : "Could not import that backup file. Please verify the file and try again.")
+- 3249: children: f.lastRecoveryAt ? "A backup recovery happened on this device, so exporting a fresh JSON backup is strongly recommended." : f.persistentStorageGranted ? "This browser granted stronger local-storage protection, and your data is also mirrored to a loca
+- 3342: children: "Delete All Data"
+- 3345: children: "Deletes only this browser's local IndexedDB cache and signs you out. Cloud data in your account is not deleted."
+- 3352: }), "Delete Everything"]
+- 3505: children: "Share your thoughts, report issues, or suggest new features."
+- 3586: children: "Stay close to product updates, discussions, and launch announcements."
+- 3613: children: "Follow discussions, updates, and community posts."
+- 3636: removeApiKey: r,
+- 3749: removeApiKey: N,
+- 3832: title: "Remove Credentials",
+- 3907: href: t === "groq" ? "https://console.groq.com/keys" : "https://aistudio.google.com/app/apikey",
+- 3987: updateQuote: g,
+- 3988: deleteQuote: y,
+- 4021: O.href = M, O.download = `isotope-quotes-${new Date().toISOString().split("T")[0]}.json`, document.body.appendChild(O), O.click(), document.body.removeChild(O), URL.revokeObjectURL(M)
+- 4331: title: "Delete",
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 112: bc as os,
+- 126: getStoredMessagingToken as fs
+- 297: src: t ?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${o}`,
+- 1057: const k = await ps() ?? await fs();
+- 1460: xmlns: "http://www.w3.org/2000/svg",
+- 1468: children: e.jsx("path", {
+- 1530: src: "https://www.google.com/favicon.ico",
+- 1572: src: "https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg",
+- 1614: icon: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Canvas_logo.png",
+- 1618: icon: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Blackboard_Learn_logo.png/600px-Blackboard_Learn_logo.png",
+- 2298: htmlFor: "focus-background-image-url",
+- 2302: id: "focus-background-image-url",
+- 2303: type: "url",
+- 2306: placeholder: "https://example.com/focus-background.jpg",
+- 2313: children: "Enter a valid `http://` or `https://` image URL before saving."
+- 3561: href: "https://isotope.featurebase.app",
+- 3592: href: "https://discord.gg/QfmQGmKJUD",
+- 3604: href: "https://www.reddit.com/r/Isotope/",
+- 3907: href: t === "groq" ? "https://console.groq.com/keys" : "https://aistudio.google.com/app/apikey",
+- 4316: children: e.jsx(os, {
+- external libraries:
+- 1: import {
+- 5: } from "./vendor-react-BfU3Zn2J.js";
+- 6: import {
+- 30: } from "./App-pJGjDiPw.js";
+- 31: import {
+- 34: } from "./DashboardHeader-DNuRMna8.js";
+- 35: import {
+- 119: } from "./vendor-icons-CqruUz7g.js";
+- 120: import {
+- 122: } from "./Toggle-D54hkegy.js";
+- 123: import {
+- 127: } from "./messaging-BP0KfJxy.js";
+- 128: import {
+- 130: } from "./TaskController-BUyiMYKC.js";
+- 131: import {
+- 133: } from "./useOnlineStatus-BJOTUERN.js";
+- 134: import {
+- 139: } from "./useFocusStore-CX_Nyp1h.js";
+- 140: import {
+- 146: } from "./focusBackground-t8AknbRg.js";
+- 147: import {
+- 149: } from "./ChipMultiSelect-BU74OOip.js";
+- 150: import {
+- 152: } from "./SubjectCreateModal-DhD_Cwbk.js";
+- 153: import {
+- 156: } from "./studyPreferences-BBZvHe-O.js";
+- 157: import {
+- 163: } from "./useAIStore-B2cv1FZz.js";
+- 164: import {
+- 166: } from "./useSyncStore-vWs_TdIc.js";
+- 167: import {
+- 170: } from "./vendor-motion-Cp_NPzpZ.js";
+- 171: import {
+- 173: } from "./utils-D8mZnxMk.js";
+- 174: import {
+- 176: } from "./IsotopeLogoIcon-oPk5Ru-_.js";
+- 177: import {
+- 179: } from "./useQuotesStore-C7b4gZp0.js";
+- 180: import {
+- 183: } from "./vendor-router-CmoTwRnm.js";
+- 184: import "./index-BPYJFSVW.js";
+- 185: import "./vendor-supabase-DAiUAuun.js";
+- 186: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- 187: import "./timeFormat-CMPo-BX2.js";
+- 188: import "./MarkdownRenderer-CIV1x0Uq.js";
+- 189: import "./useNotificationStore-BS4df28T.js";
+- 190: import "./subjectBranding-DaDo_h8r.js";
+- 191: import "./SubjectIcon-CyCDqtel.js";
+- 192: import "./vendor-charts-CFLJvnG7.js";
+- local files: see References and Consumers above
+- browser APIs:
+- 189: import "./useNotificationStore-BS4df28T.js";
+- 456: children: [r.studentStatus === "exam" && "Notifications silenced, focus mode prioritized.", r.studentStatus === "vacation" && "Daily goals paused, streaks frozen.", r.studentStatus === "normal" && "Standard productivity settings applied."]
+- 1025: }), [m, b] = s.useState(!0), [f, v] = s.useState(!0), [l, z] = s.useState([]), [N, i] = s.useState("Notification" in window ? Notification.permission : "denied"), [I, o] = s.useState("checking"), [d, p] = s.useState(null), [w, S] = s.useState(!1), [C, u] = s.u
+- 1032: if ("Notification" in window) {
+- 1033: const x = await Notification.requestPermission();
+- 1060: console.error("[NotificationSettings] Error loading Firebase broadcast status:", x), o("error"), p(null)
+- 1066: !d || !navigator.clipboard || (await navigator.clipboard.writeText(d), u("copied"), window.setTimeout(() => {
+- 1121: children: "Browser Notifications"
+- 1124: children: N === "granted" ? "Notifications are enabled" : N === "denied" ? "Notifications are blocked by your browser" : "Grand permission to receive alerts"
+- 1161: children: "Enable Notifications"
+- 1222: children: "Email Notifications"
+- 1292: children: "Push Notifications"
+- 2241: children: "Show correct, incorrect, skipped, and target controls in the minimized timer window."
+- 2914: return JSON.parse(localStorage.getItem("isotope_sync_metadata") || "{}") || {}
+- 3095: window.confirm("Delete all local data on this browser? This clears IndexedDB storage and signs you out, but it does not delete your Supabase cloud data.") && (await yt.clearAll(), await zt.clear(), await St(), await z(), window.location.reload())
+- 3104: C = window.URL.createObjectURL(S),
+- 3105: u = document.createElement("a"),
+- 3107: u.href = C, u.download = `isotope-backup-${E}.json`, u.click(), window.URL.revokeObjectURL(C), b("JSON backup exported successfully.")
+- 4020: O = document.createElement("a");
+- 4021: O.href = M, O.download = `isotope-quotes-${new Date().toISOString().split("T")[0]}.json`, document.body.appendChild(O), O.click(), document.body.removeChild(O), URL.revokeObjectURL(M)
+- 4460: id: "Notifications",
+- 4462: label: "Notifications",
+- operating-system commands:
+- 70: am as Ce,
+- Supabase interfaces:
+- 185: import "./vendor-supabase-DAiUAuun.js";
+- 2584: options: Array.from(new Set([...Ws, ...z])),
+- 2599: options: Array.from(new Set([...Ys, ...i])),
+- 3095: window.confirm("Delete all local data on this browser? This clears IndexedDB storage and signs you out, but it does not delete your Supabase cloud data.") && (await yt.clearAll(), await zt.clear(), await St(), await z(), window.location.reload())
+- external services: http://www.w3.org/2000/svg, https://aistudio.google.com/app/apikey, https://api.dicebear.com/7.x/avataaars/svg?seed=${o}, https://console.groq.com/keys, https://discord.gg/QfmQGmKJUD, https://example.com/focus-background.jpg, https://isotope.featurebase.app, https://upload.wikimedia.org/wikipedia/commons/a/a2/Canvas_logo.png, https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg, https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Blackboard_Learn_logo.png/600px-Blackboard_Learn_logo.png, https://www.google.com/favicon.ico, https://www.reddit.com/r/Isotope/
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Large text/code file; focused tests and decomposition would reduce regression risk.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0398-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/SettingsLayout-B4OgCkQ5.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/SettingsLayout-B4OgCkQ5.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 260005
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: large file >=100KB; same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - server.mjs:135: '/assets/SettingsLayout-B4OgCkQ5.js',
+  - server.mjs:3786: const SETTINGS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'SettingsLayout-B4OgCkQ5.js');
+  - public/sw.js:73: '/assets/SettingsLayout-B4OgCkQ5.js',
+  - scripts/prove-runtime-glue.mjs:54: const settingsBundle = await text('/assets/SettingsLayout-B4OgCkQ5.js');
+  - scripts/prove-runtime-glue.mjs:70: const settingsCache = (await head('/assets/SettingsLayout-B4OgCkQ5.js')).get('cache-control') || '';
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/App-pJGjDiPw.js:8371: import ("./SettingsLayout-B4OgCkQ5.js"), __vite__mapDeps([59, 2, 23, 6, 7, 5, 8, 21, 1, 3, 22, 24, 20, 19, 12, 25, 26, 60, 61, 15, 62, 35, 63, 40, 18, 17, 10, 11, 48, 27]))),
+  - artifacts/asset-diff/local-assets.txt:125: SettingsLayout-B4OgCkQ5.js
+  - artifacts/asset-diff/asset-report.json:2242: "file": "SettingsLayout-B4OgCkQ5.js",
+  - artifacts/asset-diff/asset-report.json:2245: "remote_url": "https://isotopeai.in/assets/SettingsLayout-B4OgCkQ5.js",
+  - artifacts/asset-diff/summary.md:107: | SettingsLayout-B4OgCkQ5.js | 200 | unexpected HTML fallback for .js request |

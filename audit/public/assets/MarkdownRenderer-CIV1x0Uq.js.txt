@@ -1,0 +1,212 @@
+FILE IDENTITY
+
+- original path: public/assets/MarkdownRenderer-CIV1x0Uq.js
+- audit path: audit/public/assets/MarkdownRenderer-CIV1x0Uq.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 1505
+- SHA-256: 50289a089153fe2138e70b161646738b6cd37c37271e00bb555553681465fe04
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:1792 - "file": "MarkdownRenderer-CIV1x0Uq.js",
+- artifacts/asset-diff/asset-report.json:1795 - "remote_url": "https://isotopeai.in/assets/MarkdownRenderer-CIV1x0Uq.js",
+- artifacts/asset-diff/local-assets.txt:100 - MarkdownRenderer-CIV1x0Uq.js
+- artifacts/asset-diff/summary.md:83 - | MarkdownRenderer-CIV1x0Uq.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/AIAnalysisCard-qrpOk1g6.js:14 - } from "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/AIAssistant--spCOe6W.js:19 - } from "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/AIWeeklySummary-fVbvFqu3.js:1 - import{j as s}from"./vendor-react-BfU3Zn2J.js";import{A as E}from"./AIAnalysisCard-qrpOk1g6.js";import{u as f,f as z}from"./useAIStore-B2cv1FZz.js";import{h as C,j as _,f as q,e as p}from"./useFocusStore-CX_Nyp1h.js";import{h as P}from"./Ap
+- public/assets/Analytics-D74gQMjN.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJFSVW.js","assets/index-CrO6t5EW.css","assets/App-pJGjDiPw.js
+- public/assets/AnalyticsPeriod-CGXbfYQB.js:1 - import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{A as ae,C as T,X as $,Y as W,T as A,L as X,a as Z,P as pe,c 
+- public/assets/AnalyticsSubjects-DOh8aXlW.js:1 - import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T}from"./timeFormat-CMPo-BX2.js";import{B as D,a as f,T as v,
+- public/assets/AnalyticsToday-BTdRNTb0.js:1 - import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";import{S as V}from"./SafeResponsiveContainer-D7o6DE97.js";impor
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/AppAccessGate-B975UtK7.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-C
+- public/assets/Community-DIqF5406.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-query-Rjz85D0S.js","assets/App-pJGjDiPw.js","
+- public/assets/CommunityHub-gANxZssO.js:2 - import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a as ae,f as G}from"./t
+- public/assets/Dashboard-dypAV-0H.js:10 - } from "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/DashboardHeader-DNuRMna8.js:48 - } from "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/ExamDetailPage-q_jDT5_x.js:1 - import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./useFocusStore-CX_Nyp1h.js";import{a as yt,b as dt,T as xt,S as 
+- public/assets/Exams-C3jymPwe.js:120 - import "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/Focus-BmgY-9vP.js:105 - import "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/IsotopeWrapped2-B4zl9ERi.js:1 - import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as re,b0 as oe,cW as ce,b1 as le,am as de,l as G,J as ue,d as 
+- public/assets/SettingsLayout-B4OgCkQ5.js:188 - import "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/SingleGroup-DU1IhoNK.js:1 - import{f as ge,j as e,r as g}from"./vendor-react-BfU3Zn2J.js";import{d as Ft,e as qt,a as Bt,f as Ht,g as Kt}from"./useGroups-vEjDKzZY.js";import{u as we,a as Ce,b as Se,d as Vt}from"./vendor-query-Rjz85D0S.js";import{u as q,j as R,s as j,o
+- public/assets/Study-pAdAenIl.js:100 - } from "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/Subscription-UaefsAtQ.js:55 - import "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/Syllabus-DZSnov0t.js:111 - import "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/Tasks-BYRFOrek.js:142 - import "./MarkdownRenderer-CIV1x0Uq.js";
+
+INTERNAL STRUCTURE
+
+- line count: 40
+- imports:
+- 2: import {
+- 4: } from "./index-BPYJFSVW.js";
+- 5: import {
+- 8: } from "./vendor-react-BfU3Zn2J.js";
+- exports:
+- 38: export {
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/MarkdownRendererContent-DBrMkHal.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendo
+- 9: const d = s.lazy(() => n(() =>
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BPYJFSVW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2908, artifacts/asset-diff/asset-report.json:2911, artifacts/asset-diff/local-assets.txt:162, artifacts/asset-diff/summary.md:141, public/assets/AIAssistant--spCOe6W.js:58, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsTasks-DOfUf9Sd.js:1
+- BSXZKQS3: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3556, artifacts/asset-diff/asset-report.json:3559, artifacts/asset-diff/local-assets.txt:198, artifacts/asset-diff/remote-assets/CodeHighlighter-DSemo1-_.js:1, artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/ChapterHub-BXRydU0B.js:1, public/assets/CodeHighlighter-DSemo1-_.js:1, public/assets/MarkdownRenderer-CIV1x0Uq.js:1, public/assets/MarkdownRendererContent-DBrMkHal.js:1, public/assets/MarkdownRendererContent-DBrMkHal.js:2, public/assets/index-qd2KF3Jd.js:1
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 2: import {
+- 4: } from "./index-BPYJFSVW.js";
+- 5: import {
+- 8: } from "./vendor-react-BfU3Zn2J.js";
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/MarkdownRendererContent-DBrMkHal.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-katex-BSXZKQS3.js", "assets/vendor-kat
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0373-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/MarkdownRenderer-CIV1x0Uq.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/MarkdownRenderer-CIV1x0Uq.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 1505
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/AIAnalysisCard-qrpOk1g6.js:14: } from "./MarkdownRenderer-CIV1x0Uq.js";
+  - public/assets/AIAssistant--spCOe6W.js:19: } from "./MarkdownRenderer-CIV1x0Uq.js";
+  - public/assets/AIWeeklySummary-fVbvFqu3.js:1: import{j as s}from"./vendor-react-BfU3Zn2J.js";import{A as E}from"./AIAnalysisCard-qrpOk1g6.js";import{u as f,f as z}from"./useAIStore-B2cv1FZz.js";import{h as C,j as _,f as q,e as
+  - public/assets/Analytics-D74gQMjN.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJ
+  - public/assets/AnalyticsPeriod-CGXbfYQB.js:1: import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{
+  - public/assets/AnalyticsSubjects-DOh8aXlW.js:1: import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T
+  - public/assets/AnalyticsToday-BTdRNTb0.js:1: import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";imp
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/AppAccessGate-B975UtK7.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/A
+  - public/assets/Community-DIqF5406.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css",
+  - public/assets/CommunityHub-gANxZssO.js:2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s
+  - public/assets/Dashboard-dypAV-0H.js:10: } from "./MarkdownRenderer-CIV1x0Uq.js";
+  - public/assets/DashboardHeader-DNuRMna8.js:48: } from "./MarkdownRenderer-CIV1x0Uq.js";
+  - public/assets/ExamDetailPage-q_jDT5_x.js:1: import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./use
+  - public/assets/Exams-C3jymPwe.js:120: import "./MarkdownRenderer-CIV1x0Uq.js";
+  - public/assets/Focus-BmgY-9vP.js:105: import "./MarkdownRenderer-CIV1x0Uq.js";
+  - public/assets/IsotopeWrapped2-B4zl9ERi.js:1: import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as
+  - public/assets/SettingsLayout-B4OgCkQ5.js:188: import "./MarkdownRenderer-CIV1x0Uq.js";
+  - public/assets/Subscription-UaefsAtQ.js:55: import "./MarkdownRenderer-CIV1x0Uq.js";
+  - public/assets/Syllabus-DZSnov0t.js:111: import "./MarkdownRenderer-CIV1x0Uq.js";

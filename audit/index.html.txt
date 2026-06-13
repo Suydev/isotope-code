@@ -1,0 +1,180 @@
+FILE IDENTITY
+
+- original path: index.html
+- audit path: audit/index.html.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: html
+- MIME type: text/html
+- size in bytes: 3018
+- SHA-256: a8a766b8442c93a84bcab3b9db8a7bcaf96373cf9a6004443dd0b0ebbf351fc5
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: application project
+- primary auditor: source-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Defines the browser document shell and early runtime scripts that must load before the compiled React application starts.
+
+ROLE IN THE APPLICATION
+
+- subsystem: application project
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: active core file
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/labeler.yml:50 - - 'index.html'
+- .github/workflows/regenerate-release.yml:96 - public/index.html
+- .github/workflows/release.yml:188 - docs/index.html
+- ADMIN.md:308 - `/auth-bridge.js` is loaded synchronously from `index.html` before the React app starts. It defines `window.__isoLogin(email, password)` and `window.__isoUp(email, password)` for patched or stale Auth bundles that call those globals.
+- docs/assets/site.js:39 - var path = location.pathname.split('/').pop() || 'index.html';
+- docs/assets/site.js:42 - if ((path === 'index.html' && href === './') || href.endsWith(path)) {
+- docs/motion.html:105 - docs/index.html
+- public/404.html:9 - // index.html then reads '?p=' and restores the path via history.replaceState
+- public/sw.js:13 - '/index.html',
+- public/sw.js:53 - '/index.html',
+- public/sw.js:141 - await shell.put('/index.html', response.clone());
+- public/sw.js:145 - return (await shell.match('/index.html')) ||
+- public/workbox-1d81fbea.js:975 - directoryIndex: s = "index.html",
+- scripts/test-auth-bridge.mjs:103 - // The bridge is loaded before server-injected globals in index.html. Prove it
+- scripts/validate-docs.mjs:6 - *   2. All image paths referenced in docs/index.html and docs/index.md exist
+- scripts/validate-docs.mjs:16 - *   --fix     Auto-fix version numbers in README and docs/index.html
+- scripts/validate-docs.mjs:48 - const DOCS_HTML = readText('docs/index.html');
+- scripts/validate-docs.mjs:148 - // ── 3. docs/index.html checks ─────────────────────────────────────────────────
+- scripts/validate-docs.mjs:149 - info('Checking docs/index.html...');
+- scripts/validate-docs.mjs:151 - warn('docs/index.html not found');
+- scripts/validate-docs.mjs:153 - ok('docs/index.html exists', `(${DOCS_HTML.length} chars)`);
+- scripts/validate-docs.mjs:160 - warn(`docs/index.html version (${docVer}) does not match package.json (${pkgVersion})`);
+- scripts/validate-docs.mjs:162 - ok(`docs/index.html version matches package.json (${pkgVersion})`);
+- scripts/validate-docs.mjs:165 - warn('No version number found in docs/index.html');
+- scripts/validate-docs.mjs:184 - warn('docs/index.html references logo.svg but file does not exist in repo root');
+- scripts/validate-docs.mjs:219 - 'docs/index.html',
+- server.mjs:116 - '/index.html',
+- server.mjs:8201 - res.setHeader('Cache-Control', cacheHeaderForRequest('/index.html'));
+- server.mjs:8206 - const indexPath = path.join(__dirname, 'index.html');
+- server.mjs:8344 - const idxInDir = path.join(filePath, 'index.html');
+
+INTERNAL STRUCTURE
+
+- line count: 59
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- CUET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:80, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:88, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:99
+- JEE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/feature_request.md:19, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52
+- NEET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:80
+- UTF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:4, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:4, artifacts/asset-diff/remote-assets/AIWeeklySummary-fVbvFqu3.js:4, artifacts/asset-diff/remote-assets/About-DbJqhVWT.js:4, artifacts/asset-diff/remote-assets/Analytics-D74gQMjN.js:4, artifacts/asset-diff/remote-assets/AnalyticsPeriod-CGXbfYQB.js:4, artifacts/asset-diff/remote-assets/AnalyticsSubjects-DOh8aXlW.js:4, artifacts/asset-diff/remote-assets/AnalyticsTasks-DOfUf9Sd.js:4, artifacts/asset-diff/remote-assets/AnalyticsToday-BTdRNTb0.js:4, artifacts/asset-diff/remote-assets/App-Bcp_57Ks.js:4, artifacts/asset-diff/remote-assets/App-pJGjDiPw.js:4, artifacts/asset-diff/remote-assets/AppAccessGate-B975UtK7.js:4
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 48: <!-- Update checker: polls GitHub when online, shows banner if new commit available -->
+- 49: <script src="/update-checker.js" defer></script>
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0264-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: index.html inspected; no file-specific high-risk issue confirmed
+  observed evidence: index.html inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/labeler.yml, .github/workflows/regenerate-release.yml, .github/workflows/release.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Defines the browser document shell and early runtime scripts that must load before the compiled React application starts.
+- activity status: active core file
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

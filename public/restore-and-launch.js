@@ -136,6 +136,7 @@ function clearStore(db, storeName) {
  * Scan localStorage for any Supabase session. Checks:
  *   • 'isotope-auth-token'      (legacy app key)
  *   • 'sb-{ref}-auth-token'     (Supabase JS v2 standard)
+ *   • 'isotope-last-session-raw' (bridge/interceptor fallback)
  *   • any key matching sb-*-auth-token pattern
  */
 function findSessionRaw() {
@@ -146,6 +147,8 @@ function findSessionRaw() {
       const standard = localStorage.getItem('sb-' + SUPA_REF + '-auth-token');
       if (standard) return standard;
     }
+    const lastRaw = localStorage.getItem('isotope-last-session-raw');
+    if (lastRaw) return lastRaw;
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {

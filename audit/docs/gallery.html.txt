@@ -1,0 +1,183 @@
+FILE IDENTITY
+
+- original path: docs/gallery.html
+- audit path: audit/docs/gallery.html.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: html
+- MIME type: text/html
+- size in bytes: 7678
+- SHA-256: 28e66ee5bb2488a7b24c49bf475c8091dcf563160f63e42320025ff109086fbc
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: documentation
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: documentation
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/release.yml:192 - docs/gallery.html
+- README.md:25 - <a href="https://suydev.github.io/isotope-code/gallery.html">Screenshots</a>
+- README.md:29 - <a href="https://suydev.github.io/isotope-code/gallery.html">
+- README.md:46 - - Screenshot gallery: https://suydev.github.io/isotope-code/gallery.html
+- docs/admin.html:20 - <a href="./gallery.html">Screenshots</a>
+- docs/assets/site.js:68 - { title: 'Screenshot gallery', desc: 'Real app screenshots from the repo', href: './gallery.html', tag: 'visuals' },
+- docs/index.html:23 - <a href="./gallery.html">Screenshots</a>
+- docs/index.html:123 - <a class="button secondary" href="./gallery.html">Open full screenshot gallery</a>
+- docs/index.md:17 - - [Screenshot gallery](./gallery.html)
+- docs/install.html:20 - <a href="./gallery.html">Screenshots</a>
+- docs/motion.html:20 - <a href="./gallery.html">Screenshots</a>
+- docs/motion.html:109 - docs/gallery.html
+- docs/sync.html:20 - <a href="./gallery.html">Screenshots</a>
+- scripts/validate-docs.mjs:223 - 'docs/gallery.html',
+
+INTERNAL STRUCTURE
+
+- line count: 105
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- RAW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/gallery.html:39, public/assets/SessionLogTable-CclRAAwc.js:6
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- https://github.com/Suydev/isotope-code
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-07-13-58-43-64_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-47-93_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-00-34_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-47-09-37_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 22: <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+- 36: <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png" alt="IsotopeAI public landing screen">
+- 53: <a href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png" alt="Landing page screenshot"></a>
+- 57: <a href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-07-13-58-43-64_e4424258c8b8649f6e67d283a50a2cbc.jpg"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Scree
+- 61: <a href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Scree
+- 65: <a href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Scree
+- 69: <a href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Scree
+- 73: <a href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-47-93_e4424258c8b8649f6e67d283a50a2cbc.jpg"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Scree
+- 77: <a href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-00-34_e4424258c8b8649f6e67d283a50a2cbc.jpg"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Scree
+- 81: <a href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Scree
+- 85: <a href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Scree
+- 89: <a href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Scree
+- 93: <a href="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-47-09-37_e4424258c8b8649f6e67d283a50a2cbc.jpg"><img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Scree
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: https://github.com/Suydev/isotope-code, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/landingpage.png, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-07-13-58-43-64_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-47-93_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-00-34_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-47-09-37_e4424258c8b8649f6e67d283a50a2cbc.jpg
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0251-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: docs/gallery.html inspected; no file-specific high-risk issue confirmed
+  observed evidence: docs/gallery.html inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/release.yml, README.md, README.md
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

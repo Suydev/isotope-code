@@ -1,0 +1,164 @@
+FILE IDENTITY
+
+- original path: docs/motion.html
+- audit path: audit/docs/motion.html.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: html
+- MIME type: text/html
+- size in bytes: 5446
+- SHA-256: 8c7a1e89a1177da7fee72d92ff9e4b662efa6252226ba343bd09c1554a19be83
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: documentation
+- primary auditor: documentation-ci-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: documentation
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/release.yml:193 - docs/motion.html
+- docs/admin.html:21 - <a href="./motion.html">Motion</a>
+- docs/assets/site.js:69 - { title: 'Motion design notes', desc: 'Animation system and reference decisions', href: './motion.html', tag: 'motion' },
+- docs/gallery.html:21 - <a href="./motion.html">Motion</a>
+- docs/index.html:24 - <a href="./motion.html">Motion</a>
+- docs/index.md:18 - - [Motion design notes](./motion.html)
+- docs/install.html:21 - <a href="./motion.html">Motion</a>
+- docs/sync.html:21 - <a href="./motion.html">Motion</a>
+- scripts/validate-docs.mjs:224 - 'docs/motion.html',
+
+INTERNAL STRUCTURE
+
+- line count: 128
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- GSAP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/motion.html:94
+- REDUCE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=docs/motion.html:39
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- https://github.com/Suydev/isotope-code
+- https://medium.com/orizon-design/top-ux-ui-animations-of-the-week-ea85de7b2591
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-00-34_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://scroll-driven-animations.style/
+- https://www.svgator.com/blog/animated-landing-pages-examples/
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 22: <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+- 36: <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-00-34_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Animated-feeling app analytics screenshot">
+- 55: <p><a href="https://www.svgator.com/blog/animated-landing-pages-examples/">Reference: animated landing page examples</a></p>
+- 61: <p><a href="https://scroll-driven-animations.style/">Reference: scroll-driven animations</a></p>
+- 67: <p><a href="https://medium.com/orizon-design/top-ux-ui-animations-of-the-week-ea85de7b2591">Reference: UI animation examples</a></p>
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: https://github.com/Suydev/isotope-code, https://medium.com/orizon-design/top-ux-ui-animations-of-the-week-ea85de7b2591, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-46-00-34_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://scroll-driven-animations.style/, https://www.svgator.com/blog/animated-landing-pages-examples/
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0256-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: docs/motion.html inspected; no file-specific high-risk issue confirmed
+  observed evidence: docs/motion.html inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/release.yml, docs/admin.html, docs/assets/site.js
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

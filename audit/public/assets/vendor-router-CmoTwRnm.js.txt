@@ -1,0 +1,484 @@
+FILE IDENTITY
+
+- original path: public/assets/vendor-router-CmoTwRnm.js
+- audit path: audit/public/assets/vendor-router-CmoTwRnm.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 49363
+- SHA-256: 26233c437502f1640904df0db379324f3d16e5aa310a1fd6c14af1459f201cf9
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3700 - "file": "vendor-router-CmoTwRnm.js",
+- artifacts/asset-diff/asset-report.json:3703 - "remote_url": "https://isotopeai.in/assets/vendor-router-CmoTwRnm.js",
+- artifacts/asset-diff/local-assets.txt:206 - vendor-router-CmoTwRnm.js
+- artifacts/asset-diff/summary.md:29 - | vendor-router-CmoTwRnm.js | 49363 | 33770 | 200 |
+- public/assets/AIAssistant--spCOe6W.js:56 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/AIWeeklySummary-fVbvFqu3.js:1 - import{j as s}from"./vendor-react-BfU3Zn2J.js";import{A as E}from"./AIAnalysisCard-qrpOk1g6.js";import{u as f,f as z}from"./useAIStore-B2cv1FZz.js";import{h as C,j as _,f as q,e as p}from"./useFocusStore-CX_Nyp1h.js";import{h as P}from"./Ap
+- public/assets/About-DbJqhVWT.js:1 - import{j as e,f as x}from"./vendor-react-BfU3Zn2J.js";import{N as m,F as p}from"./Navbar-BJMJUymI.js";import{m as s}from"./vendor-motion-Cp_NPzpZ.js";import{S as u,k as g,l as b,m as y,L as f,n as w,f as k,U as j,o as v,p as N,T as z,q as I
+- public/assets/Analytics-D74gQMjN.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJFSVW.js","assets/index-CrO6t5EW.css","assets/App-pJGjDiPw.js
+- public/assets/AnalyticsPeriod-CGXbfYQB.js:1 - import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{A as ae,C as T,X as $,Y as W,T as A,L as X,a as Z,P as pe,c 
+- public/assets/AnalyticsSubjects-DOh8aXlW.js:1 - import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T}from"./timeFormat-CMPo-BX2.js";import{B as D,a as f,T as v,
+- public/assets/AnalyticsTasks-DOfUf9Sd.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{S as x}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as L}from"./useChartAnimation-C6FTIqbw.js";import{A as $,C as u,X as j,Y as g,T as m,a as K,B as N,L as k,b as v,P as B,c as D
+- public/assets/AnalyticsToday-BTdRNTb0.js:1 - import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";import{S as V}from"./SafeResponsiveContainer-D7o6DE97.js";impor
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/App-pJGjDiPw.js:26 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/AppAccessGate-B975UtK7.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-C
+- public/assets/AppAccessGate-B975UtK7.js:50 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Auth-Cw0VAaCZ.js:14 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/ChallengesHub-C50y_K_l.js:1 - import{r as o,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as k,a as C}from"./useGroupChallenges-N8BLPr3m.js";import{u as _}from"./App-pJGjDiPw.js";import{E as T}from"./EnhancedChallengeCard-BKErZxiW.js";import{at as A,T as g,Z as j,x a
+- public/assets/ChapterHub-BXRydU0B.js:1 - import{j as e,r as s,f as Re,b as hs}from"./vendor-react-BfU3Zn2J.js";import{c as ye}from"./utils-D8mZnxMk.js";import{I as zt}from"./IsotopeLogoIcon-oPk5Ru-_.js";import{u as xe,h as de,j as Be,k as lt}from"./useFocusStore-CX_Nyp1h.js";impor
+- public/assets/Community-DIqF5406.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-query-Rjz85D0S.js","assets/App-pJGjDiPw.js","
+- public/assets/Community-DIqF5406.js:2 - import{_ as s}from"./index-BPYJFSVW.js";import{j as e,f as _,r as t}from"./vendor-react-BfU3Zn2J.js";import{c as w}from"./App-pJGjDiPw.js";import{S as N,D as k}from"./DashboardHeader-DNuRMna8.js";import{m as o,A as E}from"./vendor-motion-Cp
+- public/assets/CommunityHub-gANxZssO.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/sessionSync-mloIEnTd.js","assets/App-pJGjDiPw.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-supabase-DAiUAuun.js"
+- public/assets/CommunityHub-gANxZssO.js:2 - import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a as ae,f as G}from"./t
+- public/assets/CompletionCelebration-ngx4eqoP.js:1 - import{r as a,j as e}from"./vendor-react-BfU3Zn2J.js";import{h as n}from"./App-pJGjDiPw.js";import{u as c}from"./Onboarding-qvAqCBbb.js";import{f as o,Z as d,T as l,l as x,r as m}from"./vendor-icons-CqruUz7g.js";import{u as b}from"./vendor-
+- public/assets/Dashboard-dypAV-0H.js:44 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/DashboardHeader-DNuRMna8.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/ToolsModal-BMUG81iV.js", "assets/vendor-react-BfU3Zn2J.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-CrO6t5EW.css", "assets/vendor-supab
+- public/assets/DashboardHeader-DNuRMna8.js:100 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/DemoLauncher-CdcwMBr6.js:1 - import{r as t,j as e}from"./vendor-react-BfU3Zn2J.js";import{b as r,r as s}from"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUAuun.js";import"./vendor-motion-Cp_NPzpZ.js";import"./vendor-icons-CqruUz7g.js";impo
+- public/assets/ExamDetailPage-q_jDT5_x.js:1 - import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./useFocusStore-CX_Nyp1h.js";import{a as yt,b as dt,T as xt,S as 
+- public/assets/Exams-C3jymPwe.js:79 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/FAQ-DuTZR-ip.js:21 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/Focus-BmgY-9vP.js:107 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/FocusStore-D5cRXSIr.js:1 - import{j as e,r as v}from"./vendor-react-BfU3Zn2J.js";import{u as _,a as q,b as C}from"./vendor-query-Rjz85D0S.js";import{u as N,s as c}from"./App-pJGjDiPw.js";import{m as b}from"./vendor-motion-Cp_NPzpZ.js";import{S as P,r as z,w as f,d as
+- public/assets/GlobalPresenceBroadcaster-C5JADiwL.js:1 - import{f as u}from"./vendor-react-BfU3Zn2J.js";import{u as C,h as F}from"./App-pJGjDiPw.js";import{h as P,u as w}from"./useFocusStore-CX_Nyp1h.js";import{b as E}from"./useGroups-vEjDKzZY.js";import{u as O}from"./useGroupPresence-BmkfUzH6.js
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:20 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/GlobalTimer-DUR6TMoR.js:12 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/GroupDiscovery-DUcFr2JQ.js:1 - import{j as e,r as a}from"./vendor-react-BfU3Zn2J.js";import{u as I,a as L,b as M,c as T}from"./useGroups-vEjDKzZY.js";import{P as $}from"./PremiumGate-CX1zS69D.js";import{G as J}from"./GroupInviteGenerator-B-iMSSXc.js";import{w as R,x as U
+- public/assets/InviteOnlineOnlyRoute-CZgdOWgx.js:1 - import{r as u,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as C}from"./useOnlineStatus-BJOTUERN.js";import{Q as H}from"./QueryProvider-DusNhG9D.js";import{c as y,u as A,H as j,I as S,j as N}from"./App-pJGjDiPw.js";import{u as T,a as Z}f
+- public/assets/IsotopeWrapped2-B4zl9ERi.js:1 - import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as re,b0 as oe,cW as ce,b1 as le,am as de,l as G,J as ue,d as 
+- public/assets/Landing-CWRNt7E9.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/FAQ-DuTZR-ip.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useSupportModalStore-BkYsnKtG.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index
+- public/assets/Landing-CWRNt7E9.js:47 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Leaderboard-BkEBFdG7.js:1 - import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{d as $}from"./vendor-query-Rjz85D0S.js";import{a as L,u as R}from"./useLeaderboard-BpvH5FXA.js";import{c as z,u as S}from"./App-pJGjDiPw.js";import{P as I}from"./PremiumGate-CX1zS
+- public/assets/MarkdownRenderer-CIV1x0Uq.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/MarkdownRendererContent-DBrMkHal.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-katex-BSXZKQS3.js"
+- public/assets/MarkdownRendererContent-DBrMkHal.js:2 - import{_ as k}from"./index-BPYJFSVW.js";import{r as i,j as t,f as b}from"./vendor-react-BfU3Zn2J.js";import"./vendor-katex-BSXZKQS3.js";import{n as y}from"./App-pJGjDiPw.js";import{r as N,a as z,b as v,M as $}from"./vendor-markdown-core-Pkt
+- public/assets/MemberProfile-D-l2e-2X.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as w}from"./vendor-query-Rjz85D0S.js";import{u as p,V as N,s as h,t as y,W as S,A as _}from"./App-pJGjDiPw.js";import{f as A}from"./timeFormat-CMPo-BX2.js";import{k as P,ag as U,b as T
+- public/assets/Navbar-BJMJUymI.js:31 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/NetworkRequiredState-O9ZdVBEy.js:13 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/NotFound-X23NBnde.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as o}from"./PageLayout-B8yOy6kS.js";import{j as i,H as s}from"./vendor-icons-CqruUz7g.js";import{L as a}from"./vendor-router-CmoTwRnm.js";import"./Navbar-BJMJUymI.js";import"./App-pJGj
+- public/assets/Onboarding-qvAqCBbb.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Step1Identity-BZBwnoJ8.js", "assets/vendor-react-BfU3Zn2J.js", "assets/OnboardingNavigation-C6kIq5HV.js", "assets/vendor-icons-CqruUz7g.js", "assets/App-pJGjDiPw.j
+- public/assets/Onboarding-qvAqCBbb.js:25 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/PWAManager-DjIYufp2.js:29 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/PremiumGate-CX1zS69D.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as x}from"./App-pJGjDiPw.js";import{S as h}from"./SupportMessage-BE7j-Ezd.js";import{m as a}from"./vendor-motion-Cp_NPzpZ.js";import{x as o,S as d,r as m,w as c,y as b,f as p,Z as g}fr
+- public/assets/Pricing-D9PNd5BR.js:29 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Privacy-ClP3A1gm.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUA
+- public/assets/QuickActionsMenu-ojdsCiqG.js:28 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:37 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/RealAnalyticsOverview-bpioXKtW.js:1 - import{j as t}from"./vendor-react-BfU3Zn2J.js";import{g as E,h as me,j as ue,u as xe,f as he}from"./useFocusStore-CX_Nyp1h.js";import{t as fe,a as be}from"./subjectBranding-DaDo_h8r.js";import{h as ge}from"./App-pJGjDiPw.js";import{S as L}f
+- public/assets/ResetPassword-mBBJZV4T.js:1 - import{r as n,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as z,i as k,s as S,a as w}from"./App-pJGjDiPw.js";import{A as C,f as P,g as R,h as A,X as L,i as b}from"./vendor-icons-CqruUz7g.js";import{u as _,L as m}from"./vendor-router-Cmo
+- public/assets/SessionLogTable-CclRAAwc.js:1 - import{r as m,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as ie,g as w}from"./useFocusStore-CX_Nyp1h.js";import{u as C}from"./useAIStore-B2cv1FZz.js";import{c as oe,h as ce,O as v,g as le}from"./App-pJGjDiPw.js";import{S as de}from"./S
+- public/assets/SettingsLayout-B4OgCkQ5.js:183 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/SingleGroup-DU1IhoNK.js:1 - import{f as ge,j as e,r as g}from"./vendor-react-BfU3Zn2J.js";import{d as Ft,e as qt,a as Bt,f as Ht,g as Kt}from"./useGroups-vEjDKzZY.js";import{u as we,a as Ce,b as Se,d as Vt}from"./vendor-query-Rjz85D0S.js";import{u as q,j as R,s as j,o
+- public/assets/Step1Identity-BZBwnoJ8.js:24 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/Step2Academic-BUGsFsTy.js:1 - import{r as m,j as t}from"./vendor-react-BfU3Zn2J.js";import{u as E}from"./Onboarding-qvAqCBbb.js";import{O as z}from"./OnboardingNavigation-C6kIq5HV.js";import{C as u}from"./ChipMultiSelect-BU74OOip.js";import{S as C}from"./SubjectCreateMo
+- public/assets/Step3StudyGoals-CQ0yWK1r.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u}from"./Onboarding-qvAqCBbb.js";import{O as x}from"./OnboardingNavigation-C6kIq5HV.js";import{R as h}from"./RadioCard-BtzZXn6i.js";import{aj as p,bh as b,bi as g}from"./vendor-icons-Cqr
+- public/assets/Step4Preferences-D6oDNUqn.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as d}from"./Onboarding-qvAqCBbb.js";import{O as m}from"./OnboardingNavigation-C6kIq5HV.js";import{R as u}from"./RadioCard-BtzZXn6i.js";import{C as x}from"./ChipMultiSelect-BU74OOip.js"
+- public/assets/Step5Community-BvHWgTaf.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as a}from"./Onboarding-qvAqCBbb.js";import{O as c}from"./OnboardingNavigation-C6kIq5HV.js";import{R as d}from"./RadioCard-BtzZXn6i.js";import{aH as l,U as u,aI as m,aJ as p}from"./vend
+- public/assets/Step6Personalization-CNdBQkFI.js:1 - import{j as e,r as c}from"./vendor-react-BfU3Zn2J.js";import{u as x}from"./Onboarding-qvAqCBbb.js";import{O as b}from"./OnboardingNavigation-C6kIq5HV.js";import{T as m}from"./Toggle-D54hkegy.js";import{Q as p,R as h,T as u}from"./App-pJGjDi
+- public/assets/Story-TXs13Cjc.js:19 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/Study-pAdAenIl.js:86 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Subscription-UaefsAtQ.js:56 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:24 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Syllabus-DZSnov0t.js:96 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/SyncListener-BMsBLWig.js:22 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/TaskCardModal-DZvd1GWt.js:66 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Tasks-BYRFOrek.js:107 - } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Terms-BXixZPB6.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUA
+- public/assets/ToolsModal-BMUG81iV.js:37 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/WelcomeTeaser-B96rmBi8.js:22 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/bootstrap-D1vc155U.js:27 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/index-B45N-99N.js:24 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/index-BPYJFSVW.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/vendor-sentry-VzeXdCeF.js", "assets/vendor-react-BfU3Zn2J.js", "assets/App-pJGjDiPw.js", "assets/vendor-supabase-DAiUAuun.js", "assets/vendor-motion-Cp_NPzpZ.js", 
+- public/assets/messaging-BP0KfJxy.js:9 - import "./vendor-router-CmoTwRnm.js";
+- public/assets/sessionSync-mloIEnTd.js:1 - import{J as S,K as E,L as d,M as l,u as A,i as D,s as p,m as y,N as m,k as g}from"./App-pJGjDiPw.js";import{a as n}from"./QueryProvider-DusNhG9D.js";import{G as u,C as c}from"./groupCache-DVHvdGlY.js";import"./index-BPYJFSVW.js";import"./ve
+- public/assets/useFocusStore-CX_Nyp1h.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/sessionSync-mloIEnTd.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-supa
+- public/assets/useNotificationStore-BS4df28T.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/messaging-BP0KfJxy.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-supaba
+- public/assets/useSyncStore-vWs_TdIc.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/index-B45N-99N.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-supabase-D
+- public/sw.js:37 - '/assets/vendor-router-CmoTwRnm.js',
+
+INTERNAL STRUCTURE
+
+- line count: 1587
+- imports:
+- 1: import {
+- 3: } from "./vendor-react-BfU3Zn2J.js";
+- exports:
+- 1585: export {
+- functions/async flows:
+- 16: function $e(e = {}) {
+- 17: function t(n, a) {
+- 30: function r(n, a) {
+- 36: function E(e, t) {
+- 40: function x(e, t) {
+- 41: if (!e) {
+- 49: function Fe() {
+- 53: function se(e, t) {
+- 61: function q(e, t, r = null, n) {
+- 72: function A({
+- 80: function I(e) {
+- 82: if (e) {
+- 91: function Ne(e, t, r, n = {}) {
+- 100: function f() {
+- 106: function h() {
+- 117: function y(d, m) {
+- 136: function g(d, m) {
+- 149: function v(d) {
+- 159: listen(d) {
+- 161: return a.addEventListener(ue, h), u = d, () => {
+- 165: createHref(d) {
+- 169: encodeLocation(d) {
+- 179: go(d) {
+- 186: function Ie(e, t = !1) {
+- 193: function pe(e, t, r = "/") {
+- 197: function Te(e, t, r, n) {
+- 204: for (let u = 0; s == null && u < l.length; ++u) {
+- 211: function me(e, t = [], r = [], n = "", a = !1) {
+- 212: let o = (l, s, u = a, c) => {
+- 231: return e.forEach((l, s) => {
+- 238: function ye(e) {
+- 248: function Be(e) {
+- 259: function He(e, t) {
+- 265: function _e(e, t) {
+- 269: function ze(e, t, r = !1) {
+- 273: for (let s = 0; s < n.length; ++s) {
+- 298: function V(e, t) {
+- 313: }, y) => {
+- 314: if (f === "*") {
+- 327: function je(e, t = !1, r = !0) {
+- 339: function Ve(e) {
+- 347: function $(e, t) {
+- 357: function Ye(e, t = "/") {
+- 380: function fe(e, t) {
+- 382: return e.split("/").forEach(a => {
+- 387: function Y(e, t, r, n) {
+- 391: function Ge(e) {
+- 395: function Z(e) {
+- 400: function ee(e, t, r, n = !1) {
+- 427: function Ze(e) {
+- 461: function nt(e, {
+- 482: function B() {
+- 486: function F() {
+- 491: function Re(e) {
+- 495: function re() {
+- 502: function at() {
+- 517: return Re(() => {
+- 519: }), i.useCallback((u, c = {}) => {
+- 521: if (typeof u == "number") {
+- 531: function Zt() {
+- 538: function U(e, {
+- 549: function ot(e, t) {
+- 553: function Ee(e, t, r, n, a) {
+- 567: if (t) {
+- 573: if (f !== "/") {
+- 601: function lt() {
+- 629: constructor(e) {
+- 652: componentDidCatch(e, t) {
+- 655: render() {
+- 665: function st({
+- 676: function ct(e, t = [], r = null, n = null, a = null) {
+- 677: if (e == null) {
+- 685: if (l != null) {
+- 692: for (let f = 0; f < o.length; f++) {
+- 699: if (h.route.lazy || v) {
+- 705: let c = r && n ? (f, h) => {
+- 712: return o.reduceRight((f, h, y) => {
+- 718: p = () => {
+- 746: function ne(e) {
+- 750: function ft(e) {
+- classes:
+- 628: ut = class extends i.Component {
+- constants/mutable state candidates:
+- 14: var ue = "popstate";
+- 81: let t = {};
+- 83: let r = e.indexOf("#");
+- 85: let n = e.indexOf("?");
+- 108: let d = f(),
+- 119: let p = q(w.location, d, m);
+- 121: let R = se(p, c),
+- 138: let p = q(w.location, d, m);
+- 140: let R = se(p, c),
+- 152: let w = {
+- 170: let m = v(d);
+- 187: let r = "http://localhost";
+- 189: let n = typeof e == "string" ? e : A(e);
+- 198: let a = typeof t == "string" ? I(t) : t,
+- 201: let l = me(e);
+- 203: let s = null;
+- 205: let c = Ve(o);
+- 212: let o = (l, s, u = a, c) => {
+- 213: let f = {
+- 223: let h = k([n, f.relativePath]),
+- 239: let t = e.split("/");
+- 243: let l = ye(n.join("/")),
+- 251: var De = /^:[\w-]+$/,
+- 260: let r = e.split("/"),
+- 274: let u = n[s],
+- 306: let o = a[0],
+- 315: let v = s[y] || "";
+- 318: const g = s[y];
+- 329: let n = [],
+- 350: let r = t.endsWith("/") ? t.length - 1 : t.length,
+- 354: var Je = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i,
+- 367: let l = r;
+- 381: let r = t.replace(/\/+$/, "").split("/");
+- 396: let t = Ge(e);
+- 401: let a;
+- 404: let o = e === "" || a.pathname === "",
+- 409: let h = t.length - 1;
+- 411: let y = l.split("/");
+- 417: let u = Ye(a, s),
+- 422: var k = e => e.join("/").replace(/\/\/+/g, "/"),
+- 431: var ge = ["POST", "PUT", "PATCH", "DELETE"];
+- 433: var et = ["GET", ...ge];
+- 435: var T = i.createContext(null);
+- 437: var J = i.createContext(null);
+- 440: var ve = i.createContext({
+- 444: var tt = i.createContext(new Map);
+- 446: var rt = i.createContext(null);
+- 448: var S = i.createContext(null);
+- 450: var O = i.createContext(null);
+- 452: var L = i.createContext({
+- 458: var te = i.createContext(null);
+- 489: var we = "You should call navigate() in a React.useEffect(), not when your component is first rendered.";
+- 504: let e = i.useContext(T),
+- 525: let f = ee(u, JSON.parse(o), a, c.relative === "path");
+- 560: let p = h && h.path || "";
+- 565: let y = F(),
+- 568: let p = typeof t == "string" ? I(t) : t;
+- 571: let v = g.pathname || "/",
+- 574: let p = f.replace(/^\//, "").split("/");
+- 577: let d = pe(e, {
+- 581: let m = ct(d && d.map(p => Object.assign({}, p, {
+- 602: let e = mt(),
+- 627: var it = i.createElement(lt, null),
+- 670: let n = i.useContext(T);
+- 683: let o = e,
+- 686: let f = o.findIndex(h => h.route.id && l ?.[h.route.id] !== void 0);
+- 689: let s = !1,
+- 693: let h = o[f];
+- 705: let c = r && n ? (f, h) => {
+- 713: let g, v = !1,
+- 717: let m = t.concat(o.slice(0, y + 1)),
+- 719: let R;
+- 751: let t = i.useContext(T);
+- 756: let t = i.useContext(J);
+- 761: let t = i.useContext(L);
+- 766: let t = dt(e),
+- 776: let e = i.useContext(te),
+- 795: var he = {};
+- 849: let l = e.replace(/^\/*/, "/"),
+- 864: let v = $(u, l);
+- handlers/lifecycle candidates:
+- 161: return a.addEventListener(ue, h), u = d, () => {
+- 1155: let w = setTimeout(() => {
+- 1523: await e.fetch(f, r, a.action || o, {
+
+INPUTS
+
+- parameters: route/request path candidates are listed in Internal Structure
+- environment variables:
+- LICENSE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:259, README.md:358, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:11, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:19, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:59, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:8, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:16, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:24, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:32, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:40, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:55, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:63
+- MIT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:259, README.md:358, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:10, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:18, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:58, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:7, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:15, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:23, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:31, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:39, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:54, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:62
+- POP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:10, artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:12, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:498, public/assets/vendor-router-CmoTwRnm.js:95, public/assets/vendor-router-CmoTwRnm.js:107, public/assets/vendor-router-CmoTwRnm.js:596, public/assets/vendor-router-CmoTwRnm.js:844, public/assets/vendor-sentry-VzeXdCeF.js:20742, public/assets/vendor-sentry-VzeXdCeF.js:20921, public/assets/vendor-sentry-VzeXdCeF.js:21282, public/assets/vendor-sentry-VzeXdCeF.js:21284, public/assets/vendor-sentry-VzeXdCeF.js:21309
+- PUSH: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:10, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:498, public/assets/vendor-router-CmoTwRnm.js:118, public/assets/vendor-sentry-VzeXdCeF.js:20742, public/assets/vendor-sentry-VzeXdCeF.js:20921, public/assets/vendor-sentry-VzeXdCeF.js:21284, public/assets/vendor-sentry-VzeXdCeF.js:21481
+- REPLACE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:259, .github/workflows/schema-lint.yml:79, .github/workflows/schema-lint.yml:97, .github/workflows/schema-lint.yml:99, .github/workflows/schema-lint.yml:101, .github/workflows/schema-lint.yml:121, CHANGELOG.md:129, CHANGELOG.md:403, CONTRIBUTING.md:54, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:20, artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:10, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- command-line arguments: not directly observed
+- request data: route candidates observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://localhost
+- https://github.com/ungap/url-search-params.
+- https://reactrouter.com/en/main/routers/picking-a-router.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 42: typeof console < "u" && console.warn(t);
+- 127: a.location.assign(C)
+- 162: a.removeEventListener(ue, h), u = null
+- 188: typeof window < "u" && (r = window.location.origin !== "null" ? window.location.origin : window.location.href), E(r, "No window.location.(origin|href) available to create URL");
+- 225: l.children && l.children.length > 0 && (E(l.index !== !0, `Index routes must not have child routes. Please remove all child routes from route path "${h}".`), me(l.children, t, y, h, u)), !(l.path == null && !l.index) && t.push({
+- 431: var ge = ["POST", "PUT", "PATCH", "DELETE"];
+- 615: return console.error("Error handled by React Router default ErrorBoundary:", e), l = i.createElement(i.Fragment, null, i.createElement("p", null, "💿 Hey developer 👋"), i.createElement("p", null, "You can provide a way better UX than this when your app throws e
+- 653: this.props.onError ? this.props.onError(e, t) : console.error("React Router caught the following error during render", e)
+- 1022: let n = typeof e == "string" ? new URL(e, typeof window > "u" ? "server://singlefetch/" : window.location.origin) : e;
+- 1032: return console.error(`Error loading route module \`${e.module}\`, reloading page...`), console.error(r), window.__reactRouterContext && window.__reactRouterContext.isSpaMode, window.location.reload(), new Promise(() => {})
+- 1323: let P = new URL(window.location.href),
+- 1328: x(!1, `<Link to="${c}"> contains an invalid URL which will probably break when clicked - please update to a valid URL path.`)
+- 1382: R = g && g.navigation && g.navigation.location ? g.navigation.location.pathname : null;
+- 1523: await e.fetch(f, r, a.action || o, {
+- 1562: s.delete("index"), u.filter(h => h).forEach(h => s.append("index", h));
+- 1581: let o = $(r.currentLocation.pathname, n) || r.currentLocation.pathname,
+- 1582: l = $(r.nextLocation.pathname, n) || r.nextLocation.pathname;
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 187: let r = "http://localhost";
+- 214: relativePath: c === void 0 ? l.path || "" : c,
+- 221: E(f.relativePath.startsWith(n), `Absolute route path "${f.relativePath}" nested under path "${n}" is not valid. An absolute child route path must start with the combined path of all its parent routes.`), f.relativePath = f.relativePath.slice(n.length)
+- 225: l.children && l.children.length > 0 && (E(l.index !== !0, `Index routes must not have child routes. Please remove all child routes from route path "${h}".`), me(l.children, t, y, h, u)), !(l.path == null && !l.index) && t.push({
+- 226: path: h,
+- 232: if (l.path === "" || !l.path ?.includes("?")) o(l, s);
+- 234: for (let u of ye(l.path)) o(l, s, !0, u)
+- 278: path: u.relativePath,
+- 284: path: u.relativePath,
+- 300: path: e,
+- 304: let [r, n] = je(e.path, e.caseSensitive, e.end), a = t.match(r);
+- 328: x(e === "*" || !e.endsWith("*") || e.endsWith("/*"), `Route path "${e}" will be treated as if it were "${e.replace(/\*$/,"/*")}" because the \`*\` character must always follow a \`/\` in the pattern. To get rid of this warning, please change the route path to 
+- 343: return x(!1, `The URL path "${e}" could not be decoded because it is a malformed URL segment. This is probably due to a bad percent encoding (${t}).`), e
+- 388: return `Cannot include a '${e}' character in a manually specified \`to.${t}\` field [${JSON.stringify(n)}].  Please separate it out to the \`to.${r}\` field. Alternatively you may provide the full path as a string in <Link to="..."> and the router will parse i
+- 392: return e.filter((t, r) => r === 0 || t.route.path && t.route.path.length > 0)
+- 525: let f = ee(u, JSON.parse(o), a, c.relative === "path");
+- 546: return i.useMemo(() => ee(e, JSON.parse(a), n, t === "path"), [e, a, n, t])
+- 560: let p = h && h.path || "";
+- 561: xe(c, !h || p.endsWith("*") || p.endsWith("*?"), `You rendered descendant <Routes> (or called \`useRoutes()\`) at "${c}" (under <Route path="${p}">) but the parent route path has no trailing "*". This means if you navigate deeper, the parent won't match anymor
+- 563: Please change the parent <Route path="${p}"> to <Route path="${p==="/"?"*":`${p}/*`}">.`)
+- 747: return `${e} must be used within a data router.  See https://reactrouter.com/en/main/routers/picking-a-router.`
+- 826: } = F(), s = re(), u = ee(e, Z(o), l, n === "path"), c = JSON.stringify(u);
+- 907: path: n.props.path,
+- 1058: s = (u, c) => r[c].pathname !== u.pathname || r[c].route.path ?.endsWith("*") && r[c].params["*"] !== u.params["*"];
+- 1328: x(!1, `<Link to="${c}"> contains an invalid URL which will probably break when clicked - please update to a valid URL path.`)
+- 1455: return `${e} must be used within a data router.  See https://reactrouter.com/en/main/routers/picking-a-router.`
+- 1492: x(typeof URLSearchParams < "u", "You cannot use the `useSearchParams` hook in a browser that does not support the URLSearchParams API. If you need to support Internet Explorer 11, we recommend you load a polyfill such as https://github.com/ungap/url-search-par
+- external libraries:
+- 1: import {
+- 3: } from "./vendor-react-BfU3Zn2J.js";
+- local files: see References and Consumers above
+- browser APIs:
+- 93: window: a = document.defaultView,
+- 188: typeof window < "u" && (r = window.location.origin !== "null" ? window.location.origin : window.location.href), E(r, "No window.location.(origin|href) available to create URL");
+- 971: new FormData(document.createElement("form"), 0), _ = !1
+- 1022: let n = typeof e == "string" ? new URL(e, typeof window > "u" ? "server://singlefetch/" : window.location.origin) : e;
+- 1032: return console.error(`Error loading route module \`${e.module}\`, reloading page...`), console.error(r), window.__reactRouterContext && window.__reactRouterContext.isSpaMode, window.location.reload(), new Promise(() => {})
+- 1065: currentUrl: new URL(a.pathname + a.search + a.hash, window.origin),
+- 1067: nextUrl: new URL(e, window.origin),
+- 1273: var Pe = typeof window < "u" && typeof window.document < "u" && typeof window.document.createElement < "u";
+- 1275: Pe && (window.__reactRouterVersion = "7.9.6")
+- 1323: let P = new URL(window.location.href),
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: http://localhost, https://github.com/ungap/url-search-params., https://reactrouter.com/en/main/routers/picking-a-router.
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Large text/code file; focused tests and decomposition would reduce regression risk.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0479-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/vendor-router-CmoTwRnm.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/vendor-router-CmoTwRnm.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 49363
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: vendor/generated dependency chunk family; same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/sw.js:37: '/assets/vendor-router-CmoTwRnm.js',
+  - public/assets/AIAssistant--spCOe6W.js:56: } from "./vendor-router-CmoTwRnm.js";
+  - public/assets/AIWeeklySummary-fVbvFqu3.js:1: import{j as s}from"./vendor-react-BfU3Zn2J.js";import{A as E}from"./AIAnalysisCard-qrpOk1g6.js";import{u as f,f as z}from"./useAIStore-B2cv1FZz.js";import{h as C,j as _,f as q,e as
+  - public/assets/About-DbJqhVWT.js:1: import{j as e,f as x}from"./vendor-react-BfU3Zn2J.js";import{N as m,F as p}from"./Navbar-BJMJUymI.js";import{m as s}from"./vendor-motion-Cp_NPzpZ.js";import{S as u,k as g,l as b,m 
+  - public/assets/Analytics-D74gQMjN.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJ
+  - public/assets/AnalyticsPeriod-CGXbfYQB.js:1: import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{
+  - public/assets/AnalyticsSubjects-DOh8aXlW.js:1: import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T
+  - public/assets/AnalyticsTasks-DOfUf9Sd.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{S as x}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as L}from"./useChartAnimation-C6FTIqbw.js";import{A as $,C as u,X 
+  - public/assets/AnalyticsToday-BTdRNTb0.js:1: import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";imp
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/App-pJGjDiPw.js:26: } from "./vendor-router-CmoTwRnm.js";
+  - public/assets/AppAccessGate-B975UtK7.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/A
+  - public/assets/AppAccessGate-B975UtK7.js:50: } from "./vendor-router-CmoTwRnm.js";
+  - public/assets/Auth-Cw0VAaCZ.js:14: } from "./vendor-router-CmoTwRnm.js";
+  - public/assets/ChallengesHub-C50y_K_l.js:1: import{r as o,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as k,a as C}from"./useGroupChallenges-N8BLPr3m.js";import{u as _}from"./App-pJGjDiPw.js";import{E as T}from"./Enhance
+  - public/assets/ChapterHub-BXRydU0B.js:1: import{j as e,r as s,f as Re,b as hs}from"./vendor-react-BfU3Zn2J.js";import{c as ye}from"./utils-D8mZnxMk.js";import{I as zt}from"./IsotopeLogoIcon-oPk5Ru-_.js";import{u as xe,h a
+  - public/assets/Community-DIqF5406.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css",
+  - public/assets/Community-DIqF5406.js:2: import{_ as s}from"./index-BPYJFSVW.js";import{j as e,f as _,r as t}from"./vendor-react-BfU3Zn2J.js";import{c as w}from"./App-pJGjDiPw.js";import{S as N,D as k}from"./DashboardHead
+  - public/assets/CommunityHub-gANxZssO.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/sessionSync-mloIEnTd.js","assets/App-pJGjDiPw.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","ass
+  - public/assets/CommunityHub-gANxZssO.js:2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s

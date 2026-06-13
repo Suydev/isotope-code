@@ -1,0 +1,186 @@
+FILE IDENTITY
+
+- original path: TERMUX_WIDGET.md
+- audit path: audit/TERMUX_WIDGET.md.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: markdown
+- MIME type: text/markdown
+- size in bytes: 5327
+- SHA-256: 9796580f81dbc5e0ae9a3f1fea0a47fdab9c54e334851b1fc52f22876c829b6a
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: documentation
+- primary auditor: installer-platform-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: documentation
+- runtime stage: development, installation, or documentation
+- user-visible feature: documentation
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/labeler.yml:43 - - 'TERMUX_WIDGET.md'
+- .github/workflows/ci.yml:210 - TERMUX_WIDGET.md
+- scripts/validate-docs.mjs:218 - 'TERMUX_WIDGET.md',
+
+INTERNAL STRUCTURE
+
+- line count: 177
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- CLI: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CONTRIBUTING.md:44, CONTRIBUTING.md:45, TERMUX_WIDGET.md:90, TERMUX_WIDGET.md:126, TERMUX_WIDGET.md:138, bin/isotope:2, bin/isotope:14, bin/isotope:483, bin/isotope:653, docs/supabase-connection-map.md:30, scripts/capture-screenshots.mjs:28, setup.sh:11
+- PATH: classification=secret; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:288, TERMUX_WIDGET.md:114, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:21, bin/isotope:52, bin/isotope:64, bin/isotope:65, bin/isotope:414, bin/isotope:416, install.ps1:83, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup-termux-widget.sh:27
+- PID: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:289, .github/workflows/ci.yml:291, .github/workflows/ci.yml:304, .github/workflows/ci.yml:305, .github/workflows/regenerate-release.yml:132, .github/workflows/regenerate-release.yml:133, .github/workflows/release.yml:218, .github/workflows/release.yml:219, CHANGELOG.md:304, TERMUX_WIDGET.md:64, TERMUX_WIDGET.md:176, bin/isotope:22
+- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://127.0.0.1:PORT
+- https://f-droid.org/packages/com.termux.widget/
+- https://f-droid.org/packages/com.termux/
+- https://github.com/termux/termux-app/releases
+- https://github.com/termux/termux-widget/releases
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 22: 1. Updates Termux packages
+- 28: > **Important:** Install Termux from [F-Droid](https://f-droid.org/packages/com.termux/) or the [GitHub release](https://github.com/termux/termux-app/releases) — **not** the Play Store. The Play Store version stopped receiving updates in 2020 and has known bug
+- 38: Mixing sources (e.g. Termux from F-Droid + Widget from Play Store) causes failures.
+- 61: | `isotope-update` | Pull the latest version from GitHub and restart if running |
+- 84: If shortcuts stop working after an update, run from Termux:
+- 132: isotope update              # pull latest version from GitHub
+- 150: | Update output | `~/.isotope/logs/update.log` |
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 12: bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+- 18: pkg install curl && bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+- 28: > **Important:** Install Termux from [F-Droid](https://f-droid.org/packages/com.termux/) or the [GitHub release](https://github.com/termux/termux-app/releases) — **not** the Play Store. The Play Store version stopped receiving updates in 2020 and has known bug
+- 35: - F-Droid: https://f-droid.org/packages/com.termux.widget/
+- 36: - GitHub: https://github.com/termux/termux-widget/releases
+- 62: | `isotope-open` | Open `http://127.0.0.1:PORT` in the browser |
+- 114: During setup, the absolute path to the `isotope` command is resolved and embedded in each shortcut script. This avoids failures when Termux:Widget launches scripts without the interactive terminal `PATH`.
+- 122: The project path is remembered in `~/.isotope/project-path`.
+- 165: Run `bash setup-termux-widget.sh` to refresh shortcuts with the current command path.
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 11: ```bash
+- 12: bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+- 15: Or if curl is not yet installed:
+- 17: ```bash
+- 18: pkg install curl && bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+- 28: > **Important:** Install Termux from [F-Droid](https://f-droid.org/packages/com.termux/) or the [GitHub release](https://github.com/termux/termux-app/releases) — **not** the Play Store. The Play Store version stopped receiving updates in 2020 and has known bug
+- 35: - F-Droid: https://f-droid.org/packages/com.termux.widget/
+- 36: - GitHub: https://github.com/termux/termux-widget/releases
+- 86: ```bash
+- 87: bash setup-termux-widget.sh
+- 92: ```bash
+- 104: ```bash
+- 128: ```bash
+- 156: ```bash
+- 165: Run `bash setup-termux-widget.sh` to refresh shortcuts with the current command path.
+- 168: Run `bash setup.sh` or `bash install-termux.sh` to reinstall the global command.
+- Supabase interfaces:
+- 174: Your `.env` may be missing Supabase credentials. Run `isotope doctor` to check.
+- external services: http://127.0.0.1:PORT, https://f-droid.org/packages/com.termux.widget/, https://f-droid.org/packages/com.termux/, https://github.com/termux/termux-app/releases, https://github.com/termux/termux-widget/releases, https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0025-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: TERMUX_WIDGET.md inspected; no file-specific high-risk issue confirmed
+  observed evidence: TERMUX_WIDGET.md inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/labeler.yml, .github/workflows/ci.yml, scripts/validate-docs.mjs
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

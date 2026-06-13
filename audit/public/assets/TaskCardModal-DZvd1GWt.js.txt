@@ -1,0 +1,279 @@
+FILE IDENTITY
+
+- original path: public/assets/TaskCardModal-DZvd1GWt.js
+- audit path: audit/public/assets/TaskCardModal-DZvd1GWt.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 80105
+- SHA-256: b92344a1fb6896cee05ed7764fad87cea5bed139c357c74665ad5848e2d806c5
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:2584 - "file": "TaskCardModal-DZvd1GWt.js",
+- artifacts/asset-diff/asset-report.json:2587 - "remote_url": "https://isotopeai.in/assets/TaskCardModal-DZvd1GWt.js",
+- artifacts/asset-diff/local-assets.txt:144 - TaskCardModal-DZvd1GWt.js
+- artifacts/asset-diff/summary.md:125 - | TaskCardModal-DZvd1GWt.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/AppAccessGate-B975UtK7.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-C
+- public/assets/Dashboard-dypAV-0H.js:85 - } from "./TaskCardModal-DZvd1GWt.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:9 - } from "./TaskCardModal-DZvd1GWt.js";
+- public/assets/Study-pAdAenIl.js:80 - } from "./TaskCardModal-DZvd1GWt.js";
+- public/assets/Syllabus-DZSnov0t.js:99 - } from "./TaskCardModal-DZvd1GWt.js";
+- public/assets/Tasks-BYRFOrek.js:38 - } from "./TaskCardModal-DZvd1GWt.js";
+
+INTERNAL STRUCTURE
+
+- line count: 1595
+- imports:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 5: import {
+- 11: } from "./useFocusStore-CX_Nyp1h.js";
+- 12: import {
+- 14: } from "./useAIStore-B2cv1FZz.js";
+- 15: import {
+- 20: } from "./App-pJGjDiPw.js";
+- 21: import {
+- 23: } from "./utils-D8mZnxMk.js";
+- 24: import {
+- 27: } from "./vendor-motion-Cp_NPzpZ.js";
+- 28: import {
+- 56: } from "./vendor-icons-CqruUz7g.js";
+- 57: import {
+- 59: } from "./timeFormat-CMPo-BX2.js";
+- 60: import {
+- 63: } from "./taskAvailability-B1aDS_ww.js";
+- 64: import {
+- 66: } from "./vendor-router-CmoTwRnm.js";
+- exports:
+- 1593: export {
+- functions/async flows:
+- 73: }) => {
+- 98: onClick: ae => {
+- 231: }) => {
+- 280: a.useEffect(() => {
+- 282: }, [d, M]), a.useEffect(() => {
+- 285: }, [d, s, n]), a.useEffect(() => {
+- 322: const tt = () => {
+- 326: st = async t => {
+- 366: rt = async () => {
+- 367: if (s) {
+- 380: at = async () => {
+- 381: if (s) {
+- 396: ot = () => {
+- 405: lt = async () => {
+- 411: if (r.length > 0) {
+- 426: nt = t => {
+- 435: ct = t => {
+- 441: it = t => {
+- 444: dt = (t, r) => {
+- 485: }) => {
+- 558: onChange: t => {
+- 670: onChange: t => {
+- 740: children: Object.keys(_e).map(t => {
+- 766: children: Object.keys(Ye).map(t => {
+- 1337: onMouseEnter: t => {
+- 1340: onMouseLeave: t => {
+- 1354: onMouseEnter: t => {
+- 1357: onMouseLeave: t => {
+- 1371: onMouseEnter: t => {
+- 1374: onMouseLeave: t => {
+- 1454: onMouseEnter: t => {
+- 1457: onMouseLeave: t => {
+- 1471: onMouseEnter: t => {
+- 1474: onMouseLeave: t => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 67: const Gt = ({
+- 74: const G = {
+- 232: const A = Bt(),
+- 287: const t = {
+- 322: const tt = () => {
+- 323: const t = {};
+- 330: const r = {
+- 406: const t = fe.trim();
+- 410: const r = await ae(f, t, w);
+- 412: const l = r.map(I => ({
+- 428: const r = {
+- 436: const r = u.map(l => l.id === t ? { ...l,
+- 486: const I = $ === t;
+- 560: const r = z.find(l => l.id === t.target.value);
+- 741: const r = _e[t],
+- 767: const r = Ye[t],
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BX2: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3142, artifacts/asset-diff/asset-report.json:3145, artifacts/asset-diff/local-assets.txt:175, artifacts/asset-diff/summary.md:21, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 236: updateTask: se,
+- 237: deleteTask: H,
+- 358: console.error("Failed to save task:", r), O({
+- 372: console.error("Failed to delete task:", t), O({
+- 373: submit: "Failed to delete task."
+- 388: console.error("Failed to duplicate task:", t), O({
+- 420: console.error("AI Breakdown failed:", r)
+- 1178: children: "Last Updated"
+- 1181: children: new Date(s.updatedAt).toLocaleDateString()
+- 1184: children: new Date(s.updatedAt).toLocaleTimeString()
+- 1324: children: c ? "Update your objective" : "Define your objective"
+- 1360: title: "Delete task",
+- 1557: children: "Delete Task?"
+- 1563: children: "This action cannot be undone. The task will be permanently removed."
+- 1583: children: C ? "Deleting..." : "Delete"
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 5: import {
+- 11: } from "./useFocusStore-CX_Nyp1h.js";
+- 12: import {
+- 14: } from "./useAIStore-B2cv1FZz.js";
+- 15: import {
+- 20: } from "./App-pJGjDiPw.js";
+- 21: import {
+- 23: } from "./utils-D8mZnxMk.js";
+- 24: import {
+- 27: } from "./vendor-motion-Cp_NPzpZ.js";
+- 28: import {
+- 56: } from "./vendor-icons-CqruUz7g.js";
+- 57: import {
+- 59: } from "./timeFormat-CMPo-BX2.js";
+- 60: import {
+- 63: } from "./taskAvailability-B1aDS_ww.js";
+- 64: import {
+- 66: } from "./vendor-router-CmoTwRnm.js";
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 47: am as At,
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Large text/code file; focused tests and decomposition would reduce regression risk.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0417-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/TaskCardModal-DZvd1GWt.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/TaskCardModal-DZvd1GWt.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 80105
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/AppAccessGate-B975UtK7.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/A
+  - public/assets/Dashboard-dypAV-0H.js:85: } from "./TaskCardModal-DZvd1GWt.js";
+  - public/assets/GlobalQuickActionsModals-BIoAwrDz.js:9: } from "./TaskCardModal-DZvd1GWt.js";
+  - public/assets/Syllabus-DZSnov0t.js:99: } from "./TaskCardModal-DZvd1GWt.js";
+  - public/assets/Tasks-BYRFOrek.js:38: } from "./TaskCardModal-DZvd1GWt.js";
+  - public/assets/Study-pAdAenIl.js:80: } from "./TaskCardModal-DZvd1GWt.js";
+  - artifacts/asset-diff/local-assets.txt:144: TaskCardModal-DZvd1GWt.js
+  - artifacts/asset-diff/asset-report.json:2584: "file": "TaskCardModal-DZvd1GWt.js",
+  - artifacts/asset-diff/asset-report.json:2587: "remote_url": "https://isotopeai.in/assets/TaskCardModal-DZvd1GWt.js",
+  - artifacts/asset-diff/summary.md:125: | TaskCardModal-DZvd1GWt.js | 200 | unexpected HTML fallback for .js request |

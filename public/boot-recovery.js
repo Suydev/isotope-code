@@ -1,5 +1,6 @@
 (function() {
     var RECOVERY_KEY = 'isotope-asset-recovery-v1';
+    var CACHE_RECOVERY_KEY = 'isotope-runtime-cache-recovery-v1';
     var RECOVERY_PARAM = '__isotope_reload';
     var recoveryStarted = false;
 
@@ -40,6 +41,41 @@
         } catch (error) {
             return window.location.href;
         }
+    }
+
+    function clearCaches() {
+        if (typeof caches === 'undefined' || typeof caches.keys !== 'function') {
+            return Promise.resolve();
+        }
+        return caches.keys().then(function(keys) {
+            return Promise.all(
+                keys
+                    .filter(function(key) { return String(key).indexOf('isotope') !== -1; })
+                    .map(function(key) { return caches.delete(key); }),
+            );
+        });
+    }
+
+    function clearCachesAndReload() {
+        if (recoveryStarted || readSessionValue(CACHE_RECOVERY_KEY) === '1') {
+            return Promise.resolve(false);
+        }
+        recoveryStarted = true;
+        writeSessionValue(CACHE_RECOVERY_KEY, '1');
+        console.info('Isotope runtime cache cleared; reloading.');
+        return clearCaches()
+            .catch(function() { return undefined; })
+            .then(function() {
+                window.location.replace(buildRecoveryUrl());
+                return true;
+            });
+    }
+
+    window.__isoClearCachesAndReload = clearCachesAndReload;
+
+    function isRuntimeGlueError(message) {
+        return /__iso(Login|Up) is not a function/i.test(message || '') ||
+            /window\.__iso(Login|Up)/i.test(message || '');
     }
 
     function refreshServiceWorkers() {
@@ -93,6 +129,9 @@
             var target = event.target;
 
             if (!target || target === window) {
+                if (isRuntimeGlueError(event.message || '')) {
+                    clearCachesAndReload();
+                }
                 return;
             }
 
@@ -113,12 +152,14 @@
         var message = reason && reason.message ? reason.message : String(reason || '');
 
         if (
+            isRuntimeGlueError(message) ||
             message.indexOf('Failed to fetch dynamically imported module') !== -1 ||
             message.indexOf('Importing a module script failed') !== -1 ||
             message.indexOf('ChunkLoadError') !== -1 ||
             message.indexOf('Loading chunk') !== -1
         ) {
-            recoverFromStaleAsset();
+            if (isRuntimeGlueError(message)) clearCachesAndReload();
+            else recoverFromStaleAsset();
         }
     });
 })();

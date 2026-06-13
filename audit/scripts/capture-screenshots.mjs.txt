@@ -1,0 +1,294 @@
+FILE IDENTITY
+
+- original path: scripts/capture-screenshots.mjs
+- audit path: audit/scripts/capture-screenshots.mjs.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 11546
+- SHA-256: e50b55043631921dc06a9172b3098ec4acaf283c417ab2ba66dd47dc3426ade2
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: application project
+- primary auditor: lead-coordinator
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the application project subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: application project
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- package.json:18 - "screenshots": "node scripts/capture-screenshots.mjs",
+- package.json:19 - "screenshots:compress": "node scripts/capture-screenshots.mjs --compress",
+- package.json:20 - "screenshots:demo": "node scripts/capture-screenshots.mjs --demo",
+- scripts/validate-docs.mjs:228 - 'scripts/capture-screenshots.mjs',
+
+INTERNAL STRUCTURE
+
+- line count: 340
+- imports:
+- 23: import { chromium } from 'playwright';
+- 24: import { mkdirSync, writeFileSync, existsSync } from 'fs';
+- 25: import { join, resolve } from 'path';
+- 26: import { execSync } from 'child_process';
+- exports:
+None observed.
+- functions/async flows:
+- 32: .map(a => {
+- 140: function log(msg)  { console.log(`${CYAN}  →${RESET} ${msg}`); }
+- 141: function ok(msg)   { console.log(`${GREEN}  ✅ ${msg}${RESET}`); }
+- 142: function fail(msg) { console.error(`${RED}  ❌ ${msg}${RESET}`); }
+- 143: function warn(msg) { console.warn(`${YELLOW}  ⚠️  ${msg}${RESET}`); }
+- 145: async function waitForSelector(page, selectors, timeout = 8000) {
+- 149: for (const sel of list) {
+- 158: async function isBlankPage(page) {
+- 159: return await page.evaluate(() => {
+- 169: async function isMainlyWhite(page, file) {
+- 172: const pixel = await page.evaluate(() => {
+- 182: for (let i = 0; i < d.length; i += 4) {
+- 187: if (pixel !== null && pixel > 0.9) {
+- 194: async function healthCheck(url) {
+- 197: return new Promise(resolve => {
+- 198: const req = http.get(`${url}/api/health`, res => {
+- 201: req.setTimeout(3000, () => { req.destroy(); resolve(false); });
+- 209: function compressPng(filePath) {
+- 232: if (!healthy) {
+- 247: for (const route of toCapture) {
+- 257: page.on('console', () => {});
+- 258: page.on('pageerror', () => {});
+- 279: if (blank) {
+- 288: if (COMPRESS) {
+- 333: if (failCount > 0) {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 29: const args = Object.fromEntries(
+- 38: const BASE_URL = args.server || process.env.ISOTOPE_URL || 'http://127.0.0.1:3000';
+- 39: const OUT_DIR  = resolve(args.out || 'screenshots');
+- 40: const COMPRESS = !!args.compress;
+- 41: const DEMO     = !!args.demo;
+- 42: const ONLY     = args.routes ? args.routes.split(',') : null;
+- 45: const DESKTOP = { width: 1440, height: 1000 };
+- 46: const MOBILE  = { width: 390,  height: 844 };
+- 49: const ROUTES = [
+- 133: const RESET = '\x1b[0m';
+- 134: const GREEN  = '\x1b[32m';
+- 135: const RED    = '\x1b[31m';
+- 136: const YELLOW = '\x1b[33m';
+- 137: const CYAN   = '\x1b[36m';
+- 138: const BOLD   = '\x1b[1m';
+- 146: const list = selectors.split(',').map(s => s.trim());
+- 147: const start = Date.now();
+- 150: const el = await page.$(sel);
+- 160: const body = document.body;
+- 162: const text = (body.innerText || '').trim();
+- 163: const imgs = document.querySelectorAll('img').length;
+- 164: const visible = document.querySelectorAll('[class], div, section, main').length;
+- 172: const pixel = await page.evaluate(() => {
+- 173: const canvas = document.createElement('canvas');
+- 175: const ctx = canvas.getContext('2d');
+- 177: const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+- 180: const d = ctx.getImageData(0, 0, 20, 20).data;
+- 181: let bright = 0;
+- 198: const req = http.get(`${url}/api/health`, res => {
+- 219: const results = [];
+- 220: const manifest = { captured_at: new Date().toISOString(), base_url: BASE_URL, screenshots: [] };
+- 231: const healthy = await healthCheck(BASE_URL);
+- 241: const browser = await chromium.launch({ headless: true });
+- 243: let successCount = 0;
+- 244: let failCount = 0;
+- 245: const toCapture = ONLY ? ROUTES.filter(r => ONLY.includes(r.key)) : ROUTES;
+- 248: const context = await browser.newContext({
+- 254: const page = await context.newPage();
+- 260: const url = DEMO
+- 267: const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+- 278: const blank = await isBlankPage(page);
+- 283: const outPath = join(OUT_DIR, route.file);
+- 289: const compressed = compressPng(outPath);
+- 324: const manifestPath = join(OUT_DIR, 'screenshot-manifest.json');
+- handlers/lifecycle candidates:
+- 201: req.setTimeout(3000, () => { req.destroy(); resolve(false); });
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BASE_URL: classification=public/configuration; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:38, scripts/capture-screenshots.mjs:220, scripts/capture-screenshots.mjs:223, scripts/capture-screenshots.mjs:231, scripts/capture-screenshots.mjs:233, scripts/capture-screenshots.mjs:237, scripts/capture-screenshots.mjs:261, scripts/capture-screenshots.mjs:262, scripts/seed-demo-data.mjs:37, scripts/seed-demo-data.mjs:64, scripts/seed-demo-data.mjs:67, scripts/seed-demo-data.mjs:68
+- BOLD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:138, scripts/capture-screenshots.mjs:222, scripts/capture-screenshots.mjs:329
+- CLI: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CONTRIBUTING.md:44, CONTRIBUTING.md:45, TERMUX_WIDGET.md:90, TERMUX_WIDGET.md:126, TERMUX_WIDGET.md:138, bin/isotope:2, bin/isotope:14, bin/isotope:483, bin/isotope:653, docs/supabase-connection-map.md:30, scripts/capture-screenshots.mjs:28, setup.sh:11
+- COMPRESS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:40, scripts/capture-screenshots.mjs:225, scripts/capture-screenshots.mjs:288
+- CYAN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:137, scripts/capture-screenshots.mjs:140
+- DEMO: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:41, scripts/capture-screenshots.mjs:226, scripts/capture-screenshots.mjs:260
+- DESKTOP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:45, scripts/capture-screenshots.mjs:54, scripts/capture-screenshots.mjs:62, scripts/capture-screenshots.mjs:70, scripts/capture-screenshots.mjs:78, scripts/capture-screenshots.mjs:86, scripts/capture-screenshots.mjs:94, scripts/capture-screenshots.mjs:102, scripts/capture-screenshots.mjs:110
+- DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=doctor.sh:5, doctor.sh:6, doctor.sh:12, doctor.sh:13, scripts/capture-screenshots.mjs:5, scripts/capture-screenshots.mjs:16, scripts/capture-screenshots.mjs:39, scripts/capture-screenshots.mjs:224, scripts/capture-screenshots.mjs:239, scripts/capture-screenshots.mjs:283, scripts/capture-screenshots.mjs:324, scripts/capture-screenshots.mjs:340
+- GREEN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:134, scripts/capture-screenshots.mjs:141, scripts/capture-screenshots.mjs:330
+- ISOTOPE_URL: classification=public/configuration; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:38, scripts/seed-demo-data.mjs:37
+- MOBILE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:46, scripts/capture-screenshots.mjs:118, scripts/capture-screenshots.mjs:126
+- ONLY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/useAIStore-B2cv1FZz.js:6146, public/assets/useAIStore-B2cv1FZz.js:8080, public/assets/useAIStore-B2cv1FZz.js:8082, scripts/capture-screenshots.mjs:42, scripts/capture-screenshots.mjs:245
+- OUT_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:39, scripts/capture-screenshots.mjs:224, scripts/capture-screenshots.mjs:239, scripts/capture-screenshots.mjs:283, scripts/capture-screenshots.mjs:324, scripts/capture-screenshots.mjs:340
+- RED: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:135, scripts/capture-screenshots.mjs:142, scripts/capture-screenshots.mjs:331
+- RESET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:133, scripts/capture-screenshots.mjs:140, scripts/capture-screenshots.mjs:141, scripts/capture-screenshots.mjs:142, scripts/capture-screenshots.mjs:143, scripts/capture-screenshots.mjs:222, scripts/capture-screenshots.mjs:329, scripts/capture-screenshots.mjs:330, scripts/capture-screenshots.mjs:331
+- ROUTES: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:49, scripts/capture-screenshots.mjs:245
+- YELLOW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/capture-screenshots.mjs:136, scripts/capture-screenshots.mjs:143
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: filesystem or asset file dependency likely
+- database data:
+None observed.
+- network responses:
+- http://127.0.0.1:3000
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 24: import { mkdirSync, writeFileSync, existsSync } from 'fs';
+- 140: function log(msg)  { console.log(`${CYAN}  →${RESET} ${msg}`); }
+- 141: function ok(msg)   { console.log(`${GREEN}  ✅ ${msg}${RESET}`); }
+- 142: function fail(msg) { console.error(`${RED}  ❌ ${msg}${RESET}`); }
+- 143: function warn(msg) { console.warn(`${YELLOW}  ⚠️  ${msg}${RESET}`); }
+- 199: resolve(res.statusCode >= 200 && res.statusCode < 500);
+- 222: console.log(`\n${BOLD}IsotopeAI — Screenshot Capture${RESET}`);
+- 223: console.log(`  Base URL : ${BASE_URL}`);
+- 224: console.log(`  Output   : ${OUT_DIR}`);
+- 225: console.log(`  Compress : ${COMPRESS}`);
+- 226: console.log(`  Demo mode: ${DEMO}`);
+- 227: console.log('');
+- 233: fail(`Server not responding at ${BASE_URL}/api/health`);
+- 234: console.error(`\n  Start the server first:\n    isotope start\n  or:\n    node server.mjs\n`);
+- 325: writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+- 328: console.log('');
+- 329: console.log(`${BOLD}Results:${RESET}`);
+- 330: console.log(`  ${GREEN}✅ ${successCount} captured${RESET}`);
+- 331: if (failCount > 0) console.log(`  ${RED}❌ ${failCount} failed${RESET}`);
+- 334: console.log(`\nFailed routes often require authentication.`);
+- 335: console.log(`Seed demo data first: npm run demo:seed`);
+- 336: console.log(`Then re-run with --demo flag.`);
+- 340: console.log(`\nAll screenshots saved to: ${OUT_DIR}/`);
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 15: *   --server=URL     Base URL (default: http://127.0.0.1:3000)
+- 24: import { mkdirSync, writeFileSync, existsSync } from 'fs';
+- 25: import { join, resolve } from 'path';
+- 26: import { execSync } from 'child_process';
+- 38: const BASE_URL = args.server || process.env.ISOTOPE_URL || 'http://127.0.0.1:3000';
+- 52: path: '/',
+- 60: path: '/focus',
+- 68: path: '/analytics',
+- 76: path: '/syllabus',
+- 84: path: '/tasks',
+- 92: path: '/exams',
+- 100: path: '/community',
+- 108: path: '/settings',
+- 116: path: '/',
+- 124: path: '/focus',
+- 194: async function healthCheck(url) {
+- 196: const { default: http } = await import('http');
+- 198: const req = http.get(`${url}/api/health`, res => {
+- 260: const url = DEMO
+- 261: ? `${BASE_URL}${route.path}${route.path.includes('?') ? '&' : '?'}demo=1`
+- 262: : `${BASE_URL}${route.path}`;
+- 267: const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+- 270: throw new Error(`HTTP ${response?.status()} on ${url}`);
+- 284: await page.screenshot({ path: outPath, fullPage: false });
+- 299: path: `screenshots/${route.file}`,
+- 302: url,
+- external libraries:
+- 23: import { chromium } from 'playwright';
+- 24: import { mkdirSync, writeFileSync, existsSync } from 'fs';
+- 25: import { join, resolve } from 'path';
+- 26: import { execSync } from 'child_process';
+- local files: see References and Consumers above
+- browser APIs:
+- 160: const body = document.body;
+- 163: const imgs = document.querySelectorAll('img').length;
+- 164: const visible = document.querySelectorAll('[class], div, section, main').length;
+- 173: const canvas = document.createElement('canvas');
+- 177: const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+- operating-system commands:
+- 5: *   node scripts/capture-screenshots.mjs [--server=URL] [--out=DIR] [--compress]
+- 8: *   npm install -D playwright
+- 12: * Start it first:  isotope start   (or  node server.mjs)
+- 234: console.error(`\n  Start the server first:\n    isotope start\n  or:\n    node server.mjs\n`);
+- 335: console.log(`Seed demo data first: npm run demo:seed`);
+- Supabase interfaces:
+None observed.
+- external services: http://127.0.0.1:3000
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0551-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: scripts/capture-screenshots.mjs inspected; no file-specific high-risk issue confirmed
+  observed evidence: scripts/capture-screenshots.mjs inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: package.json, package.json, package.json
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

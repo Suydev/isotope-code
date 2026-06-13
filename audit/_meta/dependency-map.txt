@@ -1,0 +1,806 @@
+Dependency map
+
+Package dependencies:
+- No package.json dependencies found.
+
+Observed import/require lines:
+- .github/workflows/ci.yml:122: import assert from 'node:assert/strict';
+- .github/workflows/ci.yml:129: } from './public/sync/backup-normalizer.js';
+- .github/workflows/ci.yml:318: VERSION="$(node -e "process.stdout.write(require('./package.json').version)")"
+- .github/workflows/dependency-review.yml:34: const fs = require('fs');
+- .github/workflows/release.yml:105: const fs = require('fs');
+- artifacts/asset-diff/remote-assets/CodeHighlighter-DSemo1-_.js:1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-CDo2wmi8.js";import"./vendor-markdown-co
+- artifacts/asset-diff/remote-assets/IsotopeLogoIcon-oPk5Ru-_.js:1: import{j as o}from"./vendor-react-BfU3Zn2J.js";const t=({className:s="w-6 h-6"})=>o.jsxs("svg",{xmlns:"http://www.w3.org/2000/svg",viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2",strokeLinecap:"roun
+- artifacts/asset-diff/remote-assets/LazySection-7u6SQGE2.js:1: import{r as v,j as p}from"./vendor-react-BfU3Zn2J.js";var y=new Map,x=new WeakMap,E=0,O;function _(e){return e?(x.has(e)||(E+=1,x.set(e,E.toString())),x.get(e)):"0"}function M(e){return Object.keys(e).sort().filter(t=>e[
+- artifacts/asset-diff/remote-assets/SafeResponsiveContainer-D7o6DE97.js:1: import{r as h,j as g}from"./vendor-react-BfU3Zn2J.js";import{R as W}from"./vendor-charts-CFLJvnG7.js";const E={width:0,height:0},r=(...n)=>n.find(t=>t>0)??0,x=({width:n="100%",height:t="100%",minWidth:m,minHeight:p,debou
+- artifacts/asset-diff/remote-assets/Toggle-D54hkegy.js:1: import{j as t}from"./vendor-react-BfU3Zn2J.js";const e=({checked:n,onChange:o,ariaLabel:a,className:r=""})=>t.jsx("button",{onClick:o,type:"button",role:"switch","aria-checked":n,"aria-label":a,className:`
+- artifacts/asset-diff/remote-assets/sortable.esm-BBuGRz7f.js:1: import{r as l,f as I,b as Ne}from"./vendor-react-BfU3Zn2J.js";function Nn(){for(var e=arguments.length,t=new Array(e),n=0;n<e;n++)t[n]=arguments[n];return l.useMemo(()=>r=>{t.forEach(o=>o(r))},t)}const rt=typeof window<"
+- artifacts/asset-diff/remote-assets/useOnlineStatus-BJOTUERN.js:1: import{r as n}from"./vendor-react-BfU3Zn2J.js";function a(){const[r,t]=n.useState(navigator.onLine),[e,i]=n.useState(!1);return n.useEffect(()=>{const s=()=>{t(!0),e&&i(!1)},o=()=>{t(!1),i(!0)};return window.addEventList
+- artifacts/asset-diff/remote-assets/utils-D8mZnxMk.js:1: import{f as Pe}from"./vendor-charts-CFLJvnG7.js";const Ge=(e,t)=>{const o=new Array(e.length+t.length);for(let r=0;r<e.length;r++)o[r]=e[r];for(let r=0;r<t.length;r++)o[e.length+r]=t[r];return o},Te=(e,t)=>({classGroupId
+- artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:1: import{r as d,g as _t,a as lc,b as cc,c as hx,R as mx}from"./vendor-react-BfU3Zn2J.js";function lm(e){var t,r,n="";if(typeof e=="string"||typeof e=="number")n+=e;else if(typeof e=="object")if(Array.isArray(e)){var i=e.le
+- artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:1: import{g as yr,j as mt}from"./vendor-react-BfU3Zn2J.js";import{k as dn}from"./vendor-katex-BSXZKQS3.js";function yn(e){const n=[],t=String(e||"");let r=t.indexOf(","),i=0,o=!1;for(;!o;){r===-1&&(r=t.length,o=!0);const l=
+- artifacts/asset-diff/remote-assets/vendor-motion-Cp_NPzpZ.js:1: import{r as p,j as N}from"./vendor-react-BfU3Zn2J.js";const Ue=p.createContext({});function tt(t){const e=p.useRef(null);return e.current===null&&(e.current=t()),e.current}const Ke=typeof window<"u",We=Ke?p.useLayoutEffe
+- artifacts/asset-diff/remote-assets/vendor-motion-Cp_NPzpZ.js:9: `),()=>{v.contains(g)&&v.removeChild(g)}},[e]),N.jsx(Va,{isPresent:e,childRef:o,sizeRef:r,children:p.cloneElement(t,{ref:l})})}const Ma=({children:t,initial:e,isPresent:n,onExitComplete:s,custom:i,presenceAffectsLayout:o
+- artifacts/asset-diff/remote-assets/vendor-query-Rjz85D0S.js:1: import{r as v,j as N,b as At}from"./vendor-react-BfU3Zn2J.js";var A=class{constructor(){this.listeners=new Set,this.subscribe=this.subscribe.bind(this)}subscribe(t){return this.listeners.add(t),this.onSubscribe(),()=>{th
+- artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js:1: import{r as i}from"./vendor-react-BfU3Zn2J.js";/**
+- artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:1: import{r as Re,d as Bm,g as Um}from"./vendor-react-BfU3Zn2J.js";function Hm(e,t){for(var n=0;n<t.length;n++){const r=t[n];if(typeof r!="string"&&!Array.isArray(r)){for(const o in r)if(o!=="default"&&!(o in e)){const s=Ob
+- artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:498: or you can use record.mirror to access the mirror instance during recording.`;let hd={map:{},getId(){return console.error(jn),-1},getNode(){return console.error(jn),null},removeNodeFromMap(){console.error(jn)},has(){retu
+- artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:1: import{e as $r,g as xr}from"./vendor-react-BfU3Zn2J.js";function Ur(s,e){for(var t=0;t<e.length;t++){const r=e[t];if(typeof r!="string"&&!Array.isArray(r)){for(const n in r)if(n!=="default"&&!(n in s)){const i=Object.get
+- artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:5: import ws from "ws"
+- artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:22: import ws from "ws"
+- artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:1: import{f as D}from"./vendor-react-BfU3Zn2J.js";import{d as ue,h as Ge}from"./vendor-markdown-core-Pkt6xPHa.js";function He(e,t){if(e==null)return{};var n={};for(var a in e)if({}.hasOwnProperty.call(e,a)){if(t.indexOf(a)!
+- bin/isotope:131: const http = require('http');
+- bin/isotope:295: const fs = require('fs'), path = require('path');
+- bin/isotope:306: const fs = require('fs');
+- bin/isotope:343: const fs=require('fs'),path=require('path'),dir=process.argv[2];
+- bin/isotope:529: const cp = require('child_process');
+- bin/isotope:530: const fs = require('fs');
+- bin/isotope:531: const path = require('path');
+- bin/isotope.bat:188: node -e "const cp=require('child_process'),fs=require('fs');let sha='unknown',message='';try{sha=cp.execSync('git rev-parse HEAD').toString().trim()}catch{}try{message=cp.execSync('git log -1 --pretty=%%s').toString().tr
+- bin/isotope.bat:210: for /f %%v in ('node -e "const fs=require('fs');let v='unknown';try{v=JSON.parse(fs.readFileSync('%PROJECT_DIR:\=/%/package.json','utf8')).version}catch{}process.stdout.write(v)"') do echo Version: %%v
+- install.ps1:62: node -e "const fs=require('fs');const txt=fs.readFileSync('.env','utf8');const get=k=>{for(const raw of txt.split(/\r?\n/)){const l=raw.trim();if(!l||l.startsWith('#'))continue;const i=l.indexOf('=');if(i<1)continue;if(l
+- public/assets/AIAnalysisCard-qrpOk1g6.js:1: import {
+- public/assets/AIAnalysisCard-qrpOk1g6.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/AIAnalysisCard-qrpOk1g6.js:5: import {
+- public/assets/AIAnalysisCard-qrpOk1g6.js:8: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/AIAnalysisCard-qrpOk1g6.js:9: import {
+- public/assets/AIAnalysisCard-qrpOk1g6.js:11: } from "./DashboardHeader-DNuRMna8.js";
+- public/assets/AIAnalysisCard-qrpOk1g6.js:12: import {
+- public/assets/AIAnalysisCard-qrpOk1g6.js:14: } from "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/AIAnalysisCard-qrpOk1g6.js:15: import {
+- public/assets/AIAnalysisCard-qrpOk1g6.js:18: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/AIAnalysisCard-qrpOk1g6.js:19: import {
+- public/assets/AIAnalysisCard-qrpOk1g6.js:23: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/AIAssistant--spCOe6W.js:1: import {
+- public/assets/AIAssistant--spCOe6W.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/AIAssistant--spCOe6W.js:5: import {
+- public/assets/AIAssistant--spCOe6W.js:10: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/AIAssistant--spCOe6W.js:11: import {
+- public/assets/AIAssistant--spCOe6W.js:13: } from "./utils-D8mZnxMk.js";
+- public/assets/AIAssistant--spCOe6W.js:14: import {
+- public/assets/AIAssistant--spCOe6W.js:16: } from "./IsotopeLogoIcon-oPk5Ru-_.js";
+- public/assets/AIAssistant--spCOe6W.js:17: import {
+- public/assets/AIAssistant--spCOe6W.js:19: } from "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/AIAssistant--spCOe6W.js:20: import {
+- public/assets/AIAssistant--spCOe6W.js:23: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/AIAssistant--spCOe6W.js:24: import {
+- public/assets/AIAssistant--spCOe6W.js:53: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/AIAssistant--spCOe6W.js:54: import {
+- public/assets/AIAssistant--spCOe6W.js:56: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/AIAssistant--spCOe6W.js:57: import "./App-pJGjDiPw.js";
+- public/assets/AIAssistant--spCOe6W.js:58: import "./index-BPYJFSVW.js";
+- public/assets/AIAssistant--spCOe6W.js:59: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/AIAssistant--spCOe6W.js:60: import "./useFocusStore-CX_Nyp1h.js";
+- public/assets/AIAssistant--spCOe6W.js:61: import "./useNotificationStore-BS4df28T.js";
+- public/assets/AIAssistant--spCOe6W.js:62: import "./vendor-charts-CFLJvnG7.js";
+- public/assets/AIWeeklySummary-fVbvFqu3.js:1: import{j as s}from"./vendor-react-BfU3Zn2J.js";import{A as E}from"./AIAnalysisCard-qrpOk1g6.js";import{u as f,f as z}from"./useAIStore-B2cv1FZz.js";import{h as C,j as _,f as q,e as p}from"./useFocusStore-CX_Nyp1h.js";imp
+- public/assets/About-DbJqhVWT.js:1: import{j as e,f as x}from"./vendor-react-BfU3Zn2J.js";import{N as m,F as p}from"./Navbar-BJMJUymI.js";import{m as s}from"./vendor-motion-Cp_NPzpZ.js";import{S as u,k as g,l as b,m as y,L as f,n as w,f as k,U as j,o as v,
+- public/assets/Analytics-D74gQMjN.js:2: import{_ as Ie}from"./index-BPYJFSVW.js";import{r as A,j as o,f as fa}from"./vendor-react-BfU3Zn2J.js";import{S as nn,D as rn}from"./DashboardHeader-DNuRMna8.js";import{g as te,q as _e,p as pt,j as on,h as sn,u as cn,k a
+- public/assets/AnalyticsPeriod-CGXbfYQB.js:1: import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{A as ae,C as T,X as $,Y as W,T as A,L as
+- public/assets/AnalyticsSubjects-DOh8aXlW.js:1: import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T}from"./timeFormat-CMPo-BX2.js";import{B
+- public/assets/AnalyticsTasks-DOfUf9Sd.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{S as x}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as L}from"./useChartAnimation-C6FTIqbw.js";import{A as $,C as u,X as j,Y as g,T as m,a as K,B as N,L as k,
+- public/assets/AnalyticsToday-BTdRNTb0.js:1: import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";import{S as V}from"./SafeResponsiveContaine
+- public/assets/App-Bcp_57Ks.js:1: export * from './App-pJGjDiPw.js';
+- public/assets/App-pJGjDiPw.js:2: import {
+- public/assets/App-pJGjDiPw.js:5: } from "./index-BPYJFSVW.js";
+- public/assets/App-pJGjDiPw.js:6: import {
+- public/assets/App-pJGjDiPw.js:10: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/App-pJGjDiPw.js:11: import {
+- public/assets/App-pJGjDiPw.js:13: } from "./vendor-supabase-DAiUAuun.js";
+- public/assets/App-pJGjDiPw.js:14: import {
+- public/assets/App-pJGjDiPw.js:16: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/App-pJGjDiPw.js:17: import {
+- public/assets/App-pJGjDiPw.js:20: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/App-pJGjDiPw.js:21: import {
+- public/assets/App-pJGjDiPw.js:26: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/AppAccessGate-B975UtK7.js:2: import {
+- public/assets/AppAccessGate-B975UtK7.js:5: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/AppAccessGate-B975UtK7.js:6: import {
+- public/assets/AppAccessGate-B975UtK7.js:8: } from "./index-BPYJFSVW.js";
+- public/assets/AppAccessGate-B975UtK7.js:9: import {
+- public/assets/AppAccessGate-B975UtK7.js:11: } from "./useOnlineStatus-BJOTUERN.js";
+- public/assets/AppAccessGate-B975UtK7.js:12: import {
+- public/assets/AppAccessGate-B975UtK7.js:14: } from "./TaskController-BUyiMYKC.js";
+- public/assets/AppAccessGate-B975UtK7.js:15: import {
+- public/assets/AppAccessGate-B975UtK7.js:18: } from "./index-B45N-99N.js";
+- public/assets/AppAccessGate-B975UtK7.js:19: import {
+- public/assets/AppAccessGate-B975UtK7.js:30: } from "./App-pJGjDiPw.js";
+- public/assets/AppAccessGate-B975UtK7.js:31: import {
+- public/assets/AppAccessGate-B975UtK7.js:34: } from "./useSyncStore-vWs_TdIc.js";
+- public/assets/AppAccessGate-B975UtK7.js:35: import {
+- public/assets/AppAccessGate-B975UtK7.js:41: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/AppAccessGate-B975UtK7.js:42: import {
+- public/assets/AppAccessGate-B975UtK7.js:45: } from "./QueryProvider-DusNhG9D.js";
+- public/assets/AppAccessGate-B975UtK7.js:46: import {
+- public/assets/AppAccessGate-B975UtK7.js:50: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/AppAccessGate-B975UtK7.js:51: import {
+- public/assets/AppAccessGate-B975UtK7.js:56: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/AppAccessGate-B975UtK7.js:57: import {
+- public/assets/AppAccessGate-B975UtK7.js:62: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/AppAccessGate-B975UtK7.js:63: import {
+- public/assets/AppAccessGate-B975UtK7.js:67: } from "./NetworkRequiredState-O9ZdVBEy.js";
+- public/assets/Auth-Cw0VAaCZ.js:1: import {
+- public/assets/Auth-Cw0VAaCZ.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Auth-Cw0VAaCZ.js:5: import {
+- public/assets/Auth-Cw0VAaCZ.js:11: } from "./App-pJGjDiPw.js";
+- public/assets/Auth-Cw0VAaCZ.js:12: import {
+- public/assets/Auth-Cw0VAaCZ.js:14: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Auth-Cw0VAaCZ.js:15: import {
+- public/assets/Auth-Cw0VAaCZ.js:18: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Auth-Cw0VAaCZ.js:19: import {
+- public/assets/Auth-Cw0VAaCZ.js:25: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Auth-Cw0VAaCZ.js:26: import "./index-BPYJFSVW.js";
+- public/assets/Auth-Cw0VAaCZ.js:27: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/ChallengesHub-C50y_K_l.js:1: import{r as o,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as k,a as C}from"./useGroupChallenges-N8BLPr3m.js";import{u as _}from"./App-pJGjDiPw.js";import{E as T}from"./EnhancedChallengeCard-BKErZxiW.js";import{at as
+- public/assets/ChapterHub-BXRydU0B.js:1: import{j as e,r as s,f as Re,b as hs}from"./vendor-react-BfU3Zn2J.js";import{c as ye}from"./utils-D8mZnxMk.js";import{I as zt}from"./IsotopeLogoIcon-oPk5Ru-_.js";import{u as xe,h as de,j as Be,k as lt}from"./useFocusStor
+- public/assets/ChapterHub-BXRydU0B.js:42: e.g. If $F = ma$ and $m = 5$ kg, $a = 3$ m/s², find $F$.`,minHeight:100,showGuide:!0,showImageUpload:!0,autoFocus:!0}),e.jsxs("div",{className:"grid grid-cols-2 gap-3",children:[e.jsxs("label",{className:"flex flex-col g
+- public/assets/ChipMultiSelect-BU74OOip.js:1: import {
+- public/assets/ChipMultiSelect-BU74OOip.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/ChipMultiSelect-BU74OOip.js:5: import {
+- public/assets/ChipMultiSelect-BU74OOip.js:8: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/CodeHighlighter-DSemo1-_.js:1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{S as r,b as s,c as l,d as n,j as c,a as i,e as g,m as d,f,p as m,s as u,t as b,g as p,y as h}from"./vendor-syntax-highlighter-CDo2wmi8.js";import"./vendor-markdown-co
+- public/assets/Community-DIqF5406.js:2: import{_ as s}from"./index-BPYJFSVW.js";import{j as e,f as _,r as t}from"./vendor-react-BfU3Zn2J.js";import{c as w}from"./App-pJGjDiPw.js";import{S as N,D as k}from"./DashboardHeader-DNuRMna8.js";import{m as o,A as E}fro
+- public/assets/CommunityHub-gANxZssO.js:2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a a
+- public/assets/CompletionCelebration-ngx4eqoP.js:1: import{r as a,j as e}from"./vendor-react-BfU3Zn2J.js";import{h as n}from"./App-pJGjDiPw.js";import{u as c}from"./Onboarding-qvAqCBbb.js";import{f as o,Z as d,T as l,l as x,r as m}from"./vendor-icons-CqruUz7g.js";import{u
+- public/assets/Dashboard-dypAV-0H.js:1: import {
+- public/assets/Dashboard-dypAV-0H.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Dashboard-dypAV-0H.js:5: import {
+- public/assets/Dashboard-dypAV-0H.js:7: } from "./SubjectIcon-CyCDqtel.js";
+- public/assets/Dashboard-dypAV-0H.js:8: import {
+- public/assets/Dashboard-dypAV-0H.js:10: } from "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/Dashboard-dypAV-0H.js:11: import {
+- public/assets/Dashboard-dypAV-0H.js:15: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/Dashboard-dypAV-0H.js:16: import {
+- public/assets/Dashboard-dypAV-0H.js:28: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/Dashboard-dypAV-0H.js:29: import {
+- public/assets/Dashboard-dypAV-0H.js:33: } from "./DashboardHeader-DNuRMna8.js";
+- public/assets/Dashboard-dypAV-0H.js:34: import {
+- public/assets/Dashboard-dypAV-0H.js:38: } from "./App-pJGjDiPw.js";
+- public/assets/Dashboard-dypAV-0H.js:39: import {
+- public/assets/Dashboard-dypAV-0H.js:41: } from "./timeFormat-CMPo-BX2.js";
+- public/assets/Dashboard-dypAV-0H.js:42: import {
+- public/assets/Dashboard-dypAV-0H.js:44: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Dashboard-dypAV-0H.js:45: import {
+- public/assets/Dashboard-dypAV-0H.js:75: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Dashboard-dypAV-0H.js:76: import {
+- public/assets/Dashboard-dypAV-0H.js:79: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Dashboard-dypAV-0H.js:80: import {
+- public/assets/Dashboard-dypAV-0H.js:82: } from "./useQuotesStore-C7b4gZp0.js";
+- public/assets/Dashboard-dypAV-0H.js:83: import {
+- public/assets/Dashboard-dypAV-0H.js:85: } from "./TaskCardModal-DZvd1GWt.js";
+- public/assets/Dashboard-dypAV-0H.js:86: import {
+- public/assets/Dashboard-dypAV-0H.js:88: } from "./AIAnalysisCard-qrpOk1g6.js";
+- public/assets/Dashboard-dypAV-0H.js:89: import {
+- public/assets/Dashboard-dypAV-0H.js:91: } from "./taskCompletion-DkuS3Ybf.js";
+- public/assets/Dashboard-dypAV-0H.js:92: import {
+- public/assets/Dashboard-dypAV-0H.js:95: } from "./PremiumEffects-BX6T03yQ.js";
+- public/assets/Dashboard-dypAV-0H.js:96: import "./subjectBranding-DaDo_h8r.js";
+- public/assets/Dashboard-dypAV-0H.js:97: import "./utils-D8mZnxMk.js";
+- public/assets/Dashboard-dypAV-0H.js:98: import "./vendor-charts-CFLJvnG7.js";
+- public/assets/Dashboard-dypAV-0H.js:99: import "./index-BPYJFSVW.js";
+- public/assets/Dashboard-dypAV-0H.js:100: import "./useNotificationStore-BS4df28T.js";
+- public/assets/Dashboard-dypAV-0H.js:101: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Dashboard-dypAV-0H.js:102: import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Dashboard-dypAV-0H.js:103: import "./useSyncStore-vWs_TdIc.js";
+- public/assets/Dashboard-dypAV-0H.js:104: import "./IsotopeLogoIcon-oPk5Ru-_.js";
+- public/assets/Dashboard-dypAV-0H.js:105: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/Dashboard-dypAV-0H.js:106: import "./taskAvailability-B1aDS_ww.js";
+- public/assets/DashboardHeader-DNuRMna8.js:2: import {
+- public/assets/DashboardHeader-DNuRMna8.js:7: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/DashboardHeader-DNuRMna8.js:8: import {
+- public/assets/DashboardHeader-DNuRMna8.js:13: } from "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/DashboardHeader-DNuRMna8.js:14: import {
+- public/assets/DashboardHeader-DNuRMna8.js:25: } from "./App-pJGjDiPw.js";
+- public/assets/DashboardHeader-DNuRMna8.js:26: import {
+- public/assets/DashboardHeader-DNuRMna8.js:34: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/DashboardHeader-DNuRMna8.js:35: import {
+- public/assets/DashboardHeader-DNuRMna8.js:37: } from "./timeFormat-CMPo-BX2.js";
+- public/assets/DashboardHeader-DNuRMna8.js:38: import {
+- public/assets/DashboardHeader-DNuRMna8.js:41: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/DashboardHeader-DNuRMna8.js:42: import {
+- public/assets/DashboardHeader-DNuRMna8.js:45: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/DashboardHeader-DNuRMna8.js:46: import {
+- public/assets/DashboardHeader-DNuRMna8.js:48: } from "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/DashboardHeader-DNuRMna8.js:49: import {
+- public/assets/DashboardHeader-DNuRMna8.js:95: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/DashboardHeader-DNuRMna8.js:96: import {
+- public/assets/DashboardHeader-DNuRMna8.js:100: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/DashboardHeader-DNuRMna8.js:101: import {
+- public/assets/DashboardHeader-DNuRMna8.js:103: } from "./index-BPYJFSVW.js";
+- public/assets/DashboardHeader-DNuRMna8.js:104: import {
+- public/assets/DashboardHeader-DNuRMna8.js:106: } from "./useSyncStore-vWs_TdIc.js";
+- public/assets/DashboardHeader-DNuRMna8.js:107: import {
+- public/assets/DashboardHeader-DNuRMna8.js:110: } from "./useNotificationStore-BS4df28T.js";
+- public/assets/DashboardHeader-DNuRMna8.js:111: import {
+- public/assets/DashboardHeader-DNuRMna8.js:113: } from "./IsotopeLogoIcon-oPk5Ru-_.js";
+- public/assets/DemoLauncher-CdcwMBr6.js:1: import{r as t,j as e}from"./vendor-react-BfU3Zn2J.js";import{b as r,r as s}from"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUAuun.js";import"./vendor-motion-Cp_NPzpZ.js";import"./vendor-ico
+- public/assets/EnhancedChallengeCard-BKErZxiW.js:1: import{r as h,j as e}from"./vendor-react-BfU3Zn2J.js";import{T as L,aj as U,a as S,am as v,F as N,aG as C,x as z,U as k,by as P,bz as T,Z as D,S as O,aW as j,h as B,bw as G,aw as I,at as _,aC as Y,f as A}from"./vendor-ic
+- public/assets/EventsCalendar-COHF8nOK.js:1: import{r,j as e}from"./vendor-react-BfU3Zn2J.js";import{m as i}from"./vendor-motion-Cp_NPzpZ.js";import{j as h,P as p,w as o,am as b,U as l,C as g,aF as f,a as u}from"./vendor-icons-CqruUz7g.js";const k=({onNavigate:d})=
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:1: import {
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:5: import {
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:7: } from "./utils-D8mZnxMk.js";
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:8: import {
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:10: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:11: import {
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:16: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:17: import {
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:29: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:30: import {
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:33: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/ExamDetailPage-q_jDT5_x.js:1: import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./useFocusStore-CX_Nyp1h.js";import{a as yt,b
+- public/assets/ExamPrimitives-K6hgnm_l.js:1: import {
+- public/assets/ExamPrimitives-K6hgnm_l.js:3: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/ExamPrimitives-K6hgnm_l.js:4: import {
+- public/assets/ExamPrimitives-K6hgnm_l.js:6: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/ExamPrimitives-K6hgnm_l.js:7: import {
+- public/assets/ExamPrimitives-K6hgnm_l.js:9: } from "./utils-D8mZnxMk.js";
+- public/assets/ExamPrimitives-K6hgnm_l.js:10: import {
+- public/assets/ExamPrimitives-K6hgnm_l.js:12: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/ExamPrimitives-K6hgnm_l.js:13: import {
+- public/assets/ExamPrimitives-K6hgnm_l.js:17: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/ExamTemplateSelectorModal-DsEPEF5X.js:1: import {
+- public/assets/ExamTemplateSelectorModal-DsEPEF5X.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/ExamTemplateSelectorModal-DsEPEF5X.js:5: import {
+- public/assets/ExamTemplateSelectorModal-DsEPEF5X.js:9: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/ExamTemplateSelectorModal-DsEPEF5X.js:10: import {
+- public/assets/ExamTemplateSelectorModal-DsEPEF5X.js:12: } from "./SubjectIcon-CyCDqtel.js";
+- public/assets/ExamTemplateSelectorModal-DsEPEF5X.js:13: import {
+- public/assets/ExamTemplateSelectorModal-DsEPEF5X.js:16: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/ExamTemplateSelectorModal-DsEPEF5X.js:17: import {
+- public/assets/ExamTemplateSelectorModal-DsEPEF5X.js:30: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Exams-C3jymPwe.js:1: import {
+- public/assets/Exams-C3jymPwe.js:5: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Exams-C3jymPwe.js:6: import {
+- public/assets/Exams-C3jymPwe.js:8: } from "./utils-D8mZnxMk.js";
+- public/assets/Exams-C3jymPwe.js:9: import {
+- public/assets/Exams-C3jymPwe.js:11: } from "./App-pJGjDiPw.js";
+- public/assets/Exams-C3jymPwe.js:12: import {
+- public/assets/Exams-C3jymPwe.js:15: } from "./DashboardHeader-DNuRMna8.js";
+- public/assets/Exams-C3jymPwe.js:16: import {
+- public/assets/Exams-C3jymPwe.js:30: } from "./ExamCreateEditModal-BdlzfeFO.js";
+- public/assets/Exams-C3jymPwe.js:31: import {
+- public/assets/Exams-C3jymPwe.js:34: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/Exams-C3jymPwe.js:35: import {
+- public/assets/Exams-C3jymPwe.js:72: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Exams-C3jymPwe.js:73: import {
+- public/assets/Exams-C3jymPwe.js:76: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Exams-C3jymPwe.js:77: import {
+- public/assets/Exams-C3jymPwe.js:79: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Exams-C3jymPwe.js:80: import {
+- public/assets/Exams-C3jymPwe.js:96: } from "./ExamPrimitives-K6hgnm_l.js";
+- public/assets/Exams-C3jymPwe.js:97: import {
+- public/assets/Exams-C3jymPwe.js:111: } from "./vendor-charts-CFLJvnG7.js";
+- public/assets/Exams-C3jymPwe.js:112: import {
+- public/assets/Exams-C3jymPwe.js:114: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/Exams-C3jymPwe.js:115: import "./index-BPYJFSVW.js";
+- public/assets/Exams-C3jymPwe.js:116: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/Exams-C3jymPwe.js:117: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Exams-C3jymPwe.js:118: import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Exams-C3jymPwe.js:119: import "./timeFormat-CMPo-BX2.js";
+- public/assets/Exams-C3jymPwe.js:120: import "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/Exams-C3jymPwe.js:121: import "./useSyncStore-vWs_TdIc.js";
+- public/assets/Exams-C3jymPwe.js:122: import "./useNotificationStore-BS4df28T.js";
+- public/assets/Exams-C3jymPwe.js:123: import "./IsotopeLogoIcon-oPk5Ru-_.js";
+- public/assets/FAQ-DuTZR-ip.js:1: import {
+- public/assets/FAQ-DuTZR-ip.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/FAQ-DuTZR-ip.js:5: import {
+- public/assets/FAQ-DuTZR-ip.js:7: } from "./useSupportModalStore-BkYsnKtG.js";
+- public/assets/FAQ-DuTZR-ip.js:8: import {
+- public/assets/FAQ-DuTZR-ip.js:13: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/FAQ-DuTZR-ip.js:14: import {
+- public/assets/FAQ-DuTZR-ip.js:17: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/FAQ-DuTZR-ip.js:18: import "./App-pJGjDiPw.js";
+- public/assets/FAQ-DuTZR-ip.js:19: import "./index-BPYJFSVW.js";
+- public/assets/FAQ-DuTZR-ip.js:20: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/FAQ-DuTZR-ip.js:21: import "./vendor-router-CmoTwRnm.js";
+- public/assets/FeaturesSection-DQ9ZRk3R.js:1: import {
+- public/assets/FeaturesSection-DQ9ZRk3R.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/FeaturesSection-DQ9ZRk3R.js:4: import {
+- public/assets/FeaturesSection-DQ9ZRk3R.js:8: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/FeaturesSection-DQ9ZRk3R.js:9: import {
+- public/assets/FeaturesSection-DQ9ZRk3R.js:21: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Focus-BmgY-9vP.js:1: import {
+- public/assets/Focus-BmgY-9vP.js:6: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Focus-BmgY-9vP.js:7: import {
+- public/assets/Focus-BmgY-9vP.js:13: } from "./DashboardHeader-DNuRMna8.js";
+- public/assets/Focus-BmgY-9vP.js:14: import {
+- public/assets/Focus-BmgY-9vP.js:17: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Focus-BmgY-9vP.js:18: import {
+- public/assets/Focus-BmgY-9vP.js:56: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Focus-BmgY-9vP.js:57: import {
+- public/assets/Focus-BmgY-9vP.js:60: } from "./timeFormat-CMPo-BX2.js";
+- public/assets/Focus-BmgY-9vP.js:61: import {
+- public/assets/Focus-BmgY-9vP.js:68: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/Focus-BmgY-9vP.js:69: import {
+- public/assets/Focus-BmgY-9vP.js:78: } from "./App-pJGjDiPw.js";
+- public/assets/Focus-BmgY-9vP.js:79: import {
+- public/assets/Focus-BmgY-9vP.js:82: } from "./SessionEditModal-CNi_rT0l.js";
+- public/assets/Focus-BmgY-9vP.js:83: import {
+- public/assets/Focus-BmgY-9vP.js:85: } from "./subjectBranding-DaDo_h8r.js";
+- public/assets/Focus-BmgY-9vP.js:86: import {
+- public/assets/Focus-BmgY-9vP.js:89: } from "./useNotificationStore-BS4df28T.js";
+- public/assets/Focus-BmgY-9vP.js:90: import {
+- public/assets/Focus-BmgY-9vP.js:92: } from "./PremiumEffects-BX6T03yQ.js";
+- public/assets/Focus-BmgY-9vP.js:93: import {
+- public/assets/Focus-BmgY-9vP.js:95: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/Focus-BmgY-9vP.js:96: import {
+- public/assets/Focus-BmgY-9vP.js:102: } from "./focusBackground-t8AknbRg.js";
+- public/assets/Focus-BmgY-9vP.js:103: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Focus-BmgY-9vP.js:104: import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Focus-BmgY-9vP.js:105: import "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/Focus-BmgY-9vP.js:106: import "./index-BPYJFSVW.js";
+- public/assets/Focus-BmgY-9vP.js:107: import "./vendor-router-CmoTwRnm.js";
+- public/assets/Focus-BmgY-9vP.js:108: import "./useSyncStore-vWs_TdIc.js";
+- public/assets/Focus-BmgY-9vP.js:109: import "./IsotopeLogoIcon-oPk5Ru-_.js";
+- public/assets/Focus-BmgY-9vP.js:110: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/Focus-BmgY-9vP.js:111: import "./studyTimeMaps-B0T_-AX0.js";
+- public/assets/Focus-BmgY-9vP.js:112: import "./taskAvailability-B1aDS_ww.js";
+- public/assets/Focus-BmgY-9vP.js:113: import "./utils-D8mZnxMk.js";
+- public/assets/Focus-BmgY-9vP.js:114: import "./vendor-charts-CFLJvnG7.js";
+- public/assets/Focus-BmgY-9vP.js:115: import "./SubjectIcon-CyCDqtel.js";
+- public/assets/FocusStore-D5cRXSIr.js:1: import{j as e,r as v}from"./vendor-react-BfU3Zn2J.js";import{u as _,a as q,b as C}from"./vendor-query-Rjz85D0S.js";import{u as N,s as c}from"./App-pJGjDiPw.js";import{m as b}from"./vendor-motion-Cp_NPzpZ.js";import{S as 
+- public/assets/GlobalPresenceBroadcaster-C5JADiwL.js:1: import{f as u}from"./vendor-react-BfU3Zn2J.js";import{u as C,h as F}from"./App-pJGjDiPw.js";import{h as P,u as w}from"./useFocusStore-CX_Nyp1h.js";import{b as E}from"./useGroups-vEjDKzZY.js";import{u as O}from"./useGroup
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:1: import {
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:4: import {
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:6: } from "./useUIStore-JhKp1ywd.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:7: import {
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:9: } from "./TaskCardModal-DZvd1GWt.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:10: import {
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:12: } from "./ExamCreateEditModal-BdlzfeFO.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:13: import {
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:15: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:16: import "./App-pJGjDiPw.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:17: import "./index-BPYJFSVW.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:18: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:19: import "./vendor-icons-CqruUz7g.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:20: import "./vendor-router-CmoTwRnm.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:21: import "./useFocusStore-CX_Nyp1h.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:22: import "./useNotificationStore-BS4df28T.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:23: import "./useAIStore-B2cv1FZz.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:24: import "./utils-D8mZnxMk.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:25: import "./vendor-charts-CFLJvnG7.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:26: import "./timeFormat-CMPo-BX2.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:27: import "./taskAvailability-B1aDS_ww.js";
+- public/assets/GlobalTimer-DUR6TMoR.js:1: import {
+- public/assets/GlobalTimer-DUR6TMoR.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/GlobalTimer-DUR6TMoR.js:4: import {
+- public/assets/GlobalTimer-DUR6TMoR.js:6: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/GlobalTimer-DUR6TMoR.js:7: import "./index-BPYJFSVW.js";
+- public/assets/GlobalTimer-DUR6TMoR.js:8: import "./App-pJGjDiPw.js";
+- public/assets/GlobalTimer-DUR6TMoR.js:9: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/GlobalTimer-DUR6TMoR.js:10: import "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/GlobalTimer-DUR6TMoR.js:11: import "./vendor-icons-CqruUz7g.js";
+- public/assets/GlobalTimer-DUR6TMoR.js:12: import "./vendor-router-CmoTwRnm.js";
+- public/assets/GlobalTimer-DUR6TMoR.js:13: import "./useNotificationStore-BS4df28T.js";
+- public/assets/GroupChat-j6zM76h9.js:1: import {
+- public/assets/GroupChat-j6zM76h9.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/GroupChat-j6zM76h9.js:5: import {
+- public/assets/GroupChat-j6zM76h9.js:17: } from "./App-pJGjDiPw.js";
+- public/assets/GroupChat-j6zM76h9.js:18: import {
+- public/assets/GroupChat-j6zM76h9.js:21: } from "./groupCache-DVHvdGlY.js";
+- public/assets/GroupChat-j6zM76h9.js:22: import {
+- public/assets/GroupChat-j6zM76h9.js:24: } from "./demoCommunity-DUJ4Y1zo.js";
+- public/assets/GroupChat-j6zM76h9.js:25: import {
+- public/assets/GroupChat-j6zM76h9.js:30: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/GroupChat-j6zM76h9.js:31: import {
+- public/assets/GroupChat-j6zM76h9.js:34: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/GroupDiscovery-DUcFr2JQ.js:1: import{j as e,r as a}from"./vendor-react-BfU3Zn2J.js";import{u as I,a as L,b as M,c as T}from"./useGroups-vEjDKzZY.js";import{P as $}from"./PremiumGate-CX1zS69D.js";import{G as J}from"./GroupInviteGenerator-B-iMSSXc.js";
+- public/assets/GroupInviteGenerator-B-iMSSXc.js:1: import{r as v,j as e}from"./vendor-react-BfU3Zn2J.js";import{b as T,c as E,d as L}from"./useInvites-D9RLFwf8.js";import{bW as D,P as U,aa as X,d as M,h as A,U as O,a as F,ap as R,ab as Y}from"./vendor-icons-CqruUz7g.js";
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:1: import {
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:5: import {
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:7: } from "./useOnlineStatus-BJOTUERN.js";
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:8: import {
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:14: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:15: import {
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:21: } from "./App-pJGjDiPw.js";
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:22: import {
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:25: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/HowItWorks-BS-VN8qB.js:1: import {
+- public/assets/HowItWorks-BS-VN8qB.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/HowItWorks-BS-VN8qB.js:4: import {
+- public/assets/HowItWorks-BS-VN8qB.js:10: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/HowItWorks-BS-VN8qB.js:11: import {
+- public/assets/HowItWorks-BS-VN8qB.js:13: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/InviteOnlineOnlyRoute-CZgdOWgx.js:1: import{r as u,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as C}from"./useOnlineStatus-BJOTUERN.js";import{Q as H}from"./QueryProvider-DusNhG9D.js";import{c as y,u as A,H as j,I as S,j as N}from"./App-pJGjDiPw.js";im
+- public/assets/IsotopeLogoIcon-oPk5Ru-_.js:1: import {
+- public/assets/IsotopeLogoIcon-oPk5Ru-_.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/IsotopeWrapped2-B4zl9ERi.js:1: import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as re,b0 as oe,cW as ce,b1 as le,am as de,
+- public/assets/Landing-CWRNt7E9.js:2: import {
+- public/assets/Landing-CWRNt7E9.js:4: } from "./index-BPYJFSVW.js";
+- public/assets/Landing-CWRNt7E9.js:5: import {
+- public/assets/Landing-CWRNt7E9.js:8: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Landing-CWRNt7E9.js:9: import {
+- public/assets/Landing-CWRNt7E9.js:12: } from "./Navbar-BJMJUymI.js";
+- public/assets/Landing-CWRNt7E9.js:13: import {
+- public/assets/Landing-CWRNt7E9.js:16: } from "./App-pJGjDiPw.js";
+- public/assets/Landing-CWRNt7E9.js:17: import {
+- public/assets/Landing-CWRNt7E9.js:19: } from "./useSupportModalStore-BkYsnKtG.js";
+- public/assets/Landing-CWRNt7E9.js:20: import {
+- public/assets/Landing-CWRNt7E9.js:25: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Landing-CWRNt7E9.js:26: import {
+- public/assets/Landing-CWRNt7E9.js:44: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Landing-CWRNt7E9.js:45: import {
+- public/assets/Landing-CWRNt7E9.js:47: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Landing-CWRNt7E9.js:48: import {
+- public/assets/Landing-CWRNt7E9.js:51: } from "./LazySection-7u6SQGE2.js";
+- public/assets/Landing-CWRNt7E9.js:52: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Landing-CWRNt7E9.js:53: import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Landing-CWRNt7E9.js:54: import "./PremiumEffects-BX6T03yQ.js";
+- public/assets/Landing-CWRNt7E9.js:55: import "./utils-D8mZnxMk.js";
+- public/assets/Landing-CWRNt7E9.js:56: import "./vendor-charts-CFLJvnG7.js";
+- public/assets/Landing-CWRNt7E9.js:57: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/LazySection-7u6SQGE2.js:1: import {
+- public/assets/LazySection-7u6SQGE2.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Leaderboard-BkEBFdG7.js:1: import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{d as $}from"./vendor-query-Rjz85D0S.js";import{a as L,u as R}from"./useLeaderboard-BpvH5FXA.js";import{c as z,u as S}from"./App-pJGjDiPw.js";import{P as I}from
+- public/assets/MarkdownRenderer-CIV1x0Uq.js:2: import {
+- public/assets/MarkdownRenderer-CIV1x0Uq.js:4: } from "./index-BPYJFSVW.js";
+- public/assets/MarkdownRenderer-CIV1x0Uq.js:5: import {
+- public/assets/MarkdownRenderer-CIV1x0Uq.js:8: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/MarkdownRendererContent-DBrMkHal.js:2: import{_ as k}from"./index-BPYJFSVW.js";import{r as i,j as t,f as b}from"./vendor-react-BfU3Zn2J.js";import"./vendor-katex-BSXZKQS3.js";import{n as y}from"./App-pJGjDiPw.js";import{r as N,a as z,b as v,M as $}from"./vend
+- public/assets/MemberProfile-D-l2e-2X.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as w}from"./vendor-query-Rjz85D0S.js";import{u as p,V as N,s as h,t as y,W as S,A as _}from"./App-pJGjDiPw.js";import{f as A}from"./timeFormat-CMPo-BX2.js";import{k
+- public/assets/MobileAppTeaser-BkZkKuC5.js:1: import {
+- public/assets/MobileAppTeaser-BkZkKuC5.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/MobileAppTeaser-BkZkKuC5.js:4: import {
+- public/assets/MobileAppTeaser-BkZkKuC5.js:9: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Navbar-BJMJUymI.js:1: import {
+- public/assets/Navbar-BJMJUymI.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Navbar-BJMJUymI.js:5: import {
+- public/assets/Navbar-BJMJUymI.js:12: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Navbar-BJMJUymI.js:13: import {
+- public/assets/Navbar-BJMJUymI.js:15: } from "./App-pJGjDiPw.js";
+- public/assets/Navbar-BJMJUymI.js:16: import {
+- public/assets/Navbar-BJMJUymI.js:21: } from "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Navbar-BJMJUymI.js:22: import {
+- public/assets/Navbar-BJMJUymI.js:24: } from "./PremiumEffects-BX6T03yQ.js";
+- public/assets/Navbar-BJMJUymI.js:25: import {
+- public/assets/Navbar-BJMJUymI.js:28: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Navbar-BJMJUymI.js:29: import {
+- public/assets/Navbar-BJMJUymI.js:31: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/NetworkRequiredState-O9ZdVBEy.js:1: import {
+- public/assets/NetworkRequiredState-O9ZdVBEy.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/NetworkRequiredState-O9ZdVBEy.js:4: import {
+- public/assets/NetworkRequiredState-O9ZdVBEy.js:6: } from "./utils-D8mZnxMk.js";
+- public/assets/NetworkRequiredState-O9ZdVBEy.js:7: import {
+- public/assets/NetworkRequiredState-O9ZdVBEy.js:10: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/NetworkRequiredState-O9ZdVBEy.js:11: import {
+- public/assets/NetworkRequiredState-O9ZdVBEy.js:13: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/NotFound-X23NBnde.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as o}from"./PageLayout-B8yOy6kS.js";import{j as i,H as s}from"./vendor-icons-CqruUz7g.js";import{L as a}from"./vendor-router-CmoTwRnm.js";import"./Navbar-BJMJUymI.j
+- public/assets/Onboarding-qvAqCBbb.js:2: import {
+- public/assets/Onboarding-qvAqCBbb.js:4: } from "./index-BPYJFSVW.js";
+- public/assets/Onboarding-qvAqCBbb.js:5: import {
+- public/assets/Onboarding-qvAqCBbb.js:8: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Onboarding-qvAqCBbb.js:9: import {
+- public/assets/Onboarding-qvAqCBbb.js:16: } from "./App-pJGjDiPw.js";
+- public/assets/Onboarding-qvAqCBbb.js:17: import {
+- public/assets/Onboarding-qvAqCBbb.js:19: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/Onboarding-qvAqCBbb.js:20: import {
+- public/assets/Onboarding-qvAqCBbb.js:22: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Onboarding-qvAqCBbb.js:23: import {
+- public/assets/Onboarding-qvAqCBbb.js:25: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/OnboardingNavigation-C6kIq5HV.js:1: import {
+- public/assets/OnboardingNavigation-C6kIq5HV.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/OnboardingNavigation-C6kIq5HV.js:4: import {
+- public/assets/OnboardingNavigation-C6kIq5HV.js:9: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/PWAManager-DjIYufp2.js:1: import {
+- public/assets/PWAManager-DjIYufp2.js:5: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/PWAManager-DjIYufp2.js:6: import {
+- public/assets/PWAManager-DjIYufp2.js:9: } from "./messaging-BP0KfJxy.js";
+- public/assets/PWAManager-DjIYufp2.js:10: import {
+- public/assets/PWAManager-DjIYufp2.js:13: } from "./useNotificationStore-BS4df28T.js";
+- public/assets/PWAManager-DjIYufp2.js:14: import {
+- public/assets/PWAManager-DjIYufp2.js:16: } from "./index-BPYJFSVW.js";
+- public/assets/PWAManager-DjIYufp2.js:17: import {
+- public/assets/PWAManager-DjIYufp2.js:19: } from "./App-pJGjDiPw.js";
+- public/assets/PWAManager-DjIYufp2.js:20: import {
+- public/assets/PWAManager-DjIYufp2.js:26: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/PWAManager-DjIYufp2.js:27: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/PWAManager-DjIYufp2.js:28: import "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/PWAManager-DjIYufp2.js:29: import "./vendor-router-CmoTwRnm.js";
+- public/assets/PageLayout-B8yOy6kS.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{N as r,F as l}from"./Navbar-BJMJUymI.js";const x=({children:n,isDark:s,toggleTheme:i,title:a,subtitle:t})=>e.jsxs("div",{className:`app-shell min-h-screen bg-backgrou
+- public/assets/PremiumEffects-BX6T03yQ.js:1: import {
+- public/assets/PremiumEffects-BX6T03yQ.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/PremiumEffects-BX6T03yQ.js:4: import {
+- public/assets/PremiumEffects-BX6T03yQ.js:6: } from "./utils-D8mZnxMk.js";
+- public/assets/PremiumEffects-BX6T03yQ.js:7: import {
+- public/assets/PremiumEffects-BX6T03yQ.js:9: } from "./App-pJGjDiPw.js";
+- public/assets/PremiumGate-CX1zS69D.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as x}from"./App-pJGjDiPw.js";import{S as h}from"./SupportMessage-BE7j-Ezd.js";import{m as a}from"./vendor-motion-Cp_NPzpZ.js";import{x as o,S as d,r as m,w as c,y a
+- public/assets/Pricing-D9PNd5BR.js:1: import {
+- public/assets/Pricing-D9PNd5BR.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Pricing-D9PNd5BR.js:5: import {
+- public/assets/Pricing-D9PNd5BR.js:7: } from "./App-pJGjDiPw.js";
+- public/assets/Pricing-D9PNd5BR.js:8: import {
+- public/assets/Pricing-D9PNd5BR.js:10: } from "./useSupportModalStore-BkYsnKtG.js";
+- public/assets/Pricing-D9PNd5BR.js:11: import {
+- public/assets/Pricing-D9PNd5BR.js:13: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Pricing-D9PNd5BR.js:14: import {
+- public/assets/Pricing-D9PNd5BR.js:26: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Pricing-D9PNd5BR.js:27: import {
+- public/assets/Pricing-D9PNd5BR.js:29: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Pricing-D9PNd5BR.js:30: import "./index-BPYJFSVW.js";
+- public/assets/Pricing-D9PNd5BR.js:31: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/Privacy-ClP3A1gm.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./v
+- public/assets/QueryProvider-DusNhG9D.js:1: import {
+- public/assets/QueryProvider-DusNhG9D.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/QueryProvider-DusNhG9D.js:5: import {
+- public/assets/QueryProvider-DusNhG9D.js:10: } from "./App-pJGjDiPw.js";
+- public/assets/QueryProvider-DusNhG9D.js:11: import {
+- public/assets/QueryProvider-DusNhG9D.js:14: } from "./vendor-query-Rjz85D0S.js";
+- public/assets/QuestionMasterCard-DVOBGNnl.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{L as k}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{m as d}from"./vendor-motion-Cp_NPzpZ.js";import{at as N}from"./vendor-icons-CqruUz7g.js";const C=({solved:
+- public/assets/QuickActionsMenu-ojdsCiqG.js:1: import {
+- public/assets/QuickActionsMenu-ojdsCiqG.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/QuickActionsMenu-ojdsCiqG.js:5: import {
+- public/assets/QuickActionsMenu-ojdsCiqG.js:7: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/QuickActionsMenu-ojdsCiqG.js:8: import {
+- public/assets/QuickActionsMenu-ojdsCiqG.js:10: } from "./App-pJGjDiPw.js";
+- public/assets/QuickActionsMenu-ojdsCiqG.js:11: import {
+- public/assets/QuickActionsMenu-ojdsCiqG.js:13: } from "./useUIStore-JhKp1ywd.js";
+- public/assets/QuickActionsMenu-ojdsCiqG.js:14: import {
+- public/assets/QuickActionsMenu-ojdsCiqG.js:17: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/QuickActionsMenu-ojdsCiqG.js:18: import {
+- public/assets/QuickActionsMenu-ojdsCiqG.js:25: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/QuickActionsMenu-ojdsCiqG.js:26: import {
+- public/assets/QuickActionsMenu-ojdsCiqG.js:28: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/QuickActionsMenu-ojdsCiqG.js:29: import "./useFocusStore-CX_Nyp1h.js";
+- public/assets/QuickActionsMenu-ojdsCiqG.js:30: import "./index-BPYJFSVW.js";
+- public/assets/QuickActionsMenu-ojdsCiqG.js:31: import "./useNotificationStore-BS4df28T.js";
+- public/assets/QuickActionsMenu-ojdsCiqG.js:32: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:1: import {
+- public/assets/QuickChatMenu-BUr6NG9I.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:5: import {
+- public/assets/QuickChatMenu-BUr6NG9I.js:7: } from "./useGroups-vEjDKzZY.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:8: import {
+- public/assets/QuickChatMenu-BUr6NG9I.js:10: } from "./App-pJGjDiPw.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:11: import {
+- public/assets/QuickChatMenu-BUr6NG9I.js:13: } from "./useUIStore-JhKp1ywd.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:14: import {
+- public/assets/QuickChatMenu-BUr6NG9I.js:16: } from "./GroupChat-j6zM76h9.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:17: import {
+- public/assets/QuickChatMenu-BUr6NG9I.js:19: } from "./utils-D8mZnxMk.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:20: import {
+- public/assets/QuickChatMenu-BUr6NG9I.js:23: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:24: import {
+- public/assets/QuickChatMenu-BUr6NG9I.js:31: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:32: import "./vendor-query-Rjz85D0S.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:33: import "./groupCache-DVHvdGlY.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:34: import "./demoCommunity-DUJ4Y1zo.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:35: import "./index-BPYJFSVW.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:36: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:37: import "./vendor-router-CmoTwRnm.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:38: import "./vendor-charts-CFLJvnG7.js";
+- public/assets/RadioCard-BtzZXn6i.js:1: import{j as e,f as n}from"./vendor-react-BfU3Zn2J.js";import{f as c}from"./vendor-icons-CqruUz7g.js";const o=({options:i,selected:d,onChange:a,columns:s=1})=>e.jsx("div",{className:`grid gap-3 grid-cols-1 ${s===2?"md:gri
+- public/assets/RealAnalyticsOverview-bpioXKtW.js:1: import{j as t}from"./vendor-react-BfU3Zn2J.js";import{g as E,h as me,j as ue,u as xe,f as he}from"./useFocusStore-CX_Nyp1h.js";import{t as fe,a as be}from"./subjectBranding-DaDo_h8r.js";import{h as ge}from"./App-pJGjDiPw
+- public/assets/ResetPassword-mBBJZV4T.js:1: import{r as n,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as z,i as k,s as S,a as w}from"./App-pJGjDiPw.js";import{A as C,f as P,g as R,h as A,X as L,i as b}from"./vendor-icons-CqruUz7g.js";import{u as _,L as m}from
+- public/assets/SafeResponsiveContainer-D7o6DE97.js:1: import{r as h,j as g}from"./vendor-react-BfU3Zn2J.js";import{R as W}from"./vendor-charts-CFLJvnG7.js";const E={width:0,height:0},r=(...n)=>n.find(t=>t>0)??0,x=({width:n="100%",height:t="100%",minWidth:m,minHeight:p,debou
+- public/assets/SessionEditModal-CNi_rT0l.js:1: import {
+- public/assets/SessionEditModal-CNi_rT0l.js:6: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/SessionEditModal-CNi_rT0l.js:7: import {
+- public/assets/SessionEditModal-CNi_rT0l.js:13: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/SessionEditModal-CNi_rT0l.js:14: import {
+- public/assets/SessionEditModal-CNi_rT0l.js:17: } from "./timeFormat-CMPo-BX2.js";
+- public/assets/SessionEditModal-CNi_rT0l.js:18: import {
+- public/assets/SessionEditModal-CNi_rT0l.js:20: } from "./studyTimeMaps-B0T_-AX0.js";
+- public/assets/SessionEditModal-CNi_rT0l.js:21: import {
+- public/assets/SessionEditModal-CNi_rT0l.js:23: } from "./taskAvailability-B1aDS_ww.js";
+- public/assets/SessionEditModal-CNi_rT0l.js:24: import {
+- public/assets/SessionEditModal-CNi_rT0l.js:26: } from "./utils-D8mZnxMk.js";
+- public/assets/SessionEditModal-CNi_rT0l.js:27: import {
+- public/assets/SessionEditModal-CNi_rT0l.js:29: } from "./subjectBranding-DaDo_h8r.js";
+- public/assets/SessionEditModal-CNi_rT0l.js:30: import {
+- public/assets/SessionEditModal-CNi_rT0l.js:32: } from "./SubjectIcon-CyCDqtel.js";
+- public/assets/SessionEditModal-CNi_rT0l.js:33: import {
+- public/assets/SessionEditModal-CNi_rT0l.js:56: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/SessionEditModal-CNi_rT0l.js:57: import {
+- public/assets/SessionEditModal-CNi_rT0l.js:60: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/SessionLogTable-CclRAAwc.js:1: import{r as m,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as ie,g as w}from"./useFocusStore-CX_Nyp1h.js";import{u as C}from"./useAIStore-B2cv1FZz.js";import{c as oe,h as ce,O as v,g as le}from"./App-pJGjDiPw.js";imp
+- public/assets/SettingsLayout-B4OgCkQ5.js:1: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:5: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:6: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:30: } from "./App-pJGjDiPw.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:31: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:34: } from "./DashboardHeader-DNuRMna8.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:35: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:119: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:120: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:122: } from "./Toggle-D54hkegy.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:123: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:127: } from "./messaging-BP0KfJxy.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:128: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:130: } from "./TaskController-BUyiMYKC.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:131: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:133: } from "./useOnlineStatus-BJOTUERN.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:134: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:139: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:140: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:146: } from "./focusBackground-t8AknbRg.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:147: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:149: } from "./ChipMultiSelect-BU74OOip.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:150: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:152: } from "./SubjectCreateModal-DhD_Cwbk.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:153: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:156: } from "./studyPreferences-BBZvHe-O.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:157: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:163: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:164: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:166: } from "./useSyncStore-vWs_TdIc.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:167: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:170: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:171: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:173: } from "./utils-D8mZnxMk.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:174: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:176: } from "./IsotopeLogoIcon-oPk5Ru-_.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:177: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:179: } from "./useQuotesStore-C7b4gZp0.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:180: import {
+- public/assets/SettingsLayout-B4OgCkQ5.js:183: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:184: import "./index-BPYJFSVW.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:185: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:186: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:187: import "./timeFormat-CMPo-BX2.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:188: import "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:189: import "./useNotificationStore-BS4df28T.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:190: import "./subjectBranding-DaDo_h8r.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:191: import "./SubjectIcon-CyCDqtel.js";
+- public/assets/SettingsLayout-B4OgCkQ5.js:192: import "./vendor-charts-CFLJvnG7.js";
+- public/assets/SharedAnalyticsComponents-DMxLJbRk.js:1: import{j as e,f as b}from"./vendor-react-BfU3Zn2J.js";import{c as f}from"./utils-D8mZnxMk.js";import{u as P}from"./Analytics-D74gQMjN.js";import{aq as I,ar as L,as as $,M as S,P as A,I as E}from"./vendor-icons-CqruUz7g.j
+- public/assets/SingleGroup-DU1IhoNK.js:1: import{f as ge,j as e,r as g}from"./vendor-react-BfU3Zn2J.js";import{d as Ft,e as qt,a as Bt,f as Ht,g as Kt}from"./useGroups-vEjDKzZY.js";import{u as we,a as Ce,b as Se,d as Vt}from"./vendor-query-Rjz85D0S.js";import{u 
+- public/assets/Step1Identity-BZBwnoJ8.js:1: import {
+- public/assets/Step1Identity-BZBwnoJ8.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Step1Identity-BZBwnoJ8.js:5: import {
+- public/assets/Step1Identity-BZBwnoJ8.js:7: } from "./Onboarding-qvAqCBbb.js";
+- public/assets/Step1Identity-BZBwnoJ8.js:8: import {
+- public/assets/Step1Identity-BZBwnoJ8.js:10: } from "./OnboardingNavigation-C6kIq5HV.js";
+- public/assets/Step1Identity-BZBwnoJ8.js:11: import {
+- public/assets/Step1Identity-BZBwnoJ8.js:15: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Step1Identity-BZBwnoJ8.js:16: import {
+- public/assets/Step1Identity-BZBwnoJ8.js:20: } from "./App-pJGjDiPw.js";
+- public/assets/Step1Identity-BZBwnoJ8.js:21: import "./index-BPYJFSVW.js";
+- public/assets/Step1Identity-BZBwnoJ8.js:22: import "./useFocusStore-CX_Nyp1h.js";
+- public/assets/Step1Identity-BZBwnoJ8.js:23: import "./useNotificationStore-BS4df28T.js";
+- public/assets/Step1Identity-BZBwnoJ8.js:24: import "./vendor-router-CmoTwRnm.js";
+- public/assets/Step1Identity-BZBwnoJ8.js:25: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/Step1Identity-BZBwnoJ8.js:26: import "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Step2Academic-BUGsFsTy.js:1: import{r as m,j as t}from"./vendor-react-BfU3Zn2J.js";import{u as E}from"./Onboarding-qvAqCBbb.js";import{O as z}from"./OnboardingNavigation-C6kIq5HV.js";import{C as u}from"./ChipMultiSelect-BU74OOip.js";import{S as C}fr
+- public/assets/Step3StudyGoals-CQ0yWK1r.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u}from"./Onboarding-qvAqCBbb.js";import{O as x}from"./OnboardingNavigation-C6kIq5HV.js";import{R as h}from"./RadioCard-BtzZXn6i.js";import{aj as p,bh as b,bi as g}fro
+- public/assets/Step4Preferences-D6oDNUqn.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as d}from"./Onboarding-qvAqCBbb.js";import{O as m}from"./OnboardingNavigation-C6kIq5HV.js";import{R as u}from"./RadioCard-BtzZXn6i.js";import{C as x}from"./ChipMult
+- public/assets/Step5Community-BvHWgTaf.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as a}from"./Onboarding-qvAqCBbb.js";import{O as c}from"./OnboardingNavigation-C6kIq5HV.js";import{R as d}from"./RadioCard-BtzZXn6i.js";import{aH as l,U as u,aI as m
+- public/assets/Step6Personalization-CNdBQkFI.js:1: import{j as e,r as c}from"./vendor-react-BfU3Zn2J.js";import{u as x}from"./Onboarding-qvAqCBbb.js";import{O as b}from"./OnboardingNavigation-C6kIq5HV.js";import{T as m}from"./Toggle-D54hkegy.js";import{Q as p,R as h,T as
+- public/assets/Story-TXs13Cjc.js:1: import {
+- public/assets/Story-TXs13Cjc.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Story-TXs13Cjc.js:4: import {
+- public/assets/Story-TXs13Cjc.js:6: } from "./useSupportModalStore-BkYsnKtG.js";
+- public/assets/Story-TXs13Cjc.js:7: import {
+- public/assets/Story-TXs13Cjc.js:9: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Story-TXs13Cjc.js:10: import {
+- public/assets/Story-TXs13Cjc.js:15: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Story-TXs13Cjc.js:16: import "./App-pJGjDiPw.js";
+- public/assets/Story-TXs13Cjc.js:17: import "./index-BPYJFSVW.js";
+- public/assets/Story-TXs13Cjc.js:18: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/Story-TXs13Cjc.js:19: import "./vendor-router-CmoTwRnm.js";
+- public/assets/Study-pAdAenIl.js:1: import {
+- public/assets/Study-pAdAenIl.js:6: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Study-pAdAenIl.js:7: import {
+- public/assets/Study-pAdAenIl.js:10: } from "./DashboardHeader-DNuRMna8.js";
+- public/assets/Study-pAdAenIl.js:11: import {
+- public/assets/Study-pAdAenIl.js:25: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/Study-pAdAenIl.js:26: import {
+- public/assets/Study-pAdAenIl.js:29: } from "./App-pJGjDiPw.js";
+- public/assets/Study-pAdAenIl.js:30: import {
+- public/assets/Study-pAdAenIl.js:33: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Study-pAdAenIl.js:34: import {
+- public/assets/Study-pAdAenIl.js:71: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Study-pAdAenIl.js:72: import {
+- public/assets/Study-pAdAenIl.js:74: } from "./ExamCreateEditModal-BdlzfeFO.js";
+- public/assets/Study-pAdAenIl.js:75: import {
+- public/assets/Study-pAdAenIl.js:77: } from "./SubjectCreateModal-DhD_Cwbk.js";
+- public/assets/Study-pAdAenIl.js:78: import {
+- public/assets/Study-pAdAenIl.js:80: } from "./TaskCardModal-DZvd1GWt.js";
+- public/assets/Study-pAdAenIl.js:81: import {
+- public/assets/Study-pAdAenIl.js:83: } from "./utils-D8mZnxMk.js";
+- public/assets/Study-pAdAenIl.js:84: import {
+- public/assets/Study-pAdAenIl.js:86: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/Study-pAdAenIl.js:87: import {
+- public/assets/Study-pAdAenIl.js:89: } from "./ExamTemplateSelectorModal-DsEPEF5X.js";
+- public/assets/Study-pAdAenIl.js:90: import {
+- public/assets/Study-pAdAenIl.js:94: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/Study-pAdAenIl.js:95: import {
+- public/assets/Study-pAdAenIl.js:97: } from "./studyTimeMaps-B0T_-AX0.js";
+- public/assets/Study-pAdAenIl.js:98: import {
+- public/assets/Study-pAdAenIl.js:100: } from "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/Study-pAdAenIl.js:101: import {
+- public/assets/Study-pAdAenIl.js:104: } from "./subjectBranding-DaDo_h8r.js";
+- public/assets/Study-pAdAenIl.js:105: import {
+- public/assets/Study-pAdAenIl.js:107: } from "./timeFormat-CMPo-BX2.js";
+- public/assets/Study-pAdAenIl.js:108: import {
+- public/assets/Study-pAdAenIl.js:110: } from "./SubjectIcon-CyCDqtel.js";
+- public/assets/Study-pAdAenIl.js:111: import {
+- public/assets/Study-pAdAenIl.js:113: } from "./endOfMonth-BISTJu4P.js";
+- public/assets/Study-pAdAenIl.js:114: import {
+- public/assets/Study-pAdAenIl.js:116: } from "./useSyncStore-vWs_TdIc.js";
+- public/assets/Study-pAdAenIl.js:117: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Study-pAdAenIl.js:118: import "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Study-pAdAenIl.js:119: import "./index-BPYJFSVW.js";
+- public/assets/Study-pAdAenIl.js:120: import "./useNotificationStore-BS4df28T.js";
+- public/assets/Study-pAdAenIl.js:121: import "./IsotopeLogoIcon-oPk5Ru-_.js";
+- public/assets/Study-pAdAenIl.js:122: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/Study-pAdAenIl.js:123: import "./taskAvailability-B1aDS_ww.js";
+- public/assets/Study-pAdAenIl.js:124: import "./vendor-charts-CFLJvnG7.js";
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:1: import {
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:5: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:6: import {
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:8: } from "./useFocusStore-CX_Nyp1h.js";
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:9: import {
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:12: } from "./subjectBranding-DaDo_h8r.js";
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:13: import {
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:15: } from "./SubjectIcon-CyCDqtel.js";
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:16: import {
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:19: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:20: import {
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:27: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/SubjectIcon-CyCDqtel.js:1: import {
+- public/assets/SubjectIcon-CyCDqtel.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/SubjectIcon-CyCDqtel.js:4: import {
+- public/assets/SubjectIcon-CyCDqtel.js:6: } from "./subjectBranding-DaDo_h8r.js";
+- public/assets/SubjectIcon-CyCDqtel.js:7: import {
+- public/assets/SubjectIcon-CyCDqtel.js:9: } from "./utils-D8mZnxMk.js";
+- public/assets/SubjectIcon-CyCDqtel.js:10: import {
+- public/assets/SubjectIcon-CyCDqtel.js:42: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Subscription-UaefsAtQ.js:1: import {
+- public/assets/Subscription-UaefsAtQ.js:4: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Subscription-UaefsAtQ.js:5: import {
+- public/assets/Subscription-UaefsAtQ.js:8: } from "./DashboardHeader-DNuRMna8.js";
+- public/assets/Subscription-UaefsAtQ.js:9: import {
+- public/assets/Subscription-UaefsAtQ.js:14: } from "./App-pJGjDiPw.js";
+- public/assets/Subscription-UaefsAtQ.js:15: import {
+- public/assets/Subscription-UaefsAtQ.js:18: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Subscription-UaefsAtQ.js:19: import {
+- public/assets/Subscription-UaefsAtQ.js:36: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/Subscription-UaefsAtQ.js:37: import {
+- public/assets/Subscription-UaefsAtQ.js:40: } from "./useAIStore-B2cv1FZz.js";
+- public/assets/Subscription-UaefsAtQ.js:41: import {
+- public/assets/Subscription-UaefsAtQ.js:43: } from "./vendor-supabase-DAiUAuun.js";
+- public/assets/Subscription-UaefsAtQ.js:44: import {
+- public/assets/Subscription-UaefsAtQ.js:46: } from "./useOnlineStatus-BJOTUERN.js";
+- public/assets/Subscription-UaefsAtQ.js:47: import {
+- public/assets/Subscription-UaefsAtQ.js:49: } from "./useSupportModalStore-BkYsnKtG.js";
+- public/assets/Subscription-UaefsAtQ.js:50: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- public/assets/Subscription-UaefsAtQ.js:51: import "./useFocusStore-CX_Nyp1h.js";
+- public/assets/Subscription-UaefsAtQ.js:52: import "./index-BPYJFSVW.js";
+- public/assets/Subscription-UaefsAtQ.js:53: import "./useNotificationStore-BS4df28T.js";
+- public/assets/Subscription-UaefsAtQ.js:54: import "./timeFormat-CMPo-BX2.js";
+- public/assets/Subscription-UaefsAtQ.js:55: import "./MarkdownRenderer-CIV1x0Uq.js";
+- public/assets/Subscription-UaefsAtQ.js:56: import "./vendor-router-CmoTwRnm.js";
+- public/assets/Subscription-UaefsAtQ.js:57: import "./useSyncStore-vWs_TdIc.js";
+- public/assets/Subscription-UaefsAtQ.js:58: import "./IsotopeLogoIcon-oPk5Ru-_.js";
+- public/assets/SupportMessage-BE7j-Ezd.js:1: import {
+- public/assets/SupportMessage-BE7j-Ezd.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/SupportMessage-BE7j-Ezd.js:4: import {
+- public/assets/SupportMessage-BE7j-Ezd.js:6: } from "./utils-D8mZnxMk.js";
+- public/assets/SupportMessage-BE7j-Ezd.js:7: import {
+- public/assets/SupportMessage-BE7j-Ezd.js:9: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/SupportMessage-BE7j-Ezd.js:10: import {
+- public/assets/SupportMessage-BE7j-Ezd.js:15: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:1: import {
+- public/assets/SupportPromptDialog-Bkl24oin.js:3: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:4: import {
+- public/assets/SupportPromptDialog-Bkl24oin.js:6: } from "./App-pJGjDiPw.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:7: import {
+- public/assets/SupportPromptDialog-Bkl24oin.js:9: } from "./SupportMessage-BE7j-Ezd.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:10: import {
+- public/assets/SupportPromptDialog-Bkl24oin.js:12: } from "./useSupportModalStore-BkYsnKtG.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:13: import {
+- public/assets/SupportPromptDialog-Bkl24oin.js:16: } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:17: import {
+- public/assets/SupportPromptDialog-Bkl24oin.js:21: } from "./vendor-icons-CqruUz7g.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:22: import {
+- public/assets/SupportPromptDialog-Bkl24oin.js:24: } from "./vendor-router-CmoTwRnm.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:25: import "./index-BPYJFSVW.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:26: import "./vendor-supabase-DAiUAuun.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:27: import "./utils-D8mZnxMk.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:28: import "./vendor-charts-CFLJvnG7.js";
+- public/assets/Syllabus-DZSnov0t.js:1: import {
+- public/assets/Syllabus-DZSnov0t.js:6: } from "./vendor-react-BfU3Zn2J.js";
+- public/assets/Syllabus-DZSnov0t.js:7: import {
+- public/assets/Syllabus-DZSnov0t.js:9: } from "./SubjectIcon-CyCDqtel.js";

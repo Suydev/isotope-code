@@ -1,0 +1,25 @@
+Performance findings
+
+- public/sounds/wind.wav: 17143172 bytes; authored or hand-maintained
+- public/sounds/rain.wav: 14825128 bytes; authored or hand-maintained
+- public/sounds/crickets.wav: 11917352 bytes; authored or hand-maintained
+- screenshot: 5245159 bytes; authored or hand-maintained
+- screenshot.zip: 5245159 bytes; authored or hand-maintained
+- screenshots/screenshot.zip: 5245159 bytes; authored or hand-maintained
+- screenshots/landingpage.png: 4594523 bytes; authored or hand-maintained
+- public/bg.mp4: 4328716 bytes; authored or hand-maintained
+- screenshots/screenshot/Screenshot_2026-06-08-08-46-24-13_e4424258c8b8649f6e67d283a50a2cbc.jpg: 984602 bytes; authored or hand-maintained
+- screenshots/screenshot/Screenshot_2026-06-08-08-45-28-72_e4424258c8b8649f6e67d283a50a2cbc.jpg: 721433 bytes; authored or hand-maintained
+- public/assets/vendor-charts-CFLJvnG7.js: 684509 bytes; generated/built artifact
+- screenshots/screenshot/Screenshot_2026-06-08-08-46-58-26_e4424258c8b8649f6e67d283a50a2cbc.jpg: 683546 bytes; authored or hand-maintained
+- public/assets/vendor-sentry-VzeXdCeF.js: 671458 bytes; generated/built artifact
+- screenshots/screenshot/Screenshot_2026-06-08-08-45-47-93_e4424258c8b8649f6e67d283a50a2cbc.jpg: 657521 bytes; authored or hand-maintained
+- screenshots/screenshot/Screenshot_2026-06-08-08-46-12-13_e4424258c8b8649f6e67d283a50a2cbc.jpg: 616074 bytes; authored or hand-maintained
+- screenshots/screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg: 608081 bytes; authored or hand-maintained
+- screenshots/screenshot/Screenshot_2026-06-07-13-58-43-64_e4424258c8b8649f6e67d283a50a2cbc.jpg: 565267 bytes; authored or hand-maintained
+- screenshots/screenshot/Screenshot_2026-06-08-08-46-00-34_e4424258c8b8649f6e67d283a50a2cbc.jpg: 535847 bytes; authored or hand-maintained
+
+Other performance notes are in per-file audits.
+Large/generated file hazard review:
+- See audit/_meta/large-file-agent-hazard-review.txt for active-vs-stale vendor and bundle hazards.
+- Top risky generated chunks include vendor-supabase-DAiUAuun.js, vendor-sentry-VzeXdCeF.js, vendor-charts-CFLJvnG7.js, App-pJGjDiPw.js, and stale index-qd2KF3Jd.js.

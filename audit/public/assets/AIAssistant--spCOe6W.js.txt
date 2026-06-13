@@ -1,0 +1,280 @@
+FILE IDENTITY
+
+- original path: public/assets/AIAssistant--spCOe6W.js
+- audit path: audit/public/assets/AIAssistant--spCOe6W.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 100123
+- SHA-256: bd3308f6ca8eb1b3c7718458411468ec43c5727a2fb3062d5613509691a0305c
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:28 - "file": "AIAssistant--spCOe6W.js",
+- artifacts/asset-diff/asset-report.json:31 - "remote_url": "https://isotopeai.in/assets/AIAssistant--spCOe6W.js",
+- artifacts/asset-diff/local-assets.txt:2 - AIAssistant--spCOe6W.js
+- artifacts/asset-diff/summary.md:39 - | AIAssistant--spCOe6W.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/AppAccessGate-B975UtK7.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-C
+- public/assets/AppAccessGate-B975UtK7.js:211 - import ("./AIAssistant--spCOe6W.js"), __vite__mapDeps([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]))),
+
+INTERNAL STRUCTURE
+
+- line count: 1252
+- imports:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 5: import {
+- 10: } from "./useAIStore-B2cv1FZz.js";
+- 11: import {
+- 13: } from "./utils-D8mZnxMk.js";
+- 14: import {
+- 16: } from "./IsotopeLogoIcon-oPk5Ru-_.js";
+- 17: import {
+- 19: } from "./MarkdownRenderer-CIV1x0Uq.js";
+- 20: import {
+- 23: } from "./vendor-motion-Cp_NPzpZ.js";
+- 24: import {
+- 53: } from "./vendor-icons-CqruUz7g.js";
+- 54: import {
+- 56: } from "./vendor-router-CmoTwRnm.js";
+- 57: import "./App-pJGjDiPw.js";
+- 58: import "./index-BPYJFSVW.js";
+- 59: import "./vendor-supabase-DAiUAuun.js";
+- 60: import "./useFocusStore-CX_Nyp1h.js";
+- 61: import "./useNotificationStore-BS4df28T.js";
+- 62: import "./vendor-charts-CFLJvnG7.js";
+- exports:
+- 1249: export {
+- functions/async flows:
+- 118: b = a => {
+- 130: E = (a, d = {}) => {
+- 139: Nt = () => {
+- 159: } = Le(), se = rt(), [C, P] = h.useState(""), [j, _e] = h.useState(!1), [Ce, ae] = h.useState(null), ie = h.useRef(null), L = h.useRef(null), M = $(), K = s ?.tool === "bulk_add_syllabus" ? s.params : null, ne = s ?.tool
+- 162: }, Se = () => {
+- 203: children: [S.slice(0, 40).map((v, ue) => {
+- 230: h.useEffect(() => {
+- 234: }, [M ?.messages, p, s]), h.useEffect(() => {
+- 236: }, [c, n]), h.useEffect(() => {
+- 238: const t = r => {
+- 242: }, [c, x]), h.useEffect(() => {
+- 243: if (f) {
+- 248: const ce = () => {
+- 253: Te = t => {
+- 256: Ie = (t, r) => {
+- 263: xe = t => {
+- 266: me = h.useCallback(() => {
+- 269: be = h.useCallback(() => {
+- 460: onClick: () => {
+- 607: children: fe.map(t => {
+- 1114: }) => {
+- 1117: f = (g, x) => {
+- 1124: if ($) {
+- 1150: if (u) {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 63: const st = {
+- 125: const d = a.filter(l => typeof l == "string" || typeof l == "number" || typeof l == "boolean");
+- 132: const l = new Set(d.skipKeys || []);
+- 160: const r = t && typeof t == "object" ? t : {};
+- 164: const t = s.params,
+- 204: const y = te(v) ? v : {
+- 238: const t = r => {
+- 244: const t = setTimeout(_, 5e3);
+- 248: const ce = () => {
+- 608: const r = st[t.icon] || W;
+- 1115: const n = a.role === "user",
+- 1122: const _ = /<think>([\s\S]*?)<\/think>/,
+- 1125: const R = $[1].trim(),
+- 1151: const g = u.tool === "bulk_add_syllabus";
+- handlers/lifecycle candidates:
+- 235: c && n && setTimeout(() => L.current ?.focus(), 100)
+- 241: return window.addEventListener("keydown", t), () => window.removeEventListener("keydown", t)
+- 244: const t = setTimeout(_, 5e3);
+- 257: navigator.clipboard.writeText(t), ae(r), setTimeout(() => ae(null), 2e3)
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BPYJFSVW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2908, artifacts/asset-diff/asset-report.json:2911, artifacts/asset-diff/local-assets.txt:162, artifacts/asset-diff/summary.md:141, public/assets/AIAssistant--spCOe6W.js:58, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsTasks-DOfUf9Sd.js:1
+- EXECUTION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/AIAssistant--spCOe6W.js:1141, public/assets/useAIStore-B2cv1FZz.js:1317
+- RESULT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/AIAssistant--spCOe6W.js:1141, public/assets/useAIStore-B2cv1FZz.js:1317, public/assets/useAIStore-B2cv1FZz.js:4446
+- TOOL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/AIAssistant--spCOe6W.js:1141, public/assets/useAIStore-B2cv1FZz.js:1317, public/assets/useAIStore-B2cv1FZz.js:4856, public/assets/useAIStore-B2cv1FZz.js:6144, public/assets/useAIStore-B2cv1FZz.js:8080
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 86: id: "update_syllabus",
+- 88: label: "Update Syllabus",
+- 138: ve = new Set(["create_subject", "update_subject", "delete_subject", "reorder_subjects", "create_chapter", "bulk_create_chapters", "bulk_create_syllabus", "update_chapter", "bulk_update_chapters", "delete_chapter", "reorder_chapters", "create_topic", "bulk_crea
+- 151: deleteConversation: re,
+- 159: } = Le(), se = rt(), [C, P] = h.useState(""), [j, _e] = h.useState(!1), [Ce, ae] = h.useState(null), ie = h.useRef(null), L = h.useRef(null), M = $(), K = s ?.tool === "bulk_add_syllabus" ? s.params : null, ne = s ?.tool === "bulk_create_exams" ? s.params : nu
+- 168: Y = Array.isArray(t.updates) ? t.updates : [],
+- 170: q = /\b(delete|reset)\b/.test(s.tool),
+- 190: skipKeys: ["subjects", "chapters", "topics", "updates", "artifacts"],
+- 241: return window.addEventListener("keydown", t), () => window.removeEventListener("keydown", t)
+- 250: currentPath: `${window.location.pathname}${window.location.search}`
+- 484: children: d === t.id ? "Current thread" : `Updated ${oe(t.updatedAt)}`
+- 490: "aria-label": `Delete conversation ${t.title}`,
+- 574: description: "Update tasks, exams, and syllabus items."
+- 712: }), ve.has(s.tool) ? Se() : N ?.updates ?.length ? e.jsxs("div", {
+- 718: }), "Per-Task Updates"]
+- 723: children: N.updates.map((t, r) => e.jsxs("div", {
+- 743: }), "Bulk Task Update"]
+- 748: children: "Selected tasks will receive the same update"
+- 790: }) : s.tool === "bulk_delete_tasks" ? e.jsxs("div", {
+- 799: children: "This will delete tasks matching the selected criteria after you approve it."
+- 804: }) : s.tool === "create_task" || s.tool === "update_task" || s.tool === "delete_task" || s.tool === "complete_task" || s.tool === "reopen_task" || s.tool === "move_task" || s.tool === "update_task_due_date" || s.tool === "update_task_priority" || s.tool === "a
+- 826: }) : de ?.updates ?.length ? e.jsxs("div", {
+- 832: }), "Bulk Exam Updates"]
+- 837: children: de.updates.map((t, r) => e.jsxs("div", {
+- 1085: children: "Once connected, the assistant can help plan study sessions, update your syllabus, break down tasks, and surface insights across the workspace."
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 5: import {
+- 10: } from "./useAIStore-B2cv1FZz.js";
+- 11: import {
+- 13: } from "./utils-D8mZnxMk.js";
+- 14: import {
+- 16: } from "./IsotopeLogoIcon-oPk5Ru-_.js";
+- 17: import {
+- 19: } from "./MarkdownRenderer-CIV1x0Uq.js";
+- 20: import {
+- 23: } from "./vendor-motion-Cp_NPzpZ.js";
+- 24: import {
+- 53: } from "./vendor-icons-CqruUz7g.js";
+- 54: import {
+- 56: } from "./vendor-router-CmoTwRnm.js";
+- 57: import "./App-pJGjDiPw.js";
+- 58: import "./index-BPYJFSVW.js";
+- 59: import "./vendor-supabase-DAiUAuun.js";
+- 60: import "./useFocusStore-CX_Nyp1h.js";
+- 61: import "./useNotificationStore-BS4df28T.js";
+- 62: import "./vendor-charts-CFLJvnG7.js";
+- local files: see References and Consumers above
+- browser APIs:
+- 61: import "./useNotificationStore-BS4df28T.js";
+- 241: return window.addEventListener("keydown", t), () => window.removeEventListener("keydown", t)
+- 250: currentPath: `${window.location.pathname}${window.location.search}`
+- 257: navigator.clipboard.writeText(t), ae(r), setTimeout(() => ae(null), 2e3)
+- operating-system commands:
+- 37: am as Ye,
+- Supabase interfaces:
+- 59: import "./vendor-supabase-DAiUAuun.js";
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Large text/code file; focused tests and decomposition would reduce regression risk.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0275-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/AIAssistant--spCOe6W.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/AIAssistant--spCOe6W.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 100123
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: large file >=100KB; same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/AppAccessGate-B975UtK7.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/A
+  - public/assets/AppAccessGate-B975UtK7.js:211: import ("./AIAssistant--spCOe6W.js"), __vite__mapDeps([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]))),
+  - artifacts/asset-diff/local-assets.txt:2: AIAssistant--spCOe6W.js
+  - artifacts/asset-diff/asset-report.json:28: "file": "AIAssistant--spCOe6W.js",
+  - artifacts/asset-diff/asset-report.json:31: "remote_url": "https://isotopeai.in/assets/AIAssistant--spCOe6W.js",
+  - artifacts/asset-diff/summary.md:39: | AIAssistant--spCOe6W.js | 200 | unexpected HTML fallback for .js request |

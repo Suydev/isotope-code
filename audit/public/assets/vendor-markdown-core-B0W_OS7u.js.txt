@@ -1,0 +1,224 @@
+FILE IDENTITY
+
+- original path: public/assets/vendor-markdown-core-B0W_OS7u.js
+- audit path: audit/public/assets/vendor-markdown-core-B0W_OS7u.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 172448
+- SHA-256: e3eb9e362af3a73a656d833df738f42252134c99c4f0fda9bee950e620543fa2
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3574 - "file": "vendor-markdown-core-B0W_OS7u.js",
+- artifacts/asset-diff/asset-report.json:3577 - "remote_url": "https://isotopeai.in/assets/vendor-markdown-core-B0W_OS7u.js",
+- artifacts/asset-diff/local-assets.txt:199 - vendor-markdown-core-B0W_OS7u.js
+- artifacts/asset-diff/summary.md:167 - | vendor-markdown-core-B0W_OS7u.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/index-qd2KF3Jd.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-L1EjXFqL.js","assets/vendor-charts-BN-djq5a.js","assets/App-Bcp_57Ks.js","assets/vendor-markdown-core-B0W_OS7u.js","assets/vendor-katex-BSXZKQS3.js","assets/vendor-katex
+- public/assets/index-qd2KF3Jd.js:2 - import{j as Ke}from"./vendor-markdown-core-B0W_OS7u.js";import{t as vg,u as bg,g as Ag,R as Em}from"./vendor-charts-BN-djq5a.js";import"./vendor-katex-BSXZKQS3.js";(function(){const i=document.createElement("link").relList;if(i&&i.supports&
+
+INTERNAL STRUCTURE
+
+- line count: 43
+- imports:
+- 1: import{g as wr}from"./vendor-charts-BN-djq5a.js";import{k as xn}from"./vendor-katex-BSXZKQS3.js";var gt={exports:{}},Be={};/**
+- exports:
+None observed.
+- functions/async flows:
+- 9: */var kn;function Vi(){if(kn)return Be;kn=1;var e=Symbol.for("react.transitional.element"),n=Symbol.for("react.fragment");function t(r,i,o){var l=null;if(o!==void 0&&(l=""+o),i.key!==void 0&&(l=""+i.key),"key"in i){o={};
+- 10: `,s="/",f="*",c="",p="comment",h="declaration";function d(C,x){if(typeof C!="string")throw new TypeError("First argument must be a string");if(!C)return[];x=x||{};var b=1,E=1;function v(D){var T=D.match(n);T&&(b+=T.lengt
+- 12: `;break}case-2:{l=n?" ":"	";break}case-1:{if(!n&&i)continue;l=" ";break}default:l=String.fromCharCode(o)}i=o===-2,r.push(l)}return r.join("")}function Fa(e){const r={constructs:Nr([Ea,...(e||{}).extensions||[]]),content:
+- 13: `}]}function ja(e,n){const t=n.value?n.value+`
+- 14: `:"",r={},i=n.lang?n.lang.split(/\s+/):[];i.length>0&&(r.className=["language-"+i[0]]);let o={type:"element",tagName:"code",properties:r,children:[{type:"text",value:t}]};return n.meta&&(o.data={meta:n.meta}),e.patch(n,o
+- 16: `});const s={type:"element",tagName:"li",properties:o,children:l};return e.patch(n,s),e.applyData(n,s)}function Ka(e){let n=!1;if(e.type==="list"){n=e.spread||!1;const t=e.children;let r=-1;for(;!n&&++r<t.length;)n=Kr(t[
+- 18: `}]}}const Ke=(function(e){if(e==null)return bu;if(typeof e=="function")return mt(e);if(typeof e=="object")return Array.isArray(e)?yu(e):xu(e);if(typeof e=="string")return ku(e);throw new Error("Expected function, string
+- 21: `}),t}function Qn(e){let n=0,t=e.charCodeAt(n);for(;t===9||t===32;)n++,t=e.charCodeAt(n);return e.slice(n)}function Jn(e,n){const t=Iu(e,n),r=t.one(e,void 0),i=du(t),o=Array.isArray(r)?{type:"root",children:r}:r||{type:"
+- 22: `},i),o}function zu(e,n){return e&&"run"in e?async function(t,r){const i=Jn(t,{file:r,...n});await e.run(i,r)}:function(t,r){return Jn(t,{file:r,...e||n})}}function Kn(e){if(e)throw e}var St,Zn;function Du(){if(Zn)return
+- 23: `:" ")+o.indentLines(o.containerFlow(r,a.current()),n?ai:Ls))),s(),u}}function Ls(e,n,t){return n===0?e:ai(e,n,t)}function ai(e,n,t){return(t?"":"    ")+e}const Ms=["autolink","destinationLiteral","destinationRaw","refer
+- 24: `)}function qs(e){return e==null?"":String(e)}function or(e){const n=typeof e=="string"?e.codePointAt(0):0;return n===67||n===99?99:n===76||n===108?108:n===82||n===114?114:0}function Hs(e,n,t,r){const i=t.enter("blockquo
+- 26: `}function si(e,n){const t=String(e);let r=t.indexOf(n),i=r,o=0,l=0;if(typeof n!="string")throw new TypeError("Expected substring");for(;r!==-1;)r===i?++o>l&&(l=o):o=1,i=r+n.length,r=t.indexOf(n,i);return l}function Ws(e
+- 29: `)),f+=a.move(u),s(),f}function Xs(e,n,t){return(t?"":"    ")+e}function sn(e){const n=e.options.quote||'"';if(n!=='"'&&n!=="'")throw new Error("Cannot serialize title with `"+n+"` for `options.quote`, expected `\"`, or 
+- 30: `,...u.current()}))),a(),e.title&&(a=t.enter(`title${o}`),s+=u.move(" "+i),s+=u.move(t.safe(e.title,{before:s,after:i,...u.current()})),s+=u.move(i),a()),l(),s}function Js(e){const n=e.options.emphasis||"*";if(n!=="*"&&n
+- 35: `,...o.current()});return/^[\t ]/.test(s)&&(s=Xe(s.charCodeAt(0))+s.slice(1)),s=s?l+" "+s:l,t.options.closeAtx&&(s+=" "+l),u(),a(),s}fi.peek=tc;function fi(e){return e.value||""}function tc(){return"<"}hi.peek=nc;functio
+- 36: `,inConstruct:"tableCell"},{atBreak:!0,character:"|",after:"[	 :-]"},{character:"|",inConstruct:"tableCell"},{atBreak:!0,character:":",after:"-"},{atBreak:!0,character:"-",after:"[:|-]"}],handlers:{inlineCode:p,table:l,t
+- 37: `))}function u(h,d,y,C){const x=y.enter("tableCell"),b=y.enter("phrasing"),E=y.containerPhrasing(h,{...C,before:o,after:o});return b(),x(),E}function s(h,d){return $s(h,{align:d,alignDelimiters:r,padding:t,stringLength:i
+- 38: `,inConstruct:"mathFlowMeta"},{character:"$",after:n?void 0:"\\$",inConstruct:"phrasing"},{character:"$",inConstruct:"mathFlowMeta"},{atBreak:!0,character:"$",after:"\\$"}],handlers:{math:t,inlineMath:r}};function t(o,l,
+- 41: `)),h+=f.move(c),p(),h}function r(o,l,a){let u=o.value||"",s=1;for(n||s++;new RegExp("(^|[^$])"+"\\$".repeat(s)+"([^$]|$)").test(u);)s++;const f="$".repeat(s);/[^ \r\n]/.test(u)&&(/^[ \r\n]/.test(u)&&/[ \r\n]$/.test(u)||
+- 42: `.repeat(s)||" "),s=-1,u.push(f))}return u.join("")}function Li(e,n,t){return e.type==="element"?Wf(e,n,t):e.type==="text"?t.whitespace==="normal"?Mi(e,t):Yf(e):[]}function Wf(e,n,t){const r=Ri(e,t),i=e.children||[];let 
+- 43: `:Hf(e)?(a=2,u=2):vi(e)&&(a=1,u=1);++o<i.length;)l=l.concat(Li(i[o],e,{whitespace:r,breakBefore:o?void 0:a,breakAfter:o<i.length-1?Wt(i[o+1]):u}));return kr(e)&&dr(n,e,kr)&&l.push("	"),a&&l.unshift(a),u&&l.push(u),l}func
+- classes:
+- 9: */var kn;function Vi(){if(kn)return Be;kn=1;var e=Symbol.for("react.transitional.element"),n=Symbol.for("react.fragment");function t(r,i,o){var l=null;if(o!==void 0&&(l=""+o),i.key!==void 0&&(l=""+i.key),"key"in i){o={};
+- 10: `,s="/",f="*",c="",p="comment",h="declaration";function d(C,x){if(typeof C!="string")throw new TypeError("First argument must be a string");if(!C)return[];x=x||{};var b=1,E=1;function v(D){var T=D.match(n);T&&(b+=T.lengt
+- 22: `},i),o}function zu(e,n){return e&&"run"in e?async function(t,r){const i=Jn(t,{file:r,...n});await e.run(i,r)}:function(t,r){return Jn(t,{file:r,...e||n})}}function Kn(e){if(e)throw e}var St,Zn;function Du(){if(Zn)return
+- 37: `))}function u(h,d,y,C){const x=y.enter("tableCell"),b=y.enter("phrasing"),E=y.containerPhrasing(h,{...C,before:o,after:o});return b(),x(),E}function s(h,d){return $s(h,{align:d,alignDelimiters:r,padding:t,stringLength:i
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+- 9: */var kn;function Vi(){if(kn)return Be;kn=1;var e=Symbol.for("react.transitional.element"),n=Symbol.for("react.fragment");function t(r,i,o){var l=null;if(o!==void 0&&(l=""+o),i.key!==void 0&&(l=""+i.key),"key"in i){o={};
+
+INPUTS
+
+- parameters: route/request path candidates are listed in Internal Structure
+- environment variables:
+- BSXZKQS3: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3556, artifacts/asset-diff/asset-report.json:3559, artifacts/asset-diff/local-assets.txt:198, artifacts/asset-diff/remote-assets/CodeHighlighter-DSemo1-_.js:1, artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/ChapterHub-BXRydU0B.js:1, public/assets/CodeHighlighter-DSemo1-_.js:1, public/assets/MarkdownRenderer-CIV1x0Uq.js:1, public/assets/MarkdownRendererContent-DBrMkHal.js:1, public/assets/MarkdownRendererContent-DBrMkHal.js:2, public/assets/index-qd2KF3Jd.js:1
+- CDATA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:2, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, public/assets/vendor-markdown-core-B0W_OS7u.js:10, public/assets/vendor-markdown-core-Pkt6xPHa.js:2, public/assets/vendor-sentry-VzeXdCeF.js:12584, public/assets/vendor-sentry-VzeXdCeF.js:13105, public/assets/vendor-sentry-VzeXdCeF.js:13107, public/assets/vendor-sentry-VzeXdCeF.js:15833, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- ERR_INVALID_ARG_TYPE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:14, public/assets/vendor-markdown-core-B0W_OS7u.js:22, public/assets/vendor-markdown-core-Pkt6xPHa.js:14
+- ERR_INVALID_FILE_URL_HOST: classification=public/configuration; required=optional/defaulted; uses=artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:14, public/assets/vendor-markdown-core-B0W_OS7u.js:22, public/assets/vendor-markdown-core-Pkt6xPHa.js:14
+- ERR_INVALID_FILE_URL_PATH: classification=secret; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:14, public/assets/vendor-markdown-core-B0W_OS7u.js:22, public/assets/vendor-markdown-core-Pkt6xPHa.js:14
+- ERR_INVALID_URL_SCHEME: classification=public/configuration; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:14, public/assets/vendor-markdown-core-B0W_OS7u.js:22, public/assets/vendor-markdown-core-Pkt6xPHa.js:14
+- LICENSE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:259, README.md:358, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:11, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:19, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:59, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:8, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:16, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:24, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:32, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:40, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:55, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:63
+- MDX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:2, public/assets/vendor-markdown-core-B0W_OS7u.js:10, public/assets/vendor-markdown-core-Pkt6xPHa.js:2
+- MIT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:259, README.md:358, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:10, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:18, artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:58, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:7, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:15, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:23, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:31, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:39, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:54, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:62
+- POSITIVE_INFINITY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:2, artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:14, artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js:33, public/assets/useAIStore-B2cv1FZz.js:4140, public/assets/vendor-markdown-core-B0W_OS7u.js:10, public/assets/vendor-markdown-core-B0W_OS7u.js:22, public/assets/vendor-markdown-core-B0W_OS7u.js:41, public/assets/vendor-markdown-core-Pkt6xPHa.js:2, public/assets/vendor-markdown-core-Pkt6xPHa.js:14, public/assets/vendor-markdown-core-Pkt6xPHa.js:33
+- command-line arguments: not directly observed
+- request data: route candidates observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://www.w3.org/1999/xhtml
+- http://www.w3.org/2000/svg
+- https://github.com/remarkjs/react-markdown/blob/main/changelog.md
+- https://github.com/syntax-tree/hast-util-to-jsx-runtime
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 9: */var kn;function Vi(){if(kn)return Be;kn=1;var e=Symbol.for("react.transitional.element"),n=Symbol.for("react.fragment");function t(r,i,o){var l=null;if(o!==void 0&&(l=""+o),i.key!==void 0&&(l=""+i.key),"key"in i){o={};for(var a in i)a!=="key"&&(o[a]=i[a])}el
+- 10: `,s="/",f="*",c="",p="comment",h="declaration";function d(C,x){if(typeof C!="string")throw new TypeError("First argument must be a string");if(!C)return[];x=x||{};var b=1,E=1;function v(D){var T=D.match(n);T&&(b+=T.length);var H=D.lastIndexOf(u);E=~H?D.length-
+- 12: `;break}case-2:{l=n?" ":"	";break}case-1:{if(!n&&i)continue;l=" ";break}default:l=String.fromCharCode(o)}i=o===-2,r.push(l)}return r.join("")}function Fa(e){const r={constructs:Nr([Ea,...(e||{}).extensions||[]]),content:i(ql),defined:[],document:i(Ul),flow:i(s
+- 16: `});const s={type:"element",tagName:"li",properties:o,children:l};return e.patch(n,s),e.applyData(n,s)}function Ka(e){let n=!1;if(e.type==="list"){n=e.spread||!1;const t=e.children;let r=-1;for(;!n&&++r<t.length;)n=Kr(t[r])}return n}function Kr(e){const n=e.sp
+- 22: `},i),o}function zu(e,n){return e&&"run"in e?async function(t,r){const i=Jn(t,{file:r,...n});await e.run(i,r)}:function(t,r){return Jn(t,{file:r,...e||n})}}function Kn(e){if(e)throw e}var St,Zn;function Du(){if(Zn)return St;Zn=1;var e=Object.prototype.hasOwnPr
+- 23: `:" ")+o.indentLines(o.containerFlow(r,a.current()),n?ai:Ls))),s(),u}}function Ls(e,n,t){return n===0?e:ai(e,n,t)}function ai(e,n,t){return(t?"":"    ")+e}const Ms=["autolink","destinationLiteral","destinationRaw","reference","titleQuote","titleApostrophe"];ui
+- 35: `,...o.current()});return/^[\t ]/.test(s)&&(s=Xe(s.charCodeAt(0))+s.slice(1)),s=s?l+" "+s:l,t.options.closeAtx&&(s+=" "+l),u(),a(),s}fi.peek=tc;function fi(e){return e.value||""}function tc(){return"<"}hi.peek=nc;function hi(e,n,t,r){const i=sn(t),o=i==='"'?"Q
+- 41: `)),h+=f.move(c),p(),h}function r(o,l,a){let u=o.value||"",s=1;for(n||s++;new RegExp("(^|[^$])"+"\\$".repeat(s)+"([^$]|$)").test(u);)s++;const f="$".repeat(s);/[^ \r\n]/.test(u)&&(/^[ \r\n]/.test(u)&&/[ \r\n]$/.test(u)||/^\$|\$$/.test(u))&&(u=" "+u+" ");let c=
+- 43: `:Hf(e)?(a=2,u=2):vi(e)&&(a=1,u=1);++o<i.length;)l=l.concat(Li(i[o],e,{whitespace:r,breakBefore:o?void 0:a,breakAfter:o<i.length-1?Wt(i[o+1]):u}));return kr(e)&&dr(n,e,kr)&&l.push("	"),a&&l.unshift(a),u&&l.push(u),l}function Mi(e,n){const t=String(e.value),r=[
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 9: */var kn;function Vi(){if(kn)return Be;kn=1;var e=Symbol.for("react.transitional.element"),n=Symbol.for("react.fragment");function t(r,i,o){var l=null;if(o!==void 0&&(l=""+o),i.key!==void 0&&(l=""+i.key),"key"in i){o={};for(var a in i)a!=="key"&&(o[a]=i[a])}el
+- 10: `,s="/",f="*",c="",p="comment",h="declaration";function d(C,x){if(typeof C!="string")throw new TypeError("First argument must be a string");if(!C)return[];x=x||{};var b=1,E=1;function v(D){var T=D.match(n);T&&(b+=T.length);var H=D.lastIndexOf(u);E=~H?D.length-
+- 12: `;break}case-2:{l=n?" ":"	";break}case-1:{if(!n&&i)continue;l=" ";break}default:l=String.fromCharCode(o)}i=o===-2,r.push(l)}return r.join("")}function Fa(e){const r={constructs:Nr([Ea,...(e||{}).extensions||[]]),content:i(ql),defined:[],document:i(Ul),flow:i(s
+- 14: `:"",r={},i=n.lang?n.lang.split(/\s+/):[];i.length>0&&(r.className=["language-"+i[0]]);let o={type:"element",tagName:"code",properties:r,children:[{type:"text",value:t}]};return n.meta&&(o.data={meta:n.meta}),e.patch(n,o),o=e.applyData(n,o),o={type:"element",t
+- 22: `},i),o}function zu(e,n){return e&&"run"in e?async function(t,r){const i=Jn(t,{file:r,...n});await e.run(i,r)}:function(t,r){return Jn(t,{file:r,...e||n})}}function Kn(e){if(e)throw e}var St,Zn;function Du(){if(Zn)return St;Zn=1;var e=Object.prototype.hasOwnPr
+- 29: `)),f+=a.move(u),s(),f}function Xs(e,n,t){return(t?"":"    ")+e}function sn(e){const n=e.options.quote||'"';if(n!=='"'&&n!=="'")throw new Error("Cannot serialize title with `"+n+"` for `options.quote`, expected `\"`, or `'`");return n}function Qs(e,n,t,r){cons
+- 35: `,...o.current()});return/^[\t ]/.test(s)&&(s=Xe(s.charCodeAt(0))+s.slice(1)),s=s?l+" "+s:l,t.options.closeAtx&&(s+=" "+l),u(),a(),s}fi.peek=tc;function fi(e){return e.value||""}function tc(){return"<"}hi.peek=nc;function hi(e,n,t,r){const i=sn(t),o=i==='"'?"Q
+- 37: `))}function u(h,d,y,C){const x=y.enter("tableCell"),b=y.enter("phrasing"),E=y.containerPhrasing(h,{...C,before:o,after:o});return b(),x(),E}function s(h,d){return $s(h,{align:d,alignDelimiters:r,padding:t,stringLength:i})}function f(h,d,y){const C=h.children;
+- 41: `)),h+=f.move(c),p(),h}function r(o,l,a){let u=o.value||"",s=1;for(n||s++;new RegExp("(^|[^$])"+"\\$".repeat(s)+"([^$]|$)").test(u);)s++;const f="$".repeat(s);/[^ \r\n]/.test(u)&&(/^[ \r\n]/.test(u)&&/[ \r\n]$/.test(u)||/^\$|\$$/.test(u))&&(u=" "+u+" ");let c=
+- external libraries:
+- 1: import{g as wr}from"./vendor-charts-BN-djq5a.js";import{k as xn}from"./vendor-katex-BSXZKQS3.js";var gt={exports:{}},Be={};/**
+- local files: see References and Consumers above
+- browser APIs:
+- 10: `,s="/",f="*",c="",p="comment",h="declaration";function d(C,x){if(typeof C!="string")throw new TypeError("First argument must be a string");if(!C)return[];x=x||{};var b=1,E=1;function v(D){var T=D.match(n);T&&(b+=T.length);var H=D.lastIndexOf(u);E=~H?D.length-
+- 41: `)),h+=f.move(c),p(),h}function r(o,l,a){let u=o.value||"",s=1;for(n||s++;new RegExp("(^|[^$])"+"\\$".repeat(s)+"([^$]|$)").test(u);)s++;const f="$".repeat(s);/[^ \r\n]/.test(u)&&(/^[ \r\n]/.test(u)&&/[ \r\n]$/.test(u)||/^\$|\$$/.test(u))&&(u=" "+u+" ");let c=
+- operating-system commands:
+- 10: `,s="/",f="*",c="",p="comment",h="declaration";function d(C,x){if(typeof C!="string")throw new TypeError("First argument must be a string");if(!C)return[];x=x||{};var b=1,E=1;function v(D){var T=D.match(n);T&&(b+=T.length);var H=D.lastIndexOf(u);E=~H?D.length-
+- 18: `}]}}const Ke=(function(e){if(e==null)return bu;if(typeof e=="function")return mt(e);if(typeof e=="object")return Array.isArray(e)?yu(e):xu(e);if(typeof e=="string")return ku(e);throw new Error("Expected function, string, or object as test")});function yu(e){c
+- 22: `},i),o}function zu(e,n){return e&&"run"in e?async function(t,r){const i=Jn(t,{file:r,...n});await e.run(i,r)}:function(t,r){return Jn(t,{file:r,...e||n})}}function Kn(e){if(e)throw e}var St,Zn;function Du(){if(Zn)return St;Zn=1;var e=Object.prototype.hasOwnPr
+- 41: `)),h+=f.move(c),p(),h}function r(o,l,a){let u=o.value||"",s=1;for(n||s++;new RegExp("(^|[^$])"+"\\$".repeat(s)+"([^$]|$)").test(u);)s++;const f="$".repeat(s);/[^ \r\n]/.test(u)&&(/^[ \r\n]/.test(u)&&/[ \r\n]$/.test(u)||/^\$|\$$/.test(u))&&(u=" "+u+" ");let c=
+- Supabase interfaces:
+- 10: `,s="/",f="*",c="",p="comment",h="declaration";function d(C,x){if(typeof C!="string")throw new TypeError("First argument must be a string");if(!C)return[];x=x||{};var b=1,E=1;function v(D){var T=D.match(n);T&&(b+=T.length);var H=D.lastIndexOf(u);E=~H?D.length-
+- external services: http://www.w3.org/1999/xhtml, http://www.w3.org/2000/svg, https://github.com/remarkjs/react-markdown/blob/main/changelog.md, https://github.com/syntax-tree/hast-util-to-jsx-runtime
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0472-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/vendor-markdown-core-B0W_OS7u.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/vendor-markdown-core-B0W_OS7u.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 172448
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: large file >=100KB; vendor/generated dependency chunk family; same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/index-qd2KF3Jd.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-L1EjXFqL.js","assets/vendor-charts-BN-djq5a.js","assets/App-Bcp_57Ks.js","assets/vendor-markdown-core-B0W_OS7
+  - public/assets/index-qd2KF3Jd.js:2: import{j as Ke}from"./vendor-markdown-core-B0W_OS7u.js";import{t as vg,u as bg,g as Ag,R as Em}from"./vendor-charts-BN-djq5a.js";import"./vendor-katex-BSXZKQS3.js";(function(){cons
+  - artifacts/asset-diff/local-assets.txt:199: vendor-markdown-core-B0W_OS7u.js
+  - artifacts/asset-diff/asset-report.json:3574: "file": "vendor-markdown-core-B0W_OS7u.js",
+  - artifacts/asset-diff/asset-report.json:3577: "remote_url": "https://isotopeai.in/assets/vendor-markdown-core-B0W_OS7u.js",
+  - artifacts/asset-diff/summary.md:167: | vendor-markdown-core-B0W_OS7u.js | 200 | unexpected HTML fallback for .js request |

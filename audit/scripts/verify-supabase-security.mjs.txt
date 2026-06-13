@@ -1,0 +1,287 @@
+FILE IDENTITY
+
+- original path: scripts/verify-supabase-security.mjs
+- audit path: audit/scripts/verify-supabase-security.mjs.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 14965
+- SHA-256: e9cf469ed560f6f2a8a414247da3a2830cddec373e61940c503ff1fbaec2827a
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: application project
+- primary auditor: sql-supabase-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the application project subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: application project
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/ci.yml:109 - scripts/verify-supabase-security.mjs
+- .github/workflows/ci.yml:220 - scripts/verify-supabase-security.mjs
+- .github/workflows/regenerate-release.yml:65 - node --check scripts/verify-supabase-security.mjs
+- .github/workflows/regenerate-release.yml:105 - scripts/verify-supabase-security.mjs
+- .github/workflows/release.yml:62 - node --check scripts/verify-supabase-security.mjs
+- .github/workflows/release.yml:181 - scripts/verify-supabase-security.mjs
+- package.json:28 - "security:verify": "node scripts/verify-supabase-security.mjs",
+
+INTERNAL STRUCTURE
+
+- line count: 365
+- imports:
+- 2: import crypto from 'crypto';
+- 3: import { loadEnv } from './storage-backup-lib.mjs';
+- exports:
+None observed.
+- functions/async flows:
+- 10: if (!base || !service || !anon) {
+- 23: function headers(key, extra = {}) {
+- 27: function userHeaders(user, extra = {}) {
+- 31: async function jsonFetch(url, options = {}) {
+- 39: function restUrl(table, query = '') {
+- 43: async function restAsUser(user, table, query, init = {}) {
+- 54: async function restAsService(table, query, init = {}) {
+- 65: function isMissingTable(res) {
+- 70: function isOk(res) {
+- 74: function affectedRows(res) {
+- 78: function crossWriteDenied(res) {
+- 87: function record(name, ok, detail = '') {
+- 92: function skip(name, detail = '') {
+- 97: async function createUser(label) {
+- 115: async function seedUserRows(user) {
+- 151: async function testOwnOnlyTable({ table, pkQuery, ownPatch, crossPatch, ownSelectPublic = false }) {
+- 170: if (ownSelectPublic) {
+- 177: async function testInsertOwnedTable({ table, ownRow, crossRow, ownOnlyRead = true, publicRead = false, rememberId }) {
+- 195: if (ownOnlyRead || publicRead) {
+- 203: async function storageUploadAs(user, bucket, path, body, contentType = 'application/json') {
+- 211: async function testStorageBucket(bucket, contentType = 'application/json', body = JSON.stringify({ proof: runId })) {
+- 220: async function cleanup() {
+- 225: for (const user of users) {
+- 242: for (const bucket of ['avatars', 'user-content', 'notes']) {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 5: const env = loadEnv();
+- 6: const base = env.SUPABASE_URL?.replace(/\/$/, '');
+- 7: const service = env.SUPABASE_SERVICE_ROLE_KEY;
+- 8: const anon = env.SUPABASE_ANON_KEY;
+- 15: const runId = crypto.randomBytes(5).toString('hex');
+- 16: const password = `Iso-${runId}-temporary-Password-123`;
+- 17: const users = [];
+- 18: const createdSessionIds = [];
+- 19: const createdNotificationIds = [];
+- 20: const createdSyncIds = [];
+- 21: const createdManifestPaths = [];
+- 32: const res = await fetch(url, options);
+- 33: const text = await res.text();
+- 34: let body = text;
+- 66: const text = typeof res.body === 'string' ? res.body : JSON.stringify(res.body || {});
+- 85: const checks = [];
+- 98: const email = `iso-security-${label}-${runId}@example.invalid`;
+- 99: const created = await jsonFetch(`${base}/auth/v1/admin/users`, {
+- 106: const session = await jsonFetch(`${base}/auth/v1/token?grant_type=password`, {
+- 152: const ownUpdate = await restAsUser(aUser, table, pkQuery(aUser), {
+- 159: const crossUpdate = await restAsUser(aUser, table, pkQuery(bUser), {
+- 165: const ownSelect = await restAsUser(aUser, table, `${pkQuery(aUser)}&select=*`, { method: 'GET' });
+- 168: const crossSelect = await restAsUser(aUser, table, `${pkQuery(bUser)}&select=*`, { method: 'GET' });
+- 169: const crossReadOk = isOk(crossSelect) && affectedRows(crossSelect) > 0;
+- 178: const ownInsert = await restAsUser(aUser, table, '', {
+- 186: const crossInsert = await restAsUser(aUser, table, '', {
+- 192: const ownSelect = await restAsUser(aUser, table, `?user_id=eq.${encodeURIComponent(aUser.id)}&select=*`, { method: 'GET' });
+- 196: const crossSelect = await restAsUser(aUser, table, `?user_id=eq.${encodeURIComponent(bUser.id)}&select=*`, { method: 'GET' });
+- 197: const crossReadOk = isOk(crossSelect) && affectedRows(crossSelect) > 0;
+- 212: const ownPath = `${aUser.id}/security-proof-${runId}.${contentType === 'image/png' ? 'png' : 'json'}`;
+- 213: const crossPath = `${bUser.id}/security-proof-${runId}.${contentType === 'image/png' ? 'png' : 'json'}`;
+- 214: const ownUpload = await storageUploadAs(aUser, bucket, ownPath, body, contentType);
+- 215: const crossUpload = await storageUploadAs(aUser, bucket, crossPath, body, contentType);
+- 256: let aUser;
+- 257: let bUser;
+- 331: const manifestPath = `${aUser.id}/backups/security-proof-${runId}.json`;
+- 361: const failed = checks.filter((check) => !check.ok && !check.skipped);
+- handlers/lifecycle candidates:
+- 32: const res = await fetch(url, options);
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- FAIL: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:39, .github/workflows/ci.yml:54, .github/workflows/ci.yml:60, .github/workflows/ci.yml:70, .github/workflows/ci.yml:93, .github/workflows/ci.yml:184, .github/workflows/ci.yml:229, .github/workflows/ci.yml:232, .github/workflows/ci.yml:334, .github/workflows/ci.yml:340, .github/workflows/ci.yml:344, scripts/prove-new-browser-restore.mjs:35
+- PASS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:539, CHANGELOG.md:566, scripts/prove-new-browser-restore.mjs:79, scripts/prove-runtime-glue.mjs:89, scripts/prove-supabase-sync.mjs:156, scripts/test-auth-bridge.mjs:139, scripts/verify-supabase-security.mjs:89, server.mjs:220, server.mjs:7723, server.mjs:8362, server.mjs:8363, server.mjs:8587
+- SKIP: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=scripts/verify-supabase-security.mjs:11, scripts/verify-supabase-security.mjs:94
+- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
+- SUPABASE_SERVICE_ROLE_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:22, .github/workflows/ci.yml:242, ADMIN.md:30, ADMIN.md:48, ADMIN.md:426, ADMIN.md:449, ADMIN.md:491, README.md:242, artifacts/isotope/.env:16, docs/admin.html:60, scripts/prove-new-browser-restore.mjs:10, scripts/prove-supabase-sync.mjs:25
+- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 11: console.log('SKIP service role, anon key, and Supabase URL are required for live cross-user security proof');
+- 31: async function jsonFetch(url, options = {}) {
+- 32: const res = await fetch(url, options);
+- 33: const text = await res.text();
+- 36: return { status: res.status, ok: res.ok, body, text };
+- 44: return jsonFetch(restUrl(table, query), {
+- 55: return jsonFetch(restUrl(table, query), {
+- 66: const text = typeof res.body === 'string' ? res.body : JSON.stringify(res.body || {});
+- 67: return res.status === 404 || /Could not find the table|schema cache|relation .* does not exist/i.test(text);
+- 71: return res.status >= 200 && res.status < 300;
+- 75: return Array.isArray(res.body) ? res.body.length : isOk(res) ? 1 : 0;
+- 79: if (res.status === 401 || res.status === 403) return true;
+- 80: if (res.status === 400) return true;
+- 89: console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` ${detail}` : ''}`);
+- 94: console.log(`SKIP ${name}${detail ? ` ${detail}` : ''}`);
+- 99: const created = await jsonFetch(`${base}/auth/v1/admin/users`, {
+- 106: const session = await jsonFetch(`${base}/auth/v1/token?grant_type=password`, {
+- 152: const ownUpdate = await restAsUser(aUser, table, pkQuery(aUser), {
+- 156: if (isMissingTable(ownUpdate)) return skip(`${table} table present`, 'missing');
+- 157: record(`${table} own update allowed`, isOk(ownUpdate), `HTTP ${ownUpdate.status}`);
+- 159: const crossUpdate = await restAsUser(aUser, table, pkQuery(bUser), {
+- 163: record(`${table} cross-user update denied`, crossWriteDenied(crossUpdate), `HTTP ${crossUpdate.status}`);
+- 177: async function testInsertOwnedTable({ table, ownRow, crossRow, ownOnlyRead = true, publicRead = false, rememberId }) {
+- 178: const ownInsert = await restAsUser(aUser, table, '', {
+- 182: if (isMissingTable(ownInsert)) return skip(`${table} table present`, 'missing');
+- 183: record(`${table} own insert allowed`, isOk(ownInsert), `HTTP ${ownInsert.status}`);
+- 184: if (isOk(ownInsert) && rememberId && Array.isArray(ownInsert.body) && ownInsert.body[0]?.id) rememberId(ownInsert.body[0].id);
+- 186: const crossInsert = await restAsUser(aUser, table, '', {
+- 190: record(`${table} cross-user insert denied`, crossWriteDenied(crossInsert), `HTTP ${crossInsert.status}`);
+- 203: async function storageUploadAs(user, bucket, path, body, contentType = 'application/json') {
+- 204: return jsonFetch(`${base}/storage/v1/object/${encodeURIComponent(bucket)}/${path.split('/').map(encodeURIComponent).join('/')}`, {
+- 206: headers: { apikey: anon, authorization: `Bearer ${user.jwt}`, 'content-type': contentType, 'x-upsert': 'true' },
+- 214: const ownUpload = await storageUploadAs(aUser, bucket, ownPath, body, contentType);
+- 215: const crossUpload = await storageUploadAs(aUser, bucket, crossPath, body, contentType);
+- 216: record(`${bucket} own upload allowed`, isOk(ownUpload), `HTTP ${ownUpload.status}`);
+- 217: record(`${bucket} cross-user upload denied`, crossWriteDenied(crossUpload), `HTTP ${crossUpload.status}`);
+- 221: for (const id of createdSessionIds) await restAsService('study_sessions_log', `?id=eq.${id}`, { method: 'DELETE' }).catch(() => null);
+- 222: for (const id of createdNotificationIds) await restAsService('notifications', `?id=eq.${id}`, { method: 'DELETE' }).catch(() => null);
+- 223: for (const id of createdSyncIds) await restAsService('sync_items', `?id=eq.${id}`, { method: 'DELETE' }).catch(() => null);
+- 224: for (const path of createdManifestPaths) await restAsService('backup_manifests', `?path=eq.${encodeURIComponent(path)}`, { method: 'DELETE' }).catch(() => null);
+- 239: await restAsService(table, `?user_id=eq.${encodeURIComponent(user.id)}`, { method: 'DELETE' }).catch(() => null);
+- 241: await restAsService('users', `?id=eq.${encodeURIComponent(user.id)}`, { method: 'DELETE' }).catch(() => null);
+- 243: await jsonFetch(`${base}/storage/v1/object/${encodeURIComponent(bucket)}`, {
+- 244: method: 'DELETE',
+- 249: await jsonFetch(`${base}/auth/v1/admin/users/${user.id}`, {
+- 250: method: 'DELETE',
+- 310: await testInsertOwnedTable({
+- 317: await testInsertOwnedTable({
+- 324: await testInsertOwnedTable({
+- 326: ownRow: (user) => ({ user_id: user.id, entity: 'security-proof', entity_id: runId, operation: 'upsert', content_hash: runId, status: 'pending' }),
+- 327: crossRow: (user) => ({ user_id: user.id, entity: 'security-proof', entity_id: `${runId}-cross`, operation: 'upsert', content_hash: runId, status: 'pending' }),
+- 333: await testInsertOwnedTable({
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 2: import crypto from 'crypto';
+- 15: const runId = crypto.randomBytes(5).toString('hex');
+- 31: async function jsonFetch(url, options = {}) {
+- 32: const res = await fetch(url, options);
+- 203: async function storageUploadAs(user, bucket, path, body, contentType = 'application/json') {
+- 204: return jsonFetch(`${base}/storage/v1/object/${encodeURIComponent(bucket)}/${path.split('/').map(encodeURIComponent).join('/')}`, {
+- 224: for (const path of createdManifestPaths) await restAsService('backup_manifests', `?path=eq.${encodeURIComponent(path)}`, { method: 'DELETE' }).catch(() => null);
+- 338: path: manifestPath,
+- 348: path: `${user.id}/backups/security-proof-${runId}.json`,
+- external libraries:
+- 2: import crypto from 'crypto';
+- 3: import { loadEnv } from './storage-backup-lib.mjs';
+- local files: see References and Consumers above
+- browser APIs:
+- 19: const createdNotificationIds = [];
+- 222: for (const id of createdNotificationIds) await restAsService('notifications', `?id=eq.${id}`, { method: 'DELETE' }).catch(() => null);
+- 321: rememberId: (id) => createdNotificationIds.push(id),
+- operating-system commands:
+- 1: #!/usr/bin/env node
+- Supabase interfaces:
+- 6: const base = env.SUPABASE_URL?.replace(/\/$/, '');
+- 7: const service = env.SUPABASE_SERVICE_ROLE_KEY;
+- 8: const anon = env.SUPABASE_ANON_KEY;
+- 11: console.log('SKIP service role, anon key, and Supabase URL are required for live cross-user security proof');
+- 99: const created = await jsonFetch(`${base}/auth/v1/admin/users`, {
+- 106: const session = await jsonFetch(`${base}/auth/v1/token?grant_type=password`, {
+- 249: await jsonFetch(`${base}/auth/v1/admin/users/${user.id}`, {
+- 359: await testStorageBucket('avatars', 'image/png', Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'));
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0563-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: scripts/verify-supabase-security.mjs inspected; no file-specific high-risk issue confirmed
+  observed evidence: scripts/verify-supabase-security.mjs inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/ci.yml, .github/workflows/ci.yml, .github/workflows/regenerate-release.yml
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

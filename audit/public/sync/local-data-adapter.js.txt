@@ -1,0 +1,280 @@
+FILE IDENTITY
+
+- original path: public/sync/local-data-adapter.js
+- audit path: audit/public/sync/local-data-adapter.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 12584
+- SHA-256: d15ee0b85119bae8a94bea5d203a1f8473b81df90c7177e08071b93eebeaa73c
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: offline/sync/backup
+- primary auditor: offline-pwa-sync-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Browser-side sync/local-data support module used by restore, backup, or cloud synchronization flows.
+
+ROLE IN THE APPLICATION
+
+- subsystem: offline/sync/backup
+- runtime stage: browser/runtime or static serving
+- user-visible feature: sync/backup/restore
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/ci.yml:103 - public/sync/local-data-adapter.js
+- .github/workflows/ci.yml:215 - public/sync/local-data-adapter.js
+- .github/workflows/ci.yml:335 - for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql
+- .github/workflows/regenerate-release.yml:60 - node --check public/sync/local-data-adapter.js
+- .github/workflows/regenerate-release.yml:98 - public/sync/local-data-adapter.js
+- .github/workflows/release.yml:57 - node --check public/sync/local-data-adapter.js
+- .github/workflows/release.yml:175 - public/sync/local-data-adapter.js
+- README.md:341 - node --check public/sync/local-data-adapter.js
+- docs/sync-system.md:36 - The browser adapter is `public/sync/local-data-adapter.js`.
+- index.html:45 - <script type="module" src="/sync/local-data-adapter.js"></script>
+- public/sw.js:27 - '/sync/local-data-adapter.js',
+
+INTERNAL STRUCTURE
+
+- line count: 395
+- imports:
+- 1: import {
+- 8: } from './backup-normalizer.js';
+- exports:
+- 378: export {
+- functions/async flows:
+- 67: function canUseIndexedDB() {
+- 71: function requestToPromise(req) {
+- 72: return new Promise((resolve, reject) => {
+- 78: function transactionDone(tx) {
+- 79: return new Promise((resolve, reject) => {
+- 86: function ensureStores(db, event) {
+- 96: async function openDb() {
+- 98: return new Promise((resolve, reject) => {
+- 101: req.onsuccess = () => {
+- 104: if (missing.length === 0) {
+- 120: function readJson(key, fallback) {
+- 129: function writeJson(key, value) {
+- 133: function normalizeRecordForStore(collection, record, index) {
+- 140: async function readStoreAll(storeName) {
+- 155: async function clearAndWriteStore(storeName, records) {
+- 172: async function readCollection(name) {
+- 177: if (name === 'profile') {
+- 183: if (name === 'timerState') {
+- 194: async function writeCollection(name, records, options = {}) {
+- 198: if (name === 'profile') {
+- 200: if (profile) {
+- 210: if (name === 'timerState') {
+- 212: if (timer) {
+- 229: async function readAllLocalData() {
+- 256: async function countLocalData() {
+- 260: async function hashLocalData() {
+- 264: function normalizeLocalStoreData(data) {
+- 268: async function isLocalWorkspaceEmpty() {
+- 272: async function writeAllLocalData(backupData, options = {}) {
+- 297: function writeRestoreMetadata(meta) {
+- 306: function readRestoreMetadata() {
+- 310: function refreshAllStores() {
+- 315: function dispatchSyncRefresh(collection) {
+- 322: function validateBackupShape(payload) {
+- 328: function normalizeBackupPayload(payload) {
+- 332: async function buildBackupPayloadFromLocal() {
+- 336: async function applyBackupToLocal(backupJson, options = {}) {
+- 374: if (typeof window !== 'undefined') {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 10: const DB_NAME = 'isotope_main';
+- 11: const DB_VERSION = 20;
+- 13: const STORE_DEFS = {
+- 29: const COLLECTION_TO_STORE = {
+- 42: const COLLECTION_TO_STORAGE_KEY = {
+- 55: const REFRESH_COLLECTIONS = {
+- 87: const tx = event?.target?.transaction;
+- 99: const req = window.indexedDB.open(DB_NAME, DB_VERSION);
+- 102: const db = req.result;
+- 103: const missing = Object.keys(STORE_DEFS).filter((name) => !db.objectStoreNames.contains(name));
+- 108: const nextVersion = db.version + 1;
+- 110: const upgrade = window.indexedDB.open(DB_NAME, nextVersion);
+- 122: const raw = window.localStorage.getItem(key);
+- 141: const db = await openDb().catch(() => null);
+- 144: const tx = db.transaction(storeName, 'readonly');
+- 145: const rows = await requestToPromise(tx.objectStore(storeName).getAll());
+- 156: const db = await openDb().catch(() => null);
+- 159: const tx = db.transaction(storeName, 'readwrite');
+- 160: const store = tx.objectStore(storeName);
+- 173: const key = COLLECTION_TO_STORAGE_KEY[name];
+- 174: const store = COLLECTION_TO_STORE[name];
+- 176: const fromDb = await readStoreAll(store);
+- 178: const first = fromDb[0] || readJson(key, null);
+- 184: const first = fromDb.find((row) => row.id === 'current') || fromDb[0] || readJson(key, null);
+- 190: const local = readJson(key, []);
+- 195: const key = COLLECTION_TO_STORAGE_KEY[name];
+- 196: const store = COLLECTION_TO_STORE[name];
+- 199: const profile = records && typeof records === 'object' && !Array.isArray(records) ? records : null;
+- 211: const timer = records && typeof records === 'object' && !Array.isArray(records) ? records : null;
+- 222: const list = Array.isArray(records) ? records : [];
+- 223: const safe = list.map((record, index) => normalizeRecordForStore(name, record, index)).filter(Boolean);
+- 273: const data = getBackupData({ data: backupData || {} });
+- 286: const meta = {
+- 298: const payload = {
+- 317: const mapped = collection ? REFRESH_COLLECTIONS[collection] || collection : undefined;
+- 323: const normalized = normalizeAnyBackup(payload);
+- 337: const normalized = validateBackupShape(backupJson);
+- 338: const before = await countLocalData();
+- 344: const after = await countLocalData();
+- 345: const message = `Restored ${after.tasks} tasks, ${after.sessions} sessions, ${after.subjects} subjects from cloud backup.`;
+- 355: const api = {
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- COLLECTION_TO_STORAGE_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=public/sync/local-data-adapter.js:42, public/sync/local-data-adapter.js:173, public/sync/local-data-adapter.js:195
+- COLLECTION_TO_STORE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sync/local-data-adapter.js:29, public/sync/local-data-adapter.js:174, public/sync/local-data-adapter.js:196
+- DB_NAME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/restore-and-launch.js:35, public/restore-and-launch.js:97, public/sync/local-data-adapter.js:10, public/sync/local-data-adapter.js:99, public/sync/local-data-adapter.js:110
+- DB_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sync/local-data-adapter.js:11, public/sync/local-data-adapter.js:99
+- REFRESH_COLLECTIONS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sync/local-data-adapter.js:55, public/sync/local-data-adapter.js:312, public/sync/local-data-adapter.js:317
+- STORE_DEFS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/sync/local-data-adapter.js:13, public/sync/local-data-adapter.js:88, public/sync/local-data-adapter.js:103
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+- 67: function canUseIndexedDB() {
+- 68: return typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined';
+- 74: req.onerror = () => reject(req.error || new Error('IndexedDB request failed'));
+- 81: tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction failed'));
+- 82: tx.onabort = () => reject(tx.error || new Error('IndexedDB transaction aborted'));
+- 97: if (!canUseIndexedDB()) return null;
+- 99: const req = window.indexedDB.open(DB_NAME, DB_VERSION);
+- 110: const upgrade = window.indexedDB.open(DB_NAME, nextVersion);
+- 113: upgrade.onerror = () => reject(upgrade.error || new Error('IndexedDB schema upgrade failed'));
+- 115: req.onerror = () => reject(req.error || new Error('IndexedDB open failed'));
+- 116: req.onblocked = () => reject(new Error('IndexedDB open blocked'));
+- 122: const raw = window.localStorage.getItem(key);
+- 130: try { window.localStorage.setItem(key, JSON.stringify(value)); } catch {}
+- 216: try { window.localStorage.removeItem(key); } catch {}
+- 347: window.localStorage.setItem('isotope_last_restore_message', message);
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 67: function canUseIndexedDB() {
+- 68: return typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined';
+- 74: req.onerror = () => reject(req.error || new Error('IndexedDB request failed'));
+- 81: tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction failed'));
+- 82: tx.onabort = () => reject(tx.error || new Error('IndexedDB transaction aborted'));
+- 97: if (!canUseIndexedDB()) return null;
+- 99: const req = window.indexedDB.open(DB_NAME, DB_VERSION);
+- 110: const upgrade = window.indexedDB.open(DB_NAME, nextVersion);
+- 113: upgrade.onerror = () => reject(upgrade.error || new Error('IndexedDB schema upgrade failed'));
+- 115: req.onerror = () => reject(req.error || new Error('IndexedDB open failed'));
+- 116: req.onblocked = () => reject(new Error('IndexedDB open blocked'));
+- 130: try { window.localStorage.setItem(key, JSON.stringify(value)); } catch {}
+- 216: try { window.localStorage.removeItem(key); } catch {}
+- 318: window.dispatchEvent(new CustomEvent('isotope:sync_refresh', { detail: mapped ? { collection: mapped } : {} }));
+- 347: window.localStorage.setItem('isotope_last_restore_message', message);
+- 348: window.dispatchEvent(new CustomEvent('isotope:cloud_restore_complete', {
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+None observed.
+- external libraries:
+- 1: import {
+- 8: } from './backup-normalizer.js';
+- local files: see References and Consumers above
+- browser APIs:
+- 68: return typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined';
+- 99: const req = window.indexedDB.open(DB_NAME, DB_VERSION);
+- 110: const upgrade = window.indexedDB.open(DB_NAME, nextVersion);
+- 122: const raw = window.localStorage.getItem(key);
+- 130: try { window.localStorage.setItem(key, JSON.stringify(value)); } catch {}
+- 216: try { window.localStorage.removeItem(key); } catch {}
+- 318: window.dispatchEvent(new CustomEvent('isotope:sync_refresh', { detail: mapped ? { collection: mapped } : {} }));
+- 347: window.localStorage.setItem('isotope_last_restore_message', message);
+- 348: window.dispatchEvent(new CustomEvent('isotope:cloud_restore_complete', {
+- 375: window.IsotopeLocalDataAdapter = api;
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0531-01
+  severity: MEDIUM
+  category: data-loss
+  status: CONFIRMED
+  confidence: HIGH
+  affected lines or byte-level evidence: public/sync/local-data-adapter.js contains local persistence clear/write operations
+  observed evidence: public/sync/local-data-adapter.js contains local persistence clear/write operations
+  inferred impact: Partial restore or IndexedDB failure can risk divergence between stores.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Add restore transaction tests for empty backup and IDB write failure.
+  related files: public/sync/backup-normalizer.js; public/assets/App-pJGjDiPw.js
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Browser-side sync/local-data support module used by restore, backup, or cloud synchronization flows.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

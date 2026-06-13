@@ -1,0 +1,206 @@
+FILE IDENTITY
+
+- original path: public/fonts/fonts.css
+- audit path: audit/public/fonts/fonts.css.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: stylesheet
+- MIME type: text/css
+- size in bytes: 17648
+- SHA-256: afbeab6ae075ea2fd8ef5fe6a9b4b1bdb9d6824bc53260f5fe722c200a6b8b2c
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: application project
+- primary auditor: static-asset-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the application project subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: application project
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- index.html:15 - <link href="/fonts/fonts.css" rel="stylesheet" />
+- public/sw.js:48 - '/fonts/fonts.css'
+
+INTERNAL STRUCTURE
+
+- line count: 459
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- A640: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/fonts/fonts.css:44, public/fonts/fonts.css:107, public/fonts/fonts.css:170, public/fonts/fonts.css:233, public/fonts/fonts.css:296
+- A69F: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/fonts/fonts.css:44, public/fonts/fonts.css:107, public/fonts/fonts.css:170, public/fonts/fonts.css:233, public/fonts/fonts.css:296
+- A720: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/fonts/fonts.css:8, public/fonts/fonts.css:26, public/fonts/fonts.css:89, public/fonts/fonts.css:152, public/fonts/fonts.css:215, public/fonts/fonts.css:278, public/fonts/fonts.css:341, public/fonts/fonts.css:368, public/fonts/fonts.css:395, public/fonts/fonts.css:422, public/fonts/fonts.css:449
+- A7FF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/fonts/fonts.css:8, public/fonts/fonts.css:26, public/fonts/fonts.css:89, public/fonts/fonts.css:152, public/fonts/fonts.css:215, public/fonts/fonts.css:278, public/fonts/fonts.css:341, public/fonts/fonts.css:368, public/fonts/fonts.css:395, public/fonts/fonts.css:422, public/fonts/fonts.css:449
+- FE2E: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/fonts/fonts.css:44, public/fonts/fonts.css:107, public/fonts/fonts.css:170, public/fonts/fonts.css:233, public/fonts/fonts.css:296
+- FE2F: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/fonts/fonts.css:44, public/fonts/fonts.css:107, public/fonts/fonts.css:170, public/fonts/fonts.css:233, public/fonts/fonts.css:296
+- FEFF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/fonts/fonts.css:17, public/fonts/fonts.css:35, public/fonts/fonts.css:98, public/fonts/fonts.css:161, public/fonts/fonts.css:224, public/fonts/fonts.css:287, public/fonts/fonts.css:350, public/fonts/fonts.css:377, public/fonts/fonts.css:404, public/fonts/fonts.css:431, public/fonts/fonts.css:458
+- FFFD: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/fonts/fonts.css:17, public/fonts/fonts.css:35, public/fonts/fonts.css:98, public/fonts/fonts.css:161, public/fonts/fonts.css:224, public/fonts/fonts.css:287, public/fonts/fonts.css:350, public/fonts/fonts.css:377, public/fonts/fonts.css:404, public/fonts/fonts.css:431, public/fonts/fonts.css:458
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+No direct outputs or side effects observed from static text; binary assets are served/read by consumers.
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 7: src: url(/fonts/9Bt23C1KxNDXMspQ1lPyU89-1h6ONRlW45G07JIoSwQ.woff2) format('woff2');
+- 16: src: url(/fonts/9Bt23C1KxNDXMspQ1lPyU89-1h6ONRlW45G04pIo.woff2) format('woff2');
+- 25: src: url(/fonts/9Bt73C1KxNDXMspQ1lPyU89-1h6ONRlW45G8Wbc9eiWPVFw.woff2) format('woff2');
+- 34: src: url(/fonts/9Bt73C1KxNDXMspQ1lPyU89-1h6ONRlW45G8Wbc9dCWP.woff2) format('woff2');
+- 43: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+- 52: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+- 61: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+- 70: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+- 79: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+- 88: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+- 97: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2) format('woff2');
+- 106: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+- 115: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+- 124: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+- 133: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+- 142: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+- 151: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+- 160: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2) format('woff2');
+- 169: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+- 178: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+- 187: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+- 196: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+- 205: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+- 214: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+- 223: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2) format('woff2');
+- 232: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+- 241: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+- 250: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+- 259: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+- 268: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+- 277: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+- 286: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2) format('woff2');
+- 295: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7SUc.woff2) format('woff2');
+- 304: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2) format('woff2');
+- 313: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7SUc.woff2) format('woff2');
+- 322: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7SUc.woff2) format('woff2');
+- 331: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7SUc.woff2) format('woff2');
+- 340: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2) format('woff2');
+- 349: src: url(/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2) format('woff2');
+- 358: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb54C-s0.woff2) format('woff2');
+- 367: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb94C-s0.woff2) format('woff2');
+- 376: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2) format('woff2');
+- 385: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb54C-s0.woff2) format('woff2');
+- 394: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb94C-s0.woff2) format('woff2');
+- 403: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2) format('woff2');
+- 412: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb54C-s0.woff2) format('woff2');
+- 421: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb94C-s0.woff2) format('woff2');
+- 430: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2) format('woff2');
+- 439: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb54C-s0.woff2) format('woff2');
+- 448: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPb94C-s0.woff2) format('woff2');
+- 457: src: url(/fonts/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2) format('woff2');
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+None observed.
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- No direct secret or browser-executable security issue confirmed from static inspection.
+
+CORRECTNESS AND FAILURE MODES
+
+- No complex runtime failure mode observed.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- No direct offline/local-first behavior observed.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0506-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/fonts/fonts.css inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/fonts/fonts.css inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: index.html, public/sw.js
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

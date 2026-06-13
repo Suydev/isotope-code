@@ -1,0 +1,489 @@
+FILE IDENTITY
+
+- original path: public/assets/Study-pAdAenIl.js
+- audit path: audit/public/assets/Study-pAdAenIl.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 197932
+- SHA-256: ea247e660383034f01862ceb3cee96ad641564b6491f707e668b75a01329bf97
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:2440 - "file": "Study-pAdAenIl.js",
+- artifacts/asset-diff/asset-report.json:2443 - "remote_url": "https://isotopeai.in/assets/Study-pAdAenIl.js",
+- artifacts/asset-diff/local-assets.txt:136 - Study-pAdAenIl.js
+- artifacts/asset-diff/summary.md:117 - | Study-pAdAenIl.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/App-pJGjDiPw.js:8347 - import ("./Study-pAdAenIl.js"), __vite__mapDeps([38, 2, 23, 6, 7, 5, 8, 21, 1, 3, 22, 24, 20, 19, 12, 25, 26, 39, 10, 11, 40, 18, 17, 28, 29, 41, 34, 42, 15]))),
+- public/sw.js:44 - '/assets/Study-pAdAenIl.js',
+
+INTERNAL STRUCTURE
+
+- line count: 3432
+- imports:
+- 1: import {
+- 6: } from "./vendor-react-BfU3Zn2J.js";
+- 7: import {
+- 10: } from "./DashboardHeader-DNuRMna8.js";
+- 11: import {
+- 25: } from "./useFocusStore-CX_Nyp1h.js";
+- 26: import {
+- 29: } from "./App-pJGjDiPw.js";
+- 30: import {
+- 33: } from "./vendor-motion-Cp_NPzpZ.js";
+- 34: import {
+- 71: } from "./vendor-icons-CqruUz7g.js";
+- 72: import {
+- 74: } from "./ExamCreateEditModal-BdlzfeFO.js";
+- 75: import {
+- 77: } from "./SubjectCreateModal-DhD_Cwbk.js";
+- 78: import {
+- 80: } from "./TaskCardModal-DZvd1GWt.js";
+- 81: import {
+- 83: } from "./utils-D8mZnxMk.js";
+- 84: import {
+- 86: } from "./vendor-router-CmoTwRnm.js";
+- 87: import {
+- 89: } from "./ExamTemplateSelectorModal-DsEPEF5X.js";
+- 90: import {
+- 94: } from "./useAIStore-B2cv1FZz.js";
+- 95: import {
+- 97: } from "./studyTimeMaps-B0T_-AX0.js";
+- 98: import {
+- 100: } from "./MarkdownRenderer-CIV1x0Uq.js";
+- 101: import {
+- 104: } from "./subjectBranding-DaDo_h8r.js";
+- 105: import {
+- 107: } from "./timeFormat-CMPo-BX2.js";
+- 108: import {
+- 110: } from "./SubjectIcon-CyCDqtel.js";
+- 111: import {
+- 113: } from "./endOfMonth-BISTJu4P.js";
+- 114: import {
+- 116: } from "./useSyncStore-vWs_TdIc.js";
+- 117: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- 118: import "./useOnlineStatus-BJOTUERN.js";
+- 119: import "./index-BPYJFSVW.js";
+- 120: import "./useNotificationStore-BS4df28T.js";
+- 121: import "./IsotopeLogoIcon-oPk5Ru-_.js";
+- 122: import "./vendor-supabase-DAiUAuun.js";
+- 123: import "./taskAvailability-B1aDS_ww.js";
+- 124: import "./vendor-charts-CFLJvnG7.js";
+- exports:
+- 3429: export {
+- functions/async flows:
+- 126: function qt(t, r) {
+- 134: function Wt(t, r) {
+- 149: function re(t, r) {
+- 154: function Vt(t, r) {
+- 191: }) => {
+- 196: } = Me(), [i, o] = g.useState("all"), [s, d] = g.useState(""), w = Ze(x ?.studyPreferences), f = g.useMemo(() => {
+- 200: return a.forEach(b => {
+- 201: b.chapters.forEach(c => {
+- 202: c.topics.forEach(k => {
+- 203: if (k.nextReview) {
+- 233: }, [w, a]), p = g.useMemo(() => {
+- 236: }, [i, s, f]), j = g.useMemo(() => {
+- 238: return p.forEach(n => {
+- 414: children: n.map((m, b) => {
+- 500: Qt = () => {
+- 505: g.useEffect(() => {
+- 817: }) => {
+- 821: } = oe(), x = De(), i = g.useMemo(() => [...r].filter(s => !s.deletedAt).sort((s, d) => _(s.date).getTime() - _(d.date).getTime()), [r]), o = s => {
+- 839: onClick: s => {
+- 852: }) : i.map(s => {
+- 862: onClick: p => {
+- 876: onClick: p => {
+- 890: width: `${(()=>{const p=_(s.date).getTime()-new Date(s.createdAt||Date.now()).getTime(),j=new Date().getTime()-new Date(s.createdAt||Date.now()).getTime(),u=Math.min(100,Math.max(0,j/Math.max(1,p)*100));return isNaN(u)?0
+- 909: }) => {
+- 917: } = te(), d = g.useMemo(() => {
+- 999: children: (() => {
+- 1002: d.forEach(n => {
+- 1003: if (n.subjects) n.subjects.forEach(m => {
+- 1022: return Object.entries(p).forEach(([n, m]) => {
+- 1078: onClick: () => {
+- 1107: }) => {
+- 1111: } = te(), x = () => {
+- 1118: }, [i] = g.useState(() => x()), [o, s] = g.useState(0), [d, w] = g.useState(!1), [f, p] = g.useState(!1), [j, u] = g.useState(!1), n = i[o], m = async b => {
+- 1275: onClick: b => {
+- 1288: onClick: b => {
+- 1301: onClick: b => {
+- 1314: onClick: b => {
+- 1341: }) => {
+- 1346: const w = async f => {
+- 1524: onClick: () => {
+- 1565: }) => {
+- 1585: c = h => {
+- 1592: k = async (h, y) => {
+- 1611: onClick: h => {
+- 1625: children: n.filter(h => !h.deletedAt && c(h.date) >= 0).sort((h, y) => _(h.date).getTime() - _(y.date).getTime()).map((h, y) => {
+- 1711: children: u.map((h, y) => {
+- 1927: function as({
+- 1955: H = () => {
+- 1958: V = () => {
+- 2013: children: z.map((M, G) => {
+- 2046: onKeyDown: q => {
+- 2097: F = (t, r) => {
+- 2113: xs = (t, r, a, x) => {
+- 2128: Re = (t, r, a, x) => {
+- 2154: ms = t => {
+- 2173: mt = (t, r, a, x) => {
+- 2175: o = (s, d, w) => {
+- 2178: if (p) {
+- 2192: return t.forEach(s => {
+- 2195: if (w.length > 0) {
+- 2196: if (w.forEach(([u, n]) => {
+- 2200: if (b) {
+- 2207: w.forEach(([n]) => {
+- 2216: if (f.length > 0) {
+- 2219: f.forEach(m => {
+- 2233: ht = (t, r, a = !1) => {
+- 2239: hs = t => {
+- 2246: us = (t, r, a, x) => {
+- 2247: const i = t.tasks.map(s => {
+- 2263: o = t.exams.map(s => {
+- 2325: }) => {
+- 2327: return g.useLayoutEffect(() => {
+- 2328: const c = () => {
+- 2343: return c(), window.addEventListener("resize", c), window.addEventListener("scroll", c, !0), () => {
+- 2403: children: u.map(c => {
+- 2454: children: m.map(c => {
+- 2530: }) => {
+- 2617: }) => {
+- 2644: g.useEffect(() => {
+- 2646: return window.addEventListener("scroll", l, !0), window.addEventListener("resize", l), () => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 139: let i = +a > +x;
+- 140: const o = i ? +a : +x,
+- 143: let d = 1;
+- 144: const w = [];
+- 150: const a = Je(t, r ?.in);
+- 155: const a = Nt(),
+- 162: const Ue = {
+- 197: const u = [],
+- 204: const h = new Date(k.nextReview),
+- 206: let z = "upcoming";
+- 208: const L = {
+- 234: let u = f;
+- 237: const u = {};
+- 415: const c = Ue[m.subject] || Ue.Default;
+- 508: const i = a.flatMap(o => o.chapters.flatMap(s => s.topics.filter(d => d.nextReview).map(d => ({
+- 822: const d = _(s),
+- 825: const f = d.getTime() - w.getTime();
+- 853: const d = o(s.date),
+- 918: const p = a.map(n => ({
+- 1001: const p = {};
+- 1004: const b = m.subjectName || s.find(k => k.id === m.subjectId) ?.name || "Unknown";
+- 1009: const c = m.percentage || (m.totalMarks > 0 ? (m.scoredMarks || m.marksObtained) / m.totalMarks * 100 : 0);
+- 1013: const m = s.find(b => b.id === n.subjectId) ?.name || "Unknown";
+- 1020: let j = "-",
+- 1023: const b = m.total / m.count;
+- 1112: const b = new Date;
+- 1346: const w = async f => {
+- 1566: const a = De(),
+- 1586: const y = new Date(h),
+- 1589: const L = y.getTime() - z.getTime();
+- 1626: const z = c(h.date),
+- 1712: const z = h.chapters.reduce((M, G) => M + G.topics.length, 0),
+- 1943: const m = g.useMemo(() => new Date, []),
+- 2014: const D = new Date(M.getFullYear(), M.getMonth(), M.getDate(), 12, 0, 0, 0),
+- 2063: const We = {
+- 2098: const a = t.replace("#", "");
+- 2104: const x = parseInt(a.substring(0, 2), 16),
+- 2115: const i = le(),
+- 2121: const s = a ? .05 + Math.min(o, 1.35) * .16 : .04 + Math.min(o, 1.35) * .11;
+- 2129: const i = lt(t.subjectId, t.subject, r, a);
+- 2155: const r = String(t.taskType || t.sessionType || t.type || "other").trim().toLowerCase();
+- 2174: const i = new Map,
+- 2176: const f = s ?.id ?? d.trim().toLowerCase(),
+- 2193: const d = ms(s),
+- 2197: const m = r.get(u) ?? null;
+- 2199: const b = i.get(m ?.id ?? (m ?.name ?? "focus").trim().toLowerCase());
+- 2202: const c = s.questionsBySubject ?.[u] ?.attempted;
+- 2206: const u = (s.questionsAttempted || 0) / w.length;
+- 2208: const m = r.get(n) ?? null,
+- 2215: const f = s.subjectIds ?.length ? s.subjectIds : s.subjectId ? [s.subjectId] : [];
+- 2217: const u = s.duration / f.length,
+- 2220: const b = r.get(m) ?? null;
+- 2222: const c = i.get(b ?.id ?? (b ?.name ?? "focus").trim().toLowerCase());
+- 2227: const p = s.subject ? a.get(s.subject.trim().toLowerCase()) ?? null : null;
+- 2229: const j = i.get((p ?.id ?? p ?.name ?? s.subject ?? "focus").trim().toLowerCase());
+- 2234: const x = t.subjectId ? r.get(t.subjectId) : null,
+- 2241: const r = new URLSearchParams({
+- 2247: const i = t.tasks.map(s => {
+- 2248: const d = Re(s, r, a, x);
+- 2264: const d = s.isDDay ? le() : Se;
+- 2328: const c = () => {
+- 2329: const k = o.current;
+- 2331: const h = k.getBoundingClientRect(),
+- 2404: const k = ht(c, x, !0),
+- 2455: const k = x.get(c.id) ?? i.get(c.name.trim().toLowerCase()) ?? null,
+- 2531: const u = g.useRef(null),
+- 2618: const x = De(),
+- 2645: const l = () => c(null);
+- 2650: const l = () => {
+- 2659: const V = g.useMemo(() => {
+- 2660: const l = {},
+- 2670: const O = J(_(v.dueDate), j),
+- 2674: const O = J(_(v.date), j);
+- 2677: const O = J(v.startTime, j),
+- 2691: const l = L.current;
+- 2696: const R = () => {
+- 2700: const v = new ResizeObserver(R);
+- 2705: const q = () => {
+- 2723: const fe = l ?? We;
+- 2922: const R = ht(l, E),
+- handlers/lifecycle candidates:
+- 1358: }), setTimeout(() => d(null), 2e3)
+- 2343: return c(), window.addEventListener("resize", c), window.addEventListener("scroll", c, !0), () => {
+- 2646: return window.addEventListener("scroll", l, !0), window.addEventListener("resize", l), () => {
+- 2653: return l(), window.addEventListener("resize", l), () => {
+- 2712: q(), I.current = window.setTimeout(() => {
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- AX0: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3070, artifacts/asset-diff/asset-report.json:3073, artifacts/asset-diff/local-assets.txt:171, artifacts/asset-diff/summary.md:19, public/assets/Analytics-D74gQMjN.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/Focus-BmgY-9vP.js:111, public/assets/SessionEditModal-CNi_rT0l.js:20, public/assets/SessionLogTable-CclRAAwc.js:1, public/assets/Study-pAdAenIl.js:97, public/assets/Syllabus-DZSnov0t.js:108
+- B0T_: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3070, artifacts/asset-diff/asset-report.json:3073, artifacts/asset-diff/local-assets.txt:171, artifacts/asset-diff/summary.md:19, public/assets/Analytics-D74gQMjN.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/Focus-BmgY-9vP.js:111, public/assets/SessionEditModal-CNi_rT0l.js:20, public/assets/SessionLogTable-CclRAAwc.js:1, public/assets/Study-pAdAenIl.js:97, public/assets/Syllabus-DZSnov0t.js:108
+- BJOTUERN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3322, artifacts/asset-diff/asset-report.json:3325, artifacts/asset-diff/local-assets.txt:185, artifacts/asset-diff/summary.md:22, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- BPYJFSVW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:2908, artifacts/asset-diff/asset-report.json:2911, artifacts/asset-diff/local-assets.txt:162, artifacts/asset-diff/summary.md:141, public/assets/AIAssistant--spCOe6W.js:58, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/About-DbJqhVWT.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsTasks-DOfUf9Sd.js:1
+- BX2: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/asset-report.json:3142, artifacts/asset-diff/asset-report.json:3145, artifacts/asset-diff/local-assets.txt:175, artifacts/asset-diff/summary.md:21, public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/Analytics-D74gQMjN.js:1, public/assets/Analytics-D74gQMjN.js:2, public/assets/AnalyticsPeriod-CGXbfYQB.js:1, public/assets/AnalyticsSubjects-DOh8aXlW.js:1, public/assets/AnalyticsToday-BTdRNTb0.js:1, public/assets/App-pJGjDiPw.js:1, public/assets/AppAccessGate-B975UtK7.js:1
+- DAY: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, public/assets/Study-pAdAenIl.js:1685, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8, scripts/seed-demo-data.mjs:110, scripts/seed-demo-data.mjs:119, scripts/seed-demo-data.mjs:120
+- DAYS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Study-pAdAenIl.js:1685, public/assets/useAIStore-B2cv1FZz.js:4199
+- EEE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/AIWeeklySummary-fVbvFqu3.js:1, public/assets/Study-pAdAenIl.js:2039, public/assets/Study-pAdAenIl.js:2363, public/assets/Study-pAdAenIl.js:2845, public/assets/useAIStore-B2cv1FZz.js:170, public/assets/useAIStore-B2cv1FZz.js:794, public/assets/useAIStore-B2cv1FZz.js:799, public/assets/useAIStore-B2cv1FZz.js:804, public/assets/useAIStore-B2cv1FZz.js:809
+- EEEE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Study-pAdAenIl.js:2039, public/assets/Study-pAdAenIl.js:2845, public/assets/useAIStore-B2cv1FZz.js:170, public/assets/useAIStore-B2cv1FZz.js:799, public/assets/useAIStore-B2cv1FZz.js:804, public/assets/useAIStore-B2cv1FZz.js:809
+- FSRS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Study-pAdAenIl.js:3166
+- ISOTOPEAI: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Analytics-D74gQMjN.js:2, public/assets/Analytics-D74gQMjN.js:5, public/assets/Community-DIqF5406.js:2, public/assets/Dashboard-dypAV-0H.js:2242, public/assets/Exams-C3jymPwe.js:2570, public/assets/Study-pAdAenIl.js:3346, public/assets/Subscription-UaefsAtQ.js:1099, public/assets/Syllabus-DZSnov0t.js:3005, public/assets/Tasks-BYRFOrek.js:5078
+- JEE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/feature_request.md:19, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52
+- MAX_SAFE_INTEGER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js:4, public/assets/ExamPrimitives-K6hgnm_l.js:23, public/assets/Study-pAdAenIl.js:2111, public/assets/Study-pAdAenIl.js:2112, public/assets/Tasks-BYRFOrek.js:1055, public/assets/useFocusStore-CX_Nyp1h.js:374, public/assets/useFocusStore-CX_Nyp1h.js:928, public/assets/useFocusStore-CX_Nyp1h.js:1492, public/assets/vendor-charts-BN-djq5a.js:20, public/assets/vendor-charts-CFLJvnG7.js:2229, src/hooks/use-toast.ts:28
+- MMM: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Study-pAdAenIl.js:1411, public/assets/Study-pAdAenIl.js:1969, public/assets/Study-pAdAenIl.js:2012, public/assets/Study-pAdAenIl.js:2039, public/assets/Study-pAdAenIl.js:2363, public/assets/Study-pAdAenIl.js:2609, public/assets/Study-pAdAenIl.js:2845, public/assets/Study-pAdAenIl.js:2912, public/assets/useAIStore-B2cv1FZz.js:170, public/assets/useAIStore-B2cv1FZz.js:171, public/assets/useAIStore-B2cv1FZz.js:172, public/assets/useAIStore-B2cv1FZz.js:719
+- MMMM: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/Study-pAdAenIl.js:1969, public/assets/Study-pAdAenIl.js:2012, public/assets/Study-pAdAenIl.js:2039, public/assets/Study-pAdAenIl.js:2609, public/assets/useAIStore-B2cv1FZz.js:170, public/assets/useAIStore-B2cv1FZz.js:171, public/assets/useAIStore-B2cv1FZz.js:724, public/assets/useAIStore-B2cv1FZz.js:729
+- NEET: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:80
+- UPSC: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=public/assets/App-pJGjDiPw.js:8031, public/assets/FAQ-DuTZR-ip.js:111, public/assets/SettingsLayout-B4OgCkQ5.js:2426, public/assets/Step2Academic-BUGsFsTy.js:1, public/assets/Study-pAdAenIl.js:3325, public/assets/useAIStore-B2cv1FZz.js:3675
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 117: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- 820: deleteExam: a
+- 821: } = oe(), x = De(), i = g.useMemo(() => [...r].filter(s => !s.deletedAt).sort((s, d) => _(s.date).getTime() - _(d.date).getTime()), [r]), o = s => {
+- 863: p.stopPropagation(), window.confirm("Are you sure you want to delete this exam countdown?") && a(s.id)
+- 914: deleteTest: o
+- 930: j = x.filter(n => n.result && !n.deletedAt).map(n => ({
+- 942: u = i.filter(n => n.status === "completed" && !n.deletedAt).map(n => ({
+- 1079: window.confirm("Are you sure you want to delete this test result?") && o(p.id)
+- 1110: updateTopicSRS: a
+- 1411: children: ["Generated on", " ", a ? U(new Date(a.updatedAt), "MMM d, h:mm a") : "N/A"]
+- 1573: deleteExam: s
+- 1593: y.stopPropagation(), window.confirm("Are you sure you want to delete this exam?") && await s(h)
+- 1620: }), n.filter(h => !h.deletedAt && c(h.date) >= 0).length === 0 ? e.jsx(it, {
+- 1625: children: n.filter(h => !h.deletedAt && c(h.date) >= 0).sort((h, y) => _(h.date).getTime() - _(y.date).getTime()).map((h, y) => {
+- 2344: window.removeEventListener("resize", c), window.removeEventListener("scroll", c, !0)
+- 2647: window.removeEventListener("scroll", l, !0), window.removeEventListener("resize", l)
+- 2654: window.removeEventListener("resize", l)
+- 2669: return o.filter(v => !!v.dueDate && !v.deletedAt).forEach(v => {
+- 2673: }), s.filter(v => !!v.date && !v.deletedAt).forEach(v => {
+- 2676: }), d.filter(v => v.completed && !v.deletedAt).forEach(v => {
+- 2688: C = s.filter(l => !l.deletedAt).length,
+- 2689: W = o.filter(l => !l.deletedAt).length;
+- 3063: deleteSubject: o,
+- 3359: onDelete: N => {
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 2111: os = (t, r) => !!t.isDDay != !!r.isDDay ? t.isDDay ? -1 : 1 : (Ke[t.priority ?? "low"] ?? Number.MAX_SAFE_INTEGER) - (Ke[r.priority ?? "low"] ?? Number.MAX_SAFE_INTEGER) || _(t.date).getTime() - _(r.date).getTime(),
+- 2681: v.exams.sort(os), v.tasks.sort(cs), v.sessions.sort((O, P) => new Date(P.startTime).getTime() - new Date(O.startTime).getTime())
+- 3052: fs = (t, r = "w-5 h-5 text-white") => e.jsx(Ie, {
+- 3253: return $ ? fs($, "w-5 h-5 text-amber-500") : e.jsx(ke, {
+- external libraries:
+- 1: import {
+- 6: } from "./vendor-react-BfU3Zn2J.js";
+- 7: import {
+- 10: } from "./DashboardHeader-DNuRMna8.js";
+- 11: import {
+- 25: } from "./useFocusStore-CX_Nyp1h.js";
+- 26: import {
+- 29: } from "./App-pJGjDiPw.js";
+- 30: import {
+- 33: } from "./vendor-motion-Cp_NPzpZ.js";
+- 34: import {
+- 71: } from "./vendor-icons-CqruUz7g.js";
+- 72: import {
+- 74: } from "./ExamCreateEditModal-BdlzfeFO.js";
+- 75: import {
+- 77: } from "./SubjectCreateModal-DhD_Cwbk.js";
+- 78: import {
+- 80: } from "./TaskCardModal-DZvd1GWt.js";
+- 81: import {
+- 83: } from "./utils-D8mZnxMk.js";
+- 84: import {
+- 86: } from "./vendor-router-CmoTwRnm.js";
+- 87: import {
+- 89: } from "./ExamTemplateSelectorModal-DsEPEF5X.js";
+- 90: import {
+- 94: } from "./useAIStore-B2cv1FZz.js";
+- 95: import {
+- 97: } from "./studyTimeMaps-B0T_-AX0.js";
+- 98: import {
+- 100: } from "./MarkdownRenderer-CIV1x0Uq.js";
+- 101: import {
+- 104: } from "./subjectBranding-DaDo_h8r.js";
+- 105: import {
+- 107: } from "./timeFormat-CMPo-BX2.js";
+- 108: import {
+- 110: } from "./SubjectIcon-CyCDqtel.js";
+- 111: import {
+- 113: } from "./endOfMonth-BISTJu4P.js";
+- 114: import {
+- 116: } from "./useSyncStore-vWs_TdIc.js";
+- 117: import "./HeadwayUpdatesButton-DUh668tJ.js";
+- 118: import "./useOnlineStatus-BJOTUERN.js";
+- 119: import "./index-BPYJFSVW.js";
+- 120: import "./useNotificationStore-BS4df28T.js";
+- 121: import "./IsotopeLogoIcon-oPk5Ru-_.js";
+- 122: import "./vendor-supabase-DAiUAuun.js";
+- 123: import "./taskAvailability-B1aDS_ww.js";
+- 124: import "./vendor-charts-CFLJvnG7.js";
+- local files: see References and Consumers above
+- browser APIs:
+- 120: import "./useNotificationStore-BS4df28T.js";
+- 863: p.stopPropagation(), window.confirm("Are you sure you want to delete this exam countdown?") && a(s.id)
+- 1079: window.confirm("Are you sure you want to delete this test result?") && o(p.id)
+- 1525: a && (navigator.clipboard.writeText(a.content), alert("Strategy copied to clipboard!"))
+- 1593: y.stopPropagation(), window.confirm("Are you sure you want to delete this exam?") && await s(h)
+- 2333: z = window.innerHeight - h.bottom,
+- 2336: E = Math.min(Math.max(I, Xe), window.innerWidth - b - Xe);
+- 2343: return c(), window.addEventListener("resize", c), window.addEventListener("scroll", c, !0), () => {
+- 2344: window.removeEventListener("resize", c), window.removeEventListener("scroll", c, !0)
+- 2515: }), document.body)
+- 2639: [y, z] = g.useState(() => typeof window < "u" ? window.innerWidth >= 1280 : !1),
+- 2646: return window.addEventListener("scroll", l, !0), window.addEventListener("resize", l), () => {
+- 2647: window.removeEventListener("scroll", l, !0), window.removeEventListener("resize", l)
+- 2651: z(window.innerWidth >= 1280)
+- 2653: return l(), window.addEventListener("resize", l), () => {
+- 2654: window.removeEventListener("resize", l)
+- 2657: I.current !== null && window.clearTimeout(I.current)
+- 2706: I.current !== null && (window.clearTimeout(I.current), I.current = null)
+- 2712: q(), I.current = window.setTimeout(() => {
+- operating-system commands:
+- 35: am as pe,
+- Supabase interfaces:
+- 122: import "./vendor-supabase-DAiUAuun.js";
+- 2231: }), Array.from(i.values()).sort((s, d) => d.minutes - s.minutes)
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Large text/code file; focused tests and decomposition would reduce regression risk.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0409-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/Study-pAdAenIl.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/Study-pAdAenIl.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 197932
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: large file >=100KB; same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/sw.js:44: '/assets/Study-pAdAenIl.js',
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/App-pJGjDiPw.js:8347: import ("./Study-pAdAenIl.js"), __vite__mapDeps([38, 2, 23, 6, 7, 5, 8, 21, 1, 3, 22, 24, 20, 19, 12, 25, 26, 39, 10, 11, 40, 18, 17, 28, 29, 41, 34, 42, 15]))),
+  - artifacts/asset-diff/local-assets.txt:136: Study-pAdAenIl.js
+  - artifacts/asset-diff/asset-report.json:2440: "file": "Study-pAdAenIl.js",
+  - artifacts/asset-diff/asset-report.json:2443: "remote_url": "https://isotopeai.in/assets/Study-pAdAenIl.js",
+  - artifacts/asset-diff/summary.md:117: | Study-pAdAenIl.js | 200 | unexpected HTML fallback for .js request |

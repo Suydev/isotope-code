@@ -23,6 +23,8 @@ INSTALL_WIDGETS=0
 SKIP_UPGRADE=0
 PORT_VALUE="${PORT:-3000}"
 FORCE_TERMUX=0
+ENV_FILE="${ISOTOPE_ENV_FILE:-.env}"
+LEGACY_ENV_FILE="yeh.env"
 
 for arg in "$@"; do
   case "$arg" in
@@ -248,6 +250,30 @@ try_install_deps() {
 }
 
 # ── env helpers ───────────────────────────────────────────────────────────────
+ensure_env_file() {
+  if [ -n "${ISOTOPE_ENV_FILE:-}" ]; then
+    [ -f "$ENV_FILE" ] || fail_log "ISOTOPE_ENV_FILE points to missing file: $ENV_FILE"
+    if [ "$ENV_FILE" != ".env" ]; then
+      cp "$ENV_FILE" .env
+      info_log "Copied ISOTOPE_ENV_FILE to .env."
+      ENV_FILE=".env"
+    fi
+    return 0
+  fi
+
+  if [ ! -f "$ENV_FILE" ] && [ -f "$LEGACY_ENV_FILE" ]; then
+    cp "$LEGACY_ENV_FILE" "$ENV_FILE"
+    info_log "Copied legacy yeh.env to .env."
+    return 0
+  fi
+
+  if [ ! -f "$ENV_FILE" ]; then
+    [ -f .env.example ] || fail ".env.example is missing."
+    cp .env.example "$ENV_FILE"
+    info_log "Created $ENV_FILE from .env.example."
+  fi
+}
+
 read_env_key() {
   node - "$1" "$2" <<'NODE'
 const fs = require('fs');
@@ -290,17 +316,20 @@ NODE
 prompt_env_value() {
   key="$1"
   label="$2"
-  current="$(read_env_key .env "$key")"
+  current="$(read_env_key "$ENV_FILE" "$key")"
+  if [ -n "$current" ]; then
+    info_log "$key is already set in $ENV_FILE."
+    return
+  fi
   if [ "$YES" -eq 1 ] || [ ! -t 0 ]; then
-    [ -n "$current" ] || fail "$key is missing in .env. Add it and re-run."
+    fail "$key is missing in $ENV_FILE. Add it and re-run."
     return
   fi
   info ""
   info "$label"
-  [ -n "$current" ] && info "Current value is set. Press Enter to keep it."
   printf '%s: ' "$key"
   IFS= read -r value
-  [ -n "$value" ] && write_env_key .env "$key" "$value"
+  [ -n "$value" ] && write_env_key "$ENV_FILE" "$key" "$value"
 }
 
 # ── stale alias check ─────────────────────────────────────────────────────────
@@ -330,8 +359,8 @@ validate_node() {
 
 # ── validate_cloud_config ─────────────────────────────────────────────────────
 validate_cloud_config() {
-  url="$(read_env_key .env SUPABASE_URL)"
-  anon="$(read_env_key .env SUPABASE_ANON_KEY)"
+  url="$(read_env_key "$ENV_FILE" SUPABASE_URL)"
+  anon="$(read_env_key "$ENV_FILE" SUPABASE_ANON_KEY)"
   case "$url" in
     https://*.supabase.co) : ;;
     *) fail_log "SUPABASE_URL must look like https://your-project-ref.supabase.co" ;;
@@ -417,15 +446,15 @@ has git && info_log "git ready" \
   || warn_log "Git not found. isotope update needs Git."
 
 if [ "$REPAIR" -eq 0 ]; then
-  if [ ! -f .env ]; then
-    [ -f .env.example ] || fail ".env.example is missing."
-    cp .env.example .env
-    info_log "Created .env from .env.example."
-  fi
-
+  ensure_env_file
   prompt_env_value SUPABASE_URL "Enter your Supabase project URL for cloud sync."
   prompt_env_value SUPABASE_ANON_KEY "Enter your Supabase anon key."
-  write_env_key .env ENABLE_ADMIN_MODE "$(read_env_key .env ENABLE_ADMIN_MODE || true)"
+  if [ -z "$(read_env_key "$ENV_FILE" ENABLE_ADMIN_MODE)" ]; then
+    write_env_key "$ENV_FILE" ENABLE_ADMIN_MODE false
+    info_log "ENABLE_ADMIN_MODE was missing; set to false."
+  else
+    info_log "ENABLE_ADMIN_MODE is already set in $ENV_FILE."
+  fi
   validate_cloud_config
 else
   info_log "Repair mode: skipping .env prompts (preserving existing .env)"

@@ -1,0 +1,290 @@
+FILE IDENTITY
+
+- original path: public/assets/ExamCreateEditModal-BdlzfeFO.js
+- audit path: audit/public/assets/ExamCreateEditModal-BdlzfeFO.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 52975
+- SHA-256: c0b3ce308ed62ecc17e7d0a7f6146963712a92a8945565bac0319d7e590ba891
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:460 - "file": "ExamCreateEditModal-BdlzfeFO.js",
+- artifacts/asset-diff/asset-report.json:463 - "remote_url": "https://isotopeai.in/assets/ExamCreateEditModal-BdlzfeFO.js",
+- artifacts/asset-diff/local-assets.txt:26 - ExamCreateEditModal-BdlzfeFO.js
+- artifacts/asset-diff/summary.md:62 - | ExamCreateEditModal-BdlzfeFO.js | 200 | unexpected HTML fallback for .js request |
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/AppAccessGate-B975UtK7.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-C
+- public/assets/ExamDetailPage-q_jDT5_x.js:1 - import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./useFocusStore-CX_Nyp1h.js";import{a as yt,b as dt,T as xt,S as 
+- public/assets/Exams-C3jymPwe.js:30 - } from "./ExamCreateEditModal-BdlzfeFO.js";
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:12 - } from "./ExamCreateEditModal-BdlzfeFO.js";
+- public/assets/Study-pAdAenIl.js:74 - } from "./ExamCreateEditModal-BdlzfeFO.js";
+
+INTERNAL STRUCTURE
+
+- line count: 1052
+- imports:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 5: import {
+- 7: } from "./utils-D8mZnxMk.js";
+- 8: import {
+- 10: } from "./useAIStore-B2cv1FZz.js";
+- 11: import {
+- 16: } from "./useFocusStore-CX_Nyp1h.js";
+- 17: import {
+- 29: } from "./vendor-icons-CqruUz7g.js";
+- 30: import {
+- 33: } from "./vendor-motion-Cp_NPzpZ.js";
+- exports:
+- 1050: export {
+- functions/async flows:
+- 35: function w(a) {
+- 42: function F(a = 1e3) {
+- 44: return x.useEffect(() => {
+- 50: function _e(a, n) {
+- 61: if (a.result_declaration_date) {
+- 70: function Ee(a) {
+- 72: return x.useMemo(() => {
+- 111: function Ae(a) {
+- 113: return x.useMemo(() => {
+- 139: function Ie(a) {
+- 144: l = x.useMemo(() => {
+- 150: d = x.useMemo(() => {
+- 156: b = x.useMemo(() => {
+- 165: return s.forEach(c => {
+- 179: function fe(a) {
+- 180: const n = x.useMemo(() => {
+- 182: return a.forEach(d => {
+- 183: Object.entries(d.tag_colors || {}).forEach(([m, b]) => {
+- 189: s = x.useMemo(() => {
+- 191: return a.forEach(d => {
+- 192: d.tags.forEach(m => {
+- 198: l = x.useCallback(u => {
+- 354: }) => {
+- 375: }) => {
+- 387: }) => {
+- 398: function je(a) {
+- 422: onClick: d => {
+- 437: }) => {
+- 466: }) => {
+- 501: x.useEffect(() => {
+- 510: U = t => {
+- 519: ee = t => {
+- 527: $ = (t, i) => {
+- 534: te = t => {
+- 537: re = t => {
+- 540: se = async () => {
+- 556: tag_colors: r.tags.reduce((_, k) => {
+- 577: ae = async () => {
+- 580: ne = async () => {
+- 650: children: Object.keys(R).map(t => {
+- 753: children: Object.keys(P).map(t => {
+- 816: onClick: () => {
+- 979: onClick: () => {
+- 996: onChange: () => {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 36: const n = y(a.date),
+- 45: const l = setInterval(() => s(new Date), a);
+- 53: const s = y(a.date),
+- 58: const m = new Date(d.getTime() + a.duration_minutes * 60 * 1e3);
+- 62: const o = y(a.result_declaration_date),
+- 71: const n = F(1e3);
+- 81: const s = y(a.date),
+- 86: const m = d.getTime() - n.getTime();
+- 95: const b = Math.floor(m / 1e3),
+- 112: const n = F(1e3);
+- 120: const s = y(a.date),
+- 125: const m = a.duration_minutes,
+- 140: const n = F(6e4),
+- 145: const o = s.filter(g => g.exam_type === "dday"),
+- 152: const o = y(l.date).toDateString();
+- 157: const o = {
+- 180: const n = x.useMemo(() => {
+- 181: const u = new Map;
+- 184: const o = m.replace(/^#/, "");
+- 190: const u = new Map;
+- 193: const b = m.replace(/^#/, "");
+- 199: const d = u.replace(/^#/, "").toLowerCase();
+- 208: const ke = {
+- 355: const l = ye[a],
+- 376: const l = P[a];
+- 388: const s = R[a];
+- 399: let n = 0;
+- 401: const s = ["bg-blue-500/10 text-blue-600 dark:text-blue-400", "bg-purple-500/10 text-purple-600 dark:text-purple-400", "bg-pink-500/10 text-pink-600 dark:text-pink-400", "bg-emerald-500/10 text-emerald-600 dark:text-emer
+- 404: const ve = ({
+- 438: const l = a >= 70 ? "text-emerald-500 dark:text-emerald-400" : a >= 50 ? "text-amber-500 dark:text-amber-400" : "text-rose-500 dark:text-rose-400",
+- 504: const p = t => L(i => ({ ...i,
+- 511: const i = Z(t);
+- 520: const i = { ...r.tag_colors
+- 544: const t = r.correct_marks && r.negative_marks ? {
+- 557: const B = r.tag_colors[k];
+- 651: const i = R[t],
+- 754: const i = P[t],
+- 980: const i = t.chapters.map(k => k.id),
+- handlers/lifecycle candidates:
+- 45: const l = setInterval(() => s(new Date), a);
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- JEE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/feature_request.md:19, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:10, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:23, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:37, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:52, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:80, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:88, artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js:99, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:10, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:23, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:37, artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js:52
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 407: onRemove: s,
+- 426: "aria-label": `Remove tag ${a}`,
+- 470: updateExam: b,
+- 471: deleteExam: o,
+- 507: G = d.filter(t => t.exam_type === "dday" && !t.deleted_at && !t.archived_at),
+- 522: delete i[t], p({
+- 571: console.error("[ExamModal] Save failed:", t)
+- 578: !s || !window.confirm("Delete this exam? This cannot be undone.") || (await o(s.id), n())
+- 804: onRemove: () => ee(t)
+- 966: children: [f.filter(t => !t.deletedAt).map(t => e.jsxs("div", {
+- 1010: }, t.id)), f.filter(t => !t.deletedAt).length === 0 && e.jsx("p", {
+- 1023: children: "Delete"
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 941: type: "url",
+- external libraries:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 5: import {
+- 7: } from "./utils-D8mZnxMk.js";
+- 8: import {
+- 10: } from "./useAIStore-B2cv1FZz.js";
+- 11: import {
+- 16: } from "./useFocusStore-CX_Nyp1h.js";
+- 17: import {
+- 29: } from "./vendor-icons-CqruUz7g.js";
+- 30: import {
+- 33: } from "./vendor-motion-Cp_NPzpZ.js";
+- local files: see References and Consumers above
+- browser APIs:
+- 578: !s || !window.confirm("Delete this exam? This cannot be undone.") || (await o(s.id), n())
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 196: }), Array.from(u.entries()).sort((d, m) => m[1] - d[1]).map(([d]) => d)
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Large text/code file; focused tests and decomposition would reduce regression risk.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0299-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/ExamCreateEditModal-BdlzfeFO.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/ExamCreateEditModal-BdlzfeFO.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 52975
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/AppAccessGate-B975UtK7.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/A
+  - public/assets/ExamDetailPage-q_jDT5_x.js:1: import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./use
+  - public/assets/Exams-C3jymPwe.js:30: } from "./ExamCreateEditModal-BdlzfeFO.js";
+  - public/assets/GlobalQuickActionsModals-BIoAwrDz.js:12: } from "./ExamCreateEditModal-BdlzfeFO.js";
+  - public/assets/Study-pAdAenIl.js:74: } from "./ExamCreateEditModal-BdlzfeFO.js";
+  - artifacts/asset-diff/local-assets.txt:26: ExamCreateEditModal-BdlzfeFO.js
+  - artifacts/asset-diff/asset-report.json:460: "file": "ExamCreateEditModal-BdlzfeFO.js",
+  - artifacts/asset-diff/asset-report.json:463: "remote_url": "https://isotopeai.in/assets/ExamCreateEditModal-BdlzfeFO.js",
+  - artifacts/asset-diff/summary.md:62: | ExamCreateEditModal-BdlzfeFO.js | 200 | unexpected HTML fallback for .js request |

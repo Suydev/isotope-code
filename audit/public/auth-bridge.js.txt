@@ -1,0 +1,231 @@
+FILE IDENTITY
+
+- original path: public/auth-bridge.js
+- audit path: audit/public/auth-bridge.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 6717
+- SHA-256: fc1220d9ec8d8bcc080b8a1e3284e1efc4fba27312c486b4217821e9bc695208
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: application project
+- primary auditor: offline-pwa-sync-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Project file in the application project subsystem. Its role is determined from path, content, and references.
+
+ROLE IN THE APPLICATION
+
+- subsystem: application project
+- runtime stage: browser/runtime or static serving
+- user-visible feature: authentication
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- ADMIN.md:308 - `/auth-bridge.js` is loaded synchronously from `index.html` before the React app starts. It defines `window.__isoLogin(email, password)` and `window.__isoUp(email, password)` for patched or stale Auth bundles that call those globals.
+- index.html:21 - <script src="/auth-bridge.js?v=5"></script>
+- public/sw.js:23 - '/auth-bridge.js',
+- public/sw.js:54 - '/auth-bridge.js',
+- scripts/prove-runtime-glue.mjs:18 - assert.match(rootHtml, /\/auth-bridge\.js\?v=5/, 'root HTML does not include auth-bridge.js?v=5');
+- scripts/prove-runtime-glue.mjs:20 - rootHtml.indexOf('/auth-bridge.js?v=5') < rootHtml.indexOf('/restore-and-launch.js'),
+- scripts/prove-runtime-glue.mjs:31 - const bridge = await text('/auth-bridge.js');
+- scripts/prove-runtime-glue.mjs:66 - const authBridgeCache = (await head('/auth-bridge.js')).get('cache-control') || '';
+- scripts/prove-runtime-glue.mjs:76 - assert.match(authBridgeCache, /no-store/, 'auth-bridge.js must not be immutable cached');
+- scripts/test-auth-bridge.mjs:9 - const source = fs.readFileSync(path.join(root, 'public', 'auth-bridge.js'), 'utf8');
+- scripts/test-auth-bridge.mjs:98 - vm.runInThisContext(source, { filename: 'public/auth-bridge.js' });
+- server.mjs:117 - '/auth-bridge.js',
+
+INTERNAL STRUCTURE
+
+- line count: 189
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+- 9: function supaUrl() {
+- 13: function supaAnon() {
+- 17: function projectRef() {
+- 19: catch (e) { return ''; }
+- 22: function asErrorMessage(data, fallback) {
+- 27: function normalizeSession(data) {
+- 32: if (!session.expires_at && session.expires_in) {
+- 38: function writeSession(session) {
+- 51: function jsonFetch(url, options) {
+- 59: function authHeaders(token) {
+- 70: function supabaseAuth(path, body) {
+- 80: function bootstrap(session) {
+- 104: function notifyAuth(session, bootstrapData) {
+- 115: async function login(email, password) {
+- 123: if (!result.response.ok) {
+- 144: async function signUp(email, password) {
+- 152: if (!result.response.ok) {
+- 157: if (session) {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 7: var DEFAULT_SUPA_URL = 'https://vteqquoqvksshmfhuepu.supabase.co';
+- 8: var DEFAULT_SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0ZXFxdW9xdmtzc2htZmh1ZXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODU2NzUsImV4cCI6MjA5NTY2MTY3NX0.ZkRislOhJRQUjVa1y5ixu-xBhlgkXW
+- 29: var session = data.session || data.currentSession || data;
+- 40: var raw = JSON.stringify(session);
+- 42: var ref = projectRef();
+- 60: var anon = supaAnon();
+- 117: var cleanEmail = String(email || '').trim().toLowerCase();
+- 119: var result = await supabaseAuth('/auth/v1/token?grant_type=password', {
+- 126: var session = normalizeSession(result.data);
+- 129: var boot = await bootstrap(session);
+- 146: var cleanEmail = String(email || '').trim().toLowerCase();
+- 148: var result = await supabaseAuth('/auth/v1/signup', {
+- 155: var session = normalizeSession(result.data);
+- 156: var boot = null;
+- 177: var bridgeApi = {
+- handlers/lifecycle candidates:
+- 52: return fetch(url, options).then(function (response) {
+
+INPUTS
+
+- parameters: route/request path candidates are listed in Internal Structure
+- environment variables:
+- DEFAULT_SUPA_ANON: classification=public/configuration; required=unknown from static map; inspect use locations; uses=public/auth-bridge.js:8, public/auth-bridge.js:14
+- DEFAULT_SUPA_URL: classification=public/configuration; required=unknown from static map; inspect use locations; uses=public/auth-bridge.js:7, public/auth-bridge.js:10
+- command-line arguments: not directly observed
+- request data: route candidates observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- https://vteqquoqvksshmfhuepu.supabase.co
+- browser storage:
+- 43: localStorage.setItem('isotope-auth-token', raw);
+- 44: if (ref) localStorage.setItem('sb-' + ref + '-auth-token', raw);
+- 45: localStorage.setItem('isotope-last-jwt', session.access_token);
+- 46: if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
+- 47: localStorage.setItem('isotope-last-session-raw', raw);
+- 92: localStorage.setItem('isotope-bootstrap-cache', JSON.stringify({
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 43: localStorage.setItem('isotope-auth-token', raw);
+- 44: if (ref) localStorage.setItem('sb-' + ref + '-auth-token', raw);
+- 45: localStorage.setItem('isotope-last-jwt', session.access_token);
+- 46: if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
+- 47: localStorage.setItem('isotope-last-session-raw', raw);
+- 51: function jsonFetch(url, options) {
+- 52: return fetch(url, options).then(function (response) {
+- 71: return jsonFetch(supaUrl() + path, {
+- 82: return jsonFetch('/__auth/bootstrap', {
+- 92: localStorage.setItem('isotope-bootstrap-cache', JSON.stringify({
+- 107: window.dispatchEvent(new CustomEvent('isotope:auth-session', {
+- 111: try { window.dispatchEvent(new Event('isotope:auth-unblock')); } catch (e) {}
+- 112: try { window.dispatchEvent(new Event('isotope:sync_refresh')); } catch (e) {}
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 7: var DEFAULT_SUPA_URL = 'https://vteqquoqvksshmfhuepu.supabase.co';
+- 51: function jsonFetch(url, options) {
+- 52: return fetch(url, options).then(function (response) {
+- 70: function supabaseAuth(path, body) {
+- 71: return jsonFetch(supaUrl() + path, {
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+- 3: crash with "window.__isoLogin is not a function". */
+- 10: return String(window.__ISO_SUPA_URL__ || DEFAULT_SUPA_URL).replace(/\/+$/, '');
+- 14: return String(window.__ISO_ANON__ || DEFAULT_SUPA_ANON);
+- 43: localStorage.setItem('isotope-auth-token', raw);
+- 44: if (ref) localStorage.setItem('sb-' + ref + '-auth-token', raw);
+- 45: localStorage.setItem('isotope-last-jwt', session.access_token);
+- 46: if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
+- 47: localStorage.setItem('isotope-last-session-raw', raw);
+- 92: localStorage.setItem('isotope-bootstrap-cache', JSON.stringify({
+- 105: try { if (typeof window.__isoSyncAuthUnblock === 'function') window.__isoSyncAuthUnblock(); } catch (e) {}
+- 107: window.dispatchEvent(new CustomEvent('isotope:auth-session', {
+- 111: try { window.dispatchEvent(new Event('isotope:auth-unblock')); } catch (e) {}
+- 112: try { window.dispatchEvent(new Event('isotope:sync_refresh')); } catch (e) {}
+- 175: window.__isoLogin = login;
+- 176: window.__isoUp = signUp;
+- 188: window.__ISO_AUTH_BRIDGE__ = bridgeApi;
+- operating-system commands:
+None observed.
+- Supabase interfaces:
+- 7: var DEFAULT_SUPA_URL = 'https://vteqquoqvksshmfhuepu.supabase.co';
+- 70: function supabaseAuth(path, body) {
+- 119: var result = await supabaseAuth('/auth/v1/token?grant_type=password', {
+- 127: if (!session) return { ok: false, success: false, err: 'Login did not return a Supabase session.' };
+- 148: var result = await supabaseAuth('/auth/v1/signup', {
+- external services: https://vteqquoqvksshmfhuepu.supabase.co
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0485-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/auth-bridge.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/auth-bridge.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: ADMIN.md, index.html, public/sw.js
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Project file in the application project subsystem. Its role is determined from path, content, and references.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

@@ -1,0 +1,185 @@
+FILE IDENTITY
+
+- original path: docs/install.html
+- audit path: audit/docs/install.html.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: html
+- MIME type: text/html
+- size in bytes: 5175
+- SHA-256: 1c5672bd50d939885e476fc24a5de5a00bdf59e0a82d9190ade0084cadb1f260
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: documentation
+- primary auditor: installer-platform-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Human-facing documentation or operational notes that should align with the implementation.
+
+ROLE IN THE APPLICATION
+
+- subsystem: documentation
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/workflows/release.yml:189 - docs/install.html
+- README.md:19 - <a href="https://suydev.github.io/isotope-code/install.html">Install</a>
+- README.md:45 - - Install guide: https://suydev.github.io/isotope-code/install.html
+- docs/admin.html:17 - <a href="./install.html">Install</a>
+- docs/assets/site.js:65 - { title: 'Install guide', desc: 'Android, Linux, macOS, and Windows setup', href: './install.html', tag: 'setup' },
+- docs/gallery.html:17 - <a href="./install.html">Install</a>
+- docs/index.html:20 - <a href="./install.html">Install</a>
+- docs/index.html:37 - <a class="button" href="./install.html">Install on your device</a>
+- docs/index.html:80 - <h3><a href="./install.html">Install guide</a></h3>
+- docs/index.md:14 - - [Install guide](./install.html)
+- docs/motion.html:17 - <a href="./install.html">Install</a>
+- docs/motion.html:106 - docs/install.html
+- docs/sync.html:17 - <a href="./install.html">Install</a>
+- scripts/validate-docs.mjs:220 - 'docs/install.html',
+
+INTERNAL STRUCTURE
+
+- line count: 140
+- imports:
+None observed.
+- exports:
+None observed.
+- functions/async flows:
+None observed.
+- classes:
+None observed.
+- constants/mutable state candidates:
+None observed.
+- handlers/lifecycle candidates:
+None observed.
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ENABLE_ADMIN_MODE: classification=public/configuration; required=optional/defaulted; uses=.env.example:18, .env.example:19, ADMIN.md:28, ADMIN.md:46, ADMIN.md:440, ADMIN.md:441, CHANGELOG.md:489, README.md:175, README.md:187, README.md:188, README.md:237, artifacts/isotope/.env:24
+- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
+- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
+- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+- http://127.0.0.1:3000
+- https://github.com/Suydev/isotope-code
+- https://github.com/Suydev/isotope-code.git
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh
+- https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg
+- https://your-project-ref.supabase.co
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 32: <p class="lead">The app runs from a local Node server. You open it in your browser at <code>http://127.0.0.1:3000</code>. Supabase is optional for cloud features.</p>
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: shell/OS/platform commands likely required
+- Node core modules:
+- 22: <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+- 32: <p class="lead">The app runs from a local Node server. You open it in your browser at <code>http://127.0.0.1:3000</code>. Supabase is optional for cloud features.</p>
+- 42: <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg" alt="Isotope dashboard">
+- 58: <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)</pre>
+- 78: <pre>git clone https://github.com/Suydev/isotope-code.git
+- 85: <pre>git clone https://github.com/Suydev/isotope-code.git
+- 92: <pre>git clone https://github.com/Suydev/isotope-code.git
+- 105: <pre class="code">http://127.0.0.1:3000</pre>
+- 127: <pre>SUPABASE_URL=https://your-project-ref.supabase.co
+- external libraries:
+None observed.
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 58: <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)</pre>
+- 78: <pre>git clone https://github.com/Suydev/isotope-code.git
+- 80: bash setup.sh
+- 85: <pre>git clone https://github.com/Suydev/isotope-code.git
+- 87: bash setup.sh
+- 92: <pre>git clone https://github.com/Suydev/isotope-code.git
+- Supabase interfaces:
+- 32: <p class="lead">The app runs from a local Node server. You open it in your browser at <code>http://127.0.0.1:3000</code>. Supabase is optional for cloud features.</p>
+- 121: <p class="eyebrow"><span class="dot"></span> Supabase</p>
+- 124: <p>Local features can run first. Add Supabase URL and anon key when you want login, sync, backup restore, avatars, and groups.</p>
+- 127: <pre>SUPABASE_URL=https://your-project-ref.supabase.co
+- 128: SUPABASE_ANON_KEY=your-anon-public-key
+- external services: http://127.0.0.1:3000, https://github.com/Suydev/isotope-code, https://github.com/Suydev/isotope-code.git, https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh, https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-08-08-45-12-53_e4424258c8b8649f6e67d283a50a2cbc.jpg, https://your-project-ref.supabase.co
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- No major static performance concern observed.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0254-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: docs/install.html inspected; no file-specific high-risk issue confirmed
+  observed evidence: docs/install.html inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/workflows/release.yml, README.md, README.md
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Human-facing documentation or operational notes that should align with the implementation.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers

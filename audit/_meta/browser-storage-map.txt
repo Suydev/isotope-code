@@ -1,0 +1,407 @@
+Browser storage map
+
+- ADMIN.md:338: caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload())
+- CHANGELOG.md:252: | 6 | Study stats — Analytics vs Leaderboard | ✅ Analytics = local IndexedDB (analyticsWorker); Leaderboard = `user_stats_summary` via Supabase REST + JWT. Both written by `finish_session_sync` RPC — consistent source |
+- CHANGELOG.md:253: | 7 | Offline PWA — no reload loop | ✅ `RELOAD_GUARD_SCRIPT` injected; blocks if `navigator.onLine===false`; blocks repeat reloads via `sessionStorage` key |
+- CHANGELOG.md:360: - Local study workspace data is isolated per authenticated user and stale global IndexedDB stores are cleared on user switches.
+- CHANGELOG.md:373: - Onboarding routing now uses Supabase (`user_onboarding`, falling back to `user_profiles.profile_data`) as the authority and no longer trusts localStorage when the DB is unavailable.
+- CHANGELOG.md:453: | Auth session persistence | ✅ Dual localStorage keys |
+- CONTRIBUTING.md:68: □ → clear localStorage + IndexedDB (DevTools → Application → Storage → Clear)
+- README.md:324: caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload())
+- artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:49: `).replace(_o,"")}function Gv(l,t){return t=Bv(t),Bv(l)===t}function vl(l,t,u,a,e,n){switch(u){case"children":typeof a=="string"?t==="body"||t==="textarea"&&a===""||$u(l,a):(typeof a=="number"||typeof a=="bigint")&&t!=="body"&&$u(l,""+a);break;case"className":
+- artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:491: `).reduce((n,r)=>{const[o,s]=r.split(": ");return s&&(n[o.toLowerCase()]=s),n},{}):{}}const Ui=[],Ko=new Map,Bn=new Map,aI=60;function cI(){if(so()&&Oe()){const t=uI();return()=>{t()}}return()=>{}}const Ta={click:"click",pointerdown:"click",pointerup:"click",m
+- artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:492: `).reduce((n,r)=>{const[o,s]=r.split(": ");return o&&s&&(n[o]=s),n},{}):{}}function Dw(e,t){return e.some(n=>typeof n=="string"?t.includes(n):n.test(t))}function Fw(e,t){return e.some(n=>typeof n=="number"?n===t:t>=n[0]&&t<=n[1])}function $w(e,t){gp()&&_c(n=>{
+- artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495: or you can use record.mirror to access the mirror instance during recording.`;let Vl={map:{},getId(){return console.error(Hn),-1},getNode(){return console.error(Hn),null},removeNodeFromMap(){console.error(Hn)},has(){return console.error(Hn),!1},reset(){console
+- artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:498: or you can use record.mirror to access the mirror instance during recording.`;let hd={map:{},getId(){return console.error(jn),-1},getNode(){return console.error(jn),null},removeNodeFromMap(){console.error(jn)},has(){return console.error(jn),!1},reset(){console
+- artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:27: \r=`.split(""),cn=(()=>{const s=new Array(128);for(let e=0;e<s.length;e+=1)s[e]=-1;for(let e=0;e<Pt.length;e+=1)s[Pt[e].charCodeAt(0)]=-2;for(let e=0;e<Pe.length;e+=1)s[Pe[e].charCodeAt(0)]=e;return s})();function Ct(s,e,t){if(s!==null)for(e.queue=e.queue<<8|s
+- artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js:42: ${v}`}class A extends Error{constructor({message:e,code:t,cause:r,name:n}){var i;super(e,{cause:r}),this.__isWebAuthnError=!0,this.name=(i=n??(r instanceof Error?r.name:void 0))!==null&&i!==void 0?i:"Unknown Error",this.code=t}}class Ce extends A{constructor(e
+- artifacts/asset-diff/remote-assets/workbox-window.prod.es5-BIl4cyR9.js:2: In order to be iterable, non-array objects must have a [Symbol.iterator]() method.`)}function w(n,r){return w=Object.setPrototypeOf?Object.setPrototypeOf.bind():function(t,o){return t.__proto__=o,t},w(n,r)}function W(n){var r=(function(t,o){if(typeof t!="objec
+- docs/BUG_FIXES.md:122: navigator.serviceWorker.addEventListener('message', function (event) {
+- docs/admin.html:118: <div><h3>Admin keys stay server-side</h3><p>The service-role key and PAT must never be written into HTML, bundled assets, localStorage, or logs.</p></div>
+- docs/supabase-connection-map.md:13: | Focus completion | Focus/session bundles | `sessionSync-mloIEnTd.js` patched | `isotope_sessions_v2`, IndexedDB `sessions` | Supabase proxy/RPC | `finish_session_sync`, `study_sessions_log`, stats tables | user JWT | pending queue local | RPC updates stats |
+- docs/supabase-connection-map.md:15: | Tasks | Tasks bundle/store | local DB store | IndexedDB `tasks`, `isotope_tasks_v2` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- docs/supabase-connection-map.md:16: | Subjects/chapters/topics | Syllabus/store | local DB store | IndexedDB `subjects`, `isotope_subjects_v2` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- docs/supabase-connection-map.md:17: | Timer state | Focus store | timer persistence | IndexedDB `timerState`, `isotope_timer_state` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | timer restore test |
+- docs/supabase-connection-map.md:18: | Habits | Habits/analytics store | local DB store | IndexedDB `habits`, `isotope_habits_v2` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- docs/supabase-connection-map.md:19: | Exams/tests/mock tests | Exams/test stores | local DB store | IndexedDB `exams/tests/mockTests` | Storage backup | `user-content` backup JSON | user JWT | local-first | canonical backup | working for backup | UI restore proof |
+- docs/sync-system.md:40: - IndexedDB database `isotope_main`
+- docs/sync-system.md:41: - localStorage fallback keys such as `isotope_tasks_v2`, `isotope_sessions_v2`, `isotope_subjects_v2`
+- public/assets/App-pJGjDiPw.js:897: q = () => typeof globalThis > "u" || typeof globalThis.localStorage > "u" ? !1 : typeof globalThis.localStorage.getItem == "function" && typeof globalThis.localStorage.setItem == "function" && typeof globalThis.localStorage.removeItem == "function",
+- public/assets/App-pJGjDiPw.js:909: const t = localStorage.getItem(this.resolveKey(e));
+- public/assets/App-pJGjDiPw.js:918: q() && localStorage.setItem(this.resolveKey(e), JSON.stringify(t))
+- public/assets/App-pJGjDiPw.js:921: q() && localStorage.removeItem(this.resolveKey(e))
+- public/assets/App-pJGjDiPw.js:926: for (let t = 0; t < localStorage.length; t += 1) {
+- public/assets/App-pJGjDiPw.js:927: const s = localStorage.key(t);
+- public/assets/App-pJGjDiPw.js:934: for (const e of this.getAllKeys()) localStorage.removeItem(this.resolveKey(e))
+- public/assets/App-pJGjDiPw.js:945: localStorage.getItem(this.getStorageKey(l.SCHEMA_VERSION)) !== Ft && (this.migrateFromV1(), localStorage.setItem(this.getStorageKey(l.SCHEMA_VERSION), Ft))
+- public/assets/App-pJGjDiPw.js:951: const i = localStorage.getItem(s),
+- public/assets/App-pJGjDiPw.js:953: if (i && !localStorage.getItem(this.getStorageKey(n))) try {
+- public/assets/App-pJGjDiPw.js:961: localStorage.setItem(this.getStorageKey(n), JSON.stringify(c))
+- public/assets/App-pJGjDiPw.js:962: } else localStorage.setItem(this.getStorageKey(n), i)
+- public/assets/App-pJGjDiPw.js:972: const t = localStorage.getItem(this.getStorageKey(e));
+- public/assets/App-pJGjDiPw.js:989: } : r.push(o), localStorage.setItem(this.getStorageKey(e), JSON.stringify(r))
+- public/assets/App-pJGjDiPw.js:998: }, localStorage.setItem(this.getStorageKey(e), JSON.stringify(r)))
+- public/assets/App-pJGjDiPw.js:1003: return JSON.parse(localStorage.getItem(this.getStorageKey(l.SYNC_METADATA)) || "{}")[e] || null
+- public/assets/App-pJGjDiPw.js:1010: const s = JSON.parse(localStorage.getItem(this.getStorageKey(l.SYNC_METADATA)) || "{}");
+- public/assets/App-pJGjDiPw.js:1011: s[e] = t, localStorage.setItem(this.getStorageKey(l.SYNC_METADATA), JSON.stringify(s))
+- public/assets/App-pJGjDiPw.js:1030: localStorage.setItem(this.getStorageKey(l.TASKS), JSON.stringify(r))
+- public/assets/App-pJGjDiPw.js:1051: localStorage.setItem(this.getStorageKey(l.SESSIONS), JSON.stringify(r))
+- public/assets/App-pJGjDiPw.js:1091: const e = localStorage.getItem(this.getStorageKey(l.USER_PROFILE));
+- public/assets/App-pJGjDiPw.js:1103: localStorage.setItem(this.getStorageKey(l.USER_PROFILE), JSON.stringify(s))
+- public/assets/App-pJGjDiPw.js:1108: const e = localStorage.getItem(this.getStorageKey(l.TIMER_STATE));
+- public/assets/App-pJGjDiPw.js:1119: localStorage.setItem(this.getStorageKey(l.TIMER_STATE), JSON.stringify(s))
+- public/assets/App-pJGjDiPw.js:1122: q() && localStorage.removeItem(this.getStorageKey(l.TIMER_STATE))
+- public/assets/App-pJGjDiPw.js:1147: localStorage.setItem(this.getStorageKey(l.TESTS), JSON.stringify(r))
+- public/assets/App-pJGjDiPw.js:1162: localStorage.setItem(this.getStorageKey(l.EXAMS), JSON.stringify(r))
+- public/assets/App-pJGjDiPw.js:1184: localStorage.setItem(this.getStorageKey(l.MOCK_TESTS), JSON.stringify(r))
+- public/assets/App-pJGjDiPw.js:1190: q() && Object.values(l).forEach(e => localStorage.removeItem(this.getStorageKey(e)))
+- public/assets/App-pJGjDiPw.js:1327: ga = () => typeof window < "u" && typeof window.indexedDB < "u",
+- public/assets/App-pJGjDiPw.js:1329: a.onsuccess = () => e(a.result), a.onerror = () => t(a.error ?? new Error("IndexedDB request failed"))
+- public/assets/App-pJGjDiPw.js:1332: a.oncomplete = () => e(), a.onerror = () => t(a.error ?? new Error("IndexedDB transaction failed")), a.onabort = () => t(a.error ?? new Error("IndexedDB transaction aborted"))
+- public/assets/App-pJGjDiPw.js:1351: const s = a ? window.indexedDB.open(zt, a) : window.indexedDB.open(zt);
+- public/assets/App-pJGjDiPw.js:1352: s.onupgradeneeded = () => zs(s), s.onsuccess = () => e(s.result), s.onerror = () => t(s.error ?? new Error("Failed to open IndexedDB")), s.onblocked = () => t(new Error("IndexedDB open request blocked"))
+- public/assets/App-pJGjDiPw.js:1361: if (!Gt(t)) throw t.close(), new Error("IndexedDB schema initialization failed");
+- public/assets/App-pJGjDiPw.js:1378: if (!ga()) throw new Error("IndexedDB is not available in this environment");
+- public/assets/App-pJGjDiPw.js:1476: indexedDbAvailable: null,
+- public/assets/App-pJGjDiPw.js:1501: indexedDbAvailable: !1,
+- public/assets/App-pJGjDiPw.js:1509: indexedDbAvailable: !0
+- public/assets/App-pJGjDiPw.js:1516: indexedDbAvailable: !0,
+- public/assets/App-pJGjDiPw.js:1543: indexedDbAvailable: a,
+- public/assets/App-pJGjDiPw.js:1595: return Bs(s) ? (this.disabledShadowCollections.add(e), s) : (console.error("[IndexedDBAdapter] Shadow backup write failed:", s), s)
+- public/assets/App-pJGjDiPw.js:1607: if (r.length > 0) return V(`Recovered ${e} from local backup after IndexedDB failed.`), r;
+- public/assets/App-pJGjDiPw.js:1621: if (n !== null) return V(`Recovered ${r} from local backup after IndexedDB failed.`), n;
+- public/assets/App-pJGjDiPw.js:1631: n = c, V("IndexedDB is unavailable, saving data to local backup.")
+- public/assets/App-pJGjDiPw.js:1695: V("IndexedDB is unavailable, deleting task from backup storage only.")
+- public/assets/App-pJGjDiPw.js:1721: V("IndexedDB is unavailable, deleting session from backup storage only.")
+- public/assets/App-pJGjDiPw.js:1798: V("IndexedDB is unavailable, clearing timer state from backup storage.")
+- public/assets/App-pJGjDiPw.js:1826: V("IndexedDB is unavailable, deleting test from backup storage only.")
+- public/assets/App-pJGjDiPw.js:1845: V("IndexedDB is unavailable, deleting exam from backup storage only.")
+- public/assets/App-pJGjDiPw.js:1872: V("IndexedDB is unavailable, deleting mock test from backup storage only.")
+- public/assets/App-pJGjDiPw.js:1884: V("IndexedDB is unavailable, clearing backup storage only.")
+- public/assets/App-pJGjDiPw.js:1893: ge = () => typeof window > "u" ? !1 : Ys(window.location.pathname) || window.sessionStorage.getItem(Et) === "1",
+- public/assets/App-pJGjDiPw.js:1895: typeof window > "u" || window.sessionStorage.setItem(Et, "1")
+- public/assets/App-pJGjDiPw.js:1898: typeof window > "u" || window.sessionStorage.removeItem(Et)
+- public/assets/App-pJGjDiPw.js:4473: if (!await P.isAvailable()) return this.forceBackupFallback = !0, this.lastAvailabilityCheck = Date.now(), V("IndexedDB is unavailable, using backup storage for preferences."), this.readFallbackValue(e);
+- public/assets/App-pJGjDiPw.js:4484: return this.forceBackupFallback = !0, this.lastAvailabilityCheck = Date.now(), V("IndexedDB failed while reading preferences, using backup storage."), this.readFallbackValue(e)
+- public/assets/App-pJGjDiPw.js:4490: if (!await P.isAvailable()) throw new Error("IndexedDB unavailable");
+- public/assets/App-pJGjDiPw.js:4493: i = n, this.forceBackupFallback = !0, this.lastAvailabilityCheck = Date.now(), V("IndexedDB is unavailable, saving preferences to backup storage.")
+- public/assets/App-pJGjDiPw.js:4549: if (!await P.isAvailable()) throw new Error("IndexedDB unavailable");
+- public/assets/App-pJGjDiPw.js:4554: return this.forceBackupFallback = !0, this.lastAvailabilityCheck = Date.now(), V("IndexedDB is unavailable, using backup storage for preferences."), Array.from(new Set([...this.backupStore.getAllKeys(), ...this.memoryFallback.keys()]))
+- public/assets/App-pJGjDiPw.js:4560: if (!await P.isAvailable()) throw new Error("IndexedDB unavailable");
+- public/assets/App-pJGjDiPw.js:4563: e = t, this.forceBackupFallback = !0, this.lastAvailabilityCheck = Date.now(), V("IndexedDB is unavailable, clearing backup storage instead.")
+- public/assets/App-pJGjDiPw.js:6078: storage: Ma(() => localStorage),
+- public/assets/App-pJGjDiPw.js:6633: $r = a => typeof window > "u" ? null : window.sessionStorage.getItem(Tt(a)),
+- public/assets/App-pJGjDiPw.js:6635: typeof window > "u" || window.sessionStorage.setItem(Tt(a), e)
+- public/assets/App-pJGjDiPw.js:6638: typeof window > "u" || window.sessionStorage.removeItem(Tt(a))
+- public/assets/AppAccessGate-B975UtK7.js:350: de = () => typeof window < "u" && typeof window.localStorage < "u",
+- public/assets/AppAccessGate-B975UtK7.js:360: window.localStorage.setItem(et(e, s), t)
+- public/assets/AppAccessGate-B975UtK7.js:367: for (let t = 0; t < window.localStorage.length; t += 1) {
+- public/assets/AppAccessGate-B975UtK7.js:368: const a = window.localStorage.key(t);
+- public/assets/AppAccessGate-B975UtK7.js:377: for (const t of s) window.localStorage.removeItem(t)
+- public/assets/AppAccessGate-B975UtK7.js:379: O = "indexeddb_migration_complete_v3",
+- public/assets/AppAccessGate-B975UtK7.js:384: L = () => typeof window < "u" && typeof window.localStorage < "u",
+- public/assets/AppAccessGate-B975UtK7.js:412: for (let s = 0; s < window.localStorage.length; s += 1) {
+- public/assets/AppAccessGate-B975UtK7.js:413: const t = window.localStorage.key(s);
+- public/assets/AppAccessGate-B975UtK7.js:448: const i = window.localStorage.getItem(d);
+- public/assets/AppAccessGate-B975UtK7.js:461: const n = window.localStorage.getItem(c.USER_PROFILE);
+- public/assets/AppAccessGate-B975UtK7.js:468: const u = window.localStorage.getItem(c.TIMER_STATE);
+- public/assets/AppAccessGate-B975UtK7.js:475: const l = window.localStorage.getItem(c.SYNC_METADATA);
+- public/assets/AppAccessGate-B975UtK7.js:498: const d = window.localStorage.getItem(l);
+- public/assets/AppAccessGate-B975UtK7.js:518: const a = window.localStorage.getItem(t);
+- public/assets/AppAccessGate-B975UtK7.js:519: a !== null && (tt(s, t, a), window.localStorage.removeItem(t))
+- public/assets/AppAccessGate-B975UtK7.js:586: error: `Migration skipped ${a.length} legacy key(s); kept them in localStorage for retry`
+- public/assets/AppAccessGate-B975UtK7.js:637: message: "Checking IndexedDB availability",
+- public/assets/AppAccessGate-B975UtK7.js:639: }), !await w.isAvailable()) return C("IndexedDB is unavailable in this browser session. Keeping the app in local backup mode."), b({
+- public/assets/AppAccessGate-B975UtK7.js:642: message: "IndexedDB is unavailable; startup continued in local backup mode",
+- public/assets/AppAccessGate-B975UtK7.js:643: error: "IndexedDB unavailable"
+- public/assets/AppAccessGate-B975UtK7.js:649: message: "No legacy localStorage data found",
+- public/assets/AppAccessGate-B975UtK7.js:657: message: "Migrating legacy localStorage data"
+- public/assets/ChapterHub-BXRydU0B.js:42: e.g. If $F = ma$ and $m = 5$ kg, $a = 3$ m/s², find $F$.`,minHeight:100,showGuide:!0,showImageUpload:!0,autoFocus:!0}),e.jsxs("div",{className:"grid grid-cols-2 gap-3",children:[e.jsxs("label",{className:"flex flex-col gap-1.5",children:[e.jsx("span",{classNam
+- public/assets/CommunityHub-gANxZssO.js:6: `,children:[m,o===m&&e.jsx("span",{className:"absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#0c0c0e]"})]},m))})]})]})},Le=()=>{const{data:t,isLoading:n,error:i}=ze(),{data:l,isLoading:o,error:m}=ie(),c=$e()
+- public/assets/Dashboard-dypAV-0H.js:1744: const [l, z] = E.useState(() => sessionStorage.getItem("morningBriefingShown") ? !1 : (sessionStorage.setItem("morningBriefingShown", "true"), !0)), {
+- public/assets/Exams-C3jymPwe.js:2327: const f = localStorage.getItem("isotope_exam_view");
+- public/assets/Exams-C3jymPwe.js:2337: localStorage.setItem("isotope_exam_view", T)
+- public/assets/PWAManager-DjIYufp2.js:100: if ("serviceWorker" in navigator) {
+- public/assets/PWAManager-DjIYufp2.js:156: updateServiceWorker: r
+- public/assets/PWAManager-DjIYufp2.js:161: if (!("serviceWorker" in navigator)) return;
+- public/assets/PWAManager-DjIYufp2.js:165: o || (o = !0, navigator.serviceWorker.removeEventListener("controllerchange", i), s())
+- public/assets/PWAManager-DjIYufp2.js:167: navigator.serviceWorker.addEventListener("controllerchange", i)
+- public/assets/PWAManager-DjIYufp2.js:186: updateServiceWorker: f
+- public/assets/Privacy-ClP3A1gm.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUAuun.js";import"./ven
+- public/assets/QueryProvider-DusNhG9D.js:77: window.sessionStorage.setItem(a(o), t);
+- public/assets/QueryProvider-DusNhG9D.js:89: const t = window.sessionStorage.getItem(a(o));
+- public/assets/QueryProvider-DusNhG9D.js:102: window.sessionStorage.removeItem(a(o));
+- public/assets/SettingsLayout-B4OgCkQ5.js:2914: return JSON.parse(localStorage.getItem("isotope_sync_metadata") || "{}") || {}
+- public/assets/SettingsLayout-B4OgCkQ5.js:3095: window.confirm("Delete all local data on this browser? This clears IndexedDB storage and signs you out, but it does not delete your Supabase cloud data.") && (await yt.clearAll(), await zt.clear(), await St(), await z(), window.location.reload())
+- public/assets/SettingsLayout-B4OgCkQ5.js:3249: children: f.lastRecoveryAt ? "A backup recovery happened on this device, so exporting a fresh JSON backup is strongly recommended." : f.persistentStorageGranted ? "This browser granted stronger local-storage protection, and your data is also mirrored to a loca
+- public/assets/SettingsLayout-B4OgCkQ5.js:3345: children: "Deletes only this browser's local IndexedDB cache and signs you out. Cloud data in your account is not deleted."
+- public/assets/SupportPromptDialog-Bkl24oin.js:34: a(), localStorage.setItem("isotope_support_dialog_seen", "true")
+- public/assets/Tasks-BYRFOrek.js:211: const a = localStorage.getItem(yt);
+- public/assets/Tasks-BYRFOrek.js:230: localStorage.setItem(yt, JSON.stringify({ ...o,
+- public/assets/analyticsWorker-BnmTlfYB.js:6: `).trim():a.replace(/\s+/g," ").trim()}function ds(a,e){if(!e||e<=0)return a;const t=Array.from(a.matchAll(/\S+/g));if(t.length<=e)return a;const s=t[e]?.index??a.length;return a.slice(0,s).trim()}function us(a,e){return a.length<=e?a:a.slice(0,e).trim()}funct
+- public/assets/index-BPYJFSVW.js:155: sessionStorage.removeItem(D)
+- public/assets/index-BPYJFSVW.js:213: sessionStorage.removeItem(m), U(), R.render(c.jsx(E.StrictMode, {
+- public/assets/index-BPYJFSVW.js:217: if (M(e) && sessionStorage.getItem(m) !== "1") {
+- public/assets/index-BPYJFSVW.js:218: sessionStorage.setItem(m, "1"), window.location.replace(window.location.href);
+- public/assets/index-qd2KF3Jd.js:26: `).replace(Gh,"")}function Cd(t,e){return e=_d(e),_d(t)===e}function dt(t,e,a,l,n,s){switch(a){case"children":typeof l=="string"?e==="body"||e==="textarea"&&l===""||fl(t,l):(typeof l=="number"||typeof l=="bigint")&&e!=="body"&&fl(t,""+l);break;case"className":
+- public/assets/index-qd2KF3Jd.js:31: `).trim():u.replace(/\s+/g," ").trim()}function c0(u,i){if(!i||i<=0)return u;const c=Array.from(u.matchAll(/\S+/g));if(c.length<=i)return u;const r=c[i]?.index??u.length;return u.slice(0,r).trim()}function o0(u,i){return u.length<=i?u:u.slice(0,i).trim()}funct
+- public/assets/index-qd2KF3Jd.js:39: - Mistake pattern: rushing the final substitution.`,lastModified:i.toISOString()})}),d.topics.slice(0,3).forEach((g,E)=>{c.key_points.push({id:w("key-point",g.id),chapterId:d.id,topicId:g.id,category:E===0?"Formula":E===1?"Trap":"Concept",content:`${g.title}: 
+- public/assets/messaging-BP0KfJxy.js:197: e = document.cookie.match(/__FIREBASE_DEFAULTS__=([^;]+)/)
+- public/assets/messaging-BP0KfJxy.js:249: return typeof indexedDB == "object"
+- public/assets/messaging-BP0KfJxy.js:259: const r = "validate-browser-context-for-indexeddb-analytics-module",
+- public/assets/messaging-BP0KfJxy.js:260: i = self.indexedDB.open(r);
+- public/assets/messaging-BP0KfJxy.js:262: i.result.close(), n || self.indexedDB.deleteDatabase(r), e(!0)
+- public/assets/messaging-BP0KfJxy.js:275: return !(typeof navigator > "u" || !navigator.cookieEnabled)
+- public/assets/messaging-BP0KfJxy.js:790: const s = indexedDB.open(e, t),
+- public/assets/messaging-BP0KfJxy.js:802: const n = indexedDB.deleteDatabase(e);
+- public/assets/messaging-BP0KfJxy.js:1020: "idb-open": "Error thrown when opening IndexedDB. Original error: {$originalErrorMessage}.",
+- public/assets/messaging-BP0KfJxy.js:1021: "idb-get": "Error thrown when reading from IndexedDB. Original error: {$originalErrorMessage}.",
+- public/assets/messaging-BP0KfJxy.js:1022: "idb-set": "Error thrown when writing to IndexedDB. Original error: {$originalErrorMessage}.",
+- public/assets/messaging-BP0KfJxy.js:1023: "idb-delete": "Error thrown when deleting from IndexedDB. Original error: {$originalErrorMessage}.",
+- public/assets/messaging-BP0KfJxy.js:1299: this.app = t, this._canUseIndexedDBPromise = this.runIndexedDBEnvironmentCheck()
+- public/assets/messaging-BP0KfJxy.js:1301: async runIndexedDBEnvironmentCheck() {
+- public/assets/messaging-BP0KfJxy.js:1305: if (await this._canUseIndexedDBPromise) {
+- public/assets/messaging-BP0KfJxy.js:1315: if (await this._canUseIndexedDBPromise) {
+- public/assets/messaging-BP0KfJxy.js:1324: if (await this._canUseIndexedDBPromise) {
+- public/assets/messaging-BP0KfJxy.js:2211: if ("databases" in indexedDB && !(await indexedDB.databases()).map(a => a.name).includes(Q)) return null;
+- public/assets/messaging-BP0KfJxy.js:2345: "indexed-db-unsupported": "This browser doesn't support indexedDb.open() (ex. Safari iFrame, Firefox Private Browsing, etc)",
+- public/assets/messaging-BP0KfJxy.js:2352: "use-sw-after-get-token": "The useServiceWorker() method may only be called once and must be called before calling getToken() to ensure your service worker is used.",
+- public/assets/messaging-BP0KfJxy.js:2353: "invalid-sw-registration": "The input to useServiceWorker() must be a ServiceWorkerRegistration.",
+- public/assets/messaging-BP0KfJxy.js:2711: e.swRegistration = await navigator.serviceWorker.register(ri, {
+- public/assets/messaging-BP0KfJxy.js:2747: if (!(t instanceof ServiceWorkerRegistration)) throw d.create("invalid-sw-registration");
+- public/assets/messaging-BP0KfJxy.js:2789: return await Bi(e, t ?.vapidKey), await Ni(e, t ?.serviceWorkerRegistration), Ei(e)
+- public/assets/messaging-BP0KfJxy.js:2870: return navigator.serviceWorker.addEventListener("message", n => Fi(t, n)), t
+- public/assets/messaging-BP0KfJxy.js:2904: return typeof window < "u" && de() && nt() && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && "fetch" in window && ServiceWorkerRegistration.prototype.hasOwnProperty("showNotification") && PushSubscription.prototype.hasOw
+- public/assets/messaging-BP0KfJxy.js:3039: "indexeddb-unavailable": "IndexedDB unavailable or restricted in this environment. Wrap initialization of analytics in analytics.isSupported() to prevent initialization in unsupported environments. Details: {$errorInfo}",
+- public/assets/messaging-BP0KfJxy.js:3373: return f.warn(m.create("indexeddb-unavailable", {
+- public/assets/messaging-BP0KfJxy.js:3376: } else return f.warn(m.create("indexeddb-unavailable", {
+- public/assets/messaging-BP0KfJxy.js:3377: errorInfo: "IndexedDB is not available in this environment."
+- public/assets/messaging-BP0KfJxy.js:3427: if (nn() && e.push("This is a browser extension environment."), nt() || e.push("Cookies are not available."), e.length > 0) {
+- public/assets/messaging-BP0KfJxy.js:3507: jt = async () => !Da() || typeof Notification > "u" || !("serviceWorker" in navigator) || typeof PushManager > "u" ? !1 : (ne || (ne = Bt().catch(() => !1)), ne),
+- public/assets/messaging-BP0KfJxy.js:3516: Ra = async () => typeof window > "u" || !("serviceWorker" in navigator) ? null : (re || (re = navigator.serviceWorker.register(Ma, {
+- public/assets/messaging-BP0KfJxy.js:3535: serviceWorkerRegistration: n
+- public/assets/useAIStore-B2cv1FZz.js:2222: t ? localStorage.setItem("isotope_exam_draft", JSON.stringify(t)) : localStorage.removeItem("isotope_exam_draft")
+- public/assets/useAIStore-B2cv1FZz.js:2666: cs = () => typeof window < "u" && typeof window.indexedDB < "u";
+- public/assets/useAIStore-B2cv1FZz.js:2681: const t = window.indexedDB.open(Ka, Ya);
+- public/assets/useAIStore-B2cv1FZz.js:2685: if (!cs()) throw new Error("IndexedDB unavailable");
+- public/assets/useAIStore-B2cv1FZz.js:3673: an = '# Overview Page Feature Doc\n\n## Route And Sources\n\n- Route: `/dashboard`\n- Page: `src/pages/Dashboard.tsx`\n- Main shell: `src/components/dashboard/Sidebar.tsx`, `src/components/dashboard/header/DashboardHeader.tsx`\n- Dashboard cards: `src/componen
+- public/assets/useAIStore-B2cv1FZz.js:3677: cn = '# Chapter Hub Feature Doc\n\n## Route And Sources\n\n- Route: `/syllabus/chapter/:chapterId`\n- Page: `src/pages/ChapterHub/ChapterHub.tsx`\n- Store: `src/store/useChapterHubStore.ts`\n- Data model: `src/services/chapterHub/types.ts`\n- Sections: `Overvi
+- public/assets/useAIStore-B2cv1FZz.js:3678: dn = '# Exams Page Feature Doc\n\n## Route And Sources\n\n- Route: `/exams`\n- Detail route: `/exams/:examId`\n- Page: `src/pages/Exams.tsx`\n- Components: `ExamCountdownHero`, `ResultNudgeBanner`, `ExamCard`, `ExamInsightsDashboard`, `SubjectMasteryHeatmap`, 
+- public/assets/useAIStore-B2cv1FZz.js:3779: un = '# Tasks Page Feature Doc\n\n## Route And Sources\n\n- Route: `/tasks`\n- Page: `src/pages/Tasks.tsx`\n- Components: `TaskBoard`, `TaskTable`, `ZenMode`, `EisenhowerMatrix`, `HabitTracker`, `TaskCardModal`, `HabitCreateModal`, `KeyboardHelpOverlay`, `Undo
+- public/assets/useAIStore-B2cv1FZz.js:3880: hn = '# Community Page Feature Doc\n\n## Route And Sources\n\n- Routes: `/community`, `/community/group/:slug`\n- Page: `src/pages/Community.tsx`\n- Components: `CommunityHub`, `GroupDiscovery`, `SingleGroup`, `GroupPage`, `Leaderboard`, `MemberProfile`, `Focu
+- public/assets/useNotificationStore-BS4df28T.js:162: "serviceWorker" in navigator && navigator.serviceWorker.controller ? await (await navigator.serviceWorker.ready).showNotification(i, d) : typeof Notification < "u" && new Notification(i, d)
+- public/assets/vendor-react-BfU3Zn2J.js:8727: case "serviceworker":
+- public/assets/vendor-react-BfU3Zn2J.js:8740: case "serviceworker":
+- public/assets/vendor-sentry-VzeXdCeF.js:12231: ih() && ([i, c] = Bl("Cookie", s), [a, u] = Bl("Set-Cookie", n));
+- public/assets/vendor-sentry-VzeXdCeF.js:12238: requestCookies: c,
+- public/assets/vendor-sentry-VzeXdCeF.js:12239: responseCookies: u,
+- public/assets/vendor-sentry-VzeXdCeF.js:12262: const u = t.getResponseHeader("Set-Cookie") || t.getResponseHeader("set-cookie") || void 0;
+- public/assets/vendor-sentry-VzeXdCeF.js:12276: responseCookies: i,
+- public/assets/vendor-sentry-VzeXdCeF.js:12379: cookies: e.requestCookies
+- public/assets/vendor-sentry-VzeXdCeF.js:12385: cookies: e.responseCookies,
+- public/assets/vendor-sentry-VzeXdCeF.js:16394: return "sessionStorage" in fe && !!fe.sessionStorage
+- public/assets/vendor-sentry-VzeXdCeF.js:16406: fe.sessionStorage.removeItem(Lc)
+- public/assets/vendor-sentry-VzeXdCeF.js:16416: fe.sessionStorage.setItem(Lc, JSON.stringify(e))
+- public/assets/vendor-sentry-VzeXdCeF.js:16462: const e = fe.sessionStorage.getItem(Lc);
+- public/assets/vendor-sentry-VzeXdCeF.js:16502: }) ? (U && H.infoTick("Session in sessionStorage is expired, creating new one..."), sd(r, {
+- public/assets/vendor-sentry-VzeXdCeF.js:19128: M.sessionStorage.setItem(im, JSON.stringify(e))
+- public/assets/vendor-sentry-VzeXdCeF.js:19130: I && g.warn("Could not store previous trace in sessionStorage", t)
+- public/assets/vendor-sentry-VzeXdCeF.js:19136: const e = M.sessionStorage ?.getItem(im);
+- public/assets/vendor-sentry-VzeXdCeF.js:19472: const n = indexedDB.open(e);
+- public/assets/vendor-supabase-DAiUAuun.js:4324: if (typeof globalThis.localStorage != "object") return !1
+- public/assets/vendor-supabase-DAiUAuun.js:4331: globalThis.localStorage.setItem(s, s), globalThis.localStorage.removeItem(s), K.tested = !0, K.writable = !0
+- public/assets/vendor-supabase-DAiUAuun.js:4522: return !e.value && typeof r == "string" && (console.warn("Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cook
+- public/assets/vendor-supabase-DAiUAuun.js:5033: debug: !!(globalThis && Ar() && globalThis.localStorage && globalThis.localStorage.getItem("supabase.gotrue-js.locks.debug") === "true")
+- public/assets/vendor-supabase-DAiUAuun.js:5806: }, this.persistSession ? (i.storage ? this.storage = i.storage : Ar() ? this.storage = globalThis.localStorage : (this.memoryStorage = {}, this.storage = Dt(this.memoryStorage)), i.userStorage && (this.userStorage = i.userStorage)) : (this.memoryStorage = {}, 
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:123: v = s !== navigator.serviceWorker.controller;
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:149: }), e.sn = c, e.nn = a, navigator.serviceWorker.addEventListener("message", e.gn), e
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:167: return i.mn = !!navigator.serviceWorker.controller, i.dn = i.pn(), l(i.bn(), (function(u) {
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:177: })).then((function() {}))), i.hn && (i.rn.resolve(i.hn), i.an.add(i.hn)), i.fn.addEventListener("updatefound", i.cn), navigator.serviceWorker.addEventListener("controllerchange", i.yn), i.fn
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:202: var c = navigator.serviceWorker.controller;
+- public/assets/workbox-window.prod.es5-BIl4cyR9.js:215: return l(navigator.serviceWorker.register(c.sn, c.nn), (function(a) {
+- public/auth-bridge.js:43: localStorage.setItem('isotope-auth-token', raw);
+- public/auth-bridge.js:44: if (ref) localStorage.setItem('sb-' + ref + '-auth-token', raw);
+- public/auth-bridge.js:45: localStorage.setItem('isotope-last-jwt', session.access_token);
+- public/auth-bridge.js:46: if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
+- public/auth-bridge.js:47: localStorage.setItem('isotope-last-session-raw', raw);
+- public/auth-bridge.js:92: localStorage.setItem('isotope-bootstrap-cache', JSON.stringify({
+- public/boot-recovery.js:9: return window.sessionStorage.getItem(key);
+- public/boot-recovery.js:17: window.sessionStorage.setItem(key, value);
+- public/boot-recovery.js:47: if (typeof caches === 'undefined' || typeof caches.keys !== 'function') {
+- public/boot-recovery.js:50: return caches.keys().then(function(keys) {
+- public/boot-recovery.js:54: .map(function(key) { return caches.delete(key); }),
+- public/boot-recovery.js:81: function refreshServiceWorkers() {
+- public/boot-recovery.js:84: !navigator.serviceWorker ||
+- public/boot-recovery.js:85: typeof navigator.serviceWorker.getRegistrations !== 'function'
+- public/boot-recovery.js:90: return navigator.serviceWorker
+- public/boot-recovery.js:123: refreshServiceWorkers().finally(reload);
+- public/focus-bg-import.js:6: * IndexedDB; URL images are also written through the native Focus background
+- public/focus-bg-import.js:33: var req = indexedDB.open(IDB_NAME, 1);
+- public/focus-bg-import.js:116: for (var i = 0; i < localStorage.length; i += 1) {
+- public/focus-bg-import.js:117: var key = localStorage.key(i);
+- public/focus-bg-import.js:121: var amount = extractBlurValue(parseStoredValue(localStorage.getItem(keys[j])));
+- public/pwa-local.js:46: try { return JSON.parse(localStorage.getItem(DISMISS_KEY) || 'null') || null; } catch (e) { return null; }
+- public/pwa-local.js:56: localStorage.setItem(DISMISS_KEY, JSON.stringify({
+- public/pwa-local.js:64: try { localStorage.removeItem(DISMISS_KEY); } catch (e) {}
+- public/pwa-local.js:71: var last = JSON.parse(localStorage.getItem('isotope_last_cloud_snapshot_user') || 'null');
+- public/pwa-local.js:166: function registerServiceWorker() {
+- public/pwa-local.js:167: if (!('serviceWorker' in navigator)) return;
+- public/pwa-local.js:168: navigator.serviceWorker.register('/sw.js', { scope: '/' })
+- public/pwa-local.js:174: navigator.serviceWorker.addEventListener('message', function (event) {
+- public/pwa-local.js:217: registerServiceWorker();
+- public/restore-and-launch.js:7: * 2. Ensure the IndexedDB schema is initialised.
+- public/restore-and-launch.js:38: // Both localStorage keys that may hold a Supabase session
+- public/restore-and-launch.js:93: // ── IndexedDB helpers ──────────────────────────────────────────────────────
+- public/restore-and-launch.js:97: const req = indexedDB.open(DB_NAME, 20);
+- public/restore-and-launch.js:136: * Scan localStorage for any Supabase session. Checks:
+- public/restore-and-launch.js:144: const legacy = localStorage.getItem(SUPABASE_TOKEN_KEY);
+- public/restore-and-launch.js:147: const standard = localStorage.getItem('sb-' + SUPA_REF + '-auth-token');
+- public/restore-and-launch.js:150: const lastRaw = localStorage.getItem('isotope-last-session-raw');
+- public/restore-and-launch.js:152: for (let i = 0; i < localStorage.length; i++) {
+- public/restore-and-launch.js:153: const k = localStorage.key(i);
+- public/restore-and-launch.js:155: const v = localStorage.getItem(k);
+- public/restore-and-launch.js:226: localStorage.setItem(SUPABASE_TOKEN_KEY, raw);
+- public/restore-and-launch.js:227: if (SUPA_REF) localStorage.setItem('sb-' + SUPA_REF + '-auth-token', raw);
+- public/restore-and-launch.js:228: localStorage.setItem('isotope-last-jwt', session.access_token);
+- public/restore-and-launch.js:229: if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
+- public/restore-and-launch.js:230: localStorage.setItem('isotope-last-session-raw', raw);
+- public/restore-and-launch.js:267: const raw = localStorage.getItem(ZUSTAND_ONBOARDING_KEY);
+- public/restore-and-launch.js:278: localStorage.setItem(ZUSTAND_ONBOARDING_KEY, JSON.stringify({
+- public/restore-and-launch.js:378: try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
+- public/restore-and-launch.js:383: const raw = localStorage.getItem(key);
+- public/restore-and-launch.js:542: else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
+- public/restore-and-launch.js:622: else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
+- public/restore-and-launch.js:687: const raw = localStorage.getItem(key);
+- public/restore-and-launch.js:701: if (isStaleLocal(ZUSTAND_AUTH_KEY))       localStorage.removeItem(ZUSTAND_AUTH_KEY);
+- public/restore-and-launch.js:702: if (isStaleLocal(ZUSTAND_ONBOARDING_KEY)) localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
+- public/restore-and-launch.js:706: if (localStorage.getItem(k)) localStorage.removeItem(k);
+- public/restore-and-launch.js:722: if (localStorage.getItem(SCHEMA_KEY) === '1') return;
+- public/restore-and-launch.js:726: { key: 'indexeddb_migration_complete_v3', value: true, migratedAt: Date.now() }
+- public/restore-and-launch.js:729: localStorage.setItem('indexeddb_migration_complete_v3', 'true');
+- public/restore-and-launch.js:730: localStorage.setItem(SCHEMA_KEY, '1');
+- public/restore-and-launch.js:761: try { sessionStorage.removeItem('isotope-demo-mode'); } catch (_) {}
+- public/sw.js:109: const cache = await caches.open(RUNTIME_CACHE);
+- public/sw.js:118: const cache = await caches.open(RUNTIME_CACHE);
+- public/sw.js:137: const shell = await caches.open(SHELL_CACHE);
+- public/sw.js:155: const cache = await caches.open(SHELL_CACHE);
+- public/sw.js:163: const keys = await caches.keys();
+- public/sw.js:166: return caches.delete(key);
+- public/sw.js:189: const keys = await caches.keys();
+- public/sw.js:190: await Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX)).map((key) => caches.delete(key)));
+- public/sync/local-data-adapter.js:67: function canUseIndexedDB() {
+- public/sync/local-data-adapter.js:68: return typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined';
+- public/sync/local-data-adapter.js:74: req.onerror = () => reject(req.error || new Error('IndexedDB request failed'));
+- public/sync/local-data-adapter.js:81: tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction failed'));
+- public/sync/local-data-adapter.js:82: tx.onabort = () => reject(tx.error || new Error('IndexedDB transaction aborted'));
+- public/sync/local-data-adapter.js:97: if (!canUseIndexedDB()) return null;
+- public/sync/local-data-adapter.js:99: const req = window.indexedDB.open(DB_NAME, DB_VERSION);
+- public/sync/local-data-adapter.js:110: const upgrade = window.indexedDB.open(DB_NAME, nextVersion);
+- public/sync/local-data-adapter.js:113: upgrade.onerror = () => reject(upgrade.error || new Error('IndexedDB schema upgrade failed'));
+- public/sync/local-data-adapter.js:115: req.onerror = () => reject(req.error || new Error('IndexedDB open failed'));
+- public/sync/local-data-adapter.js:116: req.onblocked = () => reject(new Error('IndexedDB open blocked'));
+- public/sync/local-data-adapter.js:122: const raw = window.localStorage.getItem(key);
+- public/sync/local-data-adapter.js:130: try { window.localStorage.setItem(key, JSON.stringify(value)); } catch {}
+- public/sync/local-data-adapter.js:216: try { window.localStorage.removeItem(key); } catch {}
+- public/sync/local-data-adapter.js:347: window.localStorage.setItem('isotope_last_restore_message', message);
+- public/update-checker.js:139: try { localStorage.setItem(DISMISS_KEY, sha); } catch (e) {}
+- public/update-checker.js:151: STALE_UPDATE_KEYS.forEach(function (key) { localStorage.removeItem(key); });
+- public/update-checker.js:204: try { dismissed = localStorage.getItem(DISMISS_KEY) || ''; } catch (e) {}
+- public/workbox-1d81fbea.js:332: const s = indexedDB.deleteDatabase(t);
+- public/workbox-1d81fbea.js:377: const a = indexedDB.open(t, e),
+- public/workbox-1d81fbea.js:398: s = await self.caches.open(this.u);
+- public/workbox-1d81fbea.js:513: s = await caches.match(r, a);
+- public/workbox-1d81fbea.js:537: } = this.N, u = await self.caches.open(c), l = this.hasCallback("cacheDidUpdate"), f = l ? await async function(t, e, s, n) {
+- public/workbox-1d81fbea.js:926: const t = await self.caches.open(this.strategy.cacheName),
+- public/workbox-1d81fbea.js:953: return (await self.caches.open(this.strategy.cacheName)).match(s)
+- public/workbox-1d81fbea.js:1076: for (const [t, e] of this.et) await self.caches.delete(t), await e.delete();
+- public/workbox-1d81fbea.js:1164: const s = (await self.caches.keys()).filter(s => s.includes(e) && s.includes(self.registration.scope) && s !== t);
+- public/workbox-1d81fbea.js:1165: return await Promise.all(s.map(t => self.caches.delete(t))), s
+- scripts/test-auth-bridge.mjs:12: const localStorage = {
+- scripts/test-auth-bridge.mjs:48: global.localStorage = localStorage;
+- scripts/test-auth-bridge.mjs:122: assert.ok(localStorage.getItem(key), `${key} was not written`);
+- scripts/test-auth-bridge.mjs:125: assert.equal(localStorage.getItem('isotope-last-jwt'), fakeSession.access_token);
+- scripts/test-auth-bridge.mjs:126: assert.equal(localStorage.getItem('isotope-last-rt'), fakeSession.refresh_token);
+- server.mjs:229: const ADMIN_COOKIE_SECRET = ADMIN_SECRET || SUPA_SERVICE_KEY;
+- server.mjs:230: const ADMIN_MODE_READY  = ENABLE_ADMIN_MODE && !!SUPA_SERVICE_KEY && !!ADMIN_COOKIE_SECRET;
+- server.mjs:241: const cookieTok = readCookie(req, 'iso_admin');
+- server.mjs:242: return (!!ADMIN_SECRET && (headerTok === ADMIN_SECRET || queryTok === ADMIN_SECRET)) || cookieTok === adminCookieValue();
+- server.mjs:245: function readCookie(req, name) {
+- server.mjs:246: const raw = req.headers.cookie || '';
+- server.mjs:255: function adminCookieValue() {
+- server.mjs:256: if (!ADMIN_COOKIE_SECRET) return '';
+- server.mjs:257: return 'v1.' + crypto.createHmac('sha256', ADMIN_COOKIE_SECRET).update('isotope-admin-cookie').digest('hex');
+- server.mjs:355: res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Isotope Admin Login</title><style>body{font-family:system-ui;background:#0a0a0a;color:#eee;margin:0;padding:32px}.box{max-width:500px;margin:8vh auto;background:#111;border:1px solid #333;border-
+- server.mjs:467: for (var i = 0; i < localStorage.length; i++) {
+- server.mjs:468: var lk = localStorage.key(i);
+- server.mjs:471: keys.forEach(function(k) { try { localStorage.removeItem(k); } catch(e) {} });
+- server.mjs:476: // ── localStorage write interceptor ────────────────────────────────────────
+- server.mjs:478: // key to localStorage — regardless of key name, nesting depth, or format.
+- server.mjs:509: for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+- server.mjs:513: var raw = localStorage.getItem(k);
+- server.mjs:520: localStorage.setItem('isotope-last-jwt', at);
+- server.mjs:521: localStorage.setItem('isotope-last-session-raw', raw);
+- server.mjs:522: if (rt) localStorage.setItem('isotope-last-rt', rt);
+- server.mjs:534: localStorage.setItem('sb-' + SUPA_REF + '-auth-token', s);  // Supabase JS v2 standard key
+- server.mjs:535: localStorage.setItem('isotope-auth-token', s);               // restore-and-launch.js legacy key
+- server.mjs:536: localStorage.setItem('isotope-last-jwt', session.access_token);
+- server.mjs:537: if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
+- server.mjs:538: localStorage.setItem('isotope-last-session-raw', s);
+- server.mjs:549: var raw = SUPA_REF ? localStorage.getItem('sb-' + SUPA_REF + '-auth-token') : null;
+- server.mjs:551: if (!raw) raw = localStorage.getItem('isotope-auth-token');
+- server.mjs:553: if (!raw) raw = localStorage.getItem('isotope-last-session-raw');
+- server.mjs:556: for (var i = 0; i < localStorage.length; i++) {
+- server.mjs:557: var lk = localStorage.key(i);
+- server.mjs:558: if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) { raw = localStorage.getItem(lk); break; }
+- server.mjs:567: var raw = SUPA_REF ? localStorage.getItem('sb-' + SUPA_REF + '-auth-token') : null;
+- server.mjs:571: raw = localStorage.getItem('isotope-auth-token');
+- server.mjs:575: raw = localStorage.getItem('isotope-last-session-raw');
+- server.mjs:578: // 4. Scan ALL localStorage for any sb-*-auth-token key
+- server.mjs:579: for (var i = 0; i < localStorage.length; i++) {
+- server.mjs:580: var lk = localStorage.key(i);
+- server.mjs:583: raw = localStorage.getItem(lk);
+- server.mjs:589: var captured = localStorage.getItem('isotope-last-jwt');
+- server.mjs:598: var captured = localStorage.getItem('isotope-last-rt');
+- server.mjs:605: var raw = localStorage.getItem(sources[i]);
+- server.mjs:612: // 3. Scan all localStorage
+- server.mjs:613: for (var j = 0; j < localStorage.length; j++) {
+- server.mjs:614: var lk = localStorage.key(j);
+- server.mjs:616: var raw2 = localStorage.getItem(lk);
+- server.mjs:681: var cur = JSON.parse(localStorage.getItem('isotope_sync_metadata') || '{}') || {};
+- server.mjs:682: localStorage.setItem('isotope_sync_metadata', JSON.stringify(Object.assign({}, cur, patch || {})));
+- server.mjs:687: try { return JSON.parse(localStorage.getItem('isotope_sync_metadata') || '{}') || {}; } catch(e) { return {}; }
+- server.mjs:836: try { history = JSON.parse(localStorage.getItem('isotope_sync_history') || '[]') || []; } catch(e) {}
+- server.mjs:851: localStorage.setItem('isotope_sync_history', JSON.stringify(history));
+- server.mjs:858: try { return JSON.parse(localStorage.getItem('isotope_sync_history') || '[]') || []; } catch(e) { return []; }
+- server.mjs:861: try { return JSON.parse(localStorage.getItem('isotope_sync_metadata') || '{}') || {}; } catch(e) { return {}; }
+- server.mjs:870: localStorage.setItem('isotope_cloud_snapshot_' + userId, JSON.stringify(snapshot));
+- server.mjs:871: localStorage.setItem('isotope_last_cloud_snapshot_user', JSON.stringify({ user_id: userId, downloaded_at: snapshot.downloaded_at }));
+- server.mjs:1442: var cur = JSON.parse(localStorage.getItem(key) || '{}');
+- server.mjs:1446: localStorage.setItem(key, JSON.stringify(cur));
+- server.mjs:1449: localStorage.setItem(key, JSON.stringify(Object.assign({}, cur || {}, patch || {})));
+- server.mjs:1492: localStorage.setItem('isotope-onboarding', JSON.stringify({
+- server.mjs:1502: localStorage.setItem('isotope-user-tours', JSON.stringify(tours));
+- server.mjs:1509: localStorage.setItem('isotope-user-sync', JSON.stringify({
+- server.mjs:1540: localStorage.setItem('isotope-bootstrap-cache', JSON.stringify({
+- server.mjs:1558: localStorage.setItem('isotope-bootstrap-cache', JSON.stringify({
+- server.mjs:1570: try { cached = JSON.parse(localStorage.getItem('isotope-bootstrap-cache') || 'null'); } catch(e) {}
+- server.mjs:1579: try { offlineCache = JSON.parse(localStorage.getItem('isotope-bootstrap-cache') || 'null'); } catch(e) {}
+- server.mjs:1640: var tours = JSON.parse(localStorage.getItem('isotope-user-tours') || '{}') || {};
+- server.mjs:1643: localStorage.setItem('isotope-user-tours', JSON.stringify(tours));
+- server.mjs:1661: var tours = JSON.parse(localStorage.getItem('isotope-user-tours') || '{}') || {};
+- server.mjs:1665: var ui = JSON.parse(localStorage.getItem('group-ui-preferences') || '{}') || {};
+- server.mjs:1680: var ob = JSON.parse(localStorage.getItem('isotope-onboarding') || '{}');
+- server.mjs:1717: // Reads from isotope_sync_history / isotope_sync_metadata in localStorage.
+- server.mjs:1722: /^(1|true|yes)$/i.test(localStorage.getItem('__iso_dev_panels') || '') ||
+- server.mjs:1737: try { return JSON.parse(localStorage.getItem('isotope_sync_history') || '[]') || []; } catch(e) { return []; }
+- server.mjs:1740: try { return JSON.parse(localStorage.getItem('isotope_sync_metadata') || '{}') || {}; } catch(e) { return {}; }
+- server.mjs:1849: localStorage.setItem('isotope_net_speed', JSON.stringify(_speedCache));
+- server.mjs:2045: // 5 s (gives the app time to fully initialise, load IndexedDB, etc.).
+- server.mjs:2070: // onboarding state instead of potentially-stale localStorage).
+- server.mjs:2113: var raw = SUPA_REF ? localStorage.getItem('sb-' + SUPA_REF + '-auth-token') : null;
+- server.mjs:2115: raw = localStorage.getItem('isotope-auth-token');
+- server.mjs:2117: raw = localStorage.getItem('isotope-last-session-raw');
+- server.mjs:2119: for (var i = 0; i < localStorage.length; i++) {
+- src/components/ui/sidebar.tsx:28: const SIDEBAR_COOKIE_NAME = "sidebar_state"
+- src/components/ui/sidebar.tsx:29: const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
+- src/components/ui/sidebar.tsx:85: // This sets the cookie to keep the sidebar state.
+- src/components/ui/sidebar.tsx:86: document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`

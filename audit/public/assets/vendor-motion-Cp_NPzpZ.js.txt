@@ -1,0 +1,662 @@
+FILE IDENTITY
+
+- original path: public/assets/vendor-motion-Cp_NPzpZ.js
+- audit path: audit/public/assets/vendor-motion-Cp_NPzpZ.js.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: code
+- MIME type: text/javascript
+- size in bytes: 181300
+- SHA-256: 419408013cb84b27f418ddbec9df60948782a618873c2fab568d2a47b8f3e590
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: generated/built artifact
+- primary subsystem: compiled frontend bundle
+- primary auditor: compiled-frontend-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+
+ROLE IN THE APPLICATION
+
+- subsystem: compiled frontend bundle
+- runtime stage: browser/runtime or static serving
+- user-visible feature: indirect or internal
+- whether it is active: active or bundle-referenced
+- whether it is generated: generated/built artifact
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- artifacts/asset-diff/asset-report.json:3628 - "file": "vendor-motion-Cp_NPzpZ.js",
+- artifacts/asset-diff/asset-report.json:3631 - "remote_url": "https://isotopeai.in/assets/vendor-motion-Cp_NPzpZ.js",
+- artifacts/asset-diff/local-assets.txt:202 - vendor-motion-Cp_NPzpZ.js
+- artifacts/asset-diff/summary.md:26 - | vendor-motion-Cp_NPzpZ.js | 181300 | 119047 | 200 |
+- public/assets/AIAnalysisCard-qrpOk1g6.js:18 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/AIAssistant--spCOe6W.js:23 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/AIWeeklySummary-fVbvFqu3.js:1 - import{j as s}from"./vendor-react-BfU3Zn2J.js";import{A as E}from"./AIAnalysisCard-qrpOk1g6.js";import{u as f,f as z}from"./useAIStore-B2cv1FZz.js";import{h as C,j as _,f as q,e as p}from"./useFocusStore-CX_Nyp1h.js";import{h as P}from"./Ap
+- public/assets/About-DbJqhVWT.js:1 - import{j as e,f as x}from"./vendor-react-BfU3Zn2J.js";import{N as m,F as p}from"./Navbar-BJMJUymI.js";import{m as s}from"./vendor-motion-Cp_NPzpZ.js";import{S as u,k as g,l as b,m as y,L as f,n as w,f as k,U as j,o as v,p as N,T as z,q as I
+- public/assets/Analytics-D74gQMjN.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJFSVW.js","assets/index-CrO6t5EW.css","assets/App-pJGjDiPw.js
+- public/assets/Analytics-D74gQMjN.js:2 - import{_ as Ie}from"./index-BPYJFSVW.js";import{r as A,j as o,f as fa}from"./vendor-react-BfU3Zn2J.js";import{S as nn,D as rn}from"./DashboardHeader-DNuRMna8.js";import{g as te,q as _e,p as pt,j as on,h as sn,u as cn,k as ln,c as dn,d as un
+- public/assets/AnalyticsPeriod-CGXbfYQB.js:1 - import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{A as ae,C as T,X as $,Y as W,T as A,L as X,a as Z,P as pe,c 
+- public/assets/AnalyticsSubjects-DOh8aXlW.js:1 - import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T}from"./timeFormat-CMPo-BX2.js";import{B as D,a as f,T as v,
+- public/assets/AnalyticsTasks-DOfUf9Sd.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{S as x}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as L}from"./useChartAnimation-C6FTIqbw.js";import{A as $,C as u,X as j,Y as g,T as m,a as K,B as N,L as k,b as v,P as B,c as D
+- public/assets/AnalyticsToday-BTdRNTb0.js:1 - import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";import{S as V}from"./SafeResponsiveContainer-D7o6DE97.js";impor
+- public/assets/App-pJGjDiPw.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/Navbar-BJMJUymI.js", "assets/vendor-icons
+- public/assets/App-pJGjDiPw.js:16 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/AppAccessGate-B975UtK7.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-C
+- public/assets/Auth-Cw0VAaCZ.js:18 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/ChallengesHub-C50y_K_l.js:1 - import{r as o,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as k,a as C}from"./useGroupChallenges-N8BLPr3m.js";import{u as _}from"./App-pJGjDiPw.js";import{E as T}from"./EnhancedChallengeCard-BKErZxiW.js";import{at as A,T as g,Z as j,x a
+- public/assets/ChapterHub-BXRydU0B.js:1 - import{j as e,r as s,f as Re,b as hs}from"./vendor-react-BfU3Zn2J.js";import{c as ye}from"./utils-D8mZnxMk.js";import{I as zt}from"./IsotopeLogoIcon-oPk5Ru-_.js";import{u as xe,h as de,j as Be,k as lt}from"./useFocusStore-CX_Nyp1h.js";impor
+- public/assets/Community-DIqF5406.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-query-Rjz85D0S.js","assets/App-pJGjDiPw.js","
+- public/assets/Community-DIqF5406.js:2 - import{_ as s}from"./index-BPYJFSVW.js";import{j as e,f as _,r as t}from"./vendor-react-BfU3Zn2J.js";import{c as w}from"./App-pJGjDiPw.js";import{S as N,D as k}from"./DashboardHeader-DNuRMna8.js";import{m as o,A as E}from"./vendor-motion-Cp
+- public/assets/CommunityHub-gANxZssO.js:1 - const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/sessionSync-mloIEnTd.js","assets/App-pJGjDiPw.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css","assets/vendor-supabase-DAiUAuun.js"
+- public/assets/CommunityHub-gANxZssO.js:2 - import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s as k}from"./App-pJGjDiPw.js";import{a as ae,f as G}from"./t
+- public/assets/CompletionCelebration-ngx4eqoP.js:1 - import{r as a,j as e}from"./vendor-react-BfU3Zn2J.js";import{h as n}from"./App-pJGjDiPw.js";import{u as c}from"./Onboarding-qvAqCBbb.js";import{f as o,Z as d,T as l,l as x,r as m}from"./vendor-icons-CqruUz7g.js";import{u as b}from"./vendor-
+- public/assets/Dashboard-dypAV-0H.js:79 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/DashboardHeader-DNuRMna8.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/ToolsModal-BMUG81iV.js", "assets/vendor-react-BfU3Zn2J.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index-CrO6t5EW.css", "assets/vendor-supab
+- public/assets/DashboardHeader-DNuRMna8.js:41 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/DemoLauncher-CdcwMBr6.js:1 - import{r as t,j as e}from"./vendor-react-BfU3Zn2J.js";import{b as r,r as s}from"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUAuun.js";import"./vendor-motion-Cp_NPzpZ.js";import"./vendor-icons-CqruUz7g.js";impo
+- public/assets/EnhancedChallengeCard-BKErZxiW.js:1 - import{r as h,j as e}from"./vendor-react-BfU3Zn2J.js";import{T as L,aj as U,a as S,am as v,F as N,aG as C,x as z,U as k,by as P,bz as T,Z as D,S as O,aW as j,h as B,bw as G,aw as I,at as _,aC as Y,f as A}from"./vendor-icons-CqruUz7g.js";imp
+- public/assets/EventsCalendar-COHF8nOK.js:1 - import{r,j as e}from"./vendor-react-BfU3Zn2J.js";import{m as i}from"./vendor-motion-Cp_NPzpZ.js";import{j as h,P as p,w as o,am as b,U as l,C as g,aF as f,a as u}from"./vendor-icons-CqruUz7g.js";const k=({onNavigate:d})=>{const[w,j]=r.useSt
+- public/assets/ExamCreateEditModal-BdlzfeFO.js:33 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/ExamDetailPage-q_jDT5_x.js:1 - import{r as p,j as e,f as Nt}from"./vendor-react-BfU3Zn2J.js";import{c as R}from"./utils-D8mZnxMk.js";import{c as Ne}from"./useAIStore-B2cv1FZz.js";import{u as Pe,p as X}from"./useFocusStore-CX_Nyp1h.js";import{a as yt,b as dt,T as xt,S as 
+- public/assets/ExamPrimitives-K6hgnm_l.js:12 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/ExamTemplateSelectorModal-DsEPEF5X.js:16 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Exams-C3jymPwe.js:76 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/FAQ-DuTZR-ip.js:17 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/FeaturesSection-DQ9ZRk3R.js:8 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Focus-BmgY-9vP.js:17 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/FocusStore-D5cRXSIr.js:1 - import{j as e,r as v}from"./vendor-react-BfU3Zn2J.js";import{u as _,a as q,b as C}from"./vendor-query-Rjz85D0S.js";import{u as N,s as c}from"./App-pJGjDiPw.js";import{m as b}from"./vendor-motion-Cp_NPzpZ.js";import{S as P,r as z,w as f,d as
+- public/assets/GlobalPresenceBroadcaster-C5JADiwL.js:1 - import{f as u}from"./vendor-react-BfU3Zn2J.js";import{u as C,h as F}from"./App-pJGjDiPw.js";import{h as P,u as w}from"./useFocusStore-CX_Nyp1h.js";import{b as E}from"./useGroups-vEjDKzZY.js";import{u as O}from"./useGroupPresence-BmkfUzH6.js
+- public/assets/GlobalQuickActionsModals-BIoAwrDz.js:15 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/GlobalTimer-DUR6TMoR.js:10 - import "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/GroupChat-j6zM76h9.js:34 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/GroupDiscovery-DUcFr2JQ.js:1 - import{j as e,r as a}from"./vendor-react-BfU3Zn2J.js";import{u as I,a as L,b as M,c as T}from"./useGroups-vEjDKzZY.js";import{P as $}from"./PremiumGate-CX1zS69D.js";import{G as J}from"./GroupInviteGenerator-B-iMSSXc.js";import{w as R,x as U
+- public/assets/GroupInviteGenerator-B-iMSSXc.js:1 - import{r as v,j as e}from"./vendor-react-BfU3Zn2J.js";import{b as T,c as E,d as L}from"./useInvites-D9RLFwf8.js";import{bW as D,P as U,aa as X,d as M,h as A,U as O,a as F,ap as R,ab as Y}from"./vendor-icons-CqruUz7g.js";import{A as G,m as P
+- public/assets/HeadwayUpdatesButton-DUh668tJ.js:25 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/HowItWorks-BS-VN8qB.js:13 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/InviteOnlineOnlyRoute-CZgdOWgx.js:1 - import{r as u,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as C}from"./useOnlineStatus-BJOTUERN.js";import{Q as H}from"./QueryProvider-DusNhG9D.js";import{c as y,u as A,H as j,I as S,j as N}from"./App-pJGjDiPw.js";import{u as T,a as Z}f
+- public/assets/IsotopeWrapped2-B4zl9ERi.js:1 - import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{X as q,aK as ne,C as v,S as E,Z as H,b3 as ie,aC as M,a as A,at as P,T as Y,K as I,B as ae,M as F,aX as z,aG as W,a$ as re,b0 as oe,cW as ce,b1 as le,am as de,l as G,J as ue,d as 
+- public/assets/Landing-CWRNt7E9.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/FAQ-DuTZR-ip.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useSupportModalStore-BkYsnKtG.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/index
+- public/assets/Landing-CWRNt7E9.js:25 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Leaderboard-BkEBFdG7.js:1 - import{j as e,r as y}from"./vendor-react-BfU3Zn2J.js";import{d as $}from"./vendor-query-Rjz85D0S.js";import{a as L,u as R}from"./useLeaderboard-BpvH5FXA.js";import{c as z,u as S}from"./App-pJGjDiPw.js";import{P as I}from"./PremiumGate-CX1zS
+- public/assets/MarkdownRenderer-CIV1x0Uq.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/MarkdownRendererContent-DBrMkHal.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-katex-BSXZKQS3.js"
+- public/assets/MarkdownRendererContent-DBrMkHal.js:2 - import{_ as k}from"./index-BPYJFSVW.js";import{r as i,j as t,f as b}from"./vendor-react-BfU3Zn2J.js";import"./vendor-katex-BSXZKQS3.js";import{n as y}from"./App-pJGjDiPw.js";import{r as N,a as z,b as v,M as $}from"./vendor-markdown-core-Pkt
+- public/assets/MemberProfile-D-l2e-2X.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as w}from"./vendor-query-Rjz85D0S.js";import{u as p,V as N,s as h,t as y,W as S,A as _}from"./App-pJGjDiPw.js";import{f as A}from"./timeFormat-CMPo-BX2.js";import{k as P,ag as U,b as T
+- public/assets/Navbar-BJMJUymI.js:28 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/NotFound-X23NBnde.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as o}from"./PageLayout-B8yOy6kS.js";import{j as i,H as s}from"./vendor-icons-CqruUz7g.js";import{L as a}from"./vendor-router-CmoTwRnm.js";import"./Navbar-BJMJUymI.js";import"./App-pJGj
+- public/assets/Onboarding-qvAqCBbb.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Step1Identity-BZBwnoJ8.js", "assets/vendor-react-BfU3Zn2J.js", "assets/OnboardingNavigation-C6kIq5HV.js", "assets/vendor-icons-CqruUz7g.js", "assets/App-pJGjDiPw.j
+- public/assets/PWAManager-DjIYufp2.js:28 - import "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/PremiumGate-CX1zS69D.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as x}from"./App-pJGjDiPw.js";import{S as h}from"./SupportMessage-BE7j-Ezd.js";import{m as a}from"./vendor-motion-Cp_NPzpZ.js";import{x as o,S as d,r as m,w as c,y as b,f as p,Z as g}fr
+- public/assets/Pricing-D9PNd5BR.js:13 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Privacy-ClP3A1gm.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUA
+- public/assets/QuestionMasterCard-DVOBGNnl.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{L as k}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{m as d}from"./vendor-motion-Cp_NPzpZ.js";import{at as N}from"./vendor-icons-CqruUz7g.js";const C=({solved:i,target:l,accuracy:
+- public/assets/QuickActionsMenu-ojdsCiqG.js:17 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/QuickChatMenu-BUr6NG9I.js:23 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/RealAnalyticsOverview-bpioXKtW.js:1 - import{j as t}from"./vendor-react-BfU3Zn2J.js";import{g as E,h as me,j as ue,u as xe,f as he}from"./useFocusStore-CX_Nyp1h.js";import{t as fe,a as be}from"./subjectBranding-DaDo_h8r.js";import{h as ge}from"./App-pJGjDiPw.js";import{S as L}f
+- public/assets/ResetPassword-mBBJZV4T.js:1 - import{r as n,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as z,i as k,s as S,a as w}from"./App-pJGjDiPw.js";import{A as C,f as P,g as R,h as A,X as L,i as b}from"./vendor-icons-CqruUz7g.js";import{u as _,L as m}from"./vendor-router-Cmo
+- public/assets/SessionEditModal-CNi_rT0l.js:60 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/SessionLogTable-CclRAAwc.js:1 - import{r as m,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as ie,g as w}from"./useFocusStore-CX_Nyp1h.js";import{u as C}from"./useAIStore-B2cv1FZz.js";import{c as oe,h as ce,O as v,g as le}from"./App-pJGjDiPw.js";import{S as de}from"./S
+- public/assets/SettingsLayout-B4OgCkQ5.js:170 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/SharedAnalyticsComponents-DMxLJbRk.js:1 - import{j as e,f as b}from"./vendor-react-BfU3Zn2J.js";import{c as f}from"./utils-D8mZnxMk.js";import{u as P}from"./Analytics-D74gQMjN.js";import{aq as I,ar as L,as as $,M as S,P as A,I as E}from"./vendor-icons-CqruUz7g.js";import{m}from"./v
+- public/assets/SingleGroup-DU1IhoNK.js:1 - import{f as ge,j as e,r as g}from"./vendor-react-BfU3Zn2J.js";import{d as Ft,e as qt,a as Bt,f as Ht,g as Kt}from"./useGroups-vEjDKzZY.js";import{u as we,a as Ce,b as Se,d as Vt}from"./vendor-query-Rjz85D0S.js";import{u as q,j as R,s as j,o
+- public/assets/Step1Identity-BZBwnoJ8.js:26 - import "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Step2Academic-BUGsFsTy.js:1 - import{r as m,j as t}from"./vendor-react-BfU3Zn2J.js";import{u as E}from"./Onboarding-qvAqCBbb.js";import{O as z}from"./OnboardingNavigation-C6kIq5HV.js";import{C as u}from"./ChipMultiSelect-BU74OOip.js";import{S as C}from"./SubjectCreateMo
+- public/assets/Step3StudyGoals-CQ0yWK1r.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u}from"./Onboarding-qvAqCBbb.js";import{O as x}from"./OnboardingNavigation-C6kIq5HV.js";import{R as h}from"./RadioCard-BtzZXn6i.js";import{aj as p,bh as b,bi as g}from"./vendor-icons-Cqr
+- public/assets/Step4Preferences-D6oDNUqn.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as d}from"./Onboarding-qvAqCBbb.js";import{O as m}from"./OnboardingNavigation-C6kIq5HV.js";import{R as u}from"./RadioCard-BtzZXn6i.js";import{C as x}from"./ChipMultiSelect-BU74OOip.js"
+- public/assets/Step5Community-BvHWgTaf.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{u as a}from"./Onboarding-qvAqCBbb.js";import{O as c}from"./OnboardingNavigation-C6kIq5HV.js";import{R as d}from"./RadioCard-BtzZXn6i.js";import{aH as l,U as u,aI as m,aJ as p}from"./vend
+- public/assets/Step6Personalization-CNdBQkFI.js:1 - import{j as e,r as c}from"./vendor-react-BfU3Zn2J.js";import{u as x}from"./Onboarding-qvAqCBbb.js";import{O as b}from"./OnboardingNavigation-C6kIq5HV.js";import{T as m}from"./Toggle-D54hkegy.js";import{Q as p,R as h,T as u}from"./App-pJGjDi
+- public/assets/Story-TXs13Cjc.js:9 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Study-pAdAenIl.js:33 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/SubjectCreateModal-DhD_Cwbk.js:19 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Subscription-UaefsAtQ.js:18 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/SupportMessage-BE7j-Ezd.js:9 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/SupportPromptDialog-Bkl24oin.js:16 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Syllabus-DZSnov0t.js:19 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/SyncListener-BMsBLWig.js:20 - import "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/TaskCardModal-DZvd1GWt.js:27 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Tasks-BYRFOrek.js:42 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/Terms-BXixZPB6.js:1 - import{j as e}from"./vendor-react-BfU3Zn2J.js";import{P as r}from"./PageLayout-B8yOy6kS.js";import"./Navbar-BJMJUymI.js";import"./vendor-icons-CqruUz7g.js";import"./App-pJGjDiPw.js";import"./index-BPYJFSVW.js";import"./vendor-supabase-DAiUA
+- public/assets/ToolsModal-BMUG81iV.js:23 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/WelcomeTeaser-B96rmBi8.js:11 - } from "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/bootstrap-D1vc155U.js:32 - import "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/index-B45N-99N.js:22 - import "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/index-BPYJFSVW.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/vendor-sentry-VzeXdCeF.js", "assets/vendor-react-BfU3Zn2J.js", "assets/App-pJGjDiPw.js", "assets/vendor-supabase-DAiUAuun.js", "assets/vendor-motion-Cp_NPzpZ.js", 
+- public/assets/messaging-BP0KfJxy.js:7 - import "./vendor-motion-Cp_NPzpZ.js";
+- public/assets/sessionSync-mloIEnTd.js:1 - import{J as S,K as E,L as d,M as l,u as A,i as D,s as p,m as y,N as m,k as g}from"./App-pJGjDiPw.js";import{a as n}from"./QueryProvider-DusNhG9D.js";import{G as u,C as c}from"./groupCache-DVHvdGlY.js";import"./index-BPYJFSVW.js";import"./ve
+- public/assets/useFocusStore-CX_Nyp1h.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/sessionSync-mloIEnTd.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-supa
+- public/assets/useNotificationStore-BS4df28T.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/messaging-BP0KfJxy.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-supaba
+- public/assets/useSyncStore-vWs_TdIc.js:1 - const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/index-B45N-99N.js", "assets/App-pJGjDiPw.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6t5EW.css", "assets/vendor-supabase-D
+- public/assets/vendor-motion-BrCE_pwp.js:1 - export * from './vendor-motion-Cp_NPzpZ.js';
+
+INTERNAL STRUCTURE
+
+- line count: 5844
+- imports:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 2362: Ii(require("@emotion/is-prop-valid").default)
+- exports:
+- 5842: export {
+- functions/async flows:
+- 7: function tt(t) {
+- 15: function $e(t, e) {
+- 19: function Ge(t, e) {
+- 24: function wr([...t], e, n) {
+- 26: if (s >= 0 && s < t.length) {
+- 34: let He = () => {};
+- 38: function Ws(t) {
+- 43: function ze(t) {
+- 50: Rt = (t, e, n) => {
+- 55: constructor() {
+- 58: add(e) {
+- 61: notify(e, n, s) {
+- 66: for (let o = 0; o < i; o++) {
+- 71: getSize() {
+- 74: clear() {
+- 81: function Gs(t, e) {
+- 88: function Dr(t, e, n, s, i) {
+- 94: function jt(t, e, n, s) {
+- 127: An = t => {
+- 137: function Ir(t, e) {
+- 149: function l(u) {
+- 153: schedule: (u, h = !1, f = !1) => {
+- 157: cancel: u => {
+- 160: process: u => {
+- 161: if (a = u, i) {
+- 172: function ei(t, e) {
+- 192: g = () => {
+- 196: v = () => {
+- 200: schedule: Ut.reduce((x, A) => {
+- 204: cancel: x => {
+- 219: function jr() {
+- 224: set: t => {
+- 247: function Ur(t) {
+- 252: si = (t, e, n) => s => {
+- 277: function $r(t) {
+- 322: getAnimatableNone: t => {
+- 329: function _r(t) {
+- 339: function Lt(t) {
+- 358: function oi(t) {
+- 362: function ai(t) {
+- 367: return i => {
+- 370: if (o += e[r], i[r] !== void 0) {
+- 379: function Jr(t) {
+- 390: function oe(t, e, n) {
+- 394: function Qr({
+- 418: function Xt(t, e) {
+- 422: ae = (t, e, n) => {
+- 430: function Cn(t) {
+- 436: const Mn = (t, e) => {
+- 446: function no(t, e) {
+- 450: function so(t, e) {
+- 454: function tn(t) {
+- 458: function li(t, e) {
+- 462: return o => {
+- 468: function io(t, e) {
+- 474: return i => {
+- 480: function ro(t, e) {
+- 487: for (let i = 0; i < e.values.length; i++) {
+- 495: const oo = (t, e) => {
+- 502: function ui(t, e, n) {
+- 505: const ao = t => {
+- 515: ci = (t, e, n = 10) => {
+- 523: function en(t) {
+- 531: function lo(t, e = 100, n) {
+- 544: function hi(t, e, n) {
+- 571: function co({
+- 578: r = X(D.minDamping, D.maxDamping, r), t = X(D.minDuration, D.maxDuration, $(t)), r < 1 ? (i = c => {
+- 585: }, o = c => {
+- 592: }) : (i = c => {
+- 596: }, o = c => {
+- 618: function fo(t, e, n) {
+- 624: function Pe(t, e) {
+- 630: function Dn(t, e) {
+- 634: function go(t) {
+- 644: if (t.visualDuration) {
+- 664: function qt(t = D.visualDuration, e = D.bounce) {
+- 697: if (g < 1) {
+- 699: x = w => {
+- 706: x = w => {
+- 714: next: P => {
+- classes:
+- 54: class _e {
+- 891: class sn {
+- 911: class te extends sn {
+- 1218: class rn {
+- 1334: class Ko extends sn {
+- 1435: class Go extends Ko {
+- 1501: class Zo extends sn {
+- 1756: class ua extends rn {
+- 1839: class fa {
+- 2130: class Va extends p.Component {
+- 3060: class ml {
+- 3233: class Ji extends ml {
+- 3274: class gl extends Ji {
+- 3303: class vl extends Ji {
+- 3755: class et {
+- 3761: class Kl extends et {
+- 3787: class $l extends et {
+- 3894: class ur {
+- 4091: class lu {
+- 4409: class cu extends et {
+- 4426: class hu extends et {
+- 4499: class du extends p.Component {
+- 4583: class yu {
+- 4697: class Cu {
+- 5497: class Xu extends et {
+- 5506: class Yu extends et {
+- 5537: class qu extends et {
+- 5584: class nc extends et {
+- constants/mutable state candidates:
+- 5: const Ue = p.createContext({});
+- 8: const e = p.useRef(null);
+- 11: const Ke = typeof window < "u",
+- 20: const n = t.indexOf(e);
+- 25: const s = e < 0 ? t.length + e : e;
+- 27: const i = n < 0 ? t.length + n : n,
+- 33: const X = (t, e, n) => n > e ? e : n < t ? t : n;
+- 34: let He = () => {};
+- 35: const Y = {},
+- 41: const $s = t => /^0[^.\s]+$/u.test(t);
+- 44: let e;
+- 47: const G = t => t,
+- 51: const s = e - t;
+- 62: const i = this.subscriptions.length;
+- 67: const r = this.subscriptions[o];
+- 78: const z = t => t * 1e3,
+- 84: const Hs = (t, e, n) => (((1 - 3 * n + 3 * e) * t + (3 * n - 6 * e)) * t + 3 * e) * t,
+- 89: let o, r, a = 0;
+- 96: const i = o => Dr(o, 0, 1, t, n);
+- 99: const zs = t => e => e <= .5 ? t(2 * e) / 2 : (2 - t(2 * (1 - e))) / 2,
+- 138: let n = new Set,
+- 142: const r = new WeakSet;
+- 143: let a = {
+- 152: const c = {
+- 154: const m = f && i ? n : s;
+- 170: const Br = 40;
+- 173: let n = !1,
+- 175: const i = {
+- 193: const x = Y.useManualTiming ? i.timestamp : performance.now();
+- 201: const P = r[A];
+- 217: let Gt;
+- 222: const O = {
+- 250: const Kr = /^(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\((?:-?[\d.]+%?[,\s]+){2}-?[\d.]+%?\s*(?:[,/]\s*)?(?:\b\d+(?:\.\d+)?|\.\d+)?%?\))$/iu,
+- 278: let e = "",
+- 289: const xe = {
+- 323: const e = L.parse(t);
+- 332: const ii = "number",
+- 340: const e = t.toString(),
+- 348: let o = 0;
+- 349: const a = e.replace(qr, l => (L.test(l) ? (s.color.push(o), i.push(ri), n.push(L.parse(l))) : l.startsWith(Yr) ? (s.var.push(o), i.push(Xr), n.push(l)) : (s.number.push(o), i.push(ii), n.push(parseFloat(l))), ++o, Vn)).s
+- 368: let o = "";
+- 371: const a = n[r];
+- 377: const Zr = t => typeof t == "number" ? 0 : L.test(t) ? L.getAnimatableNone(t) : t;
+- 380: const e = oi(t);
+- 383: const Q = {
+- 401: let i = 0,
+- 406: const a = n < .5 ? n * (1 + e) : n + e - n * e,
+- 421: const M = (t, e, n) => t + (e - t) * n,
+- 423: const s = t * t,
+- 431: const e = eo(t);
+- 433: let n = e.parse(t);
+- 436: const Mn = (t, e) => {
+- 437: const n = Cn(t),
+- 440: const i = { ...n
+- 459: const n = [...t],
+- 469: const n = { ...t,
+- 481: const n = [],
+- 488: const o = e.types[i],
+- 495: const oo = (t, e) => {
+- 496: const n = Q.createTransformer(e),
+- 505: const ao = t => {
+- 506: const e = ({
+- 516: let s = "";
+- 517: const i = Math.max(Math.round(e / n), 2);
+- 524: let e = 0;
+- 525: const n = 50;
+- 526: let s = t.next(e);
+- 532: const s = n({ ...t,
+- 542: const uo = 5;
+- 545: const s = Math.max(e - uo, 0);
+- 548: const D = {
+- 577: let i, o, r = 1 - e;
+- 579: const u = c * r,
+- 586: const h = c * r * t,
+- 593: const u = Math.exp(-c * t),
+- 597: const u = Math.exp(-c * t),
+- 601: const a = 5 / t,
+- 608: const c = Math.pow(l, 2) * s;
+- 616: const ho = 12;
+- 619: let s = n;
+- handlers/lifecycle candidates:
+- 1969: l.addEventListener("pointerleave", u, i)
+- 1972: a.addEventListener("pointerenter", r, i)
+- 2006: n.addEventListener("keyup", i, e), n.addEventListener("blur", o, e)
+- 2008: n.addEventListener("keydown", s, e), n.addEventListener("blur", () => n.removeEventListener("keydown", s), e)
+- 2032: window.addEventListener("pointerup", h, i), window.addEventListener("pointercancel", f, i)
+- 2035: (n.useGlobalTarget ? window : a).addEventListener("pointerdown", r, i), Ci(a) && (a.addEventListener("focus", c => ya(c, i)), !ga(a) && !a.hasAttribute("tabindex") && (a.tabIndex = 0))
+- 3032: t.addEventListener("change", e), e()
+- 3826: return t.addEventListener(e, n, s), () => t.removeEventListener(e, n)
+- 4364: o = i.addEventListener("measure", s);
+- 4367: a = i.addEventListener("didUpdate", (({
+- 4509: Ia(mu), o && (n.group && n.group.add(o), s && s.register && i && s.register(o), me && o.root.didUpdate(), o.addEventListener("animationComplete", () => {
+- 4823: addEventListener(r, a) {
+- 4851: a && this.root.registerSharedNode(a, this), this.options.animate !== !1 && c && (a || l) && this.addEventListener("didUpdate", ({
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- BUTTON: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-motion-Cp_NPzpZ.js:1, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/vendor-motion-Cp_NPzpZ.js:1977, public/assets/vendor-sentry-VzeXdCeF.js:15788
+- INPUT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-motion-Cp_NPzpZ.js:1, artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js:49, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:496, public/assets/ChapterHub-BXRydU0B.js:42, public/assets/Focus-BmgY-9vP.js:937, public/assets/Tasks-BYRFOrek.js:4462, public/assets/index-qd2KF3Jd.js:26, public/assets/vendor-motion-Cp_NPzpZ.js:1977, public/assets/vendor-react-BfU3Zn2J.js:8520
+- SELECT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:98, .github/workflows/schema-lint.yml:100, .github/workflows/schema-lint.yml:102, .github/workflows/schema-lint.yml:177, .github/workflows/schema-lint.yml:185, ADMIN.md:488, CHANGELOG.md:177, CHANGELOG.md:196, CHANGELOG.md:231, CHANGELOG.md:269, CHANGELOG.md:270, CHANGELOG.md:274
+- TEXTAREA: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-motion-Cp_NPzpZ.js:1, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:490, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:493, artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js:495, public/assets/ChapterHub-BXRydU0B.js:42, public/assets/Focus-BmgY-9vP.js:937, public/assets/Tasks-BYRFOrek.js:4462, public/assets/vendor-motion-Cp_NPzpZ.js:1977, public/assets/vendor-sentry-VzeXdCeF.js:11077, public/assets/vendor-sentry-VzeXdCeF.js:13143, public/assets/vendor-sentry-VzeXdCeF.js:14365, public/assets/vendor-sentry-VzeXdCeF.js:15943
+- command-line arguments: not directly observed
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: not directly observed
+- database data:
+None observed.
+- network responses:
+None observed.
+- browser storage:
+None observed.
+- user interactions: browser/UI file may react to user actions
+
+OUTPUTS AND SIDE EFFECTS
+
+- 135: Ut = ["setup", "read", "resolveKeyframes", "preUpdate", "update", "preRender", "render", "postRender"];
+- 158: s.delete(u), r.delete(u)
+- 186: preUpdate: u,
+- 187: update: h,
+- 510: start: (n = !0) => C.update(e, n),
+- 893: this.updateFinished()
+- 898: updateFinished() {
+- 917: n && n.updatedAt !== O.now() && this.tick(O.now()), this.isStopped = !0, this.state !== "idle" && (this.teardown(), this.options.onStop ?.())
+- 949: updateTime(e) {
+- 970: onUpdate: g,
+- 973: this.speed > 0 ? this.startTime = Math.min(this.startTime, e) : this.speed < 0 && (this.startTime = Math.min(e - i / this.speed, this.startTime)), n ? this.currentTime = e : this.updateTime(e);
+- 1019: this.updateTime(O.now());
+- 1031: this.state === "finished" ? (this.updateFinished(), this.startTime = s) : this.holdTime !== null ? this.startTime = s - this.holdTime : this.startTime || (this.startTime = n ?? s), this.state === "finished" && this.speed < 0 && (this.startTime += this.calculat
+- 1034: this.state = "paused", this.updateTime(O.now()), this.holdTime = this.currentTime
+- 1249: this.state = "complete", this.onComplete(this.unresolvedKeyframes, this.finalKeyframe, e), lt.delete(this)
+- 1252: this.state === "scheduled" && (lt.delete(this), this.state = "pending")
+- 1351: this.updateMotionValue ? this.updateMotionValue(u) : Io(n, s, u), this.animation.cancel()
+- 1357: this.isStopped || (this.animation.play(), this.state === "finished" && this.updateFinished())
+- 1376: e === "idle" || e === "finished" || (this.updateMotionValue ? this.updateMotionValue() : this.commitStyles(), this.isPseudoElement || this.cancel())
+- 1416: return this.allowFlatten && this.animation.effect ?.updateTiming({
+- 1439: updateMotionValue(e) {
+- 1442: onUpdate: s,
+- 1495: onUpdate: l,
+- 1541: onUpdate: u
+- 1607: const e = Jo.exec(t);
+- 1814: s[o] = at[n](e.measureViewportBox(), window.getComputedStyle(e.current)), r !== null && this.finalKeyframe === void 0 && (this.finalKeyframe = r), this.removedTransforms ?.length && this.removedTransforms.forEach(([a, l]) => {
+- 1841: this.canTrackVelocity = null, this.events = {}, this.updateAndNotify = s => {
+- 1843: if (this.updatedAt !== i && this.setPrevFrameValue(), this.prev = this.current, this.setCurrent(s), this.current !== this.prev && (this.events.change ?.notify(this.current), this.dependents))
+- 1848: this.current = e, this.updatedAt = O.now(), this.canTrackVelocity === null && e !== void 0 && (this.canTrackVelocity = ha(this.current))
+- 1851: this.prevFrameValue = e, this.prevUpdatedAt = this.updatedAt
+- 1872: this.passiveEffect ? this.passiveEffect(e, this.updateAndNotify) : this.updateAndNotify(e)
+- 1875: this.set(n), this.prev = void 0, this.prevFrameValue = e, this.prevUpdatedAt = this.updatedAt - s
+- 1878: this.updateAndNotify(e), this.prev = e, this.prevUpdatedAt = this.prevFrameValue = void 0, n && this.stop(), this.stopPassiveEffect && this.stopPassiveEffect()
+- 1886: removeDependent(e) {
+- 1887: this.dependents && this.dependents.delete(e)
+- 1897: if (!this.canTrackVelocity || this.prevFrameValue === void 0 || e - this.updatedAt > Nn) return 0;
+- 1898: const n = Math.min(this.updatedAt - this.prevUpdatedAt, Nn);
+- 1915: delete this.animation
+- 1967: Un(h) && (c(h), l.removeEventListener("pointerleave", u))
+- 1991: t.dispatchEvent(new PointerEvent("pointer" + e, {
+- 2008: n.addEventListener("keydown", s, e), n.addEventListener("blur", () => n.removeEventListener("keydown", s), e)
+- 2022: window.removeEventListener("pointerup", h), window.removeEventListener("pointercancel", f), Ht.has(l) && Ht.delete(l), Wn(d) && typeof c == "function" && c(d, {
+- 2076: onUpdate: r
+- 2131: getSnapshotBeforeUpdate(e) {
+- 2141: componentDidUpdate() {}
+- 2166: return p.useInsertionEffect(() => {
+- 2180: return v.appendChild(g), g.sheet && g.sheet.insertRule(`
+- 2189: v.contains(g) && v.removeChild(g)
+- 2225: register: d => (c.set(d, !1), () => c.delete(d))
+- 2285: f.includes(V) ? g.delete(V) : g.get(V) !== !0 && g.set(V, !1)
+- 2351: const Ea = new Set(["animate", "exit", "variants", "initial", "style", "values", "variants", "transition", "transformTemplate", "custom", "inherit", "onBeforeLayoutMeasure", "onAnimationStart", "onAnimationComplete", "onUpdate", "onDragStart", "onDrag", "onDra
+- 2571: h.transform && (f.transform = h.transform, delete h.transform), (f.transform || h.transformOrigin) && (f.transformOrigin = h.transformOrigin ?? "50% 50%", delete h.transformOrigin), f.transform && (f.transformBox = u ?.transformBox ?? "fill-box", delete h.tran
+- 2753: p.useInsertionEffect(() => {
+- 2754: u && f.current && u.update(n, a)
+- 2759: u && (f.current = !0, window.MotionIsMounted = !0, u.updateFeatures(), u.scheduleRenderMicrotask(), m.current && u.animationState && u.animationState.animateChanges())
+- 3056: for (const s in n) e[s] === void 0 && t.removeValue(s);
+- 3059: const ss = ["AnimationStart", "AnimationComplete", "Update", "BeforeLayoutMeasure", "LayoutMeasure", "LayoutAnimationStart", "LayoutAnimationComplete"];
+- 3072: this.current = null, this.children = new Set, this.isVariantNode = !1, this.isControllingVariants = !1, this.shouldReduceMotion = null, this.values = new Map, this.KeyframeResolver = rn, this.features = {}, this.valueSubscriptions = new Map, this.prevMotionVal
+- 3095: this.current = e, fl.set(e, this), this.projection && !this.projection.instance && this.projection.mount(e), this.parent && this.isVariantNode && !this.isControllingVariants && (this.removeFromVariantTree = this.parent.addVariantChild(this)), this.values.forEa
+- 3098: this.projection && this.projection.unmount(), q(this.notifyUpdate), q(this.render), this.valueSubscriptions.forEach(e => e()), this.valueSubscriptions.clear(), this.removeFromVariantTree && this.removeFromVariantTree(), this.parent ?.removeChild(this);
+- 3109: removeChild(e) {
+- 3110: this.children.delete(e), this.enteringChildren && this.enteringChildren.delete(e)
+- 3117: this.latestValues[e] = r, this.props.onUpdate && C.preRender(this.notifyUpdate), s && this.projection && (this.projection.isTransformDirty = !0), this.scheduleRender()
+- 3127: updateFeatures() {
+- 3138: o.isMounted ? o.update() : (o.mount(), o.isMounted = !0)
+- 3154: update(e, n) {
+- 3158: this.propEventSubscriptions[i] && (this.propEventSubscriptions[i](), delete this.propEventSubscriptions[i]);
+- 3182: if (n) return n.variantChildren && n.variantChildren.add(e), () => n.variantChildren.delete(e)
+- 3186: n !== s && (s && this.removeValue(e), this.bindToMotionValue(e, n), this.values.set(e, n), this.latestValues[e] = n.get())
+- 3188: removeValue(e) {
+- 3189: this.values.delete(e);
+- 3191: n && (n(), this.valueSubscriptions.delete(e)), delete this.latestValues[e], this.removeValueFromRenderState(e, this.renderState)
+- 3243: removeValueFromRenderState(e, {
+- 3247: delete n[e], delete s[e]
+- 3250: this.childSubscription && (this.childSubscription(), delete this.childSubscription);
+- 3443: onUpdate: f => {
+- 3444: e.set(f), a.onUpdate && a.onUpdate(f)
+- 3458: C.update(() => {
+- 3459: u.onUpdate(f), u.onComplete()
+- 3513: C.update(() => {
+- 3659: b = !0, f.has(F) && (k = !0, f.delete(F)), T.needsAnimating[F] = !0;
+- 3759: update() {}
+- 3765: updateAnimationControlsSubscription() {
+- 3772: this.updateAnimationControlsSubscription()
+- 3774: update() {
+- 3780: e !== n && this.updateAnimationControlsSubscription()
+- 3791: update() {
+- 3826: return t.addEventListener(e, n, s), () => t.removeEventListener(e, n)
+- 3901: if (this.startEvent = null, this.lastMoveEvent = null, this.lastMoveEventInfo = null, this.handlers = {}, this.contextWindow = window, this.updatePoint = () => {
+- 3924: this.lastMoveEvent = f, this.lastMoveEventInfo = fe(d, this.transformPagePoint), C.update(this.updatePoint, !0)
+- 3951: h && h(e, de(l, this.history)), this.removeListeners = Bt(Ct(this.contextWindow, "pointermove", this.handlePointerMove), Ct(this.contextWindow, "pointerup", this.handlePointerUp), Ct(this.contextWindow, "pointercancel", this.handlePointerUp))
+- 3953: updateHandlers(e) {
+- 3957: this.removeListeners && this.removeListeners(), q(this.updatePoint)
+- 4153: this.updateAxis("x", f.point, y), this.updateAxis("y", f.point, y), this.visualElement.render(), v && v(h, f)
+- 4201: updateAxis(e, n, s) {
+- 4334: this.visualElement.current.style.transform = o ? o({}, "") : "none", s.root && s.root.updateScroll(), s.updateLayout(), this.resolveConstraints(), W(r => {
+- 4365: i && !i.layout && (i.root && i.root.updateScroll(), i.updateLayout()), C.read(s);
+- 4367: a = i.addEventListener("didUpdate", (({
+- 4411: super(e), this.removeGroupControls = G, this.removeListeners = G, this.controls = new lu(e)
+- 4417: e && (this.removeGroupControls = e.subscribe(this.controls)), this.removeListeners = this.controls.addListeners() || G
+
+DATA FLOW
+
+Browser receives this file from static serving or service-worker cache; if code, it may read browser storage, call local server/Supabase endpoints, update DOM/application state, and persist local data.
+
+DEPENDENCIES
+
+- platform dependencies: none beyond repository/runtime context observed
+- Node core modules:
+- 1459: const Bn = (t, e) => e === "zIndex" ? !1 : !!(typeof t == "number" || Array.isArray(t) || typeof t == "string" && (Q.test(t) || t === "0") && !t.startsWith("url("));
+- 2594: const za = ["animate", "circle", "defs", "desc", "ellipse", "g", "image", "line", "filter", "marker", "mask", "metadata", "path", "pattern", "polygon", "polyline", "rect", "stop", "switch", "symbol", "svg", "text", "tspan", "use", "view"];
+- 3865: function os(t, e, n) {
+- 3870: os(t.x, e.x, n.x), os(t.y, e.y, n.y)
+- 4075: x: fs(t, "left", "right"),
+- 4076: y: fs(t, "top", "bottom")
+- 4080: function fs(t, e, n) {
+- 4819: }, this.resolvedRelativeTargetAt = 0, this.hasProjected = !1, this.isVisible = !0, this.animationProgress = 0, this.sharedNodes = new Map, this.latestValues = r, this.root = a ? a.root || a : this, this.path = a ? [...a.path, a] : [], this.parent = a, this.dep
+- 4820: for (let l = 0; l < this.path.length; l++) this.path[l].shouldResetTransform = !0;
+- 4912: for (let u = 0; u < this.path.length; u++) {
+- 4913: const h = this.path[u];
+- 4957: for (let l = 0; l < this.path.length; l++) this.path[l].updateScroll();
+- 5004: if (!(this.scroll ?.wasRoot || this.path.some(Hu))) {
+- 5015: for (let l = 0; l < this.path.length; l++) {
+- 5016: const c = this.path[l],
+- 5028: for (let c = 0; c < this.path.length; c++) {
+- 5029: const u = this.path[c];
+- 5040: for (let l = 0; l < this.path.length; l++) {
+- 5041: const c = this.path[l];
+- 5105: ul(this.layoutCorrected, this.treeScale, this.path, a), r.layout && !r.target && (this.treeScale.x !== 1 || this.treeScale.y !== 1) && (r.target = r.layout.layoutBox, r.targetWithTransforms = R());
+- 5143: T = !!(g && !y && this.options.crossfade === !0 && !this.path.some(Wu));
+- external libraries:
+- 1: import {
+- 4: } from "./vendor-react-BfU3Zn2J.js";
+- 2362: Ii(require("@emotion/is-prop-valid").default)
+- local files: see References and Consumers above
+- browser APIs:
+- 1203: s.suspendedScrollY !== void 0 && window.scrollTo(0, s.suspendedScrollY)
+- 1263: const Bo = ze(() => window.ScrollTimeline !== void 0),
+- 1272: document.createElement("div").animate({
+- 1616: const o = window.getComputedStyle(e).getPropertyValue(s);
+- 1799: s === "height" && (this.suspendedScrollY = window.pageYOffset), this.measuredOrigin = at[s](e.measureViewportBox(), window.getComputedStyle(e.current)), n[0] = this.measuredOrigin;
+- 1814: s[o] = at[n](e.measureViewportBox(), window.getComputedStyle(e.current)), r !== null && this.finalKeyframe === void 0 && (this.finalKeyframe = r), this.removedTransforms ?.length && this.removedTransforms.forEach(([a, l]) => {
+- 2022: window.removeEventListener("pointerup", h), window.removeEventListener("pointercancel", f), Ht.has(l) && Ht.delete(l), Wn(d) && typeof c == "function" && c(d, {
+- 2032: window.addEventListener("pointerup", h, i), window.addEventListener("pointercancel", f, i)
+- 2177: const g = document.createElement("style");
+- 2179: const v = s ?? document.head;
+- 2757: m = p.useRef(!!d && !window.MotionHandoffIsComplete ?.(d) && window.MotionHasOptimisedAnimation ?.(d));
+- 2759: u && (f.current = !0, window.MotionIsMounted = !0, u.updateFeatures(), u.scheduleRenderMicrotask(), m.current && u.animationState && u.animationState.animateChanges())
+- 2762: window.MotionHandoffMarkAsComplete ?.(d)
+- 3029: if (window.matchMedia) {
+- 3030: const t = window.matchMedia("(prefers-reduced-motion)"),
+- 3120: window.MotionCheckAppearSync && (o = window.MotionCheckAppearSync(this, e, n)), this.valueSubscriptions.set(e, () => {
+- 3272: return window.getComputedStyle(t)
+- 3499: if (window.MotionHandoffAnimation) {
+- 3502: const T = window.MotionHandoffAnimation(y, u, C);
+- 4790: if (window.MotionHasOptimisedAnimation(n, "transform")) {
+- 4795: window.MotionCancelOptimisedAnimation(n, "transform", C, !(i || o))
+- 4845: h = window.innerWidth
+- 4847: const d = window.innerWidth;
+- 4910: if (window.MotionCancelOptimisedAnimation && !this.hasCheckedOptimisedAppear && gr(this), !this.root.isUpdating && this.root.startUpdate(), this.isLayoutDirty) return;
+- 5429: Fs = t => typeof navigator < "u" && navigator.userAgent && navigator.userAgent.toLowerCase().includes(t),
+- 5450: x: document.documentElement.scrollLeft || document.body.scrollLeft,
+- 5451: y: document.documentElement.scrollTop || document.body.scrollTop
+- 5475: checkIsScrollRoot: t => window.getComputedStyle(t).position === "fixed"
+- operating-system commands:
+- 3757: this.isMounted = !1, this.node = e
+- 3768: } = this.node.getProps();
+- 3769: ne(e) && (this.unmountControls = e.subscribe(this.node))
+- 3777: } = this.node.getProps(), {
+- 3779: } = this.node.prevProps || {};
+- 3783: this.node.animationState.reset(), this.unmountControls ?.()
+- 3792: if (!this.node.presenceContext) return;
+- 3796: } = this.node.presenceContext, {
+- 3798: } = this.node.prevPresenceContext || {};
+- 3799: if (!this.node.animationState || e === s) return;
+- 3800: const i = this.node.animationState.setActive("exit", !e);
+- 3809: } = this.node.presenceContext || {};
+- 4416: } = this.node.getProps();
+- 4432: transformPagePoint: this.node.getTransformPagePoint(),
+- 4433: contextWindow: lr(this.node)
+- 4442: } = this.node.getProps();
+- 4453: this.removePointerDownListener = Ct(this.node.current, "pointerdown", e => this.onPointerDown(e))
+- 5501: } = this.node;
+- 5502: e && (this.unmount = ma(e, (n, s) => (js(this.node, s, "Start"), i => js(this.node, i, "End"))))
+- 5513: e = this.node.current.matches(":focus-visible")
+- 5516: }!e || !this.node.animationState || (this.node.animationState.setActive("whileFocus", !0), this.isActive = !0)
+- 5519: !this.isActive || !this.node.animationState || (this.node.animationState.setActive("whileFocus", !1), this.isActive = !1)
+- 5522: this.unmount = Bt(It(this.node.current, "focus", () => this.onFocus()), It(this.node.current, "blur", () => this.onBlur()))
+- 5541: } = this.node;
+- 5542: e && (this.unmount = va(e, (n, s) => (Os(this.node, s, "Start"), (i, {
+- 5544: }) => Os(this.node, i, o ? "End" : "Cancel")), {
+- 5545: useGlobalTarget: this.node.props.globalTapTarget
+- 5592: } = this.node.getProps(), {
+- 5606: c && (this.hasEnteredView = !0), this.node.animationState && this.node.animationState.setActive("whileInView", c);
+- 5610: } = this.node.getProps(), f = c ? u : h;
+- 5613: return tc(this.node.current, r, a)
+- 5623: } = this.node;
+- Supabase interfaces:
+- 1190: const t = Array.from(lt).filter(s => s.needsMeasurement),
+- 1825: return i ? Array.from(i) : []
+- 1827: return Array.from(t)
+- 3520: const o = Array.from(t).sort((c, u) => c.sortNodePosition(u)).indexOf(e),
+- external services: none observed
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Correctness depends on current HTML/restore/service-worker references matching this hashed bundle.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+- May be served through static cache or service-worker asset cache if referenced by current bundle graph.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Large text/code file; focused tests and decomposition would reduce regression risk.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0475-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: public/assets/vendor-motion-Cp_NPzpZ.js inspected; no file-specific high-risk issue confirmed
+  observed evidence: public/assets/vendor-motion-Cp_NPzpZ.js inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: artifacts/asset-diff/asset-report.json, artifacts/asset-diff/asset-report.json, artifacts/asset-diff/local-assets.txt
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Verify browser/service-worker behavior in a real browser context, not a Node REPL.
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Built frontend asset emitted by the bundling pipeline; purpose is inferred from bundle name, imports, and consumers rather than hash alone.
+- activity status: active or bundle-referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: confirm active bundle graph and remove stale build outputs only after proof
+
+LARGE FILE / FUTURE AGENT HAZARD ADDENDUM
+
+- hazard severity: MEDIUM
+- file size: 181300
+- file kind: compiled JavaScript module/chunk
+- hazard reasons: large file >=100KB; vendor/generated dependency chunk family; same basename appears in multiple locations with different SHA/size
+- correction for future agents: do not infer runtime behavior from this filename; trace active consumers and prefer source/runtime-patch files over built chunks.
+- confirmed references:
+  - public/assets/AIAnalysisCard-qrpOk1g6.js:18: } from "./vendor-motion-Cp_NPzpZ.js";
+  - public/assets/AIAssistant--spCOe6W.js:23: } from "./vendor-motion-Cp_NPzpZ.js";
+  - public/assets/AIWeeklySummary-fVbvFqu3.js:1: import{j as s}from"./vendor-react-BfU3Zn2J.js";import{A as E}from"./AIAnalysisCard-qrpOk1g6.js";import{u as f,f as z}from"./useAIStore-B2cv1FZz.js";import{h as C,j as _,f as q,e as
+  - public/assets/About-DbJqhVWT.js:1: import{j as e,f as x}from"./vendor-react-BfU3Zn2J.js";import{N as m,F as p}from"./Navbar-BJMJUymI.js";import{m as s}from"./vendor-motion-Cp_NPzpZ.js";import{S as u,k as g,l as b,m 
+  - public/assets/Analytics-D74gQMjN.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/AnalyticsToday-BTdRNTb0.js","assets/vendor-react-BfU3Zn2J.js","assets/useFocusStore-CX_Nyp1h.js","assets/index-BPYJ
+  - public/assets/Analytics-D74gQMjN.js:2: import{_ as Ie}from"./index-BPYJFSVW.js";import{r as A,j as o,f as fa}from"./vendor-react-BfU3Zn2J.js";import{S as nn,D as rn}from"./DashboardHeader-DNuRMna8.js";import{g as te,q a
+  - public/assets/AnalyticsPeriod-CGXbfYQB.js:1: import{r as k,f as be,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as C}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as ie}from"./useChartAnimation-C6FTIqbw.js";import{
+  - public/assets/AnalyticsSubjects-DOh8aXlW.js:1: import{r as q,j as e}from"./vendor-react-BfU3Zn2J.js";import{S as g}from"./SubjectIcon-CyCDqtel.js";import{C as A}from"./SharedAnalyticsComponents-DMxLJbRk.js";import{f as B,a as T
+  - public/assets/AnalyticsTasks-DOfUf9Sd.js:1: import{j as e}from"./vendor-react-BfU3Zn2J.js";import{S as x}from"./SafeResponsiveContainer-D7o6DE97.js";import{u as L}from"./useChartAnimation-C6FTIqbw.js";import{A as $,C as u,X 
+  - public/assets/AnalyticsToday-BTdRNTb0.js:1: import{r as q,j as e,f as ae}from"./vendor-react-BfU3Zn2J.js";import{g as y,u as je,h as $e}from"./useFocusStore-CX_Nyp1h.js";import{a as he}from"./subjectBranding-DaDo_h8r.js";imp
+  - public/assets/App-pJGjDiPw.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/Landing-CWRNt7E9.js", "assets/index-BPYJFSVW.js", "assets/vendor-react-BfU3Zn2J.js", "assets/index-CrO6
+  - public/assets/App-pJGjDiPw.js:16: } from "./vendor-motion-Cp_NPzpZ.js";
+  - public/assets/AppAccessGate-B975UtK7.js:1: const __vite__mapDeps = (i, m = __vite__mapDeps, d = (m.f || (m.f = ["assets/AIAssistant--spCOe6W.js", "assets/vendor-react-BfU3Zn2J.js", "assets/useAIStore-B2cv1FZz.js", "assets/A
+  - public/assets/Auth-Cw0VAaCZ.js:18: } from "./vendor-motion-Cp_NPzpZ.js";
+  - public/assets/ChallengesHub-C50y_K_l.js:1: import{r as o,j as e}from"./vendor-react-BfU3Zn2J.js";import{u as k,a as C}from"./useGroupChallenges-N8BLPr3m.js";import{u as _}from"./App-pJGjDiPw.js";import{E as T}from"./Enhance
+  - public/assets/ChapterHub-BXRydU0B.js:1: import{j as e,r as s,f as Re,b as hs}from"./vendor-react-BfU3Zn2J.js";import{c as ye}from"./utils-D8mZnxMk.js";import{I as zt}from"./IsotopeLogoIcon-oPk5Ru-_.js";import{u as xe,h a
+  - public/assets/Community-DIqF5406.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/CommunityHub-gANxZssO.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","assets/index-CrO6t5EW.css",
+  - public/assets/Community-DIqF5406.js:2: import{_ as s}from"./index-BPYJFSVW.js";import{j as e,f as _,r as t}from"./vendor-react-BfU3Zn2J.js";import{c as w}from"./App-pJGjDiPw.js";import{S as N,D as k}from"./DashboardHead
+  - public/assets/CommunityHub-gANxZssO.js:1: const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/sessionSync-mloIEnTd.js","assets/App-pJGjDiPw.js","assets/index-BPYJFSVW.js","assets/vendor-react-BfU3Zn2J.js","ass
+  - public/assets/CommunityHub-gANxZssO.js:2: import{_ as q}from"./index-BPYJFSVW.js";import{j as e,r as p}from"./vendor-react-BfU3Zn2J.js";import{u as ee,a as re,b as te}from"./vendor-query-Rjz85D0S.js";import{u as E,j as D,s

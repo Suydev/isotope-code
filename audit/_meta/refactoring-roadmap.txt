@@ -1,0 +1,7 @@
+Refactoring roadmap
+
+- Split server.mjs into static serving/cache headers, auth/session, Supabase/storage, admin, and backup/restore modules after locking route tests.
+- Keep runtime glue small and synchronously loaded before compiled app interaction.
+- Replace stale generated public/assets files only after bundle graph and service-worker cache proof.
+- Add sync restore transaction tests around IndexedDB/localStorage divergence.
+- Document exact Supabase schema/table/storage expectations near SQL files and app sync code.

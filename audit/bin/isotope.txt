@@ -1,0 +1,509 @@
+FILE IDENTITY
+
+- original path: bin/isotope
+- audit path: audit/bin/isotope.txt
+- audited commit: 34c3836e45030eb67c4e0f0bf654d30db0509b89
+- tracked or untracked: tracked (tracked)
+- file type: script
+- MIME type: text/plain
+- size in bytes: 25382
+- SHA-256: 6718dc4936f259ded6b2f4cf20a66b877848c95c62da41e9da90d82822b66519
+- text encoding when applicable: utf-8 or ascii-compatible text
+- executable status: not executable
+- generated/minified status: authored or hand-maintained
+- primary subsystem: installer/platform
+- primary auditor: installer-platform-agent
+- review status: lead-generated; cross-cutting static review applied
+- confidence: MEDIUM
+
+PURPOSE
+
+Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+
+ROLE IN THE APPLICATION
+
+- subsystem: installer/platform
+- runtime stage: development, installation, or documentation
+- user-visible feature: indirect or internal
+- whether it is active: referenced
+- whether it is generated: authored or hand-maintained
+- whether it is comparison/reference material: not primarily
+- whether it is legacy: no direct legacy-only signal
+- whether it appears unused: not proven unused
+
+REFERENCES AND CONSUMERS
+
+Confirmed imports, importers, HTML references, CSS references, manifest references, service-worker references, script references, installer references, documentation references, filesystem reads, route consumers, and database consumers found by direct search:
+- .github/ISSUE_TEMPLATE/bug_report.md:26 - - **IsotopeAI version**: (check `VERSION` file or `isotope status`)
+- .github/ISSUE_TEMPLATE/bug_report.md:30 - <!-- Run `isotope logs` and paste relevant output here -->
+- .github/ISSUE_TEMPLATE/bug_report.md:36 - <!-- Run `isotope doctor` and paste output here -->
+- .github/PULL_REQUEST_TEMPLATE.md:16 - - [ ] If I changed the DB schema, I updated `isotope-complete.sql`
+- .github/labeler.yml:7 - - 'isotope-complete.sql'
+- .github/workflows/ci.yml:47 - bin/isotope; do
+- .github/workflows/ci.yml:78 - bin/isotope; do
+- .github/workflows/ci.yml:133 - source: 'isotopeai',
+- .github/workflows/ci.yml:199 - bin/isotope
+- .github/workflows/ci.yml:200 - bin/isotope.bat
+- .github/workflows/ci.yml:201 - isotope-complete.sql
+- .github/workflows/ci.yml:253 - for f in isotope-complete.sql community-patch-v4.sql sql/006_security_policy_cleanup.sql sql/backup_manifests.sql sql/verify-security.sql performance-patch.sql; do
+- .github/workflows/ci.yml:274 - bash -n bin/isotope
+- .github/workflows/ci.yml:291 - echo "Server PID: $SERVER_PID — polling /__isotope/ping..."
+- .github/workflows/ci.yml:296 - http://127.0.0.1:3099/__isotope/ping 2>/dev/null || echo "000")
+- .github/workflows/ci.yml:320 - zip -qr "isotope-v${VERSION}-ci-test.zip" . \
+- .github/workflows/ci.yml:328 - echo "Archive: $(wc -c < "isotope-v${VERSION}-ci-test.zip") bytes"
+- .github/workflows/ci.yml:332 - unzip -q "isotope-v${VERSION}-ci-test.zip" -d "$TMPDIR"
+- .github/workflows/ci.yml:335 - for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql
+- .github/workflows/ci.yml:343 - rm -rf "$TMPDIR" "isotope-v${VERSION}-ci-test.zip"
+- .github/workflows/ci.yml:363 - ~/.isotope/logs/
+- .github/workflows/ci.yml:364 - /tmp/isotope-ci-*.log
+- .github/workflows/regenerate-release.yml:73 - ARCHIVE="isotope-v${VERSION}.zip"
+- .github/workflows/regenerate-release.yml:79 - --exclude ".isotope/*" \
+- .github/workflows/regenerate-release.yml:90 - ARCHIVE="isotope-v${VERSION}.zip"
+- .github/workflows/regenerate-release.yml:107 - isotope-complete.sql
+- .github/workflows/regenerate-release.yml:135 - STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3099/__isotope/ping 2>/dev/null || echo 000)"
+- .github/workflows/regenerate-release.yml:152 - ARCHIVE="isotope-v${VERSION}.zip"
+- .github/workflows/release.yml:154 - zip -qr "isotope-v${VERSION}.zip" . \
+- .github/workflows/release.yml:158 - --exclude ".isotope/*" \
+- .github/workflows/release.yml:163 - echo "Archive: $(wc -c < isotope-v${VERSION}.zip) bytes"
+- .github/workflows/release.yml:170 - unzip -q "isotope-v${VERSION}.zip" -d "$TMPDIR"
+- .github/workflows/release.yml:221 - STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3099/__isotope/ping 2>/dev/null || echo 000)"
+- .github/workflows/release.yml:243 - git clone https://github.com/Suydev/isotope-code.git
+- .github/workflows/release.yml:244 - cd isotope-code
+- .github/workflows/release.yml:249 - See [CHANGELOG.md](https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md) for the full history.
+- .github/workflows/release.yml:252 - UPI: `9699393886@fam` · [isotopeai.in](https://isotopeai.in)
+- .github/workflows/release.yml:273 - ARCHIVE="isotope-v${VERSION}.zip"
+- .github/workflows/schema-lint.yml:27 - POSTGRES_DB: isotope_test
+- .github/workflows/schema-lint.yml:42 - for f in isotope-complete.sql community-patch-v4.sql sql/*.sql performance-patch.sql; do
+- .github/workflows/schema-lint.yml:58 - if [ ! -f isotope-complete.sql ]; then
+- .github/workflows/schema-lint.yml:59 - echo "⚠️ isotope-complete.sql not found — skipping pattern checks"
+- .github/workflows/schema-lint.yml:64 - UNSAFE_DROPS=$(grep -nE '^\s*DROP (TABLE|FUNCTION|POLICY|INDEX|TRIGGER)\s' isotope-complete.sql | grep -v 'IF EXISTS' || true)
+- .github/workflows/schema-lint.yml:74 - SEC_DEF=$(awk '/SECURITY DEFINER/{n++} END{print n+0}' isotope-complete.sql)
+- .github/workflows/schema-lint.yml:79 - FUNCTIONS=$(awk '/CREATE OR REPLACE FUNCTION/{n++} END{print n+0}' isotope-complete.sql)
+- .github/workflows/schema-lint.yml:80 - GRANTS=$(awk '/GRANT EXECUTE/{n++} END{print n+0}' isotope-complete.sql)
+- .github/workflows/schema-lint.yml:87 - psql -h localhost -U postgres -d isotope_test -v ON_ERROR_STOP=1 -c "
+- .github/workflows/schema-lint.yml:128 - - name: 🗄️ Test isotope-complete.sql against PostgreSQL
+- .github/workflows/schema-lint.yml:132 - if [ ! -f isotope-complete.sql ]; then
+- .github/workflows/schema-lint.yml:133 - echo "⚠️ isotope-complete.sql not found — skipping execution test"
+- .github/workflows/schema-lint.yml:147 - isotope-complete.sql > /tmp/schema_test.sql
+- .github/workflows/schema-lint.yml:151 - PSQL_OUT=$(psql -h localhost -U postgres -d isotope_test \
+- .github/workflows/schema-lint.yml:176 - psql -h localhost -U postgres -d isotope_test -c "
+- .github/workflows/schema-lint.yml:184 - psql -h localhost -U postgres -d isotope_test -c "
+- .github/workflows/schema-lint.yml:191 - echo "❌ isotope-complete.sql must execute cleanly against the Supabase compatibility shim"
+- .github/workflows/schema-lint.yml:204 - OUT=$(psql -h localhost -U postgres -d isotope_test \
+- .github/workflows/schema-lint.yml:219 - OUT=$(psql -h localhost -U postgres -d isotope_test \
+- .github/workflows/welcome.yml:44 - - 🔧 Run \`isotope doctor\` to diagnose most common issues
+- .github/workflows/welcome.yml:79 - - [ ] \`isotope-complete.sql\` updated if DB schema changed
+- .gitignore:11 - .isotope/logs/
+- .gitignore:12 - .isotope/tmp/
+- ADMIN.md:299 - | `POST` | `/__auth/login` | `{username: email\|username, password}` | Sign in, return `{session}`. Supports legacy `@isotope.local` suffix |
+- ADMIN.md:355 - | `POST` | `/api/restart` | None | Legacy no-op. Returns `isotope update` guidance and never stops the server |
+- ADMIN.md:468 - ### Core tables (required — in `isotope-schema.sql`)
+- CHANGELOG.md:129 - - **8 live-DB functions missing from `isotope-complete.sql`** — Full pg_proc audit found 8 functions present in the live Supabase DB that were never documented in the master schema file. A fresh install using only `isotope-complete.sql` wou
+- CHANGELOG.md:138 - - **Missing GRANTs for `create_community_group`, `check_user_role`, `get_my_role`** — All three functions had no `GRANT EXECUTE TO authenticated`. Applied to live DB and added to §18 grants block in `isotope-complete.sql`.
+- CHANGELOG.md:145 - | 2 | 8 undocumented functions added to `isotope-complete.sql` §18 | ✅ with triggers + grants |
+- CHANGELOG.md:155 - - **`user_tours` table missing from `isotope-complete.sql` and live DB** — Parallel subagent audit found `community-patch-v4.sql` §v11 (lines 2327–2367) defines `public.user_tours` (persistent tour/guide state: which onboarding walks a user
+- CHANGELOG.md:156 - - **`/__admin/schema` served missing `isotope-schema.sql` file** — Route handler at `server.mjs:5584` referenced `isotope-schema.sql` (an old/nonexistent file), causing the download button in the admin panel to return HTTP 500. Fixed to ser
+- CHANGELOG.md:163 - | 2 | `user_tours` added to `isotope-complete.sql` §13b | ✅ DDL + RLS + trigger + realtime |
+- CHANGELOG.md:164 - | 3 | `/__admin/schema` now serves correct file | ✅ `isotope-complete.sql` (was broken `isotope-schema.sql`) |
+- CHANGELOG.md:165 - | 4 | All 24 tables now in master schema | ✅ isotope-complete.sql updated |
+- CHANGELOG.md:177 - - **`isotope-complete.sql`** — New single-file authoritative schema covering all 23 tables, all indexes, all RLS policies (with `(SELECT auth.uid())` optimisation), all RPCs (18 functions), triggers (`handle_new_user`, `sync_user_onboarding
+- CHANGELOG.md:189 - | 7 | `isotope-complete.sql` pushed to GitHub | ✅ New file, 23 tables, 18 RPCs |
+- CHANGELOG.md:200 - - **GitHub Pages docs link in login screen** (`server.mjs` `DOCS_LINK_HTML`) — A `📖 Docs` badge is injected into every served HTML page (including the unauthenticated login screen) linking to `https://suydev.github.io/isotope-code/`. The ba
+- CHANGELOG.md:240 - - `.replit-artifact/artifact.toml` — corrected development `run` path from `artifacts/isotope` to `isotope`.
+- CHANGELOG.md:268 - - `update.bat` — Windows update shortcut that delegates to `isotope update` or the local wrapper.
+- CHANGELOG.md:288 - - `isotope doctor` now reports whether the global `isotope` command is available in `PATH`.
+- CHANGELOG.md:289 - - `isotope open` and the Windows `open` command now warn when the managed local server is not responding before opening the browser.
+- CHANGELOG.md:290 - - Termux Widget shortcuts now prefer the absolute Termux `isotope` command path and fall back to the project-local wrapper when needed.
+- CHANGELOG.md:303 - - Added global `isotope` command wrappers for Bash and Windows with `start`, `stop`, `restart`, `update`, `status`, `doctor`, `open`, and `logs`.
+- CHANGELOG.md:304 - - Added managed local PID/log state under `~/.isotope`.
+- CHANGELOG.md:315 - - The update banner now opens a command dialog showing `isotope update`; it no longer stops or restarts the server from the browser.
+- CHANGELOG.md:508 - - `community-patch-v4.sql` is the canonical schema source (not `isotope-schema.sql`)
+- CONTRIBUTING.md:11 - git clone https://github.com/YOUR_USERNAME/isotope-code.git
+- CONTRIBUTING.md:12 - cd isotope-code
+- CONTRIBUTING.md:30 - 4. **Update `isotope-complete.sql`** if you add/change any DB table, column, index, RLS, trigger, or function
+- CONTRIBUTING.md:40 - | `isotope-complete.sql` | Authoritative DB schema — idempotent, run on fresh Supabase |
+- CONTRIBUTING.md:44 - | `bin/isotope` | Linux/macOS/Termux CLI |
+- CONTRIBUTING.md:45 - | `bin/isotope.bat` | Windows CLI |
+- CONTRIBUTING.md:54 - 1. Write the change in `isotope-complete.sql` using `CREATE OR REPLACE` / `IF NOT EXISTS` guards
+- CONTRIBUTING.md:56 - 3. Test it by running `isotope-complete.sql` on a clean Supabase project
+- CONTRIBUTING.md:83 - Use the **[Bug Report template](https://github.com/Suydev/isotope-code/issues/new?template=bug_report.md)**.
+- CONTRIBUTING.md:89 - - Relevant server logs (`isotope logs`)
+- CONTRIBUTING.md:90 - - Whether `isotope doctor` passes
+- CONTRIBUTING.md:96 - Use the **[Feature Request template](https://github.com/Suydev/isotope-code/issues/new?template=feature_request.md)**.
+- README.md:13 - <a href="https://suydev.github.io/isotope-code/"><img alt="Docs" src="https://img.shields.io/badge/docs-animated%20GitHub%20Pages-8df31f"></a>
+- README.md:17 - <a href="https://suydev.github.io/isotope-code/">Animated docs</a>
+- README.md:19 - <a href="https://suydev.github.io/isotope-code/install.html">Install</a>
+- README.md:21 - <a href="https://suydev.github.io/isotope-code/sync.html">Sync safety</a>
+- README.md:23 - <a href="https://suydev.github.io/isotope-code/admin.html">Admin proof</a>
+- README.md:25 - <a href="https://suydev.github.io/isotope-code/gallery.html">Screenshots</a>
+- README.md:29 - <a href="https://suydev.github.io/isotope-code/gallery.html">
+- README.md:44 - - Animated web guide: https://suydev.github.io/isotope-code/
+- README.md:45 - - Install guide: https://suydev.github.io/isotope-code/install.html
+- README.md:46 - - Screenshot gallery: https://suydev.github.io/isotope-code/gallery.html
+- README.md:58 - bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+- README.md:64 - isotope start
+- README.md:76 - git clone https://github.com/Suydev/isotope-code.git
+- README.md:77 - cd isotope-code
+- README.md:79 - isotope start
+- README.md:87 - git clone https://github.com/Suydev/isotope-code.git
+- README.md:88 - cd isotope-code
+- README.md:90 - isotope start
+- README.md:98 - git clone https://github.com/Suydev/isotope-code.git
+- README.md:99 - cd isotope-code
+- README.md:106 - git clone https://github.com/Suydev/isotope-code.git
+- README.md:107 - cd isotope-code
+- README.md:127 - It then installs the `isotope` command.
+- README.md:132 - isotope start              # start the app
+
+INTERNAL STRUCTURE
+
+- line count: 677
+- imports:
+- 131: const http = require('http');
+- 295: const fs = require('fs'), path = require('path');
+- 306: const fs = require('fs');
+- 343: const fs=require('fs'),path=require('path'),dir=process.argv[2];
+- 529: const cp = require('child_process');
+- 530: const fs = require('fs');
+- 531: const path = require('path');
+- exports:
+None observed.
+- functions/async flows:
+- 29: info() { printf '%s\n' "$*"; }
+- 30: warn() { printf 'WARN: %s\n' "$*" >&2; }
+- 31: fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+- 32: has()  { command -v "$1" >/dev/null 2>&1; }
+- 34: redact() {
+- 42: is_termux() {
+- 46: ensure_home() {
+- 50: save_project_path() {
+- 55: looks_like_project() {
+- 59: resolve_project() {
+- 79: read_env_key() {
+- 87: if (left == k) {
+- 97: load_env() {
+- 109: project_port() {
+- 117: is_running() {
+- 124: server_pid() {
+- 128: health_check() {
+- 133: const req = http.get(url, (res) => {
+- 136: req.setTimeout(900, () => { req.destroy(); process.exit(1); });
+- 141: wait_for_health() {
+- 153: open_url() {
+- 164: port_in_use_by_other() {
+- 178: report_stale_aliases() {
+- 184: *"alias isotope="*|*"alias isotopeai="*|*"function isotope"*|*"function isotopeai"*|*"isotope()"*|*"isotopeai()"*)
+- 188: warn "stale isotope alias/function in $file: $line"
+- 200: cmd_start() {
+- 258: cmd_stop() {
+- 285: cmd_restart() {
+- 291: cmd_version() {
+- 321: cmd_status() {
+- 359: cmd_doctor() {
+- 478: cmd_repair() {
+- 506: cmd_reinstall_widgets() {
+- 516: cmd_setup() {
+- 526: write_version_file() {
+- 541: cmd_update_body() {
+- 604: cmd_update() {
+- 617: cmd_open() {
+- 629: cmd_logs() {
+- 639: usage() {
+- classes:
+None observed.
+- constants/mutable state candidates:
+- 131: const http = require('http');
+- 132: const url = process.argv[2];
+- 133: const req = http.get(url, (res) => {
+- 295: const fs = require('fs'), path = require('path');
+- 296: const dir = process.argv[2];
+- 298: const v = JSON.parse(fs.readFileSync(path.join(dir,'package.json'),'utf8')).version || 'unknown';
+- 306: const fs = require('fs');
+- 308: const d = JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+- 343: const fs=require('fs'),path=require('path'),dir=process.argv[2];
+- 529: const cp = require('child_process');
+- 530: const fs = require('fs');
+- 531: const path = require('path');
+- 532: let sha = 'unknown', message = '', version = '0.0.0';
+- handlers/lifecycle candidates:
+- 136: req.setTimeout(900, () => { req.destroy(); process.exit(1); });
+
+INPUTS
+
+- parameters: not directly observed
+- environment variables:
+- ADMIN_SECRET: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:25, .github/workflows/ci.yml:242, .github/workflows/ci.yml:285, ADMIN.md:29, ADMIN.md:47, ADMIN.md:54, ADMIN.md:431, ADMIN.md:539, CHANGELOG.md:365, CHANGELOG.md:489, CHANGELOG.md:565, README.md:238
+- CLI: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CONTRIBUTING.md:44, CONTRIBUTING.md:45, TERMUX_WIDGET.md:90, TERMUX_WIDGET.md:126, TERMUX_WIDGET.md:138, bin/isotope:2, bin/isotope:14, bin/isotope:483, bin/isotope:653, docs/supabase-connection-map.md:30, scripts/capture-screenshots.mjs:28, setup.sh:11
+- DEFAULT_PORT: classification=public/configuration; required=optional/defaulted; uses=bin/isotope:27, bin/isotope:105, bin/isotope:114, bin/isotope:154, bin/isotope:220, bin/isotope:619, bin/isotope.bat:11, bin/isotope.bat:65, bin/isotope.bat:74
+- ENABLE_ADMIN_MODE: classification=public/configuration; required=optional/defaulted; uses=.env.example:18, .env.example:19, ADMIN.md:28, ADMIN.md:46, ADMIN.md:440, ADMIN.md:441, CHANGELOG.md:489, README.md:175, README.md:187, README.md:188, README.md:237, artifacts/isotope/.env:24
+- EOF: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/release.yml:78, .github/workflows/release.yml:80, .github/workflows/release.yml:92, .github/workflows/release.yml:94, .github/workflows/release.yml:138, .github/workflows/release.yml:140, .github/workflows/release.yml:145, .github/workflows/release.yml:147, .github/workflows/release.yml:233, .github/workflows/release.yml:253, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:256, artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js:259
+- ERROR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:87, .github/workflows/schema-lint.yml:152, .github/workflows/schema-lint.yml:161, .github/workflows/schema-lint.yml:163, .github/workflows/schema-lint.yml:165, .github/workflows/schema-lint.yml:168, .github/workflows/schema-lint.yml:171, .github/workflows/schema-lint.yml:190, .github/workflows/schema-lint.yml:205, .github/workflows/schema-lint.yml:207, .github/workflows/schema-lint.yml:220, .github/workflows/schema-lint.yml:222
+- GEMINI_API_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:42, ADMIN.md:412, ADMIN.md:433, artifacts/isotope/.env:36, bin/isotope:36, server.mjs:166, server.mjs:393, server.mjs:5864, server.mjs:5917, server.mjs:8243, server.mjs:8372, server.mjs:8377
+- GITHUB_PAT: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:39, bin/isotope:36, server.mjs:5383
+- GROQ_API_KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.env.example:43, ADMIN.md:413, ADMIN.md:432, artifacts/isotope/.env:40, bin/isotope:36, server.mjs:167, server.mjs:394, server.mjs:5864, server.mjs:5917, server.mjs:8243, server.mjs:8373, server.mjs:8377
+- HOME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:20, bin/isotope:21, bin/isotope:22, bin/isotope:23, bin/isotope:24, bin/isotope:47, bin/isotope:73, bin/isotope:180, bin/isotope:387, install-termux.sh:15, install-termux.sh:16
+- IFS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:182, install-termux.sh:102, install-termux.sh:152, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup.sh:147, setup.sh:331, setup.sh:339, setup.sh:417
+- ISOTOPE_HOME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:20, setup.sh:48
+- ISOTOPE_PROJECT_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:60, bin/isotope:61, bin/isotope.bat:41, bin/isotope.bat:42, bin/isotope.bat:43, doctor.sh:6, setup-termux-widget.sh:66, setup-termux-widget.sh:104, start.sh:6, update.sh:5
+- ISO_HOME: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:20, bin/isotope:21, bin/isotope:22, bin/isotope:23, bin/isotope:24, bin/isotope:47, bin/isotope.bat:4, bin/isotope.bat:5, bin/isotope.bat:6, bin/isotope.bat:7, bin/isotope.bat:8, bin/isotope.bat:13
+- KEY: classification=secret; required=unknown from static map; inspect use locations; uses=.github/workflows/schema-lint.yml:93, .github/workflows/schema-lint.yml:105, .github/workflows/schema-lint.yml:112, bin/isotope:36, bin/isotope:331, bin/isotope:435, community-patch-v4.sql:273, community-patch-v4.sql:309, community-patch-v4.sql:419, community-patch-v4.sql:430, community-patch-v4.sql:450, community-patch-v4.sql:472
+- LOG_DIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:24, bin/isotope:25, bin/isotope:26, bin/isotope:47, bin/isotope.bat:8, bin/isotope.bat:9, bin/isotope.bat:10, bin/isotope.bat:14, install-termux.sh:17, install-termux.sh:18, install-termux.sh:38, setup-termux-widget.sh:19
+- NODE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:121, .github/workflows/ci.yml:178, .github/workflows/ci.yml:286, bin/isotope:130, bin/isotope:138, bin/isotope:294, bin/isotope:301, bin/isotope:305, bin/isotope:311, bin/isotope:342, bin/isotope:345, bin/isotope:528
+- NOT: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/PULL_REQUEST_TEMPLATE.md:14, .github/PULL_REQUEST_TEMPLATE.md:15, .github/workflows/schema-lint.yml:91, .github/workflows/schema-lint.yml:92, .github/workflows/schema-lint.yml:103, .github/workflows/schema-lint.yml:104, .github/workflows/schema-lint.yml:111, .github/workflows/schema-lint.yml:123, .github/workflows/schema-lint.yml:124, .github/workflows/schema-lint.yml:125, CHANGELOG.md:96, CHANGELOG.md:269
+- PATH: classification=secret; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:288, TERMUX_WIDGET.md:114, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:21, bin/isotope:52, bin/isotope:64, bin/isotope:65, bin/isotope:414, bin/isotope:416, install.ps1:83, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup-termux-widget.sh:27
+- PID: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:289, .github/workflows/ci.yml:291, .github/workflows/ci.yml:304, .github/workflows/ci.yml:305, .github/workflows/regenerate-release.yml:132, .github/workflows/regenerate-release.yml:133, .github/workflows/release.yml:218, .github/workflows/release.yml:219, CHANGELOG.md:304, TERMUX_WIDGET.md:64, TERMUX_WIDGET.md:176, bin/isotope:22
+- PID_FILE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:22, bin/isotope:118, bin/isotope:119, bin/isotope:125, bin/isotope:241, bin/isotope:261, bin/isotope:271, bin/isotope:280, bin/isotope:451, bin/isotope:452, bin/isotope:495, bin/isotope:496
+- PIPESTATUS: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:6, bin/isotope:608, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:6, setup-termux-widget.sh:59, setup-termux-widget.sh:63, setup-termux-widget.sh:67
+- PORT: classification=public/configuration; required=optional/defaulted; uses=.env.example:15, .github/workflows/ci.yml:287, .github/workflows/regenerate-release.yml:127, .github/workflows/release.yml:213, ADMIN.md:434, ADMIN.md:462, README.md:174, README.md:289, TERMUX_WIDGET.md:62, artifacts/isotope/.env:44, bin/isotope:11, bin/isotope:23
+- PORT_FILE: classification=public/configuration; required=optional/defaulted; uses=bin/isotope:23, bin/isotope:113, bin/isotope:229, bin/isotope.bat:7, bin/isotope.bat:71, bin/isotope.bat:72, bin/isotope.bat:105
+- PREFIX: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:43, install-termux.sh:71, setup-termux-widget.sh:12, setup-termux-widget.sh:28, setup-termux-widget.sh:30, setup-termux-widget.sh:31, setup.sh:66, setup.sh:379
+- PROJECT_PATH_FILE: classification=secret; required=unknown from static map; inspect use locations; uses=bin/isotope:21, bin/isotope:52, bin/isotope:64, bin/isotope:65, bin/isotope.bat:5, bin/isotope.bat:44, bin/isotope.bat:48, bin/isotope.bat:49, bin/isotope.bat:54, bin/isotope.bat:59, setup-termux-widget.sh:51, setup-termux-widget.sh:53
+- SC1090: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:80, .github/workflows/ci.yml:83, bin/isotope:101
+- SDIR: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:387, bin/isotope:388, bin/isotope:391
+- SERVER_LOG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:25, bin/isotope:231, bin/isotope:236, bin/isotope:238, bin/isotope:355, bin/isotope:631, bin/isotope:632, bin/isotope:635, bin/isotope.bat:9, bin/isotope.bat:102, bin/isotope.bat:103, bin/isotope.bat:215
+- SUPABASE_: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:36, bin/isotope:330, bin/isotope:331, bin/isotope:434, bin/isotope:435
+- SUPABASE_ANON_KEY: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:11, .github/workflows/ci.yml:283, .github/workflows/regenerate-release.yml:129, .github/workflows/release.yml:215, ADMIN.md:23, ADMIN.md:368, ADMIN.md:425, README.md:173, README.md:187, README.md:290, artifacts/isotope/.env:12
+- SUPABASE_URL: classification=public/configuration; required=required for cloud/auth features; uses=.env.example:3, .env.example:8, .github/workflows/ci.yml:282, .github/workflows/regenerate-release.yml:128, .github/workflows/release.yml:214, ADMIN.md:23, ADMIN.md:285, ADMIN.md:366, ADMIN.md:410, ADMIN.md:424, README.md:172, README.md:187
+- TERMUX_VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/workflows/ci.yml:275, bin/isotope:43, bin/isotope:367, bin/isotope:370, install-termux.sh:71, install-termux.sh:76, install-termux.sh:91, setup-termux-widget.sh:12, setup.sh:14, setup.sh:38, setup.sh:66, setup.sh:84
+- TOKEN: classification=secret; required=unknown from static map; inspect use locations; uses=bin/isotope:36
+- TRUE: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, bin/isotope:352, community-patch-v4.sql:210, community-patch-v4.sql:340, community-patch-v4.sql:349, community-patch-v4.sql:358, community-patch-v4.sql:367, community-patch-v4.sql:376, community-patch-v4.sql:385, isotope-complete.sql:122, isotope-complete.sql:129, isotope-complete.sql:136
+- UPDATE_LOG: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:26, bin/isotope:606, bin/isotope:607, bin/isotope:610, bin/isotope:613, bin/isotope.bat:10, bin/isotope.bat:146, bin/isotope.bat:149, bin/isotope.bat:150, bin/isotope.bat:162, bin/isotope.bat:163, bin/isotope.bat:166
+- VER: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:25, bin/isotope:43, bin/isotope:231, bin/isotope:236, bin/isotope:238, bin/isotope:304, bin/isotope:305, bin/isotope:355, bin/isotope:367, bin/isotope:370, bin/isotope:371, bin/isotope:373
+- VERSION: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=.github/ISSUE_TEMPLATE/bug_report.md:26, .github/workflows/ci.yml:275, .github/workflows/ci.yml:318, .github/workflows/ci.yml:319, .github/workflows/ci.yml:320, .github/workflows/ci.yml:328, .github/workflows/ci.yml:332, .github/workflows/ci.yml:343, .github/workflows/regenerate-release.yml:45, .github/workflows/regenerate-release.yml:47, .github/workflows/regenerate-release.yml:72, .github/workflows/regenerate-release.yml:73
+- VIEW: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=CHANGELOG.md:409, CHANGELOG.md:410, CHANGELOG.md:419, artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js:8, bin/isotope:157, community-patch-v4.sql:1787, community-patch-v4.sql:1788, community-patch-v4.sql:2272, events-expansion.sql:13, isotope-complete.sql:705, isotope-complete.sql:706, public/assets/vendor-syntax-highlighter-CDo2wmi8.js:8
+- WARN: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:30, bin/isotope.bat:238, bin/isotope.bat:239, install-termux.sh:54, public/assets/messaging-BP0KfJxy.js:622, public/assets/messaging-BP0KfJxy.js:628, public/assets/messaging-BP0KfJxy.js:637, public/assets/messaging-BP0KfJxy.js:684, setup-termux-widget.sh:10, setup.bat:50, setup.bat:51, setup.sh:44
+- YES: classification=configuration; review sensitivity; required=unknown from static map; inspect use locations; uses=bin/isotope:352, install-termux.sh:21, install-termux.sh:26, install-termux.sh:100, install-termux.sh:103, install-termux.sh:150, install-termux.sh:153, setup.sh:20, setup.sh:32, setup.sh:35, setup.sh:79, setup.sh:145
+- command-line arguments: script-like file; inspect internal structure for argv/flags
+- request data: not directly observed
+- headers/cookies: not directly observed
+- files: filesystem or asset file dependency likely
+- database data:
+None observed.
+- network responses:
+- http://127.0.0.1:
+- http://127.0.0.1:$port
+- http://127.0.0.1:$port/api/version
+- https://f-droid.org/packages/com.termux/
+- browser storage:
+None observed.
+- user interactions: not directly observed
+
+OUTPUTS AND SIDE EFFECTS
+
+- 8: #   update             Safely pull the latest GitHub version
+- 26: UPDATE_LOG="$LOG_DIR/update.log"
+- 134: process.exit(res.statusCode >= 200 && res.statusCode < 500 ? 0 : 1);
+- 212: warn "Process is alive but /api/version is not responding."
+- 250: warn "Server did not respond to health checks in time."
+- 390: for s in isotope-start isotope-update isotope-open isotope-doctor isotope-stop isotope-repair; do
+- 408: has git   && info "[ok]  git $(git --version | awk '{print $3}')" || warn "[warn] git not found (needed for isotope update)"
+- 431: [ -f "$project/update.sh" ]    && info "[ok]  update.sh"        || warn "[warn] update.sh missing"
+- 464: info "[ok]  /api/version endpoint responding on port $port"
+- 466: warn "[fail] /api/version not responding (server may be starting up)"
+- 525: # ── cmd_update ────────────────────────────────────────────────────────────────
+- 536: fs.writeFileSync('VERSION', JSON.stringify({ version, sha, message, updated_at: new Date().toISOString() }, null, 2) + '\n');
+- 541: cmd_update_body() {
+- 545: has git  || fail "Git is required for isotope update."
+- 549: info "IsotopeAI update"
+- 572: || fail "Local branch has diverged. Your changes are safe. Update manually with Git."
+- 574: info "Applying fast-forward update..."
+- 583: node --check server.mjs >/dev/null 2>&1 || fail "server.mjs syntax check failed after update."
+- 586: # Refresh Termux widgets on update
+- 592: info "Update complete."
+- 604: cmd_update() {
+- 606: : > "$UPDATE_LOG"
+- 607: cmd_update_body 2>&1 | redact | tee -a "$UPDATE_LOG"
+- 610: warn "Update failed. Log: $UPDATE_LOG"
+- 613: info "Update log: $UPDATE_LOG"
+- 621: warn "Server is not responding on port $port."
+- 647: update              Safely pull the latest GitHub version
+- 666: update)              cmd_update ;;
+
+DATA FLOW
+
+Data flow is indirect through imports, script execution, documentation, installation, or asset consumption as listed in references.
+
+DEPENDENCIES
+
+- platform dependencies: shell/OS/platform commands likely required
+- Node core modules:
+- 9: #   status             Show project path, port, version, and config
+- 11: #   open               Open http://127.0.0.1:<PORT> in browser
+- 21: PROJECT_PATH_FILE="$ISO_HOME/project-path"
+- 129: url="$1"
+- 130: node - "$url" <<'NODE' >/dev/null 2>&1
+- 131: const http = require('http');
+- 132: const url = process.argv[2];
+- 133: const req = http.get(url, (res) => {
+- 143: url="http://127.0.0.1:$port/api/version"
+- 146: if health_check "$url"; then return 0; fi
+- 155: url="http://127.0.0.1:$port"
+- 156: if has termux-open-url; then termux-open-url "$url" >/dev/null 2>&1 && return 0; fi
+- 157: if has am; then am start -a android.intent.action.VIEW -d "$url" >/dev/null 2>&1 && return 0; fi
+- 158: if has xdg-open; then xdg-open "$url" >/dev/null 2>&1 && return 0; fi
+- 159: if has open; then open "$url" >/dev/null 2>&1 && return 0; fi
+- 160: if has cmd.exe; then cmd.exe /c start "$url" >/dev/null 2>&1 && return 0; fi
+- 161: info "Open in browser: $url"
+- 208: info "Local URL: http://127.0.0.1:$port"
+- 209: if health_check "http://127.0.0.1:$port/api/version"; then
+- 247: info "Local URL: http://127.0.0.1:$port"
+- 252: info "Local URL: http://127.0.0.1:$port"
+- 295: const fs = require('fs'), path = require('path');
+- 298: const v = JSON.parse(fs.readFileSync(path.join(dir,'package.json'),'utf8')).version || 'unknown';
+- 306: const fs = require('fs');
+- 308: const d = JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+- 325: info "Project path: missing"
+- 340: info "URL:     http://127.0.0.1:$port"
+- 343: const fs=require('fs'),path=require('path'),dir=process.argv[2];
+- 344: try{process.stdout.write(JSON.parse(fs.readFileSync(path.join(dir,'package.json'),'utf8')).version||'unknown')}catch{process.stdout.write('unknown')}
+- 374: warn "       Install from F-Droid: https://f-droid.org/packages/com.termux/"
+- 381: has termux-open-url     && info "[ok]  termux-open-url available" \
+- 382: || warn "[warn] termux-open-url not available (needs termux-api)"
+- 446: warn "[warn] project path unknown — run: bash setup.sh from the project directory"
+- 463: if health_check "http://127.0.0.1:$port/api/version"; then
+- 529: const cp = require('child_process');
+- 530: const fs = require('fs');
+- 531: const path = require('path');
+- 535: try { version = JSON.parse(fs.readFileSync(path.join(process.cwd(),'package.json'),'utf8')).version || version; } catch {}
+- 536: fs.writeFileSync('VERSION', JSON.stringify({ version, sha, message, updated_at: new Date().toISOString() }, null, 2) + '\n');
+- 620: if ! health_check "http://127.0.0.1:$port/api/version"; then
+- 648: status              Show project path, port, version, and config
+- 650: open                Open http://127.0.0.1:<PORT> in browser
+- external libraries:
+- 131: const http = require('http');
+- 295: const fs = require('fs'), path = require('path');
+- 306: const fs = require('fs');
+- 343: const fs=require('fs'),path=require('path'),dir=process.argv[2];
+- 529: const cp = require('child_process');
+- 530: const fs = require('fs');
+- 531: const path = require('path');
+- local files: see References and Consumers above
+- browser APIs:
+None observed.
+- operating-system commands:
+- 1: #!/usr/bin/env bash
+- 16: #   setup              Run setup.sh --no-start from the project dir
+- 43: [ -n "${TERMUX_VERSION:-}" ] || printf '%s' "${PREFIX:-}" | grep -q 'com.termux'
+- 76: fail "Could not find IsotopeAI project. Run setup.sh from the project folder."
+- 130: node - "$url" <<'NODE' >/dev/null 2>&1
+- 156: if has termux-open-url; then termux-open-url "$url" >/dev/null 2>&1 && return 0; fi
+- 157: if has am; then am start -a android.intent.action.VIEW -d "$url" >/dev/null 2>&1 && return 0; fi
+- 218: has node || fail "Node.js 18+ is required."
+- 236: setsid node server.mjs </dev/null >> "$SERVER_LOG" 2>&1 &
+- 238: nohup node server.mjs </dev/null >> "$SERVER_LOG" 2>&1 &
+- 294: ver="$(node - "$project" <<'NODE' 2>/dev/null || printf 'unknown'
+- 305: sha="$(node - "$project/VERSION" <<'NODE' 2>/dev/null || true
+- 342: ver="$(node - "$project" <<'NODE' 2>/dev/null || printf 'unknown'
+- 374: warn "       Install from F-Droid: https://f-droid.org/packages/com.termux/"
+- 378: # Check termux-api tools
+- 379: has termux-api          && info "[ok]  termux-api installed" \
+- 380: || warn "[warn] termux-api not installed — widget features limited. Run: pkg install termux-api"
+- 381: has termux-open-url     && info "[ok]  termux-open-url available" \
+- 382: || warn "[warn] termux-open-url not available (needs termux-api)"
+- 383: has termux-wake-lock    && info "[ok]  termux-wake-lock available" \
+- 384: || info "[info] termux-wake-lock not available (optional)"
+- 394: warn "[warn] shortcut missing: $s (run: bash setup-termux-widget.sh)"
+- 398: warn "[warn] ~/.shortcuts not found — run: bash setup-termux-widget.sh"
+- 406: has node  && info "[ok]  node $(node --version)"  || warn "[fail] node not found"
+- 407: has npm   && info "[ok]  npm $(npm --version)"    || warn "[warn] npm not found"
+- 408: has git   && info "[ok]  git $(git --version | awk '{print $3}')" || warn "[warn] git not found (needed for isotope update)"
+- 409: has curl  && info "[ok]  curl available"          || info "[info] curl not found"
+- 416: warn "[warn] isotope not in PATH — run: bash setup.sh"
+- 430: [ -f "$project/.env" ]         && info "[ok]  .env present"     || warn "[warn] .env missing — run: bash setup.sh"
+- 431: [ -f "$project/update.sh" ]    && info "[ok]  update.sh"        || warn "[warn] update.sh missing"
+- 432: [ -f "$project/install-termux.sh" ] && info "[ok]  install-termux.sh" || warn "[warn] install-termux.sh missing"
+- 439: (cd "$project" && node --check server.mjs >/dev/null 2>&1) \
+- 446: warn "[warn] project path unknown — run: bash setup.sh from the project directory"
+- 487: bash setup.sh --yes --no-start --repair \
+- 490: if is_termux && [ -f "$project/setup-termux-widget.sh" ]; then
+- 492: bash "$project/setup-termux-widget.sh" || warn "Widget refresh had errors."
+- 509: [ -f "$project/setup-termux-widget.sh" ] \
+- 510: || fail "setup-termux-widget.sh not found in $project"
+- 512: bash "$project/setup-termux-widget.sh"
+- 521: bash setup.sh --no-start
+- 528: (cd "$project" && node - <<'NODE'
+- 533: try { sha = cp.execSync('git rev-parse HEAD').toString().trim(); } catch {}
+- 534: try { message = cp.execSync('git log -1 --pretty=%s').toString().trim(); } catch {}
+- 545: has git  || fail "Git is required for isotope update."
+- 546: has node || fail "Node.js 18+ is required."
+- 553: [ -d .git ] || fail "Not a Git checkout. Clone the repo or download the latest release."
+- 556: if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+- 559: git stash push -u -m "$stash_name" >/dev/null || fail "Could not stash local changes."
+- 562: branch="$(git rev-parse --abbrev-ref HEAD)"
+- 565: git fetch origin "$branch" || fail "git fetch failed. Check internet connection."
+- 566: local_sha="$(git rev-parse HEAD)"
+- 567: remote_sha="$(git rev-parse "origin/$branch")"
+- 571: git merge-base --is-ancestor "$local_sha" "$remote_sha" \
+- 573: package_changed="$(git diff --name-only "$local_sha" "$remote_sha" | grep -E '^(package\.json|package-lock\.json)$' || true)"
+- 575: git merge --ff-only "$remote_sha" || fail "Fast-forward merge failed."
+- 576: if [ -n "$package_changed" ] && has npm; then
+- 577: info "Package files changed — running npm install..."
+- 578: npm install || fail "npm install failed."
+- 583: node --check server.mjs >/dev/null 2>&1 || fail "server.mjs syntax check failed after update."
+- 587: if is_termux && [ -f setup-termux-widget.sh ]; then
+- 589: bash setup-termux-widget.sh || warn "Widget refresh had errors."
+- 655: setup               Run setup.sh --no-start from the project directory
+- Supabase interfaces:
+- 36: -e 's/(SUPABASE_[A-Z_]*(KEY|TOKEN)|ADMIN_SECRET|GITHUB_PAT|GEMINI_API_KEY|GROQ_API_KEY)=([^[:space:]]+)/\1=[redacted]/g' \
+- 330: supa_url="$(read_env_key "$env_file" SUPABASE_URL)"
+- 331: anon="$(read_env_key "$env_file" SUPABASE_ANON_KEY)"
+- 349: info "Supabase URL: $([ -n "$supa_url" ] && printf 'configured' || printf 'missing')"
+- 350: info "Supabase key: $([ -n "$anon" ] && printf 'configured' || printf 'missing')"
+- 434: supa_url="$(read_env_key "$project/.env" SUPABASE_URL)"
+- 435: anon="$(read_env_key "$project/.env" SUPABASE_ANON_KEY)"
+- 436: [ -n "$supa_url" ] && info "[ok]  Supabase URL configured" || warn "[warn] Supabase URL missing in .env"
+- 437: [ -n "$anon" ]     && info "[ok]  Supabase anon key configured" || warn "[warn] Supabase anon key missing in .env"
+- external services: http://127.0.0.1:, http://127.0.0.1:$port, http://127.0.0.1:$port/api/version, https://f-droid.org/packages/com.termux/
+
+SECURITY AND PRIVACY
+
+- Contains or references auth/session/secret-sensitive concepts; verify server-only boundaries and browser exposure.
+
+CORRECTNESS AND FAILURE MODES
+
+- Depends on asynchronous I/O or browser/server storage; failure modes include network loss, stale state, partial writes, and malformed data.
+
+OFFLINE AND LOCAL-FIRST BEHAVIOUR
+
+- Participates in offline/local-first behavior or references browser persistence/cache APIs.
+
+PERFORMANCE
+
+- Contains repeated parsing, synchronous I/O, timers, or observers that deserve runtime profiling.
+
+MAINTAINABILITY
+
+- Maintained through existing repository structure; no direct maintainability issue confirmed.
+
+FINDINGS
+
+- finding ID: ISO-AUDIT-0242-01
+  severity: INFO
+  category: audit
+  status: CONFIRMED
+  confidence: MEDIUM
+  affected lines or byte-level evidence: bin/isotope inspected; no file-specific high-risk issue confirmed
+  observed evidence: bin/isotope inspected; no file-specific high-risk issue confirmed
+  inferred impact: No direct issue was confirmed from static evidence in this file.
+  reproduction or reasoning: Inspect the referenced path and line or byte metadata; no runtime mutation was used.
+  recommended correction: Keep covered by relevant smoke/static tests.
+  related files: .github/ISSUE_TEMPLATE/bug_report.md, .github/ISSUE_TEMPLATE/bug_report.md, .github/ISSUE_TEMPLATE/bug_report.md
+  regression risk: Review behavior against existing tests before changing.
+
+POSITIVE OBSERVATIONS
+
+- File was included through a deterministic manifest rather than filename-only guessing.
+- Tracked by Git, which improves reproducibility of audit evidence.
+- At least one direct reference/consumer was found.
+
+RECOMMENDED TESTS
+
+- Keep this file covered by repository smoke tests or reference checks appropriate to its subsystem.
+
+FINAL VERDICT
+
+- role: Platform, installation, launch, update, or diagnostic script for running Isotope locally.
+- activity status: referenced
+- reliability: MEDIUM; static audit only, runtime behavior should be verified by targeted tests.
+- largest risk: subsystem-specific drift from implementation
+- highest-value improvement: keep references/tests aligned with actual consumers
