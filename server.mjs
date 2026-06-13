@@ -257,6 +257,12 @@ function adminCookieValue() {
   return 'v1.' + crypto.createHmac('sha256', ADMIN_COOKIE_SECRET).update('isotope-admin-cookie').digest('hex');
 }
 
+function isRequestHttps(req) {
+  const fwdProto = req.headers['x-forwarded-proto'];
+  if (fwdProto) return fwdProto.split(',')[0].trim().toLowerCase() === 'https';
+  return !!(req.socket && req.socket.encrypted);
+}
+
 function escapeHtml(value) {
   return String(value || '').replace(/[&<>"']/g, (ch) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -5189,14 +5195,29 @@ async function createMagicSessionForEmail(email) {
 
 function readReqBody(req, maxBytes = 1048576) { // 1 MB limit
   return new Promise((resolve, reject) => {
-    let b = '', len = 0;
+    let b = '', len = 0, _tooLarge = false;
     req.on('data', d => {
       len += d.length;
-      if (len > maxBytes) { req.destroy(new Error('Request body too large (max 1 MB)')); return; }
+      if (len > maxBytes) {
+        _tooLarge = true;
+        req.destroy(new Error('Request body too large (max ' + Math.ceil(maxBytes / 1024) + ' KB)'));
+        return;
+      }
       b += d;
     });
-    req.on('end', () => { try { resolve(JSON.parse(b)); } catch { resolve({}); } });
-    req.on('error', reject);
+    req.on('end', () => {
+      if (_tooLarge) return; // 'error' event will reject — don't double-resolve with {}
+      try { resolve(JSON.parse(b)); } catch { resolve({}); }
+    });
+    req.on('error', (e) => {
+      if (_tooLarge) {
+        const err = new Error('Request body too large (max ' + Math.ceil(maxBytes / 1024) + ' KB)');
+        err.code = 'BODY_TOO_LARGE';
+        reject(err);
+      } else {
+        reject(e);
+      }
+    });
   });
 }
 
@@ -5672,7 +5693,7 @@ const server = http.createServer((req, res) => {
           }
           res.writeHead(303, {
             Location: next,
-            'Set-Cookie': 'iso_admin=' + encodeURIComponent(adminCookieValue()) + '; Path=/__admin; HttpOnly; SameSite=Strict; Max-Age=86400',
+            'Set-Cookie': 'iso_admin=' + encodeURIComponent(adminCookieValue()) + '; Path=/__admin; HttpOnly; SameSite=Strict; Max-Age=86400' + (isRequestHttps(req) ? '; Secure' : ''),
             'Cache-Control': 'no-store'
           });
           res.end();
@@ -8105,7 +8126,12 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
   // ── /__admin/apply-sql — server-side proxy for Supabase Management API ──────
   // Avoids browser CORS blocks — browser sends PAT to OUR server, server calls api.supabase.com
   if (req.method === 'POST' && req.url === '/__admin/apply-sql') {
-    readReqBody(req).then(({ pat, sql }) => {
+    if (!isAdminAuthed(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'Unauthorized' }));
+      return;
+    }
+    readReqBody(req, 4 * 1024 * 1024).then(({ pat, sql }) => {
       if (!pat || !sql) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'pat and sql fields are required' }));
