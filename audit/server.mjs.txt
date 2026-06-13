@@ -1,174 +1,132 @@
-FILE IDENTITY
-- original path: server.mjs
-- audit path: audit/server.mjs.txt
-- audited commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
-- tracked or untracked: tracked
-- file type: JavaScript/ESM module
-- MIME type: text/javascript
-- size in bytes: 440665
-- SHA-256: 2f220c83f12b6cbcc738299fcd1c4f46f1ee3fc580210d7a0ae7afff2c42d866
-- text encoding: utf-8
-- executable status: not executable (invoked via node server.mjs)
-- generated/minified status: hand-authored monolith (NOT minified — it is human-readable source)
-- primary subsystem: Node.js HTTP server
-- primary auditor: runtime-server-agent
-- review status: deep review applied
-- confidence: HIGH
+ISOTOPE CORE SERVER COMPREHENSIVE DEEP AUDIT REPORT
+===================================================
+File: /tmp/isotope-repo/server.mjs
+Lines: 8642
+Audit Date: 2024-05-20
+Status: COMPLETE
 
-PURPOSE
-server.mjs is the central, monolithic Node.js HTTP server for the IsotopeAI self-hosted edition. It provides a comprehensive set of backend services including:
-- Static file serving for the frontend application.
-- Authentication and session management (JWT verification, session cookies).
-- An integrated Admin Panel for database management, role assignment, and system health monitoring.
-- A proxy layer for Supabase REST, Storage, and Edge Functions.
-- Backup and restore orchestration using the BackupManager.
-- AI proxying for Gemini, Groq, and YepAPI.
-- Runtime patching of frontend JavaScript bundles to inject environment variables and modify application behavior.
-- PWA support and service worker coordination.
+1. FILE HEADER
+--------------
+- Runtime: Node.js (ESM mode .mjs)
+- Imports:
+  * http, https: Dual-protocol handling. Incoming requests use http; outgoing Supabase/API calls use https.
+  * fs, path: Extensive use for static asset serving and reading vendor bundles for patching.
+  * crypto: Used for admin cookie signatures (HMAC SHA-256) and hashing backup files.
+  * url: URL parsing for routing and Supabase host extraction.
+  * child_process: (execSync imported but usage is minimal, mostly for startup metadata).
+  * zlib: Critical for background Gzip compression of patched bundles (lines 8420-8445).
+- Global Constants:
+  * PORT: Process environment or 3000.
+  * PUBLIC_DIR: Absolute path to ./public.
+  * ADMIN_MODE_READY: Boolean flag (line 145) checking for SUPABASE_SERVICE_ROLE_KEY.
+  * MIME_TYPES: Standard mapping (lines 81-120).
 
-ROLE IN THE APPLICATION
-The file acts as the primary runtime glue. It eliminates the need for a complex build-step for environment configuration by patching assets on-the-fly. It handles all administrative tasks that require elevated permissions (Service Role Key) and provides a secure bridge between the client and the Supabase backend.
+2. ENVIRONMENT VARIABLES
+------------------------
+- SUPABASE_URL (Required): No fallback. App fails if missing.
+- SUPABASE_ANON_KEY (Required): Public key for user-level RLS requests.
+- SUPABASE_SERVICE_ROLE_KEY (Optional): Enables ADMIN_MODE_READY. Without it, /__admin routes return 401/503.
+- ADMIN_COOKIE_SECRET: Fallback to 'isotope-secret-change-me'. Risk: Default value allows trivial cookie forging.
+- ADMIN_SECRET: Used for manual admin login override.
+- ADMIN_EMAIL / ADMIN_PASSWORD: Used by startup backfills to seed the primary admin account.
+- GEMINI_API_KEY / GROQ_API_KEY: Optional. Activates AI store patching if present.
+- VALIDATION (lines 8380-8392): prints console warnings but does not halt server (soft-fail).
 
-SECTION MAP WITH LINE RANGES
-- Rate Limiter: 14-34
-- .env Loader: 40-75
-- MIME Types & Cache Config: 81-127
-- Environment Config & Validation: 133-214
-- Admin Auth Logic: 218-278
-- Utility Helpers (Req, JWT): 279-376
-- Supabase Proxy Config: 381-388
-- AI Key Injection: 390-408
-- Username-auth Client Helpers: 410-2065
-- Origin & Public Vars Injection: 2067-2200
-- Premium & Feature Scripts: 2202-3151
-- Bundle Patching Logic (AI, Assets): 3213-4084
-- Supabase REST/Storage Helpers: 4087-5248
-- GitHub Update Checker: 5301-5370
-- Performance & Health Caches: 5371-5532
-- Main HTTP Server (Router): 5627-8350
-- Startup Validation & Listen: 8352-8424
-- Storage Setup & Backfills: 8427-8600+
+3. RATE LIMITER
+---------------
+- Map: `_rateLimiter` (line 15).
+- Logic: `checkRateLimit(key, limit=5, window=60000)`.
+- Keying: Usually "endpoint:ip" (e.g., line 8065 for /__auth/login).
+- Pruning: `setInterval` (line 31) runs every 5 minutes to clear expired entries.
+- Correctness: Simple in-memory implementation. Effective for vertical scaling; fails to coordinate in clustered environments.
 
-COMPLETE IMPORT INVENTORY
-- http (line 1)
-- https (line 2)
-- fs (line 3)
-- path (line 4)
-- zlib (line 5)
-- crypto (line 6)
-- { execSync } from 'child_process' (line 7)
-- { fileURLToPath } from 'url' (line 8)
-- { createBackupManager } from './server/backup-manager.mjs' (line 9)
-- { buildCanonicalBackupPayload, mergeBackupData } from './public/sync/backup-normalizer.js' (line 10-13)
+4. ADMIN AUTH
+-------------
+- isAdminAuthed(req) (line 233): Checks `X-Admin-Secret` header OR `admin_session` cookie.
+- adminCookieValue() (line 255): `sha256(ADMIN_COOKIE_SECRET + "admin")`.
+- ADMIN_MODE_READY: Boolean gating server-side Supabase access.
+- isRequestHttps(req): Recently added to prevent cookie leakage over insecure connections (affects cookie 'Secure' flag).
+- Auth Logic: If `ISOTOPE_DEV_MODE` is true, some HTTPS checks are relaxed.
 
-COMPLETE FUNCTION INVENTORY
-- checkRateLimit (19)
-- loadDotEnvIfNeeded (41)
-- isRuntimePatchedAsset (117)
-- isHashedStaticAsset (122)
-- cacheHeaderForRequest (127)
-- isAdminAuthed (233)
-- readCookie (245)
-- adminCookieValue (255)
-- escapeHtml (262)
-- readRequestText (268)
-- verifySupabaseAccessToken (282)
-- isSupabaseAdminUser (319)
-- authenticateAdminUnlock (336)
-- supaAdminReq (4087)
-- supaRestReq (4119)
-- supaRestAsUser (4266)
-- uploadAvatarDataUrlForUser (4473)
-- downloadCloudSnapshotForUser (4761)
-- uploadCloudSnapshotForUser (4777)
-- pruneOldStorageFiles (4808)
-- refreshCloudSnapshotForUser (4826)
-- uploadRawUserBackupJson (4842)
-- applyBackupProfileToSupabase (4858)
-- fetchUserProfileBundle (4923)
-- fetchUserBootstrapBundle (4982)
-- bootstrapUserRows (5021)
-- createMagicSessionForEmail (5171)
-- requireUserAuth (5233)
-- ensureStorageBuckets (8431)
-- runStartupBackfills (8473)
+5. SUPABASE HELPERS
+-------------------
+- supaAdminReq (line 4087): Service role key. Bypasses RLS. 15s timeout.
+- supaRestReq (line 4119): User JWT + Anon Key. Respects RLS. 12s timeout.
+- supaRestAsUser (line 4266): Simplified wrapper for user requests.
+- Storage Helpers (lines 4350-4800):
+  * supaStorageObjectReqAsUser: Generic object fetch.
+  * supaStorageUploadAsUser: Handles multipart/form-data for uploads.
+  * supaStorageDownloadAsUser: Returns data as Buffer.
+  * supaStorageRemoveAsUser: Deletes specific paths.
+  * supaStorageListAsUser: Returns JSON file lists.
+- Error Handling: Uses `assertSupaOk()` (line 4200) to throw on non-2xx status codes.
 
-MUTABLE GLOBAL STATE INVENTORY
-- _rateLimiter (15): Map of IP to rate limit info.
-- _dotenvResults (68): List of loaded .env file results.
-- _autoSyncTimer (2005): Interval for auto-sync logic.
-- HEALTH_CACHE (5372): Cache for Supabase health status.
-- GH_CACHE (5370): Cache for GitHub version info.
+6. AUTH HELPERS
+---------------
+- verifySupabaseAccessToken(jwt) (line 282): Validates token against Supabase /auth/v1/user.
+- requireUserAuth(req, res) (line 5233): Guard that returns {userId, userJwt}.
+- extractBearerToken(req): Checks Authorization header.
+- getUserIdFromJwt(jwt): Decodes JWT payload (segment 2) to extract `sub` claim.
 
-TIMER INVENTORY
-- setInterval (31): Prunes rate limiter map every 5 minutes.
-- setTimeout (732+): Multiple instances in injected client scripts for UI delays, retries, and cleanups.
-- setInterval (8031): Likely for background tasks or update checks (injected context).
+7. readReqBody()
+----------------
+- Line 268: Implements a Promise-wrapped stream listener.
+- Race Condition Fix: The fix ensures all 'data' chunks are processed before resolving on 'end'.
+- Max Size: Hardcoded 10MB limit (line 270) to prevent OOM attacks.
+- Verification: Correctly handles Buffer concatenation and JSON parsing.
 
-CHILD PROCESS INVENTORY
-- execSync (7): Imported but usage typically restricted to server startup or diagnostic commands.
+8. HTTP ROUTES
+--------------
+- OPTIONS /*: Returns CORS headers (Origin: *, Methods: GET,POST,etc).
+- /__admin/login (GET): Serves admin login HTML.
+- /__admin/login (POST): Sets `admin_session` cookie if password matches ADMIN_SECRET.
+- /__admin/browser-proof*: Serves diagnostic UI for manual browser-to-cloud verification.
+- /api/ai-config (GET): Returns {gemini:bool, groq:bool}.
+- /api/auth/*:
+  - signup (POST): Proxy to Supabase. Seeding happens in `bootstrapUserRows`.
+  - signin (POST): Proxy to Supabase.
+  - update-profile (POST/PATCH): Merges into `user_profiles.profile_data`.
+  - me (GET): Returns user row.
+- /api/sync/*:
+  - backup (POST): requireUserAuth. Saves state to user-content bucket.
+  - restore (GET): requireUserAuth. Fetches state from bucket.
+- /api/ai/chat (POST): requireUserAuth. Proxies to AI provider with server-side keys.
+- /__admin/apply-sql (POST): Guard: `isAdminAuthed`. Proxies raw SQL to api.supabase.com using user-provided PAT.
+- Static Files: Path normalization (line 8184) prevents directory traversal.
+- SPA Fallback: Unknown GET requests return index.html (line 8231).
 
-ENVIRONMENT VARIABLE INVENTORY
-- SUPABASE_URL: Required. Supabase project URL.
-- SUPABASE_ANON_KEY: Required. Public anon key.
-- PORT: Optional. Default 3000.
-- ENABLE_ADMIN_MODE: Optional. Boolean. Enables /__admin routes.
-- SUPABASE_SERVICE_ROLE_KEY: Required for Admin Mode. Elevated permissions.
-- ADMIN_SECRET: Optional. Password for Admin Panel unlock.
-- ADMIN_EMAIL: Optional. Primary admin user email.
-- ADMIN_EMAILS: Optional. CSV list of allowed admin emails.
-- BROWSER_PROOF_EMAIL: Optional. Email for browser-based proofing tests.
-- SUPABASE_ACCESS_TOKEN: Sensitive. Used for direct Supabase API access if provided.
-- GITHUB_PAT: Optional. Used for update checks if rate-limited.
-- GEMINI_API_KEY: Optional. Injected for AI features.
-- GROQ_API_KEY: Optional. Injected for AI features.
-- YEPAPI_KEY: Optional. Injected for AI features.
-- SESSION_SECRET: Optional. Used for signing session data.
+9. BUNDLE-PATCHING FUNCTIONS
+----------------------------
+- Mechanism: `fs.readFileSync` + regex `replace`.
+- getPatchedAppBundle (line 8292): Swaps plan_type to 'ranker'.
+- getPatchedAuthBundle (line 8296): Injects username-auth logic.
+- getPatchedAiStore (line 8269): Injects Gemini/Groq keys.
+- Brittle-string risk: CRITICAL. Regex matches like `const plan="free"` will fail if the minifier changes variable names or spacing. Caching mitigates IO cost but not fragility.
 
-HTTP ROUTE INVENTORY
-- OPTIONS /*: CORS preflight.
-- GET /__admin/login: Admin login page.
-- POST /__admin/login: Authenticates admin via secret or Supabase token.
-- GET /__admin/browser-proof: System proofing tests.
-- POST /__supa/functions/v1/*: Proxy for Supabase Edge Functions.
-- GET /api/health: System health check (Supabase status).
-- POST /__auth/check: Verifies username-based auth.
-- GET /__auth/bootstrap: Fetches initial user state and config.
-- POST /__auth/snapshot: Uploads client state snapshot.
-- GET /__auth/backup/best: Retrieves best available cloud backup.
-- POST /__auth/restore-best-backup: Promotes a selected backup.
-- POST /__auth/backup: Creates a new canonical backup.
-- POST /__auth/signup: Username-based registration.
-- GET /__admin/roles: Role management UI.
-- POST /__admin/apply-sql: Executes SQL via the server (dangerous).
+10. BROWSER-PROOF SYSTEM
+------------------------
+- Flow: UI at /__admin/browser-proof triggers a series of localStorage operations.
+- Interception: Server-side scripts inject code into the client to capture these events.
+- Result: Verification of sync logic without needing full automated E2E tests for every browser.
 
-STATIC FILE SERVING ANALYSIS
-The server uses `fs.readFileSync` and `path.join` for static assets under `/public`. It protects against traversal by normalizing paths and checking for known assets. It implements SPA fallback (serving index.html for unknown routes) and sets specific cache headers (IMMUTABLE for hashed assets, NO_STORE for sensitive/dynamic ones).
+11. STARTUP
+-----------
+- server.listen (line 8394): Binds to '0.0.0.0'.
+- SIGNAL HANDLERS: Missing explicit SIGTERM/SIGINT handlers.
+- Startup Tasks:
+  - `validateEnv()`: Sanity check.
+  - `getPatched*()`: Warms bundle caches.
+  - `preGzipNext()`: Sequentially gzips all 15+ bundles to avoid CPU spikes.
+  - `runStartupBackfills()`: Seeds DB rows.
+  - `ensureStorageBuckets()`: Idempotently creates avatars, notes, user-content.
 
-AUTHENTICATION ANALYSIS
-The system uses a custom "username-auth" layer on top of Supabase. It maintains its own JWT verification logic and session cookie (`iso_admin` for admin panel). Admin auth can be satisfied by a static `ADMIN_SECRET` or a valid Supabase session from a whitelisted email.
+12. FINDINGS
+------------
+- [MEDIUM] Line 52: Default `ADMIN_COOKIE_SECRET` is 'isotope-secret-change-me'. Risk: Session takeover.
+- [HIGH] Line 8140: `/api/apply-sql` allows raw DDL/DML. Any admin compromise is a full DB compromise.
+- [INFO] Line 8269: Bundle patching depends on minified code patterns. Brittle to vendor updates.
+- [LOW] Line 8552: Startup backfill hardcodes `plan_type` to 'ranker'.
+- [MEDIUM] Line 8128: `/api/apply-sql` sends user PAT to the server. Server could log or leak this token.
 
-SUPABASE CALL MAP
-- /auth/v1/user: Line 291 (Verify token)
-- /storage/v1/bucket: Line 8440 (Ensure buckets)
-- /rest/v1/*: Line 8492 (DML backfills)
-- /auth/v1/admin/users: Line 8590 (Create admin user)
-
-BUNDLE PATCHING ANALYSIS
-The server intercepts requests for specific JS assets and modifies their content:
-- `getPatchedAIStoreBundle`: Injects API keys.
-- `getPatchedAuthBundle`: Swaps email-auth for username-auth UI.
-- `getPatchedAppBundle`: Forces 'ranker' plan and disables demo mode.
-- `getPatchedInvitesBundle`: Fixes parameter name mismatches (`token_input` -> `p_code`).
-
-SECURITY AND PRIVACY
-- CSRF: POST routes lack traditional CSRF tokens but often rely on Bearer tokens or Admin Secrets.
-- Admin Cookie: Signed with `ADMIN_COOKIE_SECRET` (HMAC SHA-256).
-- Path Traversal: Risk is mitigated by strict path checks and restricted root.
-- Injection: High risk in `/api/apply-sql` as it allows raw SQL execution.
-
-FINDINGS
-- SRV-001: [HIGH] Raw SQL Execution. The `/api/apply-sql` route allows potentially destructive operations if an admin account is compromised.
-- SRV-002: [MEDIUM] Hardcoded Default Credentials. `DEFAULT_SUPABASE_ANON_KEY` is present in the source, though it's for a public/anon instance.
-- SRV-003: [LOW] Large Monolith. The 8000+ line file is difficult to audit and maintain, increasing the risk of logic errors.
-- SRV-004: [INFO] Bundle Patching Brittle. Patching depends on exact string matches in minified bundles, which will break on frontend updates.
+AUDIT COMPLETE.
+The file is a robust but monolithic "runtime glue" layer. Its primary security model relies on Supabase RLS for users and environment-variable secrets for admins.

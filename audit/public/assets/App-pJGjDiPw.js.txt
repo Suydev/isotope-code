@@ -1,8 +1,56 @@
-FILE IDENTITY (path=public/assets/App-pJGjDiPw.js, size=349218, SHA-256=d758ec9b4fbee29bccc54d73eff8db8a1fb026a09cd4af25ebdd5a01176f80ae, minified=yes)
-PURPOSE (Main App Logic)
-ACTIVE OR STALE (active)
-CHUNK FAMILY (App)
-DUPLICATE STATUS (None)
-SECURITY NOTES (No obvious keys found in head snippet)
-FINDINGS (BUNDLE-OK)
-FINAL VERDICT (Verified)
+AUDIT REPORT: /tmp/isotope-repo/public/assets/App-pJGjDiPw.js
+================================================================================
+
+1. IDENTITY
+   - Module: App (Root Entry Point)
+   - Purpose: Main application shell, routing, global state providers, and shared utilities.
+   - Key Components: App, Landing, Dashboard, Syllabus, Exams, Tasks, Community, Auth.
+
+2. DEPENDENCIES BUNDLED
+   - React 18+ (useSyncExternalStore, useCallback, useDebugValue)
+   - Zustand (custom implementation 'jt', 'as')
+   - Supabase JS Client (vendor-supabase)
+   - Framer Motion (Ya, vendor-motion)
+   - Lucide React / Icon Libraries (vendor-icons)
+   - React Router (vendor-router)
+   - DiceBear Avatars (api.dicebear.com)
+
+3. API ENDPOINTS
+   - https://api.dicebear.com/7.x/avataaars/svg?seed=...
+   - Supabase URL: "__ISOTOPE_SUPABASE_URL__" (Placeholder)
+   - /reset-password
+   - /invite/:token
+   - /subscription, /terms, /privacy, /about
+
+4. CREDENTIAL SCAN
+   - "__ISOTOPE_SUPABASE_ANON_KEY__" (Placeholder)
+   - "isotope-auth-token" (Storage key for JWT)
+   - Authorization headers found in vendor bundles.
+   - "password" fields found in Auth component logic.
+
+5. SENSITIVE PATTERNS
+   - eval(): 0 occurrences
+   - dangerouslySetInnerHTML: Not found in primary logic (likely in Markdown vendor).
+   - document.documentElement.classList.contains("dark") (Theme management).
+   - window.matchMedia (Responsive/Theme detection).
+
+6. DATA PERSISTENCE
+   - localStorage Keys:
+     - isotope_tasks_v2, isotope_sessions_v2, isotope_subjects_v2, isotope_habits_v2
+     - isotope_user_profile_v2, isotope_timer_state, isotope_daily_logs_v2
+     - isotope_tests_v2, isotope_exams_v2, isotope_mock_tests_v2
+     - isotope_schema_version, isotope_sync_metadata
+   - indexedDB check: "typeof window.indexedDB < 'u'"
+
+7. FEATURE FLAGS / CONSTANTS
+   - Theme: "system", "dark", "light"
+   - Layout: "comfortable", "standard"
+   - Accent Color: "#f97316" (Orange)
+
+8. FINDINGS
+   - [MEDIUM] LocalStorage Usage: Extensive use of localStorage for sensitive-looking data (tasks, habits, user profile). While convenient, it lacks the security of a proper database or encrypted storage.
+   - [LOW] Placeholder Credentials: Bundle contains "__ISOTOPE_SUPABASE_URL__" and "__ISOTOPE_SUPABASE_ANON_KEY__" which are presumably replaced during build/deployment, but visible in build artifacts.
+   - [INFO] DiceBear Integration: External dependency for user avatars via seed-based URLs.
+
+================================================================================
+END OF AUDIT

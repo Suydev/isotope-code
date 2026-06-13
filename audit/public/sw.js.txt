@@ -1,68 +1,63 @@
-FILE IDENTITY
-- path: public/sw.js
-- audit path: audit/public/sw.js.txt
-- commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
-- tracked: true
-- type: JavaScript (Service Worker)
-- MIME: application/javascript
-- size: 2841
-- SHA-256: 49cc0f0658428178f564f7b4e9f5ed5e1a39648939c3666d67181d60724838e1
-- encoding: UTF-8
-- executable: false
-- generated/authored: Authored (uses Workbox)
+AUDIT: /tmp/isotope-repo/public/sw.js
+===============================
 
-PURPOSE
-Implements the Service Worker for the application, providing offline capabilities, precaching of core assets, and runtime caching of static resources.
+1. PURPOSE & ARCHITECTURE
+-------------------------
+'sw.js' is the Service Worker for the IsotopeAI PWA (Progressive Web App). It is responsible for offline capability, asset caching, and ensuring that "Runtime Glue" (critical boot scripts) is always available and up-to-date. It uses a "Network-First" strategy for navigation and core scripts, and a "Cache-First" strategy for static assets like images and fonts.
 
-ROLE IN THE APPLICATION
-- Subsystem: Progressive Web App (PWA)
-- Runtime stage: Background / Client-side
-- Active/legacy: Active
+Architecture:
+- Event-driven (install, activate, message, fetch).
+- Uses dual caches: SHELL_CACHE for the core app shell and RUNTIME_CACHE for other assets.
+- Explicitly handles "Runtime Glue" (scripts like restore-and-launch.js) to ensure the boot process is resilient.
 
-REFERENCES AND CONSUMERS
-- Referenced in manifest.json (indirectly via PWA specs)
-- Referenced in index.html (via PWA registration scripts)
+2. EXECUTION CONTEXT
+--------------------
+- Runs in a SERVICE WORKER context (separate from the main thread).
+- Global scope is 'self'.
 
-INTERNAL STRUCTURE
-- Imports Workbox from CDN/local file.
-- Configures cache names (precache, runtime).
-- Defines precache manifest (list of critical assets).
-- Implements Fetch handlers for navigation (offline fallback) and assets.
-- Handles 'install' and 'activate' events.
+3. FUNCTION INVENTORY
+---------------------
+- isApiLike(url): Identifies requests that should never be cached (API, Auth, Admin).
+- isCacheableAsset(request, url): Filters for static assets (JS, CSS, Images, Fonts) on the same origin.
+- isRuntimeGlue(url): Identifies critical scripts that require a Network-First strategy to allow for emergency updates.
+- cacheFirst(request): Strategy: Return from cache if available, otherwise fetch and cache.
+- networkFirstStatic(request): Strategy: Try network with 'no-store', fall back to cache. Updates cache on success.
+- networkFirstNavigation(request): Strategy: Try network for document navigation, update SHELL_CACHE with index.html, fall back to cached index/offline.html.
 
-INPUTS
-- Precache manifest (inlined or injected).
-- Network requests.
+4. DATA FLOWS
+-------------
+- READS: Network requests, Cache Storage.
+- WRITES: Cache Storage ('isotope-local-shell-*', 'isotope-local-runtime-*').
+- MESSAGES: Sends 'ISOTOPE_SW_READY' and 'ISOTOPE_SW_VERSION' to clients. Receives 'SKIP_WAITING', 'GET_VERSION', 'CLEAR_ISOTOPE_CACHES'.
 
-OUTPUTS AND SIDE EFFECTS
-- Cache storage writes (V1_PRECACHE, V1_RUNTIME).
-- Network request interception.
+5. ERROR HANDLING
+-----------------
+- Navigations: If the network fails and no shell is cached, it returns a 503 Response with a plain text message.
+- Static Assets: networkFirstStatic falls back to cache on any fetch error.
+- Message handling: try/catch around postMessage to handle detached clients.
 
-DATA FLOW
-1. Intercepts fetch requests.
-2. Checks if the request is in the precache.
-3. If not, applies runtime caching strategies (Stale-While-Revalidate or Network-First).
-4. Serves /offline.html on navigation failures.
+6. CREDENTIAL HANDLING
+----------------------
+- networkFirstStatic preserves 'credentials: request.credentials' when cloning requests.
+- Does not store tokens or sensitive data in caches.
 
-SECURITY AND PRIVACY
-- Cache scope is restricted to the root path.
-- No sensitive data (tokens/PII) should be stored in the Service Worker cache.
+8. RACE CONDITIONS
+------------------
+- 'activate' event correctly uses 'clients.claim()' and deletes old caches to prevent stale cache interactions.
+- 'skipWaiting' is handled via message and during install to ensure the new worker takes control immediately.
 
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-- Core of the offline experience.
-- Provides fallback for navigation requests when the network is down.
+9. OFFLINE / CACHE BEHAVIOUR
+----------------------------
+- Cache Versioning: Uses APP_VERSION and a 12-char APP_SHA (injected by server) in cache names to ensure clean updates.
+- Pre-caching: SHELL_URLS are pre-cached during the 'install' event with { cache: 'reload' } to bypass browser HTTP cache.
+- Stale Responses: Assets in RUNTIME_CACHE stay until a version change.
+- Cache Busting: networkFirstStatic uses 'cache: no-store' in the fetch call to ensure it gets fresh data from the server.
 
-PERFORMANCE
-- Precaches 33+ core assets (JS, CSS, fonts).
-- Uses Stale-While-Revalidate to speed up asset loading.
+11. FINDINGS
+------------
+- [INFO] Line 113: 'cache.put(request, response.clone())' in cacheFirst doesn't check for response.ok = true for non-opaque responses, though it filters for same-origin which usually implies ok responses are desired.
+- [LOW] Line 133: If networkFirstStatic fails and no cache exists, it does a final 'fetch(request)'. This is redundant if the first fetch failed due to a network error.
+- [LOW] Line 156: SHELL_URLS list is large and manually maintained. If a file is renamed in the build process but not updated here, the SW installation will fail (due to addAll's atomic nature).
+- [INFO] Line 5: APP_VERSION and APP_SHA are placeholders. The audit assumes these are correctly replaced by the server at delivery time.
 
-FINDINGS
-- SW-001: Cache name is hardcoded 'isotope-v1'. (Severity: INFO, Status: CONFIRMED)
-- SW-002: Imports Workbox from external file 'workbox-1d81fbea.js'. (Severity: INFO, Status: CONFIRMED)
-
-POSITIVE OBSERVATIONS
-- Clean implementation using Workbox.
-- Includes offline fallback for navigation.
-
-FINAL VERDICT
-Functional and secure service worker implementation.
+VERDICT: A well-implemented Service Worker. The distinction between "Runtime Glue" and "Static Assets" shows a sophisticated understanding of PWA boot resilience. The strategy for navigation (falling back to index.html) correctly supports SPA routing.

@@ -1,60 +1,105 @@
-FILE IDENTITY
-- path: public/restore-and-launch.js
-- audit path: audit/public/restore-and-launch.js.txt
-- commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
-- tracked: true
-- type: JavaScript
-- MIME: application/javascript
-- size: 9142
-- SHA-256: 4f7c2f6d4d1283c4b123d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5
-- encoding: UTF-8
-- executable: false
-- generated/authored: Authored
+AUDIT: /tmp/isotope-repo/public/restore-and-launch.js
+=====================================================
 
-PURPOSE
-Coordinates the process of restoring data from a backup and then launching the main application. It bridges the data layer and the UI during the initialization phase.
+1. PURPOSE & ARCHITECTURE
+-------------------------
+The script 'restore-and-launch.js' is the primary boot-time coordinator for the IsotopeAI web application. Its main goal is to transition the browser from an initial loading state to the correct application route (Dashboard, Onboarding, or Auth) based on the user's authentication status and data availability. It acts as a bridge between the server-side environment (which injects configuration) and the client-side SPA (Single Page Application) shell. It ensures that the local data environment (IndexedDB and LocalStorage) is prepared before the main application bundle is loaded and executed.
 
-ROLE IN THE APPLICATION
-- Subsystem: Initialization / Data Sync
-- Runtime stage: Boot / Onboarding
-- Active/legacy: Active
+Architecture-wise, it follows a linear execution flow:
+- Initial state publication.
+- Cleanup of stale/fake data from previous sessions or older versions.
+- Schema initialization for IndexedDB.
+- Session discovery and optional refresh via Supabase.
+- Authoritative data fetch from Supabase (Bootstrap) or fallback to local trusted snapshots.
+- Routing decision based on onboarding status.
+- Preloading of the main application assets.
 
-REFERENCES AND CONSUMERS
-- Referenced in the onboarding/restore pages.
+2. EXECUTION CONTEXT
+--------------------
+- Runs on the MAIN THREAD of the browser.
+- Executes immediately upon being loaded (typically via a <script> tag in index.html).
+- Runs before the main React/Zustand application logic takes over.
 
-INTERNAL STRUCTURE
-- function performRestore(backupData): Calls local-data-adapter to apply data.
-- function launchApp(): Redirects or mounts the main application component.
-- Handles progress tracking and UI updates during restore.
+3. FUNCTION INVENTORY
+---------------------
+- publishBootState(state, detail): Updates window.__ISO_BOOT_STATE__ and dispatches a 'isotope:boot-state' CustomEvent.
+- openDB(): Returns a Promise resolving to the 'isotope_main' IndexedDB (v20). Handles onupgradeneeded to create stores.
+- writeStore(db, storeName, records): Performs a readwrite transaction to 'put' records into a specific store.
+- clearStore(db, storeName): Clears all records in a store.
+- findSessionRaw(): Scans localStorage for various Supabase session keys (legacy, standard v2, bridge fallback).
+- parseSession(raw): Safely parses and normalizes session JSON from various formats.
+- decodeJwtPayload(token): Decodes Base64Url JWT payload without external libraries.
+- sessionExpiresSoon(session): Checks if the JWT expires in less than 3 minutes.
+- saveRefreshedSession(session): Persists a new session object across multiple localStorage keys for compatibility.
+- refreshStoredSessionIfNeeded(session): Async. Calls Supabase /auth/v1/token to refresh the session if expiring.
+- readLocalOnboardingState(): Reads Zustand onboarding state from localStorage.
+- writeLocalOnboardingComplete(): Force-writes a completed onboarding state to Zustand's localStorage key.
+- fetchProfileFromDB(session): Fetches 'user_onboarding' and 'user_profiles' via REST API. Writes cloud snapshots.
+- writeJson(key, value) / readJson(key, fallback): Helpers for localStorage JSON operations.
+- isObject(value): Utility to check if a value is a non-array object.
+- normalizeOnboarding(onboarding, profileData): Reconciles onboarding status from multiple potential data sources.
+- writeCloudSnapshotFromParts(parts): Constructs and stores a 'trusted' cloud snapshot in localStorage.
+- isTrustedSnapshotForUser(snapshot, userId): Validation logic for snapshot integrity.
+- migrateLegacyCloudSnapshot(userId): Migrates older bootstrap/profile data into the new snapshot format.
+- readTrustedCloudSnapshot(userId): Retrieves and validates a snapshot for a specific user.
+- applyCachedCloudSnapshot(snapshot): Populates local stores (Profile, Onboarding, Tours) from a cached snapshot.
+- mergeArrayById(key, incoming): Merges arrays in localStorage by 'id' field, preserving existing data.
+- sessionLogRowsToLocal(rows): Transforms server-side study session logs into local focus session format.
+- applyBootstrapSnapshot(snapshot): The main data applicator for the server's /__auth/bootstrap response.
+- fetchBootstrapFromServer(session): Fetches the consolidated bootstrap payload from the Isotope server.
+- isStaleLocal(key): Heuristic to detect if local auth/onboarding data is "fake" or from a different session type.
+- purgeStaleFakeData(): Deletes inconsistent local data before boot.
+- ensureSchema(): Ensures IndexedDB stores exist and marks migration as complete.
+- preloadAssets(): Dynamically injects <link rel="modulepreload"> and <script type="module"> for the main app.
 
-INPUTS
-- backup.json (default) or user-provided backup files.
-- LocalDataDataAdapter (public/sync/local-data-adapter.js).
+4. DATA FLOWS
+-------------
+- READS: localStorage (Auth, Onboarding, Snapshots, Preferences), window.__ISO_SUPA_URL__, window.__ISO_ANON__.
+- WRITES: localStorage (Auth, Onboarding, Profile, Tours, Snapshots, Sync metadata, Group preferences), IndexedDB (userProfile, migrationMeta, kv, sessions).
+- NETWORK:
+  - POST to Supabase /auth/v1/token (Refresh).
+  - GET from Supabase /rest/v1/user_onboarding and /user_profiles.
+  - GET from /__auth/bootstrap (Consolidated app state).
 
-OUTPUTS AND SIDE EFFECTS
-- Updates LocalStorage/IndexedDB.
-- Navigates to the dashboard.
+5. ERROR HANDLING
+-----------------
+- Extensive use of try/catch blocks that swallow errors ('catch (_)') to ensure the boot process continues even if secondary steps fail.
+- AbortController with timeouts (3s to 8s) for all network fetches to prevent hanging the boot process.
+- Fallback logic: If the server bootstrap fails, it tries direct Supabase REST; if that fails, it falls back to 'trusted' local snapshots.
+- publishBootState includes a 'state' field to allow the UI to show appropriate error/retry screens (e.g., SYNC_FAILED).
 
-DATA FLOW
-1. User selects "Restore".
-2. Script fetches/reads backup.
-3. Script applies backup via adapter.
-4. Script verifies success and launches app.
+6. CREDENTIAL HANDLING
+----------------------
+- Reads Supabase ANON key and URL from window globals (injected by server).
+- Accesses and stores Supabase JWT and Refresh Tokens in localStorage.
+- Tokens are passed in 'Authorization: Bearer <token>' and 'apikey' headers.
+- Safe: No hardcoded secrets in the source; depends on runtime injection and standard browser storage.
 
-SECURITY AND PRIVACY
-- Handles large data payloads; ensures schema validity before application.
+7. SECURITY
+-----------
+- XSS: The script uses 'atob' for JWT decoding. It uses 'innerHTML' in some injected UI (though not visible in the core logic of this file, standard patterns apply).
+- Origin: All fetches are to either the same origin or the configured SUPA_URL.
+- Input Validation: Uses 'isObject' and manual schema checks before applying snapshot data to local storage.
+- Eval: No use of eval() or new Function().
 
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-- Allows users to bring their data to a new local instance.
+8. RACE CONDITIONS
+------------------
+- Potential Race: Multiple async boots if the script is loaded twice (unlikely given index.html structure).
+- Mitigation: Sequential execution within an IIFE (Immediately Invoked Function Expression).
+- Data Consistency: IndexedDB operations are promised and awaited.
 
-PERFORMANCE
-- Manages the transition between "empty" and "populated" states efficiently.
+10. RESTORE LOGIC
+-----------------
+- On boot, the script identifies if a "Restore" is needed by checking DB status.
+- It can handle partial restores by merging data (mergeArrayById).
+- Failures in restoration lead to the 'SYNC_FAILED' state, which allows the app to potentially boot in a "local-only" mode or show a recovery UI.
+- The 'trusted' snapshot mechanism ensures that even if the network is down, the user's last known good state is restored correctly to LocalStorage.
 
-FINDINGS
-- RL-001: Logic for "Clean Launch" vs "Restore Launch". (Severity: INFO, Status: CONFIRMED)
+11. FINDINGS
+------------
+- [LOW] Line 209: 'atob' might fail on non-Latin1 characters if the JWT contains them in some metadata, though standard JWTs are safe.
+- [INFO] Line 32: Fallback to empty string for SUPA_ANON might cause fetch errors later if the server fails to inject it.
+- [MEDIUM] Line 860: Defaulting to '/dashboard' if onboarding status is 'unknown' might bypass onboarding for new users if both server and cache fail.
+- [LOW] Line 742: Hardcoded asset paths in preloadAssets will break if the build hash changes and the server doesn't update this file (though the server usually generates this file).
 
-POSITIVE OBSERVATIONS
-- Good user feedback during the restore process.
-
-FINAL VERDICT
-Functional and user-friendly launch coordinator.
+VERDICT: Robust and well-architected boot-loader. High resilience to network failures.

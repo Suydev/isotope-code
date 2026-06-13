@@ -1,35 +1,77 @@
-FILE IDENTITY
-  Path: /tmp/isotope-repo/isotope-complete.sql
-  Audit Path: audit/isotope-complete.sql.txt
-  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
-  Tracked: Yes
-  Type: SQL Script
-  MIME: text/x-sql
-  Size: 98869 bytes
-  SHA-256: fbe700da26bc21f0744da28fc33906caf45c5efe5c139cba331f2a02a2c03cd3
+============================================================================
+DEEP AUDIT: isotope-complete.sql
+============================================================================
 
-PURPOSE
-  A single authoritative SQL file for a fresh Supabase project, containing the full schema dump including all tables, functions, and triggers.
+1. PURPOSE
+This is the single authoritative "master" schema file for the IsotopeAI platform. It is intended for fresh project initialization or total schema synchronization. It defines all tables, functions, triggers, and RLS policies in a clean, ordered structure.
 
-SQL OBJECTS DEFINED
-  - Tables (25): users, user_profiles, user_points, user_stats_summary, daily_user_stats, study_sessions_log, user_presence, user_onboarding, user_settings, user_roles, sync_items, backup_manifests, user_inventory, notifications, store_items, groups, group_members, group_chat_messages, group_invites, group_announcements, group_milestones, group_challenges, group_challenge_participants, community_events, community_event_attendees.
-  - Functions: sync_group_visibility(), sync_group_member_count(), create_community_group(), check_user_role(), get_my_role(), and many others (overloads dropped at start).
-  - Triggers: trg_sync_group_visibility, trg_sync_member_count.
-  - Grants: Extensive GRANT statements for authenticated, anon, and service_role.
+2. TABLES
+- public.users: id (PK, FK auth.users), email, name, username, avatar_url, plan_type, billing_status, coins, gems, plan_expires_at, access_ends_at, created_at, updated_at.
+- public.user_profiles: user_id (PK, FK users), profile_data (jsonb), updated_at.
+- public.user_points: user_id (PK, FK users), points, lifetime_points, updated_at.
+- public.user_stats_summary: user_id (PK, FK users), total_study_seconds, total_hours, weekly_hours, monthly_hours, streak_days, max_streak_days, current_streak, longest_streak, session_count, total_sessions, last_session_at, last_study_date, updated_at.
+- public.daily_user_stats: user_id, date, seconds_studied. PK(user_id, date).
+- public.study_sessions_log: id (PK), user_id, duration_minutes, started_at, ended_at, subject, notes, created_at.
+- public.user_presence: user_id (PK, FK auth.users), status, current_subject, last_seen, updated_at.
+- public.user_onboarding: user_id (PK, FK users), completed, completed_at, data, source, updated_at.
+- public.user_settings: user_id (PK, FK auth.users), settings, created_at, updated_at.
+- public.user_roles: id (PK), user_id (FK auth.users), role, granted_by, granted_at.
+- public.backup_manifests: id (PK), user_id, bucket, path, kind, content_hash, size_bytes, collection_counts, exported_at, selected_as_best, score, created_at, updated_at.
+- public.sync_items: id (PK), user_id (FK users), entity, entity_id, operation, remote_path, bucket, content_hash, payload_size, version, status, last_error, deleted_at, created_at, updated_at, last_synced_at.
+- public.notifications: id (PK), user_id (FK auth.users), type, title, body, data, read_at, created_at.
+- public.store_items: id (PK), name, description, price, currency, category, image, active, created_at.
+- public.user_inventory: id (PK), user_id, item_id, equipped, purchased_at, created_at.
+- public.groups: id (PK), name, description, cover_url, logo_url, category, slug, owner_id, member_count, max_members, is_public, is_active, visibility, settings, deleted_at, created_at, updated_at, fts (tsvector).
+- public.group_members: id (PK), group_id, user_id, role, joined_at, is_super_admin.
+- public.group_chat_messages: id (PK), group_id, user_id, content, message_type, reply_to_id, deleted_at, created_at.
+- public.group_invites: id (PK), group_id, token, invite_code, created_by, max_uses, uses_count, expires_at, created_at.
+- public.group_announcements: id (PK), group_id, author_id, content, pinned, created_at.
+- public.group_milestones: id (PK), group_id, milestone_type, earned_at.
+- public.group_challenges: id (PK), group_id, title, description, goal_type, goal_value, start_time, end_time, created_by, is_active, created_at.
+- public.group_challenge_participants: challenge_id, user_id, progress, completed, completed_at, joined_at. PK(challenge_id, user_id).
+- public.community_events: id (PK), title, event_type, description, host, start_time, end_time, image_gradient, image_url, tags, max_attendees, attendee_count, is_featured, is_active, created_at, updated_at.
+- public.community_event_attendees: event_id, user_id, joined_at. PK(event_id, user_id).
+- public.user_tours: id (PK), user_id, tour_key, completed, completed_at, dismissed, dismissed_at, step_reached, created_at, updated_at.
 
-MIGRATION ORDER AND IDEMPOTENCY
-  - Order: First file to run for a fresh project.
-  - Idempotency: Fully idempotent; uses `IF NOT EXISTS`, `DROP FUNCTION IF EXISTS`, and `CREATE OR REPLACE`.
+3. ROW LEVEL SECURITY (RLS)
+- Comprehensive RLS enabled on all tables.
+- users: read access for all, update for self.
+- group_members: read if self or fellow member.
+- group_chat_messages: read if member, insert if member and user_id=self.
+- user_stats_summary: read all (leaderboard), update self.
+- study_sessions_log: read/write self only.
+- backup_manifests: read/write self only.
+- sync_items: read/write self only.
+- Flag: All tables have policies. No "locked" tables found.
+- Flag: Most tables containing user data (presence, stats, profiles) are correctly restricted to owner.
 
-SECURITY ANALYSIS
-  - RLS Policies: Extensive use of RLS; policies are dropped and recreated to ensure consistency.
-  - SECURITY DEFINER: Used for sensitive functions (e.g., sync_group_member_count, create_community_group) with `SET search_path = public`.
-  - search_path: Consistently set to `public` for SECURITY DEFINER functions.
-  - Grants: Explicitly granted to service_role, authenticated, and anon where appropriate.
+4. FUNCTIONS & TRIGGERS
+- _is_group_member: SQL, SECURITY DEFINER, search_path=public. Membership check helper.
+- is_premium_user: SQL, SECURITY DEFINER. Always returns true.
+- get_my_group_ids: SQL, SECURITY DEFINER, search_path=public. Used in RLS.
+- accept_invite: PLPGSQL, SECURITY DEFINER, search_path=public. Atomic invite processing.
+- finish_session_sync: PLPGSQL, SECURITY DEFINER, search_path=public. Processes study sessions, updates stats, daily stats, and summaries.
+- handle_new_user: Trigger function. Seeds 6 satellite tables on auth.users insert.
+- sync_user_onboarding_from_profile: Trigger function. Updates onboarding table from profile JSON.
+- cleanup_old_notifications: Trigger function. Keeps only 90 days of notifications.
+- Trigger: on_auth_user_created ON auth.users.
+- Trigger: tr_sync_user_onboarding_from_profile ON public.user_profiles.
+- Trigger: tr_cleanup_old_notifications ON public.notifications.
 
-FINDINGS
-  - SQL-003; Severity: INFO; Evidence: Comprehensive schema management with proper handling of function overloads.
-  - SQL-004; Severity: INFO; Evidence: Strong use of SECURITY DEFINER with safe search_path.
+5. MIGRATIONS
+This file acts as the baseline (v0) but is designed to be idempotent so it can be run on existing projects. It assumes a Supabase environment with `auth` and `storage` schemas available.
 
-FINAL VERDICT
-  - PASS: This is a high-quality, comprehensive schema definition file.
+6. DATA SEEDING
+- No major data seeding in this file (mostly schema/structure).
+- handle_new_user seeds initial records for new users.
+
+7. IDEMPOTENCY
+Excellent. Uses IF NOT EXISTS, CREATE OR REPLACE, and careful DROP FUNCTION overloads at the start to prevent return-type drift errors.
+
+8. FINDINGS
+- SECURITY: Line 1004 - is_premium_user returns true for everyone. This is a business logic decision but means "Premium" is effectively disabled/always on. Severity: INFO.
+- SECURITY: Line 1151 - finish_session_sync is SECURITY DEFINER. It correctly sets search_path=public. Correct.
+- SECURITY: Line 1361 - handle_new_user is SECURITY DEFINER with search_path=public. Correct.
+- CODE SMELL: finish_session_sync has hardcoded logic for "ranker" plan in handle_new_user (Line 1376) and also resets it on conflict. This makes it impossible to change plan types manually in the DB without the trigger reverting it. Severity: MEDIUM.
+- DATA INTEGRITY: Line 1431 - cleanup_old_notifications deletes data without a limit, which could cause a large transaction if many old notifications exist, though unlikely to be a bottleneck. Severity: LOW.
+- PERFORMANCE: idx_user_roles_user_role (Line 216) ensures unique role assignments and fast lookups. Correct.

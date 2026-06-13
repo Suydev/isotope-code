@@ -1,36 +1,89 @@
-FILE IDENTITY
-  Path: /tmp/isotope-repo/community-patch-v4.sql
-  Audit Path: audit/community-patch-v4.sql.txt
-  Commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
-  Tracked: Yes
-  Type: SQL Script
-  MIME: text/x-sql
-  Size: 121464 bytes
-  SHA-256: f264a0a702da4a6d8e9199c0e7edecc83e613e50b78e72a977310e5f35ccf459
+============================================================================
+DEEP AUDIT: community-patch-v4.sql
+============================================================================
 
-PURPOSE
-  A comprehensive patch (v4) to fix mismatches between the frontend JS and the database schema. It updates tables, creates missing ones, and replaces RPC functions.
+1. PURPOSE
+This SQL file is a comprehensive cumulative patch (v4 through v12) for the IsotopeAI platform. It is designed to sync the database schema with the requirements of the frontend JS code. It handles table updates, missing table creation, RPC replacement, and storage security. It should be run on existing Supabase projects to upgrade them to the latest stable schema.
 
-SQL OBJECTS DEFINED
-  - Updates many tables: users, groups, group_members, group_chat_messages, group_invites, group_announcements, group_milestones, user_stats_summary, user_points, user_profiles.
-  - Creates tables: group_challenges, group_challenge_participants, daily_user_stats, study_sessions_log, store_items, user_inventory, notifications, user_presence, user_tours.
-  - RPCs: Replaces/Updates many functions (get_invite_details, accept_invite, etc.).
-  - Storage: Creates buckets (user-content, avatars, notes) and sets RLS policies.
-  - Functions: set_user_tours_updated_at().
-  - Triggers: trg_user_tours_updated_at.
+2. TABLES
+- public.users: Altered. Added username (text), coins (int), gems (int), avatar_url (text), plan_expires_at, access_ends_at, updated_at.
+- public.groups: Altered. Added cover_url, logo_url, category, slug, member_count, owner_id, max_members, is_active, updated_at, deleted_at, settings, visibility, is_public, fts (tsvector).
+- public.group_members: Altered. Added role, joined_at. Added UNIQUE constraint (group_id, user_id).
+- public.group_chat_messages: Altered. Added user_id (replacing sender_id concept), message_type, reply_to_id, deleted_at.
+- public.group_invites: Altered. Added token (plain text), invite_code, created_by, max_uses, uses_count, expires_at.
+- public.group_announcements: Altered. Added author_id, content, pinned, created_at.
+- public.group_milestones: Altered. Added group_id, milestone_type, earned_at.
+- public.group_challenges: Created. Columns: id, group_id, title, description, goal_type, goal_value, start_time, end_time, created_by, is_active, created_at.
+- public.group_challenge_participants: Created. Columns: challenge_id, user_id, progress, completed, completed_at, joined_at. PK(challenge_id, user_id).
+- public.user_stats_summary: Altered. Added total_study_seconds, streak_days, max_streak_days, session_count, last_study_date, updated_at, total_hours, weekly_hours, monthly_hours, current_streak, longest_streak, total_sessions, last_session_at.
+- public.user_points: Altered. Added points, lifetime_points, updated_at.
+- public.user_profiles: Altered. Added profile_data (jsonb).
+- public.daily_user_stats: Created. Columns: user_id, date, seconds_studied. PK(user_id, date).
+- public.study_sessions_log: Created. Columns: id, user_id, duration_minutes, started_at, ended_at, subject, notes, created_at.
+- public.store_items: Created/Altered (dropped later in v10).
+- public.user_inventory: Created/Altered (dropped later in v10).
+- public.notifications: Created. Columns: id, user_id, type, title, body, data, read_at, created_at.
+- public.user_presence: Created. Columns: user_id, status, current_subject, last_seen, updated_at.
+- public.community_events: Created/Altered (dropped later in v10).
+- public.community_event_attendees: Created/Altered (dropped later in v10).
+- public.user_onboarding: Created. Columns: user_id, completed, completed_at, data, source, updated_at.
+- public.user_tours: Created. Columns: id, user_id, tour_key, completed, completed_at, dismissed, dismissed_at, step_reached, created_at, updated_at.
 
-MIGRATION ORDER AND IDEMPOTENCY
-  - Order: Run on existing installs to sync DB with v4 frontend.
-  - Idempotency: Fully idempotent; uses `IF NOT EXISTS`, `DROP FUNCTION IF EXISTS`, and `DO $$` blocks.
+3. ROW LEVEL SECURITY (RLS)
+- public.users: Enabled.
+  - "users_read_all": SELECT USING (true).
+  - "users_update_own": UPDATE USING (auth.uid() = id).
+- public.groups: Enabled.
+  - "groups_read_public": SELECT USING (is_public = true OR auth.uid() = owner_id).
+  - "groups_member_read": SELECT USING (public._is_group_member(id, auth.uid())).
+- public.group_members: Enabled.
+  - "gm_read": SELECT USING (user_id = auth.uid() OR public._is_group_member(group_id, auth.uid())).
+  - "gm_insert": INSERT WITH CHECK (auth.role() = 'authenticated').
+- public.group_chat_messages: Enabled.
+  - "gchat_read": SELECT USING (public._is_group_member(group_id, auth.uid())).
+  - "gchat_insert": INSERT WITH CHECK (user_id = auth.uid() AND group_id IN (SELECT group_id FROM public.group_members WHERE user_id = auth.uid())).
+- public.user_onboarding: Enabled.
+  - "user_onboarding_select_own": SELECT USING (auth.uid() = user_id).
+  - "user_onboarding_insert_own": INSERT WITH CHECK (auth.uid() = user_id).
+  - "user_onboarding_update_own": UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id).
+- public.user_tours: Enabled.
+  - "user_tours_own": ALL USING (auth.uid() = user_id).
+- Storage (storage.objects):
+  - "user-content: users manage own objects": ALL USING (bucket_id = 'user-content' AND auth.uid()::text = split_part(name, '/', 1)).
+  - "notes: users manage own objects": ALL USING (bucket_id = 'notes' AND auth.uid()::text = split_part(name, '/', 1)).
+  - "avatars: public read": SELECT USING (bucket_id = 'avatars').
+  - "avatars: users manage own": ALL USING (bucket_id = 'avatars' AND auth.uid()::text = split_part(name, '/', 1)).
 
-SECURITY ANALYSIS
-  - RLS Policies: Recreates/Adds policies for many tables and storage objects.
-  - SECURITY DEFINER: Used for functions with `SET search_path = public` (where visible).
-  - Storage Security: Implements per-user path-based access control for storage buckets.
+4. FUNCTIONS & TRIGGERS
+- public._is_group_member(gid, uid): SQL, STABLE, SECURITY DEFINER. Purpose: Check membership without recursion.
+- public.handle_new_user(): PLPGSQL, SECURITY DEFINER, search_path = public. Purpose: Seed all user-related tables on auth.users insert. Side effect: Inserts into multiple tables.
+- public.sync_user_onboarding_from_profile(): PLPGSQL, SECURITY DEFINER, search_path = public. Purpose: Keep onboarding table in sync with profile_data JSON.
+- public.set_user_tours_updated_at(): PLPGSQL. Trigger function to update timestamp.
+- Trigger: on_auth_user_created ON auth.users (AFTER INSERT). Calls handle_new_user().
+- Trigger: tr_sync_user_onboarding_from_profile ON public.user_profiles (AFTER INSERT OR UPDATE). Calls sync_user_onboarding_from_profile().
+- Trigger: trg_user_tours_updated_at ON public.user_tours (BEFORE UPDATE). Calls set_user_tours_updated_at().
 
-FINDINGS
-  - SQL-005; Severity: INFO; Evidence: Fixes a critical mismatch where JS used `user_id` instead of `sender_id` in `group_chat_messages`.
-  - SQL-006; Severity: INFO; Evidence: Correctly handles Storage bucket RLS using `split_part(name, '/', 1)`.
+5. MIGRATIONS
+This file assumes a basic Supabase schema might exist or be empty. It uses IF NOT EXISTS for everything. It adds columns to existing tables and creates many new satellite tables for features like stats, logs, and onboarding.
 
-FINAL VERDICT
-  - PASS: Essential for maintaining compatibility between the application code and the database.
+6. DATA SEEDING
+- Seeds storage.buckets (avatars, user-content, notes).
+- Backfills existing users' plan_type, billing_status, and satellite records (points, stats, profiles, presence).
+- Backfills usernames from auth metadata or email.
+- Originally seeded community_events (but v10 drops those).
+
+7. IDEMPOTENCY
+Highly idempotent. Uses:
+- ALTER TABLE ... ADD COLUMN IF NOT EXISTS
+- CREATE TABLE IF NOT EXISTS
+- CREATE OR REPLACE FUNCTION
+- DO $$ blocks with IF NOT EXISTS checks for constraints and policies.
+- DROP POLICY IF EXISTS before CREATE POLICY.
+
+8. FINDINGS
+- BUG: Line 2026/2177 - The handle_new_user function is redefined multiple times in the file with slightly different logic (v4 vs v9). While idempotent, it shows inconsistent maintenance. Severity: LOW.
+- SECURITY: Line 1353 - _is_group_member is SECURITY DEFINER but missing search_path in the v5 block, although later blocks might fix it. (Update: fixed in v8/v9). Severity: INFO.
+- SECURITY: Line 2094 - sync_user_onboarding_from_profile uses SECURITY DEFINER with search_path=public. Correct.
+- CODE SMELL: Massive duplication between blocks. The file is a concatenation of many patches. Severity: LOW.
+- PERFORMANCE:GIN index on groups.fts is good for search.
+- DATA INTEGRITY: Line 1134 - handle_new_user ON CONFLICT DO UPDATE resets plan_type to 'ranker' every time. If a user is manually upgraded to 'premium', a re-trigger might downgrade them. Severity: MEDIUM.

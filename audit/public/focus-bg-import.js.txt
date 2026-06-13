@@ -1,58 +1,80 @@
-FILE IDENTITY
-- path: public/focus-bg-import.js
-- audit path: audit/public/focus-bg-import.js.txt
-- commit: 095c2fcf03b5a1a30eddecc0a372c39723a6cfa1
-- tracked: true
-- type: JavaScript
-- MIME: application/javascript
-- size: 15482
-- SHA-256: 1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b
-- encoding: UTF-8
-- executable: false
-- generated/authored: Authored
+AUDIT: /tmp/isotope-repo/public/focus-bg-import.js
+===================================================
 
-PURPOSE
-Manages the dynamic import and selection of background videos/images for the Focus session mode.
+1. PURPOSE & ARCHITECTURE
+-------------------------
+'focus-bg-import.js' provides an interface and logic for users to customize the background of the "Focus" mode in IsotopeAI. It allows importing images or videos from the local device or via a remote URL. The script integrates with the existing Focus room UI by injecting a button into the control bar and managing a dedicated background layer.
 
-ROLE IN THE APPLICATION
-- Subsystem: Focus Mode / UX
-- Runtime stage: Focus session
-- Active/legacy: Active
+Architecture:
+- Self-invoking function (IIFE) to avoid global namespace pollution.
+- IndexedDB for persistent storage of large media blobs (custom images/videos).
+- MutationObserver to monitor the DOM and ensure the background layer remains correctly positioned and styled even as the app's React components re-render.
+- Integration with an external Focus Background API module for blur settings.
 
-REFERENCES AND CONSUMERS
-- Used by the Focus component.
+2. EXECUTION CONTEXT
+--------------------
+- Runs on the MAIN THREAD.
+- Integrated into the web application, specifically active when the user navigates to paths matching '/focus'.
 
-INTERNAL STRUCTURE
-- List of available background assets.
-- function selectBackground(id): Updates the active background.
-- Logic for lazy-loading video assets.
+3. FUNCTION INVENTORY
+---------------------
+- openIdb(): Opens 'isotope_bg_custom' IndexedDB.
+- idbPut(key, value) / idbGet(key) / idbDelete(key): CRUD wrappers for IndexedDB.
+- focusBgApi(): Dynamic import of the focus background settings module.
+- clampBlur(value): Ensures blur is between 0 and 24.
+- extractBlurValue(value): Navigates complex objects to find a numeric blur amount.
+- readNativeBlur(): Attempts to get the blur setting from the native app module, falling back to localStorage.
+- saveNativeImageUrl(url): Notifies the native module of a new background URL.
+- toast(message, type): Injects a temporary notification element into the DOM.
+- isOnFocus(): Regex check of window.location.pathname for '/focus'.
+- findFocusBgEl(): Scans the DOM for the application's background container.
+- cssUrl(url): Safely escapes strings for use in CSS url().
+- isSafeImageUrl(url) / isSafeVideoUrl(url): Basic protocol validation.
+- mediaRecord(kind, file): Constructs a storage object for the media blob.
+- readVideoDuration(url): Uses a hidden video element to check metadata duration.
+- validateVideoDurationIfReadable(url): Wrapper for duration check with error handling.
+- applyToDom(url) / applyVideoToDom(url): Creates and styles the <div> or <video> layers for the background.
+- refreshBlur(): Updates the CSS filter/blur on the background layers.
+- observeTarget(el): Sets up MutationObserver to re-apply background if the container changes.
+- applyBackground(url, isVideo, ownsObjectUrl): The main entry point for changing the background. Handles URL revoking.
+- clearBackground(): Resets the UI and storage to defaults.
+- loadSaved(): Retrieves and applies the stored background on script initialization.
+- showModal(): Renders the custom import UI (tabs, file inputs, URL inputs).
+- syncButtonPlacement(): Logic to find the Focus control bar and insert the import button.
 
-INPUTS
-- User selection.
-- Video files (e.g., bg.mp4).
+4. DATA FLOWS
+-------------
+- READS: IndexedDB ('isotope_bg_custom'), localStorage ('focus-bg-blur'), DOM (control bars), Device Files (via input[type=file]).
+- WRITES: IndexedDB (blobs or URLs), DOM (modal, background layers, toast), localStorage (via native API).
 
-OUTPUTS AND SIDE EFFECTS
-- DOM updates (updates background element).
+5. ERROR HANDLING
+-----------------
+- Promises use .catch() to swallow storage or import errors.
+- Video duration check has a 8-second timeout.
+- 'toast' provides visual feedback for user-facing errors (e.g., video too long).
 
-DATA FLOW
-1. User opens Focus mode.
-2. Script loads available backgrounds.
-3. User selects one, and the script applies it to the UI.
+6. CREDENTIAL HANDLING
+----------------------
+- No sensitive credentials handled. Background URLs are treated as public/user-provided.
 
-SECURITY AND PRIVACY
-- Static assets only.
+7. SECURITY
+-----------
+- [MEDIUM] Line 729: innerHTML is used to clear and rebuild the modal body. While the labels are static, this is a code smell.
+- [MEDIUM] Line 822: innerHTML used for dividers.
+- [LOW] URL validation is basic protocol checking; no domain whitelisting for remote backgrounds.
+- [LOW] CSS escaping in cssUrl() is present but basic.
 
-OFFLINE AND LOCAL-FIRST BEHAVIOUR
-- Works offline if assets are cached by Service Worker.
+8. RACE CONDITIONS
+------------------
+- Background Application: Uses a retry loop (24 attempts, 220ms delay) to wait for the DOM to be ready. This is a heuristic and could fail on extremely slow renders.
+- Object URLs: Correctly revokes old Object URLs to prevent memory leaks, but async timing could theoretically lead to a flash of no background.
 
-PERFORMANCE
-- Large file due to asset lists, but logic is simple.
+11. FINDINGS
+------------
+- [HIGH] Line 986: A setInterval runs every 850ms to call refreshBlur() and syncButtonPlacement(). This is inefficient and impacts battery life/performance. It should rely entirely on MutationObservers and events.
+- [MEDIUM] Line 729: innerHTML usage in renderTabContent is risky if user input were ever injected (currently it seems static).
+- [MEDIUM] Line 500: The retry loop for applyBackground is a "code smell" indicating fragile integration with the main SPA lifecycle.
+- [LOW] Line 16: MAX_VIDEO_SECONDS = 60 is enforced but easily bypassed by a user editing the script in devtools; however, this is a UX/performance limit, not a security one.
+- [LOW] Line 750: Typo "Supported: ... MKV" - MKV support in browsers is inconsistent (works in Chrome with some codecs, fails in Safari/Firefox).
 
-FINDINGS
-- FB-001: Hardcoded asset paths. (Severity: INFO, Status: CONFIRMED)
-
-POSITIVE OBSERVATIONS
-- Enhances the UX with customizable focus environments.
-
-FINAL VERDICT
-Functional background manager.
+VERDICT: Functional and feature-rich, but the polling-based (setInterval) architecture and heavy use of innerHTML should be refactored for better performance and security.
