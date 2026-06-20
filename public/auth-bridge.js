@@ -6,6 +6,11 @@
 
   var DEFAULT_SUPA_URL = 'https://vteqquoqvksshmfhuepu.supabase.co';
   var DEFAULT_SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0ZXFxdW9xdmtzc2htZmh1ZXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODU2NzUsImV4cCI6MjA5NTY2MTY3NX0.ZkRislOhJRQUjVa1y5ixu-xBhlgkXWWyZKI_CClWj64';
+  var DEFAULT_REQUEST_DEADLINE_MS = 15000;
+  var loginFlights = [];
+  var signupFlights = [];
+  var bootstrapFlights = [];
+
   function supaUrl() {
     return String(window.__ISO_SUPA_URL__ || DEFAULT_SUPA_URL).replace(/\/+$/, '');
   }
@@ -48,11 +53,35 @@
     } catch (e) {}
   }
 
+  function requestDeadlineMs() {
+    var configured = Number(window.__ISO_AUTH_DEADLINE_MS__);
+    return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_REQUEST_DEADLINE_MS;
+  }
+
   function jsonFetch(url, options) {
-    return fetch(url, options).then(function (response) {
+    var controller = new AbortController();
+    var requestOptions = {};
+    Object.keys(options || {}).forEach(function (key) {
+      requestOptions[key] = options[key];
+    });
+    requestOptions.signal = controller.signal;
+    var deadline = setTimeout(function () {
+      controller.abort();
+    }, requestDeadlineMs());
+
+    return fetch(url, requestOptions).then(function (response) {
       return response.json().catch(function () { return {}; }).then(function (data) {
         return { response: response, data: data };
       });
+    }).catch(function (error) {
+      if (controller.signal.aborted) {
+        var timeoutError = new Error('Request timed out.');
+        timeoutError.name = 'TimeoutError';
+        throw timeoutError;
+      }
+      throw error;
+    }).finally(function () {
+      clearTimeout(deadline);
     });
   }
 
@@ -77,7 +106,7 @@
     });
   }
 
-  function bootstrap(session) {
+  function runBootstrap(session) {
     if (!session || !session.access_token) return Promise.resolve(null);
     return jsonFetch('/__auth/bootstrap', {
       method: 'GET',
@@ -101,6 +130,31 @@
     }).catch(function () { return null; });
   }
 
+  function removeFlight(flights, flight) {
+    var index = flights.indexOf(flight);
+    if (index !== -1) flights.splice(index, 1);
+  }
+
+  function bootstrap(session) {
+    if (!session || !session.access_token) return Promise.resolve(null);
+    for (var i = 0; i < bootstrapFlights.length; i += 1) {
+      if (bootstrapFlights[i].token === session.access_token) {
+        return bootstrapFlights[i].promise;
+      }
+    }
+
+    var flight = {
+      token: session.access_token,
+      promise: null
+    };
+    flight.promise = runBootstrap(session).finally(function () {
+      flight.token = null;
+      removeFlight(bootstrapFlights, flight);
+    });
+    bootstrapFlights.push(flight);
+    return flight.promise;
+  }
+
   function notifyAuth(session, bootstrapData) {
     try { if (typeof window.__isoSyncAuthUnblock === 'function') window.__isoSyncAuthUnblock(); } catch (e) {}
     try {
@@ -112,10 +166,8 @@
     try { window.dispatchEvent(new Event('isotope:sync_refresh')); } catch (e) {}
   }
 
-  async function login(email, password) {
+  async function runLogin(cleanEmail, password) {
     try {
-      var cleanEmail = String(email || '').trim().toLowerCase();
-      if (!cleanEmail || !password) return { ok: false, success: false, err: 'Email and password are required.' };
       var result = await supabaseAuth('/auth/v1/token?grant_type=password', {
         email: cleanEmail,
         password: password
@@ -141,10 +193,33 @@
     }
   }
 
-  async function signUp(email, password) {
+  function login(email, password) {
+    var cleanEmail = String(email || '').trim().toLowerCase();
+    if (!cleanEmail || !password) {
+      return Promise.resolve({ ok: false, success: false, err: 'Email and password are required.' });
+    }
+    for (var i = 0; i < loginFlights.length; i += 1) {
+      if (loginFlights[i].email === cleanEmail && loginFlights[i].password === password) {
+        return loginFlights[i].promise;
+      }
+    }
+
+    var flight = {
+      email: cleanEmail,
+      password: password,
+      promise: null
+    };
+    flight.promise = runLogin(cleanEmail, password).finally(function () {
+      flight.email = null;
+      flight.password = null;
+      removeFlight(loginFlights, flight);
+    });
+    loginFlights.push(flight);
+    return flight.promise;
+  }
+
+  async function runSignUp(cleanEmail, password) {
     try {
-      var cleanEmail = String(email || '').trim().toLowerCase();
-      if (!cleanEmail || !password) return { ok: false, success: false, err: 'Email and password are required.' };
       var result = await supabaseAuth('/auth/v1/signup', {
         email: cleanEmail,
         password: password
@@ -170,6 +245,31 @@
     } catch (e) {
       return { ok: false, success: false, err: e && e.message ? e.message : 'Network error' };
     }
+  }
+
+  function signUp(email, password) {
+    var cleanEmail = String(email || '').trim().toLowerCase();
+    if (!cleanEmail || !password) {
+      return Promise.resolve({ ok: false, success: false, err: 'Email and password are required.' });
+    }
+    for (var i = 0; i < signupFlights.length; i += 1) {
+      if (signupFlights[i].email === cleanEmail && signupFlights[i].password === password) {
+        return signupFlights[i].promise;
+      }
+    }
+
+    var flight = {
+      email: cleanEmail,
+      password: password,
+      promise: null
+    };
+    flight.promise = runSignUp(cleanEmail, password).finally(function () {
+      flight.email = null;
+      flight.password = null;
+      removeFlight(signupFlights, flight);
+    });
+    signupFlights.push(flight);
+    return flight.promise;
   }
 
   window.__isoLogin = login;

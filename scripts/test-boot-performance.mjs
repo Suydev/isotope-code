@@ -6,6 +6,7 @@ const indexHtml = fs.readFileSync(new URL('../index.html', import.meta.url), 'ut
 const restoreSource = fs.readFileSync(new URL('../public/restore-and-launch.js', import.meta.url), 'utf8');
 const swSource = fs.readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8');
 const pwaSource = fs.readFileSync(new URL('../public/pwa-local.js', import.meta.url), 'utf8');
+const serverSource = fs.readFileSync(new URL('../server.mjs', import.meta.url), 'utf8');
 
 assert.equal(
   (indexHtml.match(/vendor-react-BfU3Zn2J\.js/g) || []).length,
@@ -19,8 +20,29 @@ assert.doesNotMatch(
   'restore launcher must not append a duplicate vendor preload'
 );
 assert.ok(
-  restoreSource.indexOf('launchApp();') < restoreSource.indexOf('await purgeStaleFakeData()'),
-  'entry mount must start before asynchronous boot cleanup'
+  restoreSource.indexOf('launchApp();') < restoreSource.indexOf('let session = parseSession(findSessionRaw())'),
+  'entry mount must start before the boot session decision'
+);
+assert.match(
+  restoreSource,
+  /publishBootState\(BOOT_STATES\.READY_LOGGED_OUT[\s\S]*?requestIdleCallback\(runMaintenance/,
+  'logged-out boot must resolve before deferred IndexedDB maintenance'
+);
+assert.doesNotMatch(
+  indexHtml,
+  /<script[^>]+src="\/focus-bg-import\.js"/,
+  'Focus background implementation must not load globally'
+);
+assert.match(indexHtml, /src="\/focus-bg-loader\.js"/, 'Focus route loader must remain active');
+assert.doesNotMatch(
+  indexHtml,
+  /<link[^>]+vendor-katex-ASjZcBK0\.css/,
+  'KaTeX CSS must stay route-lazy instead of render-blocking globally'
+);
+assert.equal(
+  (indexHtml.match(/sync\/backup-normalizer\.js/g) || []).length,
+  0,
+  'backup normalizer must be loaded through the local-data adapter only'
 );
 assert.match(restoreSource, /notifyMountedAppOfBootResolution\(\)/, 'early mount must be notified after boot routing');
 
@@ -39,6 +61,25 @@ assert.match(
   pwaSource,
   /checkServer\(\{ dispatchEvent: false \}\)/,
   'initial status check must not trigger update-checker duplicate preflight'
+);
+const bootstrapHandler = serverSource.slice(
+  serverSource.indexOf("// ── /__auth/bootstrap GET"),
+  serverSource.indexOf("// ── /__auth/snapshot POST"),
+);
+assert.doesNotMatch(
+  bootstrapHandler,
+  /findBestCloudBackup/,
+  'login bootstrap must not scan full backup history'
+);
+assert.match(
+  serverSource,
+  /Session sync requires a stable session_id/,
+  'session sync must reject retry-unstable generated IDs'
+);
+assert.match(
+  serverSource,
+  /snapshot_refresh_queued = true/,
+  'committed session sync must treat snapshot refresh as best-effort'
 );
 
 async function verifyFreshServiceWorkerInstall() {

@@ -21,6 +21,8 @@
   var _styleObs = null;
   var _focusBgApiPromise = null;
   var _routeTimer = null;
+  var _routeObserver = null;
+  var _applyGeneration = 0;
   var _modalOpen = false;
   var _activeTab = 'image';
   var _lastAppliedBlur = 0;
@@ -487,6 +489,7 @@
   }
 
   function applyBackground(url, isVideo, ownsObjectUrl) {
+    var generation = ++_applyGeneration;
     if (_objectUrl && _objectUrl !== url) {
       try { URL.revokeObjectURL(_objectUrl); } catch (e) {}
     }
@@ -496,6 +499,7 @@
 
     var attempts = 0;
     (function retry() {
+      if (generation !== _applyGeneration || !isOnFocus()) return;
       var ok = isVideo ? applyVideoToDom(url) : applyToDom(url);
       if (!ok && ++attempts < 24) {
         setTimeout(retry, 220);
@@ -506,6 +510,7 @@
   }
 
   function clearBackground() {
+    _applyGeneration++;
     if (_objectUrl) {
       try { URL.revokeObjectURL(_objectUrl); } catch (e) {}
     }
@@ -936,8 +941,17 @@
   function syncButtonPlacement() {
     var btn = document.getElementById('__iso_fbg_btn__');
     if (!isOnFocus()) {
+      _applyGeneration++;
       if (btn) btn.remove();
+      if (_routeObserver) {
+        _routeObserver.disconnect();
+        _routeObserver = null;
+      }
       return;
+    }
+    if (!_routeObserver) {
+      _routeObserver = new MutationObserver(function () { scheduleRouteWork(160); });
+      _routeObserver.observe(document.documentElement, { childList: true, subtree: true });
     }
     if (!btn) btn = createToolbarButton();
 
@@ -984,12 +998,8 @@
   window.__isoRefreshFocusBgBlur = refreshBlur;
   window.__isoGetFocusBgBlur = function () { return _lastAppliedBlur; };
 
-  new MutationObserver(function () { scheduleRouteWork(160); })
-    .observe(document.documentElement, { childList: true, subtree: true });
-
-  // setInterval removed: the MutationObserver above already triggers
-  // scheduleRouteWork on DOM changes, which calls refreshBlur when on the
-  // Focus page. Polling every 850 ms was redundant and wasteful on battery.
+  // The route-scoped MutationObserver starts only while /focus is active and
+  // disconnects on route exit. History/popstate listeners restart it on entry.
 
   function init() {
     loadSaved();

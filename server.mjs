@@ -150,6 +150,7 @@ const RUNTIME_GLUE_PATHS = new Set([
   '/pwa-local.js',
   '/boot-recovery.js',
   '/ux-setup.js',
+  '/focus-bg-loader.js',
   '/focus-bg-import.js',
   '/update-checker.js',
   '/sw.js',
@@ -800,18 +801,36 @@ function buildUsernameAuthScript() {
 
   async function withTimeout(promiseFactory, timeoutMs, label) {
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var tid;
-    var timeout = new Promise(function(_, reject) {
-      tid = setTimeout(function() {
+    var operation = Promise.resolve().then(function() {
+      return promiseFactory(controller ? controller.signal : null);
+    });
+    return new Promise(function(resolve, reject) {
+      var finished = false;
+      var tid = setTimeout(async function() {
         try { if (controller) controller.abort(); } catch(e) {}
+        // Keep the sync lock while cooperative cancellation propagates. A short
+        // grace period prevents a timed-out request from immediately racing a
+        // second write against the same cloud state.
+        await Promise.race([
+          operation.catch(function(){}),
+          new Promise(function(done) { setTimeout(done, 5000); })
+        ]);
+        if (finished) return;
+        finished = true;
         reject(new Error(label || 'Operation timed out'));
       }, timeoutMs || 45000);
+      operation.then(function(value) {
+        if (finished) return;
+        finished = true;
+        clearTimeout(tid);
+        resolve(value);
+      }, function(error) {
+        if (finished) return;
+        finished = true;
+        clearTimeout(tid);
+        reject(error);
+      });
     });
-    try {
-      return await Promise.race([promiseFactory(controller ? controller.signal : null), timeout]);
-    } finally {
-      clearTimeout(tid);
-    }
   }
 
   var syncCoordinator = window.__isoSyncCoordinator || {
@@ -825,7 +844,8 @@ function buildUsernameAuthScript() {
   async function withSyncLock(name, options, fn) {
     options = options || {};
     var now = Date.now();
-    var lockTimeoutMs = options.lockTimeoutMs || 90000;
+    var operationTimeoutMs = options.timeoutMs || 90000;
+    var lockTimeoutMs = Math.max(options.lockTimeoutMs || 90000, operationTimeoutMs + 6000);
     if (syncCoordinator.active && now - syncCoordinator.startedAt < lockTimeoutMs) {
       writeSyncMetadata({ last_sync_status: 'syncing', last_error: null, active_operation: syncCoordinator.activeName || 'sync' });
       return { ok: false, skipped: true, reason: 'already_running', active: syncCoordinator.activeName };
@@ -844,7 +864,7 @@ function buildUsernameAuthScript() {
     syncCoordinator.startedAt = now;
     try {
       writeSyncMetadata({ last_sync_status: 'syncing', last_error: null, active_operation: syncCoordinator.activeName, active_started_at: new Date(now).toISOString() });
-      return await withTimeout(function(){ return fn(); }, options.timeoutMs || lockTimeoutMs, (name || 'Sync') + ' timed out');
+      return await withTimeout(function(signal){ return fn(signal); }, operationTimeoutMs, (name || 'Sync') + ' timed out');
     } finally {
       syncCoordinator.active = false;
       syncCoordinator.activeName = null;
@@ -2589,9 +2609,11 @@ const PREMIUM_SCRIPT = `<script>
 
       var sessionId = body.session_id || body.id || null;
       if (!sessionId) {
-        try { sessionId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : null; } catch {}
+        resolve(new Response(JSON.stringify({
+          error: 'Session sync requires a stable session_id'
+        }), { status: 400, headers: { 'Content-Type': 'application/json' } }));
+        return;
       }
-      if (!sessionId) sessionId = '00000000-0000-4000-8000-' + String(Date.now()).slice(-12).padStart(12, '0');
 
       _orig.call(window, SUPA + '/rest/v1/rpc/finish_session_sync', {
         method: 'POST',
@@ -2618,7 +2640,10 @@ const PREMIUM_SCRIPT = `<script>
         });
       })
       .then(function(d) {
-        return _orig.call(window, '/__auth/snapshot', {
+        // The session RPC has committed at this point. Snapshot refresh is a
+        // secondary durability task and must never turn a committed session
+        // into a retryable failure (which could double-count the session).
+        _orig.call(window, '/__auth/snapshot', {
           method: 'POST',
           headers: {
             'Authorization': 'Bearer ' + jwt,
@@ -2626,15 +2651,10 @@ const PREMIUM_SCRIPT = `<script>
             'Accept': 'application/json'
           },
           body: JSON.stringify({ source: 'finish_session' })
-        }).then(function(snapResp) {
-          return snapResp.json().catch(function(){ return {}; }).then(function(snap) {
-            if (!snapResp.ok || !snap.ok) throw new Error(snap.error || 'Cloud snapshot upload failed after session sync');
-            d = d || {};
-            d.cloud_snapshot = snap.cloud_snapshot || null;
-            d.snapshot_storage = snap.snapshot_storage || null;
-            return d;
-          });
-        });
+        }).catch(function(){});
+        d = d || {};
+        d.snapshot_refresh_queued = true;
+        return d;
       })
       .then(function(d) {
         resolve(new Response(JSON.stringify(d || {}), {
@@ -3126,7 +3146,11 @@ function getPatchedCommunityHubBundle() {
   return patchedCommunityHubBundle;
 }
 
-// ── PWA manager patch: guard SW-triggered reloads ─────────────────────────────
+// ── PWA manager patch: keep pwa-local.js as the sole SW lifecycle owner ──────
+const PWA_REGISTER_FROM = `async function c() {
+        if ("serviceWorker" in navigator) {`;
+const PWA_REGISTER_TO = `async function c() {
+        if (false && "serviceWorker" in navigator) {`;
 const PWA_RELOAD_FROM = `(r.isUpdate || r.isExternal) && window.location.reload()`;
 const PWA_RELOAD_TO   = `(r.isUpdate || r.isExternal) && (typeof window.__isoReloadGuard==='function' ? window.__isoReloadGuard() : window.location.reload())`;
 let patchedPWAManagerBundle = null;
@@ -3134,6 +3158,12 @@ function getPatchedPWAManagerBundle() {
   if (patchedPWAManagerBundle) return patchedPWAManagerBundle;
   try {
     let raw = fs.readFileSync(PWA_MANAGER_BUNDLE_ABS, 'utf8');
+    if (raw.includes(PWA_REGISTER_FROM)) {
+      raw = raw.replace(PWA_REGISTER_FROM, PWA_REGISTER_TO);
+      console.log('[PWAPatch] Duplicate Workbox registration disabled');
+    } else {
+      console.warn('[PWAPatch] Registration patch string not found in PWAManager bundle');
+    }
     if (raw.includes(PWA_RELOAD_FROM)) {
       raw = raw.replace(PWA_RELOAD_FROM, PWA_RELOAD_TO);
       console.log('[PWAPatch] SW reload guard applied');
@@ -5161,6 +5191,18 @@ function handleSupabaseProxy(req, res) {
     proxyRes.pipe(res, { end: true });
   });
 
+  let completed = false;
+  const destroyProxy = () => {
+    if (!completed && !proxyReq.destroyed) proxyReq.destroy();
+  };
+  if (typeof proxyReq.setTimeout === 'function') {
+    proxyReq.setTimeout(15000, () => {
+      proxyReq.destroy(new Error('Supabase proxy timed out'));
+    });
+  }
+  proxyReq.on('close', () => { completed = true; });
+  req.on('aborted', destroyProxy);
+  res.on('close', destroyProxy);
   proxyReq.on('error', (e) => {
     console.error('[Proxy] Error:', e.message);
     if (!res.headersSent) { res.writeHead(502); res.end('Proxy error'); }
@@ -5922,23 +5964,20 @@ const server = http.createServer((req, res) => {
           dbBundle.warnings = compactObject({ ...(dbBundle.warnings || {}), cloud_snapshot: e.message || 'cloud snapshot download failed' });
           return null;
         });
-        const bestBackup = await canonicalBackupManager().findBestCloudBackup(userId, userJwt).catch((e) => ({
-          ok: false,
-          code: e.code || 'BACKUP_SCAN_FAILED',
-          error: e.message || 'Best backup scan failed',
-          selected: null,
-          candidates: [],
-        }));
         const bundle = mergeBootstrapBundleWithCloudSnapshot(dbBundle, cloudSnapshot);
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({
           ok: true,
           code: 'BOOTSTRAP_OK',
           ...bundle,
-          best_backup: bestBackup.ok === false ? null : bestBackup.selected,
-          backup_candidates: bestBackup.candidates || [],
-          restore_recommended: !!(bestBackup.selected && bestBackup.selected.rich),
-          backup_warning: bestBackup.warning_if_empty_latest || bestBackup.error || null,
+          // Full history selection is intentionally excluded from login boot.
+          // Recovery endpoints perform it only when restore is explicitly
+          // requested, avoiding dozens of serial Storage requests per login.
+          best_backup: null,
+          backup_candidates: [],
+          restore_recommended: false,
+          backup_scan_deferred: true,
+          backup_warning: null,
         }));
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });

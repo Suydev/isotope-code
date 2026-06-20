@@ -819,21 +819,46 @@ function notifyMountedAppOfBootResolution() {
   // route content while the boot state remains authChecking/cloudLoading.
   launchApp();
 
+  // Resolve logged-out visits before IndexedDB maintenance. Fresh-profile and
+  // signed-out users should see Auth immediately instead of waiting for two
+  // storage transactions that do not affect the route decision.
+  let session = parseSession(findSessionRaw());
+  if (!session) {
+    const loggedOutDecision = publishBootState(BOOT_STATES.READY_LOGGED_OUT, {
+      onboarding: { state: 'unknown' },
+      source: 'auth',
+    });
+    const currentPath = window.location.pathname;
+    const isRoot = currentPath === '/' || currentPath === '';
+    const isOnboardingPath = currentPath === '/onboarding' || currentPath.startsWith('/onboarding/');
+    const isProtectedPath = PROTECTED_ROUTE_RE.test(currentPath);
+    if (isRoot || isProtectedPath || isOnboardingPath) {
+      window.history.replaceState(null, '', '/auth');
+    }
+    notifyMountedAppOfBootResolution();
+    const runMaintenance = () => {
+      purgeStaleFakeData().then(ensureSchema).catch((e) => {
+        console.warn('[isotope] Deferred startup cleanup warning:', e);
+      });
+    };
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(runMaintenance, { timeout: 2000 });
+    else setTimeout(runMaintenance, 0);
+    return loggedOutDecision;
+  }
+
   if (window.location.pathname !== '/demo') {
     try { sessionStorage.removeItem('isotope-demo-mode'); } catch (_) {}
   }
 
-  // Step 1: clean up any stale / fake data from old script versions
-  try {
-    await purgeStaleFakeData();
-    await ensureSchema();
-  } catch (e) {
-    console.warn('[isotope] Startup cleanup warning:', e);
-  }
+  // Authenticated maintenance is non-blocking; it cannot change whether this
+  // session is valid or which cloud route should win.
+  Promise.resolve()
+    .then(purgeStaleFakeData)
+    .then(ensureSchema)
+    .catch((e) => console.warn('[isotope] Startup cleanup warning:', e));
 
   // Step 2: authenticated cloud bootstrap before routing/app preload.
   // Refresh expired/near-expired access tokens before any route decision or sync.
-  let session = parseSession(findSessionRaw());
   if (session) {
     const refreshed = await refreshStoredSessionIfNeeded(session);
     if (refreshed) session = refreshed;
@@ -898,11 +923,6 @@ function notifyMountedAppOfBootResolution() {
         });
       }
     }
-  } else {
-    bootDecision = publishBootState(BOOT_STATES.READY_LOGGED_OUT, {
-      onboarding: { state: 'unknown' },
-      source: 'auth',
-    });
   }
 
   // Step 3: routing. Deep links are preserved unless their resolved boot state

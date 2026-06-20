@@ -33,6 +33,7 @@ const fakeSession = {
 let tokenCalls = 0;
 let signupCalls = 0;
 let bootstrapCalls = 0;
+let fetchMode = 'success';
 
 function assertAnonAuthRequest(textUrl, options) {
   assert.ok(textUrl.startsWith('https://runtimeproject.supabase.co/'), `unexpected Supabase URL: ${textUrl}`);
@@ -40,6 +41,22 @@ function assertAnonAuthRequest(textUrl, options) {
   assert.equal(options.headers.apikey, 'runtime.anon.jwt');
   assert.equal(options.headers.Authorization, 'Bearer runtime.anon.jwt');
   assert.equal(options.cache, 'no-store');
+  assert.ok(options.signal instanceof AbortSignal);
+}
+
+function abortableHang(signal) {
+  return new Promise((resolve, reject) => {
+    signal.addEventListener('abort', () => {
+      const error = new Error('aborted');
+      error.name = 'AbortError';
+      reject(error);
+    }, { once: true });
+  });
+}
+
+async function successfulResponse(data) {
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  return { ok: true, status: 200, json: async () => data };
 }
 
 global.window = {
@@ -67,7 +84,8 @@ global.fetch = async (url, options = {}) => {
     const body = JSON.parse(options.body || '{}');
     assert.equal(body.email, 'student@example.com');
     assert.equal(body.password, 'secret-password');
-    return { ok: true, status: 200, json: async () => fakeSession };
+    if (fetchMode === 'timeout-login') return abortableHang(options.signal);
+    return successfulResponse(fakeSession);
   }
   if (textUrl.includes('/auth/v1/signup')) {
     signupCalls += 1;
@@ -76,21 +94,20 @@ global.fetch = async (url, options = {}) => {
     const body = JSON.parse(options.body || '{}');
     assert.equal(body.email, 'new@example.com');
     assert.equal(body.password, 'secret-password');
-    return { ok: true, status: 200, json: async () => ({ ...fakeSession, user: fakeSession.user }) };
+    if (fetchMode === 'timeout-signup') return abortableHang(options.signal);
+    return successfulResponse({ ...fakeSession, user: fakeSession.user });
   }
   if (textUrl === '/__auth/bootstrap') {
     bootstrapCalls += 1;
     assert.equal(options.headers.Authorization, `Bearer ${fakeSession.access_token}`);
-    return {
+    assert.ok(options.signal instanceof AbortSignal);
+    if (fetchMode === 'timeout-bootstrap') return abortableHang(options.signal);
+    return successfulResponse({
       ok: true,
-      status: 200,
-      json: async () => ({
-        ok: true,
-        user_id: fakeSession.user.id,
-        onboarding_completed: true,
-        profile: { email: fakeSession.user.email },
-      }),
-    };
+      user_id: fakeSession.user.id,
+      onboarding_completed: true,
+      profile: { email: fakeSession.user.email },
+    });
   }
   throw new Error(`Unexpected fetch: ${textUrl}`);
 };
@@ -104,12 +121,29 @@ assert.equal(typeof window.__isoUp, 'function');
 // reads Supabase config lazily at login/signup time, not only at script load.
 window.__ISO_SUPA_URL__ = 'https://runtimeproject.supabase.co';
 window.__ISO_ANON__ = 'runtime.anon.jwt';
+window.__ISO_AUTH_DEADLINE_MS__ = 25;
 assert.equal(window.__ISO_AUTH_BRIDGE__.project_ref, 'runtimeproject');
 
-const login = await window.__isoLogin('STUDENT@example.com', 'secret-password');
+const loginPromise = window.__isoLogin('STUDENT@example.com', 'secret-password');
+const duplicateLoginPromise = window.__isoLogin('student@example.com', 'secret-password');
+const signupPromise = window.__isoUp('new@example.com', 'secret-password');
+const duplicateSignupPromise = window.__isoUp('NEW@example.com', 'secret-password');
+assert.strictEqual(loginPromise, duplicateLoginPromise);
+assert.strictEqual(signupPromise, duplicateSignupPromise);
+
+const [login, duplicateLogin, signup, duplicateSignup] = await Promise.all([
+  loginPromise,
+  duplicateLoginPromise,
+  signupPromise,
+  duplicateSignupPromise,
+]);
 assert.equal(login.ok, true);
 assert.equal(login.success, true);
 assert.equal(login.onboarding_completed, true);
+assert.strictEqual(login, duplicateLogin);
+assert.equal(signup.ok, true);
+assert.equal(signup.success, true);
+assert.strictEqual(signup, duplicateSignup);
 
 const ref = 'runtimeproject';
 for (const key of [
@@ -128,12 +162,34 @@ assert.ok(events.includes('isotope:auth-session'));
 assert.ok(events.includes('isotope:auth-unblock'));
 assert.ok(events.includes('isotope:sync_refresh'));
 
-const signup = await window.__isoUp('new@example.com', 'secret-password');
-assert.equal(signup.ok, true);
-assert.equal(signup.success, true);
-
 assert.equal(tokenCalls, 1);
 assert.equal(signupCalls, 1);
+assert.equal(bootstrapCalls, 1);
+
+fetchMode = 'timeout-login';
+const timedOutLogin = await window.__isoLogin('student@example.com', 'secret-password');
+assert.deepEqual(timedOutLogin, {
+  ok: false,
+  success: false,
+  err: 'Request timed out.',
+});
+
+fetchMode = 'timeout-signup';
+const timedOutSignup = await window.__isoUp('new@example.com', 'secret-password');
+assert.deepEqual(timedOutSignup, {
+  ok: false,
+  success: false,
+  err: 'Request timed out.',
+});
+
+fetchMode = 'timeout-bootstrap';
+const loginWithTimedOutBootstrap = await window.__isoLogin('student@example.com', 'secret-password');
+assert.equal(loginWithTimedOutBootstrap.ok, true);
+assert.equal(loginWithTimedOutBootstrap.success, true);
+assert.equal(loginWithTimedOutBootstrap.bootstrap, null);
+
+assert.equal(tokenCalls, 3);
+assert.equal(signupCalls, 2);
 assert.equal(bootstrapCalls, 2);
 
-console.log('PASS auth bridge globals and session storage');
+console.log('PASS auth bridge deadlines, single-flight, globals, and session storage');

@@ -16,6 +16,9 @@
     '__isotope_update_available__'
   ];
   var timer = null;
+  var checkPromise = null;
+  var lastCheckAt = 0;
+  var MIN_CHECK_GAP = 60 * 1000;
 
   function escHtml(str) {
     return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -179,8 +182,14 @@
       });
   }
 
-  function runCheck() {
-    localServerPreflight()
+  function runCheck(force) {
+    if (document.hidden || !navigator.onLine) return Promise.resolve(null);
+    if (checkPromise) return checkPromise;
+    if (!force && lastCheckAt && Date.now() - lastCheckAt < MIN_CHECK_GAP) {
+      return Promise.resolve(null);
+    }
+    lastCheckAt = Date.now();
+    checkPromise = localServerPreflight()
       .then(function (version) {
         if (!version) return null;
         window.__isoLocalServerOffline = false;
@@ -210,19 +219,23 @@
       .catch(function (err) {
         console.warn('[IsotopeUpdateChecker] Error:', err.message);
         hideBanner();
+      })
+      .finally(function () {
+        checkPromise = null;
       });
+    return checkPromise;
   }
 
   function startPolling() {
     clearInterval(timer);
-    timer = setInterval(runCheck, POLL_INTERVAL);
+    if (!document.hidden) timer = setInterval(runCheck, POLL_INTERVAL);
   }
 
   window.__isoShowUpdateCommand = showDialog;
   window.__isoApplyUpdate = showDialog;
 
   window.addEventListener('online', function () {
-    runCheck();
+    runCheck(true);
     startPolling();
   });
   window.addEventListener('offline', function () {
@@ -240,10 +253,14 @@
       return;
     }
     startPolling();
-    runCheck();
+    runCheck(false);
   });
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && navigator.onLine) runCheck();
+    if (document.hidden) clearInterval(timer);
+    else if (navigator.onLine) {
+      startPolling();
+      runCheck(false);
+    }
   });
   window.addEventListener('beforeunload', function () {
     clearInterval(timer);
@@ -251,7 +268,7 @@
 
   function init() {
     startPolling();
-    setTimeout(runCheck, 4000);
+    setTimeout(function () { runCheck(false); }, 4000);
   }
 
   if (document.readyState === 'loading') {

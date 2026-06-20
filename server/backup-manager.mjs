@@ -162,6 +162,22 @@ export function createBackupManager(deps) {
     isStorageAlreadyExists,
     appVersion = 'unknown',
   } = deps;
+  const writeQueues = new Map();
+
+  async function withUserWriteLock(userId, operation) {
+    const previous = writeQueues.get(userId) || Promise.resolve();
+    let release;
+    const current = new Promise((resolve) => { release = resolve; });
+    const queued = previous.catch(() => {}).then(() => current);
+    writeQueues.set(userId, queued);
+    await previous.catch(() => {});
+    try {
+      return await operation();
+    } finally {
+      release();
+      if (writeQueues.get(userId) === queued) writeQueues.delete(userId);
+    }
+  }
 
   async function downloadText(path, userJwt) {
     const res = await supaStorageDownloadAsUser(BUCKET, path, userJwt);
@@ -256,8 +272,11 @@ export function createBackupManager(deps) {
       `${userId}/exports/`,
       `${userId}/cloud-snapshot/history/`,
     ];
-    for (const prefix of folderSpecs) {
-      const files = newestFirst(await listPrefix(prefix, userJwt));
+    const folderListings = await Promise.all(folderSpecs.map(async (prefix) => ({
+      prefix,
+      files: newestFirst(await listPrefix(prefix, userJwt)),
+    })));
+    for (const { prefix, files } of folderListings) {
       for (const file of files.slice(0, 20)) {
         if (!file?.name || file.name === 'history') continue;
         const path = `${prefix}${file.name}`;
@@ -274,10 +293,17 @@ export function createBackupManager(deps) {
 
   async function findBestCloudBackup(userId, userJwt, options = {}) {
     const pathMetas = await collectCandidatePaths(userId, userJwt);
-    const candidates = [];
-    for (const meta of pathMetas) {
-      candidates.push(await buildCandidate(userId, meta.path, userJwt, meta));
+    const candidates = new Array(pathMetas.length);
+    let nextIndex = 0;
+    async function worker() {
+      while (nextIndex < pathMetas.length) {
+        const index = nextIndex++;
+        const meta = pathMetas[index];
+        candidates[index] = await buildCandidate(userId, meta.path, userJwt, meta);
+      }
     }
+    const workerCount = Math.min(6, Math.max(1, pathMetas.length));
+    await Promise.all(Array.from({ length: workerCount }, worker));
     const valid = candidates.filter((candidate) => candidate.exists && candidate.valid);
     const selected = valid.sort((a, b) => -compareServerCandidates(userId, a, b))[0] || null;
     const latestCandidates = candidates.filter((candidate) => (
@@ -347,7 +373,7 @@ export function createBackupManager(deps) {
     return uploaded;
   }
 
-  async function writeCanonicalBackup(userId, userJwt, backupInput, options = {}) {
+  async function writeCanonicalBackupUnlocked(userId, userJwt, backupInput, options = {}) {
     const normalized = backupInput?.collection_counts
       ? backupInput
       : normalizeAnyBackup(backupInput, {
@@ -460,6 +486,12 @@ export function createBackupManager(deps) {
       backup_json: canonicalJson,
       cloud_snapshot_json: mirrorJson,
     };
+  }
+
+  async function writeCanonicalBackup(userId, userJwt, backupInput, options = {}) {
+    return withUserWriteLock(userId, () => (
+      writeCanonicalBackupUnlocked(userId, userJwt, backupInput, options)
+    ));
   }
 
   async function restoreBestBackup(userId, userJwt, options = {}) {

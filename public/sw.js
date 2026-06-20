@@ -20,6 +20,7 @@ const RUNTIME_GLUE_PATHS = new Set([
   '/pwa-local.js',
   '/boot-recovery.js',
   '/ux-setup.js',
+  '/focus-bg-loader.js',
   '/focus-bg-import.js',
   '/update-checker.js',
   '/sw.js',
