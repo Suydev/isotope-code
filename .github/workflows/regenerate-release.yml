@@ -106,6 +106,8 @@ jobs:
             scripts/compare-remote-assets.mjs
             isotope-complete.sql
             sql/backup_manifests.sql
+            sql/007_comprehensive_sql_rls_hardening.sql
+            scripts/verify-sql-hardening.sql
             docs/sync-system.md
             docs/storage-backup-system.md
             docs/supabase-connection-map.md

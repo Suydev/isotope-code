@@ -135,16 +135,22 @@ jobs:
           fi
 
           echo "Stripping Supabase-cloud-only statements..."
-          grep -v \
+          awk '
+            /^CREATE EVENT TRIGGER / { skip_event_trigger = 1 }
+            skip_event_trigger {
+              if ($0 ~ /;[[:space:]]*$/) skip_event_trigger = 0
+              next
+            }
+            /^DROP EVENT TRIGGER / { next }
+            { print }
+          ' isotope-complete.sql | grep -v \
             -e 'ALTER PUBLICATION' \
             -e 'supabase_realtime' \
-            -e 'CREATE EVENT TRIGGER' \
-            -e 'DROP EVENT TRIGGER' \
             -e 'pg_net\.' \
             -e 'http_request' \
             -e 'supabase_admin' \
             -e 'net\.http' \
-            isotope-complete.sql > /tmp/schema_test.sql
+            > /tmp/schema_test.sql
 
           echo "Running schema against PostgreSQL 16..."
           set +e

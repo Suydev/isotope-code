@@ -41,6 +41,7 @@ const SUPA_REF           = (() => {
   try { return new URL(SUPA_URL).hostname.split('.')[0] || ''; }
   catch (_) { return ''; }
 })();
+const SUPABASE_CANONICAL_TOKEN_KEY = SUPA_REF ? 'sb-' + SUPA_REF + '-auth-token' : '';
 
 // Zustand store keys
 const ZUSTAND_AUTH_KEY       = 'isotope-auth';
@@ -141,21 +142,39 @@ function clearStore(db, storeName) {
  */
 function findSessionRaw() {
   try {
-    const legacy = localStorage.getItem(SUPABASE_TOKEN_KEY);
-    if (legacy) return legacy;
-    if (SUPA_REF) {
-      const standard = localStorage.getItem('sb-' + SUPA_REF + '-auth-token');
-      if (standard) return standard;
-    }
-    const lastRaw = localStorage.getItem('isotope-last-session-raw');
-    if (lastRaw) return lastRaw;
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
-        const v = localStorage.getItem(k);
-        if (v) return v;
+    const candidates = [];
+    const seenKeys = new Set();
+    const addCandidate = (key, priority) => {
+      if (!key || seenKeys.has(key)) return;
+      seenKeys.add(key);
+      const raw = localStorage.getItem(key);
+      const session = parseSession(raw);
+      if (!session) return;
+      const jwtPayload = decodeJwtPayload(session.access_token);
+      candidates.push({
+        raw,
+        priority,
+        expiresAt: Number(session.expires_at || jwtPayload?.exp || 0),
+      });
+    };
+
+    // Prefer the canonical project-scoped Supabase key when sessions are equally
+    // fresh, but never let an older mirror hide a newer valid session.
+    addCandidate(SUPABASE_CANONICAL_TOKEN_KEY, 3);
+    addCandidate(SUPABASE_TOKEN_KEY, 2);
+    addCandidate('isotope-last-session-raw', 1);
+    // Unknown project keys are compatibility fallbacks only. They must not
+    // outrank a valid session from this app's canonical/mirror keys.
+    if (candidates.length === 0) {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
+          addCandidate(k, 0);
+        }
       }
     }
+    candidates.sort((a, b) => (b.expiresAt - a.expiresAt) || (b.priority - a.priority));
+    return candidates.length ? candidates[0].raw : null;
   } catch (_) {}
   return null;
 }
@@ -224,10 +243,43 @@ function saveRefreshedSession(session) {
   const raw = JSON.stringify(session);
   try {
     localStorage.setItem(SUPABASE_TOKEN_KEY, raw);
-    if (SUPA_REF) localStorage.setItem('sb-' + SUPA_REF + '-auth-token', raw);
+    if (SUPABASE_CANONICAL_TOKEN_KEY) localStorage.setItem(SUPABASE_CANONICAL_TOKEN_KEY, raw);
     localStorage.setItem('isotope-last-jwt', session.access_token);
     if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
     localStorage.setItem('isotope-last-session-raw', raw);
+  } catch (_) {}
+}
+
+function isSameSession(candidate, staleSession) {
+  if (!candidate || !staleSession) return false;
+  if (candidate.user?.id !== staleSession.user?.id) return false;
+  return candidate.access_token === staleSession.access_token ||
+    (!!candidate.refresh_token && candidate.refresh_token === staleSession.refresh_token);
+}
+
+function clearStaleSessionMirrors(staleSession) {
+  if (!staleSession) return;
+  try {
+    const tokenKeys = new Set([
+      SUPABASE_TOKEN_KEY,
+      SUPABASE_CANONICAL_TOKEN_KEY,
+      'isotope-last-session-raw',
+    ].filter(Boolean));
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) tokenKeys.add(key);
+    }
+    for (const key of tokenKeys) {
+      if (isSameSession(parseSession(localStorage.getItem(key)), staleSession)) {
+        localStorage.removeItem(key);
+      }
+    }
+    if (localStorage.getItem('isotope-last-jwt') === staleSession.access_token) {
+      localStorage.removeItem('isotope-last-jwt');
+    }
+    if (staleSession.refresh_token && localStorage.getItem('isotope-last-rt') === staleSession.refresh_token) {
+      localStorage.removeItem('isotope-last-rt');
+    }
   } catch (_) {}
 }
 
@@ -251,7 +303,9 @@ async function refreshStoredSessionIfNeeded(session) {
     clearTimeout(tid);
     const data = await resp.json().catch(() => null);
     if (!resp.ok || !data || !data.access_token || !data.user || !data.user.id) {
-      refreshStoredSessionIfNeeded.lastFailure = (resp.status === 400 || resp.status === 401) ? 'auth' : 'network';
+      const definitiveAuthFailure = resp.status === 400 || resp.status === 401;
+      refreshStoredSessionIfNeeded.lastFailure = definitiveAuthFailure ? 'auth' : 'network';
+      if (definitiveAuthFailure) clearStaleSessionMirrors(session);
       return null;
     }
     saveRefreshedSession(data);
@@ -733,20 +787,25 @@ async function ensureSchema() {
   }
 }
 
-// ── Asset preload ───────────────────────────────────────────────────────────
+// ── App launch ──────────────────────────────────────────────────────────────
 
-function preloadAssets() {
-  const link       = document.createElement('link');
-  link.rel         = 'modulepreload';
-  link.crossOrigin = '';
-  link.href        = '/assets/vendor-react-BfU3Zn2J.js';
-  document.head.appendChild(link);
-
+let appLaunchStarted = false;
+function launchApp() {
+  if (appLaunchStarted) return;
+  appLaunchStarted = true;
   const script       = document.createElement('script');
   script.type        = 'module';
   script.crossOrigin = '';
   script.src         = '/assets/index-BPYJFSVW.js';
   document.head.appendChild(script);
+}
+
+function notifyMountedAppOfBootResolution() {
+  try {
+    window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
+  } catch (_) {
+    try { window.dispatchEvent(new Event('popstate')); } catch (_) {}
+  }
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
@@ -756,6 +815,9 @@ function preloadAssets() {
     onboarding: { state: 'unknown' },
     source: 'boot',
   });
+  // Start fetching and mounting the entry immediately. AppAccessGate blocks
+  // route content while the boot state remains authChecking/cloudLoading.
+  launchApp();
 
   if (window.location.pathname !== '/demo') {
     try { sessionStorage.removeItem('isotope-demo-mode'); } catch (_) {}
@@ -868,6 +930,7 @@ function preloadAssets() {
     window.history.replaceState(null, '', '/dashboard');
   }
 
-  // Step 4: preload the app bundle
-  preloadAssets();
+  // An early-mounted BrowserRouter must re-read the final replaceState URL and
+  // boot state even when the resolved deep link itself did not change.
+  notifyMountedAppOfBootResolution();
 })();

@@ -22,6 +22,8 @@ const ARRAY_COLLECTION_KEYS = [
   'mockTests',
 ];
 
+const TOMBSTONE_COLLECTION_KEYS = [...COLLECTION_KEYS];
+
 const RICH_COLLECTION_KEYS = [
   'tasks',
   'sessions',
@@ -92,6 +94,78 @@ function emptyDataShape() {
     tests: [],
     exams: [],
     mockTests: [],
+  };
+}
+
+function emptyTombstoneShape() {
+  return Object.fromEntries(TOMBSTONE_COLLECTION_KEYS.map((key) => [key, []]));
+}
+
+function normalizeTombstoneEntry(value) {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return { id: String(value), deletedAt: null };
+  }
+  if (!value || typeof value !== 'object') return null;
+  const id = value.id || value._id || value.record_id || value.recordId;
+  if (!id) return null;
+  return {
+    id: String(id),
+    deletedAt: value.deletedAt || value.deleted_at || value.timestamp || null,
+  };
+}
+
+function normalizeTombstones(...sources) {
+  const out = emptyTombstoneShape();
+  for (const source of sources) {
+    if (!source || typeof source !== 'object') continue;
+    for (const key of TOMBSTONE_COLLECTION_KEYS) {
+      const entries = Array.isArray(source[key]) ? source[key] : [];
+      const byId = new Map(out[key].map((entry) => [entry.id, entry]));
+      for (const value of entries) {
+        const incoming = normalizeTombstoneEntry(value);
+        if (!incoming) continue;
+        const existing = byId.get(incoming.id);
+        if (!existing || meaningfulTimestamp(incoming.deletedAt) >= meaningfulTimestamp(existing.deletedAt)) {
+          byId.set(incoming.id, incoming);
+        }
+      }
+      out[key] = Array.from(byId.values());
+    }
+  }
+  return out;
+}
+
+function hasTombstones(tombstones) {
+  return TOMBSTONE_COLLECTION_KEYS.some((key) => (tombstones?.[key] || []).length > 0);
+}
+
+function getBackupMetadata(normalizedOrRaw) {
+  if (normalizedOrRaw?.collection_counts && normalizedOrRaw?.data) {
+    return {
+      tombstones: normalizeTombstones(normalizedOrRaw.tombstones),
+      intentional_empty: normalizedOrRaw.intentional_empty === true || normalizedOrRaw.operation === 'reset',
+      operation: normalizedOrRaw.operation || null,
+      reset_at: normalizedOrRaw.reset_at || null,
+    };
+  }
+  const raw = normalizedOrRaw?.raw || normalizedOrRaw || {};
+  const localBackup = cleanObject(raw.local_backup);
+  const operation = raw.operation || localBackup?.operation || raw.data?.operation || null;
+  const intentionalEmpty = raw.intentional_empty === true
+    || localBackup?.intentional_empty === true
+    || raw.data?.intentional_empty === true
+    || operation === 'reset';
+  return {
+    tombstones: normalizeTombstones(
+      raw.tombstones,
+      raw.deletions,
+      raw.data?.tombstones,
+      localBackup?.tombstones,
+      localBackup?.data?.tombstones,
+    ),
+    intentional_empty: intentionalEmpty,
+    operation: intentionalEmpty ? 'reset' : operation,
+    reset_at: raw.reset_at || raw.resetAt || localBackup?.reset_at || localBackup?.resetAt || null,
   };
 }
 
@@ -215,8 +289,13 @@ function normalizeAnyBackup(input, meta = {}) {
   const size = Number(meta.size_bytes || meta.size || 0) || dataSizeBytes(input);
   const counts = getCollectionCounts({ data });
   const meaningfulDataAt = getLatestRecordTimestamp(data);
+  const backupMetadata = getBackupMetadata(raw);
   const normalized = {
-    valid: kind !== 'unknown' || ARRAY_COLLECTION_KEYS.some((key) => data[key].length > 0) || !!data.profile,
+    valid: kind !== 'unknown'
+      || ARRAY_COLLECTION_KEYS.some((key) => data[key].length > 0)
+      || !!data.profile
+      || backupMetadata.intentional_empty
+      || hasTombstones(backupMetadata.tombstones),
     kind,
     exported_at: exportedAt,
     app_version: appVersion,
@@ -230,12 +309,18 @@ function normalizeAnyBackup(input, meta = {}) {
     bucket: meta.bucket || null,
     updated_at: meta.updated_at || null,
     meaningful_data_at: meaningfulDataAt ? new Date(meaningfulDataAt).toISOString() : null,
+    tombstones: backupMetadata.tombstones,
+    intentional_empty: backupMetadata.intentional_empty,
+    operation: backupMetadata.operation,
+    reset_at: backupMetadata.reset_at,
     raw,
   };
   normalized.empty = isBackupEmpty(normalized);
   normalized.rich = isBackupRich(normalized);
   normalized.rich_score = richScoreFromCounts(counts, size);
-  normalized.reason = normalized.rich ? 'rich backup' : (normalized.empty ? 'profile-only or empty backup' : 'valid sparse backup');
+  normalized.reason = normalized.intentional_empty
+    ? 'intentional empty reset'
+    : (normalized.rich ? 'rich backup' : (normalized.empty ? 'profile-only or empty backup' : 'valid sparse backup'));
   return normalized;
 }
 
@@ -281,6 +366,14 @@ function compareBackupCandidates(a, b) {
   if (!left && right) return -1;
   if (left.valid && !right.valid) return 1;
   if (!left.valid && right.valid) return -1;
+  if (left.intentional_empty && !right.intentional_empty) {
+    const resetDelta = meaningfulTimestamp(left.reset_at || left.exported_at) - candidateTime(right);
+    if (resetDelta >= 0) return 1;
+  }
+  if (!left.intentional_empty && right.intentional_empty) {
+    const resetDelta = meaningfulTimestamp(right.reset_at || right.exported_at) - candidateTime(left);
+    if (resetDelta >= 0) return -1;
+  }
   if (left.rich && right.empty) return 1;
   if (left.empty && right.rich) return -1;
   if (left.rich && !right.rich) return 1;
@@ -299,6 +392,12 @@ function compareBackupCandidates(a, b) {
 
 function latestRecordTime(record) {
   return meaningfulTimestamp(record?.updatedAt || record?.updated_at || record?.lastModified || record?.createdAt || record?.created_at);
+}
+
+function tombstoneWins(tombstone, record) {
+  const deletedAt = meaningfulTimestamp(tombstone?.deletedAt);
+  const recordTime = latestRecordTime(record);
+  return deletedAt === 0 || recordTime === 0 || deletedAt >= recordTime;
 }
 
 function mergeById(localRecords, cloudRecords) {
@@ -344,8 +443,28 @@ function nonEmptyObjectMerge(base, overlay) {
 }
 
 function mergeBackupData(local, cloud) {
-  const localData = getBackupData(local || {});
-  const cloudData = getBackupData(cloud || {});
+  const localNormalized = normalizeAnyBackup(local || {});
+  const cloudNormalized = normalizeAnyBackup(cloud || {});
+  const localData = localNormalized.data;
+  const cloudData = cloudNormalized.data;
+  const resetCandidates = [localNormalized, cloudNormalized]
+    .filter((item) => item.intentional_empty)
+    .sort((a, b) => meaningfulTimestamp(b.reset_at || b.exported_at) - meaningfulTimestamp(a.reset_at || a.exported_at));
+  const winningReset = resetCandidates[0] || null;
+  if (winningReset) {
+    const other = winningReset === localNormalized ? cloudNormalized : localNormalized;
+    const resetTime = meaningfulTimestamp(winningReset.reset_at || winningReset.exported_at);
+    const otherTime = Math.max(getLatestRecordTimestamp(other.data), meaningfulTimestamp(other.exported_at));
+    if (resetTime === 0 || resetTime >= otherTime) {
+      return {
+        ...emptyDataShape(),
+        tombstones: normalizeTombstones(localNormalized.tombstones, cloudNormalized.tombstones),
+        operation: 'reset',
+        intentional_empty: true,
+        reset_at: winningReset.reset_at || winningReset.exported_at || null,
+      };
+    }
+  }
   const merged = emptyDataShape();
   merged.profile = nonEmptyObjectMerge(cloudData.profile || {}, localData.profile || {});
   for (const key of ARRAY_COLLECTION_KEYS) {
@@ -360,18 +479,47 @@ function mergeBackupData(local, cloud) {
   } else {
     merged.timerState = localTimer || cloudTimer || null;
   }
+  const tombstones = normalizeTombstones(localNormalized.tombstones, cloudNormalized.tombstones);
+  for (const key of ARRAY_COLLECTION_KEYS) {
+    const recordsById = new Map(merged[key].map((record) => [String(record.id || record._id || ''), record]));
+    merged[key] = merged[key].filter((record) => {
+      const id = String(record.id || record._id || '');
+      const tombstone = tombstones[key].find((entry) => entry.id === id);
+      return !tombstone || !tombstoneWins(tombstone, record);
+    });
+    tombstones[key] = tombstones[key].filter((entry) => {
+      const record = recordsById.get(entry.id);
+      return !record || tombstoneWins(entry, record);
+    });
+  }
+  for (const key of ['profile', 'timerState']) {
+    const record = merged[key];
+    const id = key === 'profile' ? String(record?.id || 'primary') : String(record?.id || 'current');
+    const tombstone = tombstones[key].find((entry) => entry.id === id);
+    if (record && tombstone && tombstoneWins(tombstone, record)) merged[key] = null;
+    tombstones[key] = tombstones[key].filter((entry) => !record || tombstoneWins(entry, record));
+  }
+  if (hasTombstones(tombstones)) merged.tombstones = tombstones;
   return merged;
 }
 
 function buildCanonicalBackupPayload(normalizedOrRaw, options = {}) {
   const normalized = normalizedOrRaw?.collection_counts ? normalizedOrRaw : normalizeAnyBackup(normalizedOrRaw, options);
-  return {
+  const metadata = getBackupMetadata(normalizedOrRaw);
+  const payload = {
     version: 1,
     source: 'isotopeai',
     exportedAt: options.exportedAt || normalized.exported_at || new Date().toISOString(),
     appVersion: options.appVersion || normalized.app_version || 'unknown',
     data: getBackupData(normalized),
   };
+  if (hasTombstones(metadata.tombstones)) payload.tombstones = metadata.tombstones;
+  if (metadata.intentional_empty) {
+    payload.operation = 'reset';
+    payload.intentional_empty = true;
+    payload.reset_at = metadata.reset_at || payload.exportedAt;
+  }
+  return payload;
 }
 
 function buildCloudSnapshotMirror(userId, normalizedOrRaw, options = {}) {
@@ -397,6 +545,7 @@ if (typeof window !== 'undefined') {
   window.IsotopeBackupNormalizer = {
     COLLECTION_KEYS,
     ARRAY_COLLECTION_KEYS,
+    TOMBSTONE_COLLECTION_KEYS,
     normalizeAnyBackup,
     getBackupData,
     getCollectionCounts,
@@ -413,6 +562,7 @@ if (typeof window !== 'undefined') {
 export {
   COLLECTION_KEYS,
   ARRAY_COLLECTION_KEYS,
+  TOMBSTONE_COLLECTION_KEYS,
   normalizeAnyBackup,
   getBackupData,
   getCollectionCounts,

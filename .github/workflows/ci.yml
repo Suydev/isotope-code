@@ -201,7 +201,9 @@ jobs:
             isotope-complete.sql
             community-patch-v4.sql
             sql/006_security_policy_cleanup.sql
+            sql/007_comprehensive_sql_rls_hardening.sql
             sql/backup_manifests.sql
+            scripts/verify-sql-hardening.sql
             sql/verify-security.sql
             .env.example
             README.md
@@ -250,7 +252,7 @@ jobs:
       - name: 📋 Schema file stats
         run: |
           set -euo pipefail
-          for f in isotope-complete.sql community-patch-v4.sql sql/006_security_policy_cleanup.sql sql/backup_manifests.sql sql/verify-security.sql performance-patch.sql; do
+          for f in isotope-complete.sql community-patch-v4.sql sql/006_security_policy_cleanup.sql sql/007_comprehensive_sql_rls_hardening.sql sql/backup_manifests.sql sql/verify-security.sql scripts/verify-sql-hardening.sql performance-patch.sql; do
             if [ -f "$f" ]; then
               echo "=== $f ==="
               echo "  Size   : $(wc -c < "$f") bytes"
@@ -332,7 +334,7 @@ jobs:
           unzip -q "isotope-v${VERSION}-ci-test.zip" -d "$TMPDIR"
           echo "Verifying extracted release..."
           FAIL=0
-          for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql docs/sync-system.md docs/storage-backup-system.md docs/supabase-connection-map.md; do
+          for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql sql/007_comprehensive_sql_rls_hardening.sql scripts/verify-sql-hardening.sql docs/sync-system.md docs/storage-backup-system.md docs/supabase-connection-map.md; do
             if [ -f "$TMPDIR/$f" ]; then
               echo "  ✅ $f"
             else

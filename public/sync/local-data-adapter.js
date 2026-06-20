@@ -130,15 +130,19 @@ function writeJson(key, value) {
   try { window.localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
 
+function writeJsonStrict(key, value) {
+  window.localStorage.setItem(key, JSON.stringify(value));
+}
+
 function normalizeRecordForStore(collection, record, index) {
   if (!record || typeof record !== 'object') return null;
   if (collection === 'profile') return { ...record, id: record.id || 'primary' };
   if (collection === 'timerState') return { ...record, id: 'current' };
-  return { ...record, id: record.id || `${collection}-${Date.now()}-${index}` };
+  return { ...record, id: record.id || `${collection}-restored-${index}` };
 }
 
 async function readStoreAll(storeName) {
-  const db = await openDb().catch(() => null);
+  const db = await openDb();
   if (!db || !db.objectStoreNames.contains(storeName)) return [];
   try {
     const tx = db.transaction(storeName, 'readonly');
@@ -146,15 +150,19 @@ async function readStoreAll(storeName) {
     await transactionDone(tx);
     db.close();
     return Array.isArray(rows) ? rows : [];
-  } catch {
+  } catch (error) {
     try { db.close(); } catch {}
-    return [];
+    throw error;
   }
 }
 
 async function clearAndWriteStore(storeName, records) {
-  const db = await openDb().catch(() => null);
-  if (!db || !db.objectStoreNames.contains(storeName)) return false;
+  const db = await openDb();
+  if (!db) return false;
+  if (!db.objectStoreNames.contains(storeName)) {
+    db.close();
+    throw new Error(`IndexedDB store is missing: ${storeName}`);
+  }
   try {
     const tx = db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
@@ -163,9 +171,9 @@ async function clearAndWriteStore(storeName, records) {
     await transactionDone(tx);
     db.close();
     return true;
-  } catch {
+  } catch (error) {
     try { db.close(); } catch {}
-    return false;
+    throw error;
   }
 }
 
@@ -198,11 +206,11 @@ async function writeCollection(name, records, options = {}) {
   if (name === 'profile') {
     const profile = records && typeof records === 'object' && !Array.isArray(records) ? records : null;
     if (profile) {
-      writeJson(key, profile);
       await clearAndWriteStore(store, [normalizeRecordForStore(name, profile, 0)]);
+      writeJsonStrict(key, profile);
     } else if (options.replace !== false) {
-      writeJson(key, null);
       await clearAndWriteStore(store, []);
+      writeJsonStrict(key, null);
     }
     if (options.refresh !== false) dispatchSyncRefresh(name);
     return;
@@ -210,19 +218,19 @@ async function writeCollection(name, records, options = {}) {
   if (name === 'timerState') {
     const timer = records && typeof records === 'object' && !Array.isArray(records) ? records : null;
     if (timer) {
-      writeJson(key, timer);
       await clearAndWriteStore(store, [normalizeRecordForStore(name, timer, 0)]);
+      writeJsonStrict(key, timer);
     } else if (options.replace !== false) {
-      try { window.localStorage.removeItem(key); } catch {}
       await clearAndWriteStore(store, []);
+      window.localStorage.removeItem(key);
     }
     if (options.refresh !== false) dispatchSyncRefresh(name);
     return;
   }
   const list = Array.isArray(records) ? records : [];
   const safe = list.map((record, index) => normalizeRecordForStore(name, record, index)).filter(Boolean);
-  writeJson(key, safe);
   await clearAndWriteStore(store, safe);
+  writeJsonStrict(key, safe);
   if (options.refresh !== false) dispatchSyncRefresh(name);
 }
 
@@ -269,29 +277,168 @@ async function isLocalWorkspaceEmpty() {
   return isBackupEmpty({ collection_counts: await countLocalData(), size_bytes: 0 });
 }
 
-async function writeAllLocalData(backupData, options = {}) {
+function prepareDataForStorage(backupData) {
   const data = getBackupData({ data: backupData || {} });
-  await Promise.all([
-    writeCollection('tasks', data.tasks, { refresh: false }),
-    writeCollection('sessions', data.sessions, { refresh: false }),
-    writeCollection('subjects', data.subjects, { refresh: false }),
-    writeCollection('habits', data.habits, { refresh: false }),
-    writeCollection('dailyLogs', data.dailyLogs, { refresh: false }),
-    writeCollection('tests', data.tests, { refresh: false }),
-    writeCollection('exams', data.exams, { refresh: false }),
-    writeCollection('mockTests', data.mockTests, { refresh: false }),
-    writeCollection('profile', data.profile, { refresh: false, replace: options.replace !== false }),
-    writeCollection('timerState', data.timerState, { refresh: false, replace: options.replace !== false }),
-  ]);
-  const meta = {
-    source_path: options.source_path || null,
-    hash: options.hash || null,
-    restored_at: new Date().toISOString(),
-    collection_counts: getCollectionCounts({ data }),
-  };
-  writeJson('isotope_restore_metadata', meta);
-  refreshAllStores();
-  return meta;
+  const prepared = { ...data };
+  for (const key of Object.keys(COLLECTION_TO_STORE)) {
+    if (key === 'profile' || key === 'timerState') continue;
+    prepared[key] = data[key]
+      .map((record, index) => normalizeRecordForStore(key, record, index))
+      .filter(Boolean);
+  }
+  return prepared;
+}
+
+function recordsForStore(name, data) {
+  if (name === 'profile') {
+    return data.profile ? [normalizeRecordForStore(name, data.profile, 0)] : [];
+  }
+  if (name === 'timerState') {
+    return data.timerState ? [normalizeRecordForStore(name, data.timerState, 0)] : [];
+  }
+  return data[name];
+}
+
+async function writeAllIndexedDb(data) {
+  const db = await openDb();
+  if (!db) return false;
+  const stores = Object.values(COLLECTION_TO_STORE);
+  const missing = stores.filter((store) => !db.objectStoreNames.contains(store));
+  if (missing.length > 0) {
+    db.close();
+    throw new Error(`IndexedDB stores are missing: ${missing.join(', ')}`);
+  }
+  try {
+    const tx = db.transaction(stores, 'readwrite');
+    for (const [name, storeName] of Object.entries(COLLECTION_TO_STORE)) {
+      const store = tx.objectStore(storeName);
+      store.clear();
+      for (const record of recordsForStore(name, data)) store.put(record);
+    }
+    await transactionDone(tx);
+    return true;
+  } finally {
+    try { db.close(); } catch {}
+  }
+}
+
+function writeAllLocalStorage(data) {
+  for (const [name, key] of Object.entries(COLLECTION_TO_STORAGE_KEY)) {
+    if (name === 'timerState' && !data.timerState) {
+      window.localStorage.removeItem(key);
+    } else {
+      writeJsonStrict(key, data[name]);
+    }
+  }
+}
+
+function snapshotLocalStorage() {
+  const snapshot = new Map();
+  for (const key of Object.values(COLLECTION_TO_STORAGE_KEY)) {
+    snapshot.set(key, window.localStorage.getItem(key));
+  }
+  snapshot.set('isotope_restore_metadata', window.localStorage.getItem('isotope_restore_metadata'));
+  return snapshot;
+}
+
+function restoreLocalStorageSnapshot(snapshot) {
+  for (const [key, value] of snapshot) {
+    if (value === null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, value);
+  }
+}
+
+function sameCounts(left, right) {
+  return Object.keys(left).every((key) => Number(left[key] || 0) === Number(right[key] || 0))
+    && Object.keys(right).every((key) => Number(left[key] || 0) === Number(right[key] || 0));
+}
+
+async function readAllIndexedDbData() {
+  const data = {};
+  for (const [name, storeName] of Object.entries(COLLECTION_TO_STORE)) {
+    const rows = await readStoreAll(storeName);
+    if (name === 'profile') {
+      const first = rows[0] || null;
+      if (!first) data.profile = null;
+      else {
+        const { id, ...profile } = first;
+        data.profile = id === 'primary' ? profile : first;
+      }
+    } else if (name === 'timerState') {
+      const first = rows.find((row) => row.id === 'current') || rows[0] || null;
+      if (!first) data.timerState = null;
+      else {
+        const { id, ...timer } = first;
+        data.timerState = id === 'current' ? timer : first;
+      }
+    } else {
+      data[name] = rows;
+    }
+  }
+  return getBackupData({ data });
+}
+
+function readAllLocalStorageData() {
+  const data = {};
+  for (const [name, key] of Object.entries(COLLECTION_TO_STORAGE_KEY)) {
+    const fallback = name === 'profile' || name === 'timerState' ? null : [];
+    data[name] = readJson(key, fallback);
+  }
+  return getBackupData({ data });
+}
+
+function verifyRestoredData(expectedData, actualData, label) {
+  const expectedCounts = getCollectionCounts({ data: expectedData });
+  const actualCounts = getCollectionCounts({ data: actualData });
+  if (!sameCounts(expectedCounts, actualCounts)) {
+    throw new Error(`${label} count verification failed: expected ${JSON.stringify(expectedCounts)}, got ${JSON.stringify(actualCounts)}`);
+  }
+  const expectedHash = hashBackup({ data: expectedData });
+  const actualHash = hashBackup({ data: actualData });
+  if (expectedHash !== actualHash) {
+    throw new Error(`${label} hash verification failed: expected ${expectedHash}, got ${actualHash}`);
+  }
+  return { counts: actualCounts, hash: actualHash };
+}
+
+async function writeAllLocalData(backupData, options = {}) {
+  const data = prepareDataForStorage(backupData);
+  if (options.replace === false) {
+    if (!data.profile) data.profile = await readCollection('profile');
+    if (!data.timerState) data.timerState = await readCollection('timerState');
+  }
+  const localStorageBefore = snapshotLocalStorage();
+  const indexedDbBefore = canUseIndexedDB() ? await readAllIndexedDbData() : null;
+  const indexedDbWritten = await writeAllIndexedDb(data);
+  try {
+    writeAllLocalStorage(data);
+    const localStorageVerification = verifyRestoredData(
+      data,
+      readAllLocalStorageData(),
+      'LocalStorage restore',
+    );
+    if (indexedDbWritten) {
+      verifyRestoredData(data, await readAllIndexedDbData(), 'IndexedDB restore');
+    }
+    const meta = {
+      source_path: options.source_path || null,
+      hash: options.hash || null,
+      data_hash: localStorageVerification.hash,
+      restored_at: new Date().toISOString(),
+      collection_counts: localStorageVerification.counts,
+    };
+    writeJsonStrict('isotope_restore_metadata', meta);
+    refreshAllStores();
+    return meta;
+  } catch (error) {
+    try { restoreLocalStorageSnapshot(localStorageBefore); } catch {}
+    if (indexedDbWritten && indexedDbBefore) {
+      try { await writeAllIndexedDb(indexedDbBefore); } catch (rollbackError) {
+        error.rollbackError = rollbackError;
+      }
+    }
+    throw error;
+  }
 }
 
 function writeRestoreMetadata(meta) {
@@ -299,7 +446,7 @@ function writeRestoreMetadata(meta) {
     ...(meta || {}),
     restored_at: meta?.restored_at || new Date().toISOString(),
   };
-  writeJson('isotope_restore_metadata', payload);
+  writeJsonStrict('isotope_restore_metadata', payload);
   return payload;
 }
 

@@ -9,43 +9,7 @@ const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA.slice
 const RUNTIME_CACHE = CACHE_PREFIX + '-runtime-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
 
 const SHELL_URLS = [
-  '/',
-  '/index.html',
-  '/offline.html',
-  '/manifest.webmanifest',
-  '/favicon.svg',
-  '/logo-full.svg',
-  '/logo-icon.svg',
-  '/icons/icon.svg',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  '/icons/maskable-icon-512x512.png',
-  '/auth-bridge.js',
-  '/boot-recovery.js',
-  '/restore-and-launch.js',
-  '/sync/backup-normalizer.js',
-  '/sync/local-data-adapter.js',
-  '/ux-setup.js',
-  '/focus-bg-import.js',
-  '/update-checker.js',
-  '/pwa-local.js',
-  '/assets/index-CrO6t5EW.css',
-  '/assets/vendor-katex-ASjZcBK0.css',
-  '/assets/index-BPYJFSVW.js',
-  '/assets/index-B45N-99N.js',
-  '/assets/vendor-react-BfU3Zn2J.js',
-  '/assets/vendor-router-CmoTwRnm.js',
-  '/assets/vendor-query-Dco3bNuU.js',
-  '/assets/vendor-supabase-CdzVlbop.js',
-  '/assets/App-pJGjDiPw.js',
-  '/assets/Onboarding-qvAqCBbb.js',
-  '/assets/Dashboard-dypAV-0H.js',
-  '/assets/Focus-BmgY-9vP.js',
-  '/assets/Study-pAdAenIl.js',
-  '/assets/Tasks-BYRFOrek.js',
-  '/assets/Community-DIqF5406.js',
-  '/assets/CommunityHub-gANxZssO.js',
-  '/fonts/fonts.css'
+  '/offline.html'
 ];
 
 const RUNTIME_GLUE_PATHS = new Set([

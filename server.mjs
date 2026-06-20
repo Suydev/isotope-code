@@ -79,6 +79,37 @@ if (_dotenvResults.length) {
 }
 
 const port = process.env.PORT || 3000;
+const bindHost = String(process.env.ISOTOPE_BIND_HOST || '127.0.0.1').trim() || '127.0.0.1';
+const CORS_ALLOWED_ORIGINS = new Set(
+  String(process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+);
+
+function requestOrigin(req) {
+  const host = String(req.headers.host || '').trim();
+  if (!host) return '';
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  const protocol = forwardedProto === 'https' || req.socket?.encrypted ? 'https' : 'http';
+  return `${protocol}://${host}`;
+}
+
+function isCorsOriginAllowed(req, origin = req.headers.origin) {
+  const candidate = String(origin || '').trim();
+  if (!candidate) return true;
+  return candidate === requestOrigin(req) || CORS_ALLOWED_ORIGINS.has(candidate);
+}
+
+function applyCorsHeaders(req, res) {
+  const origin = String(req.headers.origin || '').trim();
+  if (!origin || !isCorsOriginAllowed(req, origin)) return false;
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,apikey,x-client-info,prefer,range,X-Admin-Secret');
+  return true;
+}
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -233,13 +264,8 @@ const ADMIN_MODE_READY  = ENABLE_ADMIN_MODE && !!SUPA_SERVICE_KEY && !!ADMIN_COO
 function isAdminAuthed(req) {
   if (!ADMIN_MODE_READY) return false;
   const headerTok = (req.headers['x-admin-secret'] || '').trim();
-  let queryTok = '';
-  try {
-    const sp = new URL('http://x' + req.url).searchParams;
-    queryTok = sp.get('secret') || '';
-  } catch {}
   const cookieTok = readCookie(req, 'iso_admin');
-  return (!!ADMIN_SECRET && (headerTok === ADMIN_SECRET || queryTok === ADMIN_SECRET)) || cookieTok === adminCookieValue();
+  return (!!ADMIN_SECRET && headerTok === ADMIN_SECRET) || cookieTok === adminCookieValue();
 }
 
 function readCookie(req, name) {
@@ -261,6 +287,19 @@ function isRequestHttps(req) {
   const fwdProto = req.headers['x-forwarded-proto'];
   if (fwdProto) return fwdProto.split(',')[0].trim().toLowerCase() === 'https';
   return !!(req.socket && req.socket.encrypted);
+}
+
+function isAdminMutationOriginAllowed(req) {
+  const method = String(req.method || 'GET').toUpperCase();
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return true;
+  if (ADMIN_SECRET && String(req.headers['x-admin-secret'] || '').trim() === ADMIN_SECRET) return true;
+  const source = String(req.headers.origin || req.headers.referer || '').trim();
+  if (!source) return false;
+  try {
+    return new URL(source).origin === requestOrigin(req);
+  } catch {
+    return false;
+  }
 }
 
 function escapeHtml(value) {
@@ -392,26 +431,6 @@ else if (ENABLE_ADMIN_MODE) console.warn('[Admin] Admin mode requested but disab
 if (CUSTOM_SUPA) {
   console.log('[Cloud] Supabase cloud sync target ready');
 }
-
-// ── AI key injection ──────────────────────────────────────────────────────────
-function buildKeyScript() {
-  const keys = {};
-  if (GEMINI_API_KEY) keys.gemini = GEMINI_API_KEY;
-  if (GROQ_API_KEY)   keys.groq   = GROQ_API_KEY;
-  if (Object.keys(keys).length === 0) return '';
-  return `<script>
-(function(){
-  var k=${JSON.stringify(keys)};
-  window.__IK__=new Proxy(k,{
-    get:function(t,p){
-      if(typeof navigator!=="undefined"&&!navigator.onLine)return undefined;
-      return t[p];
-    }
-  });
-})();
-</script>`;
-}
-const KEY_SCRIPT = buildKeyScript();
 
 // ── Username-auth client helper (injected into every HTML page) ───────────────
 // Build dynamically so SUPA_REF reflects the actual SUPA_URL env var at startup
@@ -1517,8 +1536,8 @@ function buildUsernameAuthScript() {
         username:      prof.username      || '',
         display_name:  prof.display_name  || prof.name || prof.username || '',
         avatar_url:    prof.avatar_url    || prof.avatar || null,
-        plan_type:     'ranker',
-        billing_status:'active',
+        plan_type:     prof.plan_type || null,
+        billing_status:prof.billing_status || null,
         coins:         Number(prof.coins) || 0,
         gems:          Number(prof.gems)  || 0,
         synced_at:     Date.now()
@@ -1604,17 +1623,16 @@ function buildUsernameAuthScript() {
       var jwt = data.session && data.session.access_token;
       // Track onboarding from the login response first
       var onboarding_completed = data.onboarding_completed === true;
-      // Profile sync is BEST-EFFORT — network failure must NOT prevent login.
-      // The double-login bug was caused by syncProfileAfterLogin throwing and
-      // being caught by the outer catch, making __isoLogin return {ok:false}.
+      // Profile sync is best-effort and deliberately detached from the login
+      // response. The server already returned the routing decision; waiting for
+      // the full cloud bootstrap made every successful login pay another network
+      // round trip before navigation.
       if (jwt) {
-        try {
-          var snap = await syncProfileAfterLogin(jwt);
-          if (snap) onboarding_completed = snap.onboarding_completed === true;
-        } catch(syncErr) {
+        Promise.resolve().then(function() {
+          return syncProfileAfterLogin(jwt);
+        }).catch(function(syncErr) {
           console.warn('[Auth] Profile sync after login failed (non-fatal):', syncErr && syncErr.message);
-          // Still succeed — the session is valid, the app will retry sync later.
-        }
+        });
         // AUTH GATE: new valid session → unblock sync immediately
         try { if (window.__isoSyncAuthUnblock) window.__isoSyncAuthUnblock(); } catch(_ue) {}
       }
@@ -2207,114 +2225,15 @@ function buildLocalDataGuardScript() {
 }
 const LOCAL_DATA_GUARD_SCRIPT = buildLocalDataGuardScript();
 
-// ── Combined premium bypass + profile upgrade ─────────────────────────────────
-//
-// TWO mechanisms work together:
-//
-// 1. RESPONSE PATCH  – every Supabase JSON response has plan_type→ranker so
-//    client-side premium checks always pass.
-//
-// 2. PROFILE UPGRADE – after login (or on page load with existing session) we
-//    PATCH the real Supabase profiles row to plan_type='ranker'.
-//    Once saved, is_premium_user() in PostgreSQL returns true, so normal
-//    authenticated RLS policies pass. On success: reload once to flush React
-//    Query stale cache.
-//
+// ── Supabase runtime compatibility layer ──────────────────────────────────────
+// Keeps the existing edge-function fallbacks and auth/session compatibility
+// without mutating billing fields or rewriting Supabase responses in the browser.
 const PREMIUM_SCRIPT = `<script>
 (function(){
   'use strict';
   var _orig = window.fetch;
   var SUPA  = '${SUPA_URL}';
   var ANON  = '${SUPA_ANON_KEY}';
-  var _upgradedUsers = {};
-
-  // ── Upgrade user's real Supabase profile to ranker ──────────────────────────
-  // This makes is_premium_user() return true in PostgreSQL, so all RLS
-  // SELECT/INSERT/UPDATE policies on community tables pass for this user.
-  function upgradeProfile(jwt, userId) {
-    if (!jwt || !userId || _upgradedUsers[userId]) return;
-    _upgradedUsers[userId] = true;
-
-    var payload = JSON.stringify({
-      plan_type:       'ranker',
-      billing_status:  'active',
-      plan_expires_at: '2099-12-31T23:59:59.000Z',
-      access_ends_at:  '2099-12-31T23:59:59.000Z'
-    });
-    var hdrs = {
-      'Content-Type':  'application/json',
-      'Authorization': 'Bearer ' + jwt,
-      'apikey':        ANON,
-      'Prefer':        'return=minimal'
-    };
-
-    // Try 'users' table (where plan_type lives), then 'profiles' fallback
-    function doPatch(table, col) {
-      return _orig.call(window,
-        SUPA + '/rest/v1/' + table + '?' + col + '=eq.' + encodeURIComponent(userId),
-        { method: 'PATCH', headers: hdrs, body: payload }
-      );
-    }
-
-    doPatch('users', 'id')
-      .then(function(r) {
-        console.log('[ISO-MOD] Users PATCH (id=):', r.status);
-        if (r.status === 404 || r.status === 406) {
-          return doPatch('users', 'user_id').then(function(r2) {
-            if (r2.status === 404 || r2.status === 406) {
-              return doPatch('profiles', 'id');
-            }
-            return r2;
-          });
-        }
-        return r;
-      })
-      .then(function(r) {
-        var ok = r && (r.status === 200 || r.status === 204 || r.ok);
-        if (ok) {
-          console.log('[ISO-MOD] \u2705 Profile upgraded to ranker in Supabase DB');
-          // Reload once so React Query fetches fresh community data with RLS now passing
-          if (!sessionStorage.getItem('__iso_rls_upgraded__')) {
-            sessionStorage.setItem('__iso_rls_upgraded__', userId);
-            setTimeout(function() { window.location.reload(); }, 400);
-          }
-        } else {
-          console.warn('[ISO-MOD] \u26a0\ufe0f Profile upgrade returned', r && r.status,
-            '— RLS may still block community. Check Supabase policies and membership state.');
-        }
-      })
-      .catch(function(e) {
-        console.warn('[ISO-MOD] Profile upgrade error:', e && e.message);
-      });
-  }
-
-  // Check localStorage for existing Supabase session on every page load
-  // (covers returning users who don't re-trigger the auth/v1/token call)
-  (function checkExistingSession() {
-    // Only run once per page load (not after our own reload)
-    var alreadyDone = sessionStorage.getItem('__iso_rls_upgraded__');
-    try {
-      // Find the sb-{ref}-auth-token key Supabase stores in localStorage
-      var raw = null;
-      for (var i = 0; i < localStorage.length; i++) {
-        var lk = localStorage.key(i);
-        if (lk && lk.startsWith('sb-') && lk.endsWith('-auth-token')) {
-          raw = localStorage.getItem(lk); break;
-        }
-      }
-      if (raw) {
-        var session = JSON.parse(raw);
-        var jwt    = session && (session.access_token || (session.session && session.session.access_token));
-        var userId = session && (
-          (session.user && session.user.id) ||
-          (session.session && session.session.user && session.session.user.id)
-        );
-        if (jwt && userId && !alreadyDone) {
-          upgradeProfile(jwt, userId);
-        }
-      }
-    } catch(e) {}
-  })();
 
   // ── Leaderboard builder ───────────────────────────────────────────────────────
   // Intercepts all four leaderboard/analytics edge-function calls and returns
@@ -2827,20 +2746,12 @@ const PREMIUM_SCRIPT = `<script>
             var jwt    = data.access_token;
             var userId = data.user && data.user.id;
             if (jwt && userId) {
-              // BUG FIX: only clear the upgrade flag when it's a DIFFERENT user logging in,
-              // NOT on every token refresh. Token auto-refresh fires every ~hour and was
-              // clearing the flag, causing a reload loop on next page load.
-              var prevId = sessionStorage.getItem('__iso_rls_upgraded__');
-              if (prevId && prevId !== userId) {
-                sessionStorage.removeItem('__iso_rls_upgraded__');
-              }
               // SYNC FIX: native Supabase signIn stores under sb-{ref}-auth-token.
               // Also write to isotope-auth-token so restore-and-launch.js recognizes session.
               try {
                 var _s = JSON.stringify(data);
                 localStorage.setItem('isotope-auth-token', _s);
               } catch(_e) {}
-              upgradeProfile(jwt, userId);
               // AUTH GATE: new valid session → unblock sync (resumes timer + queues one sync)
               try { if (window.__isoSyncAuthUnblock) window.__isoSyncAuthUnblock(); } catch(_ue) {}
             }
@@ -2882,57 +2793,13 @@ const PREMIUM_SCRIPT = `<script>
       return _orig.call(this, input, _newInit).then(function(res) { return patchResp(res); });
     }
 
-    // Patch all Supabase REST/RPC responses (plan_type → ranker etc)
-    var isSupabase = url.indexOf('supabase.co') !== -1 &&
-                     (url.indexOf('/rest/v1/') !== -1 || url.indexOf('/rpc/') !== -1);
-    var p = _orig.call(this, input, init);
-    if (!isSupabase) return p;
-    return p.then(function(res) { return patchResp(res); });
+    return _orig.call(this, input, init);
   };
 
-  // Patch plan/billing fields in any Supabase JSON response
+  // Preserve the helper signature used by the auth/logout compatibility paths.
+  // Responses must remain byte-for-byte authoritative from Supabase.
   function patchResp(res) {
-    var ct = res.headers.get('content-type') || '';
-    if (!ct.includes('json')) return res;
-    return res.text().then(function(body) {
-      var data;
-      try { data = JSON.parse(body); } catch(e) {
-        return new Response(body, { status: res.status, statusText: res.statusText, headers: res.headers });
-      }
-      function isPlanObject(o) {
-        // Only patch objects that look like user/membership records.
-        // Guards against corrupting task, exam, or other domain objects
-        // that happen to have a plan_type or billing_status field.
-        return ('plan_type' in o || 'billing_status' in o || 'access_ends_at' in o)
-          && !('title' in o || 'subject' in o || 'duration_minutes' in o
-               || 'question' in o || 'content' in o || 'message' in o);
-      }
-      function deepPatch(o) {
-        if (!o || typeof o !== 'object') return o;
-        if (Array.isArray(o)) return o.map(deepPatch);
-        var r = Object.assign({}, o);
-        if (isPlanObject(r)) {
-          // BUG FIX: always override regardless of current value (was: !r.plan_expires_at)
-          // This ensures expired accounts and past dates are fully overridden.
-          if ('plan_type'       in r) r.plan_type       = 'ranker';
-          if ('billing_status'  in r) r.billing_status  = 'active';
-          if ('plan_expires_at' in r) r.plan_expires_at = '2099-12-31T23:59:59.000Z';
-          if ('access_ends_at'  in r) r.access_ends_at  = '2099-12-31T23:59:59.000Z';
-          if ('effective_plan'  in r) r.effective_plan  = 'ranker';
-          if ('access_source'   in r) r.access_source   = 'ranker';
-          if ('cancel_at_period_end' in r) r.cancel_at_period_end = false;
-        }
-        for (var k in r) {
-          if (r[k] && typeof r[k] === 'object') r[k] = deepPatch(r[k]);
-        }
-        return r;
-      }
-      var patched = deepPatch(data);
-      var headers = new Headers(res.headers);
-      return new Response(JSON.stringify(patched), {
-        status: res.status, statusText: res.statusText, headers: headers
-      });
-    });
+    return res;
   }
 
   // BUG FIX: collect ALL demo keys first, then remove them.
@@ -3203,33 +3070,15 @@ function injectScripts(html) {
   //  4. PREMIUM_SCRIPT  — fetch interceptor + profile upgrade (only runs if authed)
   //  5. RELOAD_GUARD_SCRIPT — one-shot SW reload guard
   //  6. FEATURE_REMOVAL_STYLE — hide removed features (background upload buttons)
-  //  7. KEY_SCRIPT      — AI API keys
-  //  8. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
+  //  7. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
   // UPDATE_COMMAND_DIALOG_SCRIPT + DOCS_LINK_HTML go before </body> (need document.body).
   let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + RELOAD_GUARD_SCRIPT + FEATURE_REMOVAL_STYLE + '</head>');
-  if (KEY_SCRIPT) out = out.replace('</head>', KEY_SCRIPT + '</head>');
   out = out.replace('</head>', USERNAME_AUTH_SCRIPT + '</head>');
   out = out.replace('</body>', DOCS_LINK_HTML + UPDATE_COMMAND_DIALOG_SCRIPT + '</body>');
   return out;
 }
 function injectKeys(htmlBuffer) {
   return Buffer.from(injectScripts(htmlBuffer.toString('utf8')), 'utf8');
-}
-
-// ── AI store patch ────────────────────────────────────────────────────────────
-const AI_STORE_ABS  = path.join(PUBLIC_DIR, 'assets', 'useAIStore-B2cv1FZz.js');
-const AI_PATCH_FROM = 'async getApiKey(n) {\n            const e = `ai_api_key_${n}`';
-const AI_PATCH_TO   = 'async getApiKey(n) {\n            if(typeof window!=="undefined"&&window.__IK__&&window.__IK__[n])return window.__IK__[n];\n            const e = `ai_api_key_${n}`';
-let patchedAiStore = null;
-function getPatchedAiStore() {
-  if (patchedAiStore) return patchedAiStore;
-  try {
-    const raw = fs.readFileSync(AI_STORE_ABS, 'utf8');
-    patchedAiStore = Buffer.from(
-      raw.includes(AI_PATCH_FROM) ? raw.replace(AI_PATCH_FROM, AI_PATCH_TO) : raw, 'utf8'
-    );
-  } catch { patchedAiStore = null; }
-  return patchedAiStore;
 }
 
 // ── Feature removal patches: Events and Store ────────────────────────────────
@@ -3474,6 +3323,16 @@ function getPatchedAppBundle() {
       'n += h.length, !o && O(f) && (o = f)',
       'n += h.length, !o && (o = f)',
       'Batch exception captured'
+    );
+    appPatch(
+      '.from("users").select("id, name, avatar_url")',
+      '.from("user_display_profiles").select("id, name, avatar_url")',
+      'Public display lookups use safe projection'
+    );
+    appPatch(
+      '.from("users").select("name, avatar_url")',
+      '.from("user_display_profiles").select("name, avatar_url")',
+      'Single public display lookup uses safe projection'
     );
     appPatch(
       'if (n && (Ur.updateFromPayload(n, i.username || i.name, i.avatar), !n.startsWith("local-") && M())) {\n            const o = hi(r);\n            yi(n, i, s, o)\n        }',
@@ -3800,20 +3659,31 @@ function getPatchedSettingsBundle() {
       if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
       else console.warn('[SettingsPatch] Not found:', label);
     };
+    const patchOrPresent = (from, to, label, presentMarker = to) => {
+      if (raw.includes(from)) {
+        raw = raw.split(from).join(to);
+        applied++;
+      } else if (raw.includes(presentMarker)) {
+        applied++;
+      } else {
+        console.warn('[SettingsPatch] Not found:', label);
+      }
+    };
     patch('avatar: void 0', 'avatar: null', 'avatar remove sends explicit null');
-    patch(
+    patchOrPresent(
       '} = ae(), l = f(), [z, N] = ne.useState(!1);',
       '} = ae(), l = f(), __isoMeta = (() => { try { return JSON.parse(localStorage.getItem("isotope_sync_metadata") || "{}") || {} } catch { return {} } })(), __isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !__isoMeta.last_error, __isoBusyStates = ["syncing","selecting_backup","restoring_cloud","verifying_restore","uploading_local"], __isoDisplayStatus = __isoBusyStates.includes(__isoMeta.last_sync_status) ? "syncing" : (__isoMeta.last_sync_status === "blocked_empty_overwrite" ? "error" : g), [z, N] = ne.useState(!1);',
-      'sync status reads snapshot metadata'
+      'sync status reads snapshot metadata',
+      '__isoMeta = (() =>'
     );
     patch(
       '__isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !!__isoMeta.last_snapshot_at && !__isoMeta.last_error',
       '__isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !__isoMeta.last_error',
       'synced metadata does not require legacy snapshot timestamp'
     );
-    patch('if (g !== "syncing") {', 'if (__isoDisplayStatus !== "syncing") {', 'sync button treats restore/upload stages as busy');
-    patch('})(g),\n            d = o.icon,', '})(__isoDisplayStatus),\n            d = o.icon,', 'sync icon uses mapped display status');
-    patch('disabled: g === "syncing" || !l', 'disabled: __isoDisplayStatus === "syncing" || !l', 'sync button disabled during detailed busy states');
+    patchOrPresent('if (g !== "syncing") {', 'if (__isoDisplayStatus !== "syncing") {', 'sync button treats restore/upload stages as busy');
+    patchOrPresent('})(g),\n            d = o.icon,', '})(__isoDisplayStatus),\n            d = o.icon,', 'sync icon uses mapped display status');
+    patchOrPresent('disabled: g === "syncing" || !l', 'disabled: __isoDisplayStatus === "syncing" || !l', 'sync button disabled during detailed busy states');
     patch('label: "Synced manually"', 'label: __isoSnapshotOk ? "Synced" : "Pending"', 'synced label requires snapshot');
     patch(
       'label: __isoSnapshotOk ? "Synced" : "Pending"',
@@ -4151,64 +4021,6 @@ function supaRestReq(method, restPath, bodyObj, extraHeaders = {}) {
     rq.setTimeout(15000, () => { rq.destroy(); reject(new Error('Supabase REST timeout')); });
     if (bodyBuf) rq.write(bodyBuf);
     rq.end();
-  });
-}
-
-function fetchRemoteAsset(assetName) {
-  const safeName = path.basename(String(assetName || ''));
-  if (!/^[A-Za-z0-9._-]+\.js$/.test(safeName)) {
-    return Promise.reject(new Error('unsupported asset name'));
-  }
-  const origins = [
-    'https://isotopeai.in/assets/',
-    'https://isotopeai.ai/assets/',
-    'https://isotopai.ai/assets/',
-  ];
-  let index = 0;
-  return new Promise((resolve, reject) => {
-    const tryNext = () => {
-      if (index >= origins.length) {
-        reject(new Error('asset not found upstream'));
-        return;
-      }
-      const source = origins[index++] + safeName;
-      let u;
-      try { u = new URL(source); } catch { tryNext(); return; }
-      const rq = https.request({
-        hostname: u.hostname,
-        path: u.pathname,
-        method: 'GET',
-        headers: { 'User-Agent': 'isotope-local-asset-recovery', 'Accept': 'application/javascript,text/javascript,*/*' },
-      }, (r) => {
-        if (r.statusCode !== 200) {
-          r.resume();
-          r.on('end', tryNext);
-          return;
-        }
-        const chunks = [];
-        let size = 0;
-        r.on('data', (chunk) => {
-          size += chunk.length;
-          if (size > 10 * 1024 * 1024) {
-            rq.destroy(new Error('asset too large'));
-            return;
-          }
-          chunks.push(chunk);
-        });
-        r.on('end', () => {
-          const body = Buffer.concat(chunks);
-          if (!body.length) { tryNext(); return; }
-          const target = path.join(PUBLIC_DIR, 'assets', safeName);
-          fs.mkdir(path.dirname(target), { recursive: true }, () => {
-            fs.writeFile(target, body, () => resolve(body));
-          });
-        });
-      });
-      rq.on('error', tryNext);
-      rq.setTimeout(10000, () => rq.destroy(new Error('asset recovery timeout')));
-      rq.end();
-    };
-    tryNext();
   });
 }
 
@@ -5268,32 +5080,68 @@ async function requireUserAuth(req, res, options = {}) {
   }
 }
 
-// ── Supabase community proxy ──────────────────────────────────────────────────
-// Handles /__supa/* → forwards to Supabase.
-// With admin mode enabled: uses service key server-side. Otherwise forwards user
-// Authorization/anon key for normal self-hosted user mode.
-// Without: forwards user's Authorization header (relies on profile upgrade).
-function handleSupabaseProxy(req, res) {
-  const targetPath = req.url.replace(PROXY_PATH, '') || '/';
-  const useServiceKey = ADMIN_MODE_READY;
-  const apiKey  = useServiceKey ? SUPA_SERVICE_KEY : SUPA_ANON_KEY;
-  const authHdr = useServiceKey
-    ? 'Bearer ' + SUPA_SERVICE_KEY
-    : (req.headers['authorization'] || 'Bearer ' + SUPA_ANON_KEY);
+// ── Supabase user-scoped proxy ────────────────────────────────────────────────
+// Handles /__supa/* with the public anon key plus an optional caller JWT.
+// Service-role authority is reserved for authenticated /__admin server routes.
+function resolveSupabaseProxyTarget(rawUrl, method) {
+  const parsed = new URL(String(rawUrl || '/'), 'http://isotope.local');
+  const targetPath = parsed.pathname.slice(PROXY_PATH.length) + parsed.search;
+  const pathname = parsed.pathname.slice(PROXY_PATH.length) || '/';
+  const allowedPrefixes = ['/auth/v1', '/rest/v1', '/storage/v1', '/functions/v1', '/realtime/v1', '/graphql/v1'];
+  const allowedMethods = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD']);
+  if (!allowedMethods.has(String(method || '').toUpperCase())) {
+    const error = new Error('Supabase proxy method is not allowed');
+    error.statusCode = 405;
+    throw error;
+  }
+  if (!allowedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(prefix + '/')) ||
+      pathname === '/auth/v1/admin' || pathname.startsWith('/auth/v1/admin/')) {
+    const error = new Error('Supabase proxy path is not allowed');
+    error.statusCode = 403;
+    throw error;
+  }
+  return targetPath || '/';
+}
 
-  // Build headers — strip hop-by-hop, inject correct apikey + auth
+function buildSupabaseProxyHeaders(requestHeaders = {}) {
   const fwdHeaders = {};
-  const skip = new Set(['host','connection','transfer-encoding','te','trailer','upgrade']);
-  for (const [k, v] of Object.entries(req.headers)) {
+  const skip = new Set([
+    'host', 'connection', 'transfer-encoding', 'te', 'trailer', 'upgrade',
+    'apikey', 'authorization', 'cookie', 'x-admin-secret',
+  ]);
+  for (const [k, v] of Object.entries(requestHeaders)) {
     if (!skip.has(k.toLowerCase())) fwdHeaders[k] = v;
   }
+  const rawAuth = String(requestHeaders.authorization || requestHeaders.Authorization || '').trim();
+  const match = rawAuth.match(/^Bearer\s+(.+)$/i);
+  const callerToken = match ? String(match[1] || '').trim() : '';
+  const callerPayload = callerToken ? decodeJwtPayload(callerToken) : null;
+  if (callerToken && (callerToken === SUPA_SERVICE_KEY || callerPayload?.role === 'service_role')) {
+    const error = new Error('Service-role credentials are not accepted by the user proxy');
+    error.statusCode = 403;
+    throw error;
+  }
+
   const supaHost = new URL(SUPA_URL).hostname;
   fwdHeaders['host']          = supaHost;
-  fwdHeaders['apikey']        = apiKey;
-  fwdHeaders['authorization'] = authHdr;
+  fwdHeaders['apikey']        = SUPA_ANON_KEY;
+  fwdHeaders['authorization'] = 'Bearer ' + (callerToken || SUPA_ANON_KEY);
+  return fwdHeaders;
+}
+
+function handleSupabaseProxy(req, res) {
+  let targetPath;
+  let fwdHeaders;
+  try {
+    targetPath = resolveSupabaseProxyTarget(req.url, req.method);
+    fwdHeaders = buildSupabaseProxyHeaders(req.headers);
+  } catch (error) {
+    sendJson(res, error.statusCode || 400, { ok: false, error: error.message });
+    return;
+  }
 
   const options = {
-    hostname: supaHost,
+    hostname: new URL(SUPA_URL).hostname,
     path: targetPath,
     method: req.method,
     headers: fwdHeaders,
@@ -5301,12 +5149,14 @@ function handleSupabaseProxy(req, res) {
 
   const proxyReq = https.request(options, (proxyRes) => {
     const respHeaders = { ...proxyRes.headers };
-    respHeaders['access-control-allow-origin']  = '*';
-    respHeaders['access-control-allow-methods'] = 'GET,POST,PATCH,DELETE,OPTIONS';
-    respHeaders['access-control-allow-headers'] = 'content-type,authorization,apikey,x-client-info,prefer,range';
+    delete respHeaders['access-control-allow-origin'];
+    delete respHeaders['access-control-allow-credentials'];
+    delete respHeaders['access-control-allow-methods'];
+    delete respHeaders['access-control-allow-headers'];
     // Remove hop-by-hop
     delete respHeaders['transfer-encoding'];
 
+    applyCorsHeaders(req, res);
     res.writeHead(proxyRes.statusCode, respHeaders);
     proxyRes.pipe(res, { end: true });
   });
@@ -5648,14 +5498,17 @@ function browserProofHtml({ runId, token, session }) {
 const server = http.createServer((req, res) => {
   // ── CORS preflight ──────────────────────────────────────────────────────────
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin':  '*',
-      'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type,Authorization,apikey,x-client-info,prefer,range,X-Admin-Secret',
-    });
+    const origin = String(req.headers.origin || '').trim();
+    if (origin && !applyCorsHeaders(req, res)) {
+      res.writeHead(403, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ ok: false, error: 'Origin not allowed' }));
+      return;
+    }
+    res.writeHead(204);
     res.end();
     return;
   }
+  applyCorsHeaders(req, res);
 
   // ── Route: path extraction ──────────────────────────────────────────────────
   let adminPath = '';
@@ -5728,7 +5581,13 @@ const server = http.createServer((req, res) => {
       'Content-Type': 'application/json',
       'WWW-Authenticate': 'Bearer realm="IsotopeAI Admin"',
     });
-    res.end(JSON.stringify({ error: 'Unauthorized. Pass ADMIN_SECRET as X-Admin-Secret header or ?secret= query param.' }));
+    res.end(JSON.stringify({ error: 'Unauthorized. Use the local admin login or pass ADMIN_SECRET as X-Admin-Secret.' }));
+    return;
+  }
+  if (adminPath.startsWith('/__admin/') &&
+      adminPath !== '/__admin/browser-proof-result' &&
+      !isAdminMutationOriginAllowed(req)) {
+    sendJson(res, 403, { ok: false, error: 'Cross-site admin request blocked' });
     return;
   }
 
@@ -7081,15 +6940,15 @@ function showMsg(type, msg) {
     return;
   }
 
-  // ── /__admin/patch — community schema patch v6 (HTML UI + raw SQL) ─────────
+  // ── /__admin/patch — current security/RLS hardening migration ───────────────
   if (req.method === 'GET' && (req.url === '/__admin/patch' || req.url === '/__admin/patch.sql')) {
     try {
-      const sqlPath = path.join(__dirname, 'community-patch-v4.sql');
+      const sqlPath = path.join(__dirname, 'sql', '007_comprehensive_sql_rls_hardening.sql');
       const sql = fs.readFileSync(sqlPath, 'utf8');
       if (req.url === '/__admin/patch.sql') {
         res.writeHead(200, {
           'Content-Type': 'text/plain; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="community-patch-v6.sql"',
+          'Content-Disposition': 'attachment; filename="007_comprehensive_sql_rls_hardening.sql"',
           'Cache-Control': 'no-store',
         });
         res.end(sql);
@@ -7097,13 +6956,13 @@ function showMsg(type, msg) {
       }
       const escaped  = sql.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       const supaUrl  = `https://supabase.com/dashboard/project/${new URL(SUPA_URL).hostname.split('.')[0]}/sql/new`;
-      const patEnv   = process.env.SUPABASE_ACCESS_TOKEN || '';
+      const hasServerPat = !!String(process.env.SUPABASE_ACCESS_TOKEN || '').trim();
       const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>IsotopeAI — Community Schema Patch v6</title>
+<title>IsotopeAI — Security and RLS Hardening</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f0f;color:#e5e5e5;min-height:100vh;padding:32px 24px}
@@ -7136,8 +6995,8 @@ function showMsg(type, msg) {
 </head>
 <body>
 <div class="card">
-  <h1>🛠 Community Schema Patch v6</h1>
-  <p class="sub">IsotopeAI self-hosted — one-click or paste-and-run to enable all community features<br>
+  <h1>🛠 Security and RLS Hardening</h1>
+  <p class="sub">IsotopeAI self-hosted — apply the current database security migration<br>
     <span class="badge">${SUPA_URL}</span>
   </p>
 
@@ -7145,10 +7004,10 @@ function showMsg(type, msg) {
   <div class="section">
     <span class="tag tag-auto">⚡ ONE-CLICK APPLY</span>
     <h3>Apply via Supabase Management API</h3>
-    <p>Paste your <strong>Supabase Personal Access Token</strong> below and click Apply — the server will run every SQL statement automatically via the REST API. No copy-paste needed.</p>
+    <p>${hasServerPat ? 'A server-side Supabase token is configured. Click Apply; the token never enters browser HTML.' : 'Paste a Supabase Personal Access Token below. It is sent only to this local admin endpoint and is not stored.'}</p>
     <p style="margin-top:6px">Get your token at: <a class="pat-link" href="https://supabase.com/dashboard/account/tokens" target="_blank">supabase.com/dashboard/account/tokens →</a></p>
     <input type="password" id="pat" placeholder="Supabase personal access token"
-           value="${patEnv}" autocomplete="off" spellcheck="false">
+           value="" autocomplete="off" spellcheck="false" ${hasServerPat ? 'disabled' : ''}>
     <div style="margin-top:12px">
       <button class="btn" id="apply-btn" onclick="applySQL()">🚀 Apply All SQL Now</button>
     </div>
@@ -7157,7 +7016,7 @@ function showMsg(type, msg) {
     <div class="done-banner" id="done-banner">✅ All statements applied successfully! Hard-reload the app to activate community features.</div>
     <div class="err-banner" id="err-banner"></div>
     <p style="margin-top:14px;font-size:12px;color:#555">
-      Tip: set <code>SUPABASE_ACCESS_TOKEN=your-personal-access-token</code> as an env var on your server to pre-fill this field automatically.
+      Tip: set <code>SUPABASE_ACCESS_TOKEN=your-personal-access-token</code> on the server so the browser never handles the token.
     </p>
   </div>
 
@@ -7194,7 +7053,8 @@ function setProgress(txt){ const p=document.getElementById('progress'); p.style.
 // The Supabase Management API supports multi-statement SQL in a single call (returns 201).
 async function applySQL(){
   const pat=document.getElementById('pat').value.trim();
-  if(!pat){ alert('Paste your Supabase Personal Access Token first.'); return; }
+  const serverPatConfigured=${hasServerPat ? 'true' : 'false'};
+  if(!serverPatConfigured&&!pat){ alert('Paste your Supabase Personal Access Token first.'); return; }
   const btn=document.getElementById('apply-btn');
   btn.disabled=true;
   btn.textContent='⏳ Applying…';
@@ -7213,7 +7073,7 @@ async function applySQL(){
     const r=await fetch('/__admin/apply-sql',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({pat, sql: rawSQL})
+      body:JSON.stringify({pat:serverPatConfigured?'':pat, sql: rawSQL})
     });
     const body=await r.json().catch(function(){return {};});
     if(body.ok){
@@ -8106,14 +7966,17 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
         const sessionEmail = session.user?.email || email;
         const displayName = (session.user?.user_metadata && (session.user.user_metadata.full_name || session.user.user_metadata.username || session.user.user_metadata.name))
           || sessionEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
-        await bootstrapUserRows({ userId, email: sessionEmail, displayName, userJwt: session.access_token, onboardingCompleted: false, createOnboarding: false });
-        const bundle = await fetchUserProfileBundle(userId, session.access_token);
+        // Return immediately after authentication. The boot gate performs the
+        // authoritative onboarding/bootstrap read after navigation, while the
+        // client starts a best-effort background profile sync.
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           session,
           user_id: userId,
-          profile: bundle.profile,
-          onboarding_completed: bundle.profile.onboarding_completed === true,
+          profile: {
+            username: displayName,
+            email: sessionEmail,
+          },
         }));
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -8124,7 +7987,8 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
   }
 
   // ── /__admin/apply-sql — server-side proxy for Supabase Management API ──────
-  // Avoids browser CORS blocks — browser sends PAT to OUR server, server calls api.supabase.com
+  // Avoids browser CORS blocks. Prefer the server-side PAT; an explicitly
+  // supplied browser token is supported only when no server token is configured.
   if (req.method === 'POST' && req.url === '/__admin/apply-sql') {
     if (!isAdminAuthed(req)) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -8132,9 +7996,10 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       return;
     }
     readReqBody(req, 4 * 1024 * 1024).then(({ pat, sql }) => {
-      if (!pat || !sql) {
+      const managementToken = String(process.env.SUPABASE_ACCESS_TOKEN || pat || '').trim();
+      if (!managementToken || !sql) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'pat and sql fields are required' }));
+        res.end(JSON.stringify({ ok: false, error: 'A Supabase management token and sql are required' }));
         return;
       }
       const PROJ_REF = new URL(SUPA_URL).hostname.split('.')[0];
@@ -8144,7 +8009,7 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
         path: '/v1/projects/' + PROJ_REF + '/database/query',
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer ' + pat,
+          'Authorization': 'Bearer ' + managementToken,
           'Content-Type': 'application/json',
           'Content-Length': String(bodyBuf.length),
         },
@@ -8207,11 +8072,8 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
     res.writeHead(404); res.end('Not found'); return;
   }
 
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, apikey, x-client-info');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -8266,10 +8128,6 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       }
     }
 
-    if ((GEMINI_API_KEY || GROQ_API_KEY) && fp === AI_STORE_ABS) {
-      const buf = getPatchedAiStore();
-      if (buf) { send(buf); return; }
-    }
     if (fp === SERVICE_WORKER_ABS) {
       fs.readFile(fp, 'utf8', (err, raw) => {
         if (err) { res.writeHead(404); res.end('Not found'); return; }
@@ -8348,12 +8206,6 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
 
     fs.readFile(fp, (err, data) => {
       if (err) {
-        if (ext === '.js' && urlPath.startsWith('/assets/')) {
-          fetchRemoteAsset(path.basename(fp))
-            .then((buf) => send(buf))
-            .catch(() => { res.writeHead(404); res.end('Not found'); });
-          return;
-        }
         if (['.js','.mjs','.css','.png','.svg','.woff','.woff2','.ttf','.json'].includes(ext)) {
           res.writeHead(404); res.end('Not found'); return;
         }
@@ -8391,16 +8243,19 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
   }
 })();
 
-server.listen(port, '0.0.0.0', () => {
-  console.log(`IsotopeAI running on port ${port}`);
-  if (ADMIN_MODE_READY) console.log('[Cloud] Owner tools can use private server-side Supabase access');
-  else                  console.log('[Cloud] User sessions sync through Supabase with RLS protection');
-  if (GEMINI_API_KEY) console.log('Gemini API key: configured');
-  if (GROQ_API_KEY)   console.log('Groq API key: configured');
+if (process.env.ISOTOPE_TEST_MODE !== '1') {
+  server.listen(port, bindHost, () => {
+    console.log(`IsotopeAI running on http://${bindHost}:${port}`);
+    if (!['127.0.0.1', '::1', 'localhost'].includes(bindHost)) {
+      console.warn(`[Startup] Non-loopback binding enabled via ISOTOPE_BIND_HOST (${bindHost})`);
+    }
+    if (ADMIN_MODE_READY) console.log('[Cloud] Owner tools can use private server-side Supabase access');
+    else                  console.log('[Cloud] User sessions sync through Supabase with RLS protection');
+    if (GEMINI_API_KEY) console.log('Gemini API key: configured');
+    if (GROQ_API_KEY)   console.log('Groq API key: configured');
 
   // Warm up bundle caches after port is open so startup is fast
   setImmediate(() => {
-    if (GEMINI_API_KEY || GROQ_API_KEY) getPatchedAiStore();
     getPatchedFocusBundle();
     getPatchedAppBundle();
     getPatchedAuthBundle();
@@ -8448,7 +8303,8 @@ server.listen(port, '0.0.0.0', () => {
   runStartupBackfills().catch(() => {});
   // Ensure Supabase Storage buckets exist (creates if missing, idempotent)
   ensureStorageBuckets().catch(() => {});
-});
+  });
+}
 
 // ── Storage bucket auto-setup (runs on every server start) ────────────────────
 // Creates the three required Storage buckets if they do not yet exist.
@@ -8547,18 +8403,8 @@ async function runStartupBackfills() {
       console.log('[Schema] Community columns: OK');
     }
 
-    // 1. Force all users to ranker (no filter — update all)
-    const r1 = await supaRest('PATCH', 'users', 'select=id', {
-      plan_type: 'ranker',
-      billing_status: 'active',
-      plan_expires_at: '2099-12-31T23:59:59.000Z',
-      access_ends_at: '2099-12-31T23:59:59.000Z',
-    });
-    if (r1.status === 200 || r1.status === 204) {
-      console.log('[Startup] plan_type backfill: OK');
-    }
-
-    // 2. Fetch users list to seed missing rows
+    // 1. Fetch users list to seed missing auxiliary rows. Billing and plan
+    // fields are never changed by startup maintenance.
     const r2 = await supaRest('GET', 'users', 'select=id,email,plan_type&limit=2000');
     let users = [];
     try { users = JSON.parse(r2.body.replace(/\n/g,'')); } catch {}
@@ -8567,7 +8413,7 @@ async function runStartupBackfills() {
       return;
     }
 
-    // 3. Seed user_points for any user missing a row
+    // 2. Seed user_points for any user missing a row
     const r3 = await supaRest('GET', 'user_points', 'select=user_id&limit=2000');
     let existingPoints = new Set();
     try { JSON.parse(r3.body.replace(/\n/g,'')).forEach(r => existingPoints.add(r.user_id)); } catch {}
@@ -8579,7 +8425,7 @@ async function runStartupBackfills() {
       console.log('[Startup] Seeded user_points for', missingPoints.length, 'user(s)');
     }
 
-    // 4. Seed user_stats_summary for any user missing a row
+    // 3. Seed user_stats_summary for any user missing a row
     const r4 = await supaRest('GET', 'user_stats_summary', 'select=user_id&limit=2000');
     let existingStats = new Set();
     try { JSON.parse(r4.body.replace(/\n/g,'')).forEach(r => existingStats.add(r.user_id)); } catch {}
@@ -8594,7 +8440,7 @@ async function runStartupBackfills() {
       console.log('[Startup] Seeded user_stats_summary for', missingStats.length, 'user(s)');
     }
 
-    // 5. Seed user_profiles for any user missing a row
+    // 4. Seed user_profiles for any user missing a row
     const r5 = await supaRest('GET', 'user_profiles', 'select=user_id&limit=2000');
     let existingProfiles = new Set();
     try { JSON.parse(r5.body.replace(/\n/g,'')).forEach(r => existingProfiles.add(r.user_id)); } catch {}
@@ -8608,7 +8454,7 @@ async function runStartupBackfills() {
 
     console.log('[Startup] DML backfills complete');
 
-    // 6. Create admin user if configured and not present
+    // 5. Create admin user if configured and not present
     try {
       if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
         console.log('[Startup] Admin user creation skipped: ADMIN_EMAIL or ADMIN_PASSWORD unset');
@@ -8640,3 +8486,13 @@ async function runStartupBackfills() {
     console.warn('[Startup] DML backfill warning:', e.message);
   }
 }
+
+export {
+  bindHost,
+  buildSupabaseProxyHeaders,
+  injectScripts,
+  isAdminMutationOriginAllowed,
+  isCorsOriginAllowed,
+  resolveSupabaseProxyTarget,
+  server,
+};

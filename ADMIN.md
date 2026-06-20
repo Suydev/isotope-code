@@ -35,7 +35,7 @@ SUPABASE_ACCESS_TOKEN=
 
 Access via:
 - **Header:** `X-Admin-Secret: <secret>`
-- **Query string:** `/__admin/verify?secret=<secret>`
+- **Browser:** open `/__admin/login` and unlock locally
 
 `SUPABASE_ACCESS_TOKEN` is only needed for SQL apply through `/__admin/patch`. The service-role key and PAT must stay private and server-side.
 
@@ -360,12 +360,13 @@ typeof window.__isoGetValidJwt
 
 ## 8. Supabase Proxy — `/__supa/*`
 
-All Supabase API calls from the frontend are proxied through `/__supa/*`. The server:
+Supported Supabase API calls from the frontend may be proxied through `/__supa/*`. The server:
 
 1. Strips `/__supa` prefix
 2. Forwards to your `SUPABASE_URL`
-3. Passes through all request headers (Authorization, apikey, Content-Type)
-4. Adds `apikey: SUPABASE_ANON_KEY` if missing
+3. Allows only Auth, REST, Storage, Functions, Realtime, and GraphQL paths
+4. Removes caller `apikey`, cookies, admin secrets, and service-role credentials
+5. Uses `SUPABASE_ANON_KEY` plus the caller's authenticated user JWT
 5. Streams the response back
 
 This allows the app to work behind the local preview proxy without CORS issues, and makes swapping Supabase projects (via env vars) transparent to the frontend.
@@ -394,7 +395,7 @@ The server intercepts and patches selected compiled JavaScript bundles at reques
 | Bundle | What is patched |
 |--------|----------------|
 | `App bundle` (main JS) | `planType` hardcoded → `ranker`; circuit breaker disabled; community URL patched |
-| `AI store` | `getApiKey()` → reads from `window.__IK__` (injected by server from env vars) |
+| `AI store` | No server secret injection; browser AI settings remain user-managed |
 | `Focus/AI bundle` | Replaces hardcoded production Supabase URL with self-hosted URL |
 | `Auth bundle` | Username-as-email support; auth flow patches; stale `IsotopeAI v2.0` badge → `v3.1` |
 | `Invites bundle` | `token_input` → `p_code` (accept_invite + get_invite_details) |
@@ -402,18 +403,11 @@ The server intercepts and patches selected compiled JavaScript bundles at reques
 | `PWAManager` bundle | Service-worker activation reload routed through `window.__isoReloadGuard()` |
 | Store and Events chunks | Served as empty modules |
 
-### `window.__IK__` injection
+### AI credentials
 
-The server injects this object into every HTML response:
-```javascript
-window.__IK__ = {
-  supa:  "https://YOUR_SUPABASE_URL",
-  anon:  "YOUR_ANON_KEY",
-  gemini: "GEMINI_API_KEY",  // if set
-  groq:   "GROQ_API_KEY",    // if set
-};
-```
-This allows AI features to use server-configured API keys without them appearing in static JS files.
+Server environment AI credentials are never inserted into HTML or JavaScript
+served to the browser. Browser-side AI integrations must use explicit
+user-managed credentials or a dedicated authenticated server endpoint.
 
 ---
 
@@ -423,8 +417,10 @@ This allows AI features to use server-configured API keys without them appearing
 |----------|----------|---------|---------|
 | `SUPABASE_URL` | Yes | Built-in project | Your Supabase project URL |
 | `SUPABASE_ANON_KEY` | Yes | Built-in key | Public/anon JWT key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Strongly recommended | _(none)_ | Bypasses RLS; needed for community features |
-| `SUPABASE_ACCESS_TOKEN` | Yes (for patch) | _(none)_ | Management API PAT for one-click patch |
+| `SUPABASE_SERVICE_ROLE_KEY` | Owner tools only | _(none)_ | Server-only management authority; never exposed to clients |
+| `SUPABASE_ACCESS_TOKEN` | Optional | _(none)_ | Server-only Management API PAT for one-click SQL patching |
+| `ISOTOPE_BIND_HOST` | Optional | `127.0.0.1` | Explicit local/LAN bind address |
+| `CORS_ALLOWED_ORIGINS` | Optional | _(empty)_ | Additional comma-separated browser origins |
 | `ADMIN_EMAIL` | Optional | _(empty)_ | Supabase admin email for browser unlock and optional bootstrap |
 | `ADMIN_EMAILS` | Optional | _(empty)_ | Comma-separated Supabase admin email allowlist |
 | `ADMIN_PASSWORD` | Optional | _(empty)_ | Admin account password for optional bootstrap |

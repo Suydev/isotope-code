@@ -32,6 +32,18 @@ function dataHash(normalizedOrRaw) {
   return sha256(stableStringify(getBackupData(normalizedOrRaw || {})));
 }
 
+function backupStateHash(normalizedOrRaw) {
+  const normalized = normalizedOrRaw?.collection_counts
+    ? normalizedOrRaw
+    : normalizeAnyBackup(normalizedOrRaw || {});
+  return sha256(stableStringify({
+    data: getBackupData(normalized),
+    tombstones: normalized.tombstones || {},
+    operation: normalized.operation || null,
+    intentional_empty: normalized.intentional_empty === true,
+  }));
+}
+
 function storageMissing(res) {
   const detail = Buffer.isBuffer(res?.body) ? res.body.toString('utf8') : String(res?.body || '');
   return res?.status === 404 || (res?.status === 400 && /not found|does not exist|no such/i.test(detail));
@@ -160,7 +172,6 @@ export function createBackupManager(deps) {
 
   async function listPrefix(prefix, userJwt, limit = 200) {
     const res = await supaStorageListAsUser(BUCKET, prefix, userJwt, { limit });
-    if (res.status === 404 || res.status === 400) return [];
     assertSupaOk(res, `Storage list ${prefix}`);
     return Array.isArray(res.body) ? res.body : [];
   }
@@ -246,7 +257,7 @@ export function createBackupManager(deps) {
       `${userId}/cloud-snapshot/history/`,
     ];
     for (const prefix of folderSpecs) {
-      const files = newestFirst(await listPrefix(prefix, userJwt).catch(() => []));
+      const files = newestFirst(await listPrefix(prefix, userJwt));
       for (const file of files.slice(0, 20)) {
         if (!file?.name || file.name === 'history') continue;
         const path = `${prefix}${file.name}`;
@@ -296,7 +307,13 @@ export function createBackupManager(deps) {
 
   function assertNoEmptyOverwrite(localNormalized, bestResult) {
     const selected = bestResult?.selected_internal || null;
-    if (localNormalized && isBackupEmpty(localNormalized) && selected && selected.rich) {
+    if (
+      localNormalized
+      && isBackupEmpty(localNormalized)
+      && !localNormalized.intentional_empty
+      && selected
+      && selected.rich
+    ) {
       const err = new Error('Cloud has richer backup. Restore first.');
       err.code = 'BLOCKED_EMPTY_OVERWRITE';
       err.payload = {
@@ -330,11 +347,6 @@ export function createBackupManager(deps) {
     return uploaded;
   }
 
-  async function hasHistoryHash(userId, hash, userJwt) {
-    const files = await listPrefix(`${userId}/backups/history/`, userJwt).catch(() => []);
-    return files.some((file) => String(file?.name || '').includes(hash));
-  }
-
   async function writeCanonicalBackup(userId, userJwt, backupInput, options = {}) {
     const normalized = backupInput?.collection_counts
       ? backupInput
@@ -343,11 +355,22 @@ export function createBackupManager(deps) {
         source_path: options.source_path || null,
       });
     if (!normalized.valid) throw new Error(normalized.reason || 'Invalid backup');
-    const exportedAt = options.exportedAt || normalized.exported_at || new Date().toISOString();
-    const canonicalJson = toCanonicalBackupJson(normalized, { exportedAt, appVersion });
+    const latestPath = `${userId}/backups/latest.json`;
+    const requestedStateHash = backupStateHash(normalized);
+    const existingLatestJson = await downloadText(latestPath, userJwt);
+    const existingLatest = existingLatestJson
+      ? normalizeAnyBackup(existingLatestJson, { source_path: latestPath })
+      : null;
+    const canRepairExisting = existingLatest?.valid && backupStateHash(existingLatest) === requestedStateHash;
+    const exportedAt = options.exportedAt
+      || (canRepairExisting ? existingLatest.exported_at : null)
+      || normalized.exported_at
+      || new Date().toISOString();
+    const canonicalJson = canRepairExisting
+      ? existingLatestJson
+      : toCanonicalBackupJson(normalized, { exportedAt, appVersion });
     const canonicalHash = sha256(canonicalJson);
     const canonicalDataHash = dataHash(normalized);
-    const latestPath = `${userId}/backups/latest.json`;
     const safeStamp = exportedAt.replace(/[:.]/g, '-');
     const historyPath = `${userId}/backups/history/${safeStamp}-${canonicalHash.slice(0, 16)}.json`;
     const mirrorJson = toCloudSnapshotJson(userId, normalizeAnyBackup(canonicalJson, {
@@ -358,21 +381,55 @@ export function createBackupManager(deps) {
     const mirrorHash = sha256(mirrorJson);
     const mirrorPath = `${userId}/cloud-snapshot/latest.json`;
 
-    await uploadJson(latestPath, canonicalJson, userJwt, { upsert: true, timeoutMessage: 'Canonical latest backup upload timed out' });
-    let history_status = 'skipped_duplicate';
-    if (!(await hasHistoryHash(userId, canonicalHash.slice(0, 16), userJwt))) {
-      const history = await uploadJson(historyPath, canonicalJson, userJwt, {
+    if (sha256(existingLatestJson || '') !== canonicalHash) {
+      await uploadJson(latestPath, canonicalJson, userJwt, { upsert: true, timeoutMessage: 'Canonical latest backup upload timed out' });
+    }
+    const latestReadback = await downloadText(latestPath, userJwt);
+    if (sha256(latestReadback || '') !== canonicalHash) {
+      throw new Error('Canonical latest backup readback hash mismatch');
+    }
+
+    async function ensureSecondaryCopy(path, json, expectedHash, uploadOptions) {
+      const before = await downloadText(path, userJwt);
+      if (sha256(before || '') === expectedHash) {
+        return { status: 'already_consistent', repaired: false };
+      }
+      const uploaded = await uploadJson(path, json, userJwt, uploadOptions);
+      const after = await downloadText(path, userJwt);
+      if (sha256(after || '') !== expectedHash) {
+        throw new Error(`Backup secondary readback hash mismatch for ${path}`);
+      }
+      return { status: uploaded.status, repaired: true };
+    }
+
+    const [historyResult, mirrorResult] = await Promise.allSettled([
+      ensureSecondaryCopy(historyPath, canonicalJson, canonicalHash, {
         upsert: false,
         ignoreAlreadyExists: true,
         timeoutMessage: 'Canonical backup history upload timed out',
-      });
-      history_status = history.status;
+      }),
+      ensureSecondaryCopy(mirrorPath, mirrorJson, mirrorHash, {
+        upsert: true,
+        timeoutMessage: 'Cloud snapshot mirror upload timed out',
+      }),
+    ]);
+    if (historyResult.status === 'rejected' || mirrorResult.status === 'rejected') {
+      const error = new Error('Canonical latest backup committed, but one or more secondary copies are incomplete');
+      error.code = 'CANONICAL_BACKUP_INCOMPLETE';
+      error.payload = {
+        ok: false,
+        code: error.code,
+        latest_path: latestPath,
+        latest_hash: canonicalHash,
+        exported_at: exportedAt,
+        history_path: historyPath,
+        history_error: historyResult.status === 'rejected' ? historyResult.reason?.message || String(historyResult.reason) : null,
+        cloud_snapshot_path: mirrorPath,
+        cloud_snapshot_error: mirrorResult.status === 'rejected' ? mirrorResult.reason?.message || String(mirrorResult.reason) : null,
+        retryable: true,
+      };
+      throw error;
     }
-    await uploadJson(mirrorPath, mirrorJson, userJwt, { upsert: true, timeoutMessage: 'Cloud snapshot mirror upload timed out' });
-
-    const readback = await downloadText(latestPath, userJwt);
-    const readbackHash = sha256(readback || '');
-    if (readbackHash !== canonicalHash) throw new Error('Canonical latest backup readback hash mismatch');
 
     const latestNormalized = normalizeAnyBackup(canonicalJson, {
       path: latestPath,
@@ -386,8 +443,11 @@ export function createBackupManager(deps) {
       path: latestPath,
       latest_path: latestPath,
       history_path: historyPath,
-      history_status,
+      history_status: historyResult.value.status,
+      history_repaired: historyResult.value.repaired,
       cloud_snapshot_path: mirrorPath,
+      cloud_snapshot_status: mirrorResult.value.status,
+      cloud_snapshot_repaired: mirrorResult.value.repaired,
       hash: canonicalHash,
       data_hash: canonicalDataHash,
       cloud_snapshot_hash: mirrorHash,

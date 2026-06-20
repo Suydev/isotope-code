@@ -182,6 +182,8 @@ jobs:
             scripts/compare-remote-assets.mjs
             sql/backup_manifests.sql
             sql/006_security_policy_cleanup.sql
+            sql/007_comprehensive_sql_rls_hardening.sql
+            scripts/verify-sql-hardening.sql
             docs/sync-system.md
             docs/storage-backup-system.md
             docs/supabase-connection-map.md

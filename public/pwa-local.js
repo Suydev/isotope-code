@@ -5,6 +5,10 @@
   var STATUS_ID = '__iso_offline_status__';
   var DISMISS_KEY = 'isotope_offline_status_dismissed';
   var swActivationReloadGuard = false;
+  var hadControllerAtRegistration = false;
+  var serverCheckPromise = null;
+  var lastServerCheckAt = 0;
+  var SERVER_CHECK_DEDUPE_MS = 5000;
   var state = {
     browserOnline: navigator.onLine,
     serverOnline: true,
@@ -129,42 +133,54 @@
     el.classList.add('show');
   }
 
-  function publishStatus() {
+  function publishStatus(dispatchEvent) {
     state.lastSnapshotAt = readLastSnapshotAt();
     window.__isoLocalStatus = state;
     window.__isoBrowserOffline = !state.browserOnline;
     window.__isoLocalServerOffline = state.browserOnline && !state.serverOnline;
-    try {
-      window.dispatchEvent(new CustomEvent('isotope:local-status', { detail: {
-        browserOnline: state.browserOnline,
-        serverOnline: state.serverOnline,
-        swVersion: state.swVersion,
-        swSha: state.swSha,
-        lastSnapshotAt: state.lastSnapshotAt
-      }}));
-    } catch (e) {}
+    if (dispatchEvent !== false) {
+      try {
+        window.dispatchEvent(new CustomEvent('isotope:local-status', { detail: {
+          browserOnline: state.browserOnline,
+          serverOnline: state.serverOnline,
+          swVersion: state.swVersion,
+          swSha: state.swSha,
+          lastSnapshotAt: state.lastSnapshotAt
+        }}));
+      } catch (e) {}
+    }
   }
 
-  function checkServer() {
+  function checkServer(options) {
+    options = options || {};
     if (!navigator.onLine) {
       state.browserOnline = false;
       state.serverOnline = false;
-      publishStatus();
+      publishStatus(options.dispatchEvent);
       renderStatus();
-      return;
+      return Promise.resolve(false);
+    }
+    var now = Date.now();
+    if (serverCheckPromise) return serverCheckPromise;
+    if (!options.force && lastServerCheckAt && now - lastServerCheckAt < SERVER_CHECK_DEDUPE_MS) {
+      return Promise.resolve(state.serverOnline);
     }
     state.browserOnline = true;
-    fetch('/api/version', { cache: 'no-store' })
+    lastServerCheckAt = now;
+    serverCheckPromise = fetch('/api/version', { cache: 'no-store' })
       .then(function (r) { state.serverOnline = !!(r && r.ok); })
       .catch(function () { state.serverOnline = false; })
       .finally(function () {
-        publishStatus();
+        serverCheckPromise = null;
+        publishStatus(options.dispatchEvent);
         renderStatus();
       });
+    return serverCheckPromise;
   }
 
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
+    hadControllerAtRegistration = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(function (registration) {
         if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -176,16 +192,18 @@
       if (data.type === 'ISOTOPE_SW_READY' || data.type === 'ISOTOPE_SW_VERSION') {
         var newVersion = data.version || '';
         var newSha = data.sha || '';
-        // One-shot reload guard: only reload on first SW activation with new version
-        if (!swActivationReloadGuard && newVersion && newVersion !== state.swVersion) {
+        var previousVersion = state.swVersion;
+        state.swVersion = newVersion;
+        state.swSha = newSha;
+        // A first install has no prior controller and must not reload the page
+        // that initiated registration. Controlled pages still reload once when
+        // an updated worker activates.
+        if (hadControllerAtRegistration && !swActivationReloadGuard &&
+            newVersion && newVersion !== previousVersion) {
           swActivationReloadGuard = true;
-          state.swVersion = newVersion;
-          state.swSha = newSha;
           window.location.reload();
           return;
         }
-        state.swVersion = newVersion;
-        state.swSha = newSha;
       }
     });
   }
@@ -215,7 +233,9 @@
 
   function init() {
     registerServiceWorker();
-    checkServer();
+    // update-checker.js runs its own delayed version preflight. Do not emit the
+    // initial local-status event and trigger an immediate duplicate probe.
+    checkServer({ dispatchEvent: false });
     // Visibility-change recheck: triggers when user returns to the tab.
     // This replaces aggressive 10s polling with event-driven refresh.
     document.addEventListener('visibilitychange', function () {

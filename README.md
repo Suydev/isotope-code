@@ -159,12 +159,13 @@ Steps:
 1. Create a free project at https://supabase.com
 2. Open SQL Editor.
 3. Paste and run [isotope-complete.sql](./isotope-complete.sql).
-4. Create these Storage buckets if they do not already exist:
+4. Paste and run [sql/007_comprehensive_sql_rls_hardening.sql](./sql/007_comprehensive_sql_rls_hardening.sql).
+5. Create these Storage buckets if they do not already exist:
    - `avatars`
    - `user-content`
    - `notes`
-5. Copy your Project URL and anon key.
-6. Put them in `.env`.
+6. Copy your Project URL and anon key.
+7. Put them in `.env`.
 
 Example:
 
@@ -289,7 +290,7 @@ node scripts/validate-storage-cleanup.mjs --user <user-id> --dry-run
 | Port is busy | `isotope stop` or set `PORT=3001` in `.env` |
 | Login fails | Check `SUPABASE_URL` and `SUPABASE_ANON_KEY` |
 | Sync is blocked | Restore the cloud backup first |
-| Storage permission error | Re-run `isotope-complete.sql` |
+| Storage permission error | Re-run `sql/007_comprehensive_sql_rls_hardening.sql` |
 | Android widget is missing | `isotope reinstall-widgets` |
 | Update failed | `isotope doctor`, then `isotope repair` |
 
