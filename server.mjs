@@ -158,6 +158,7 @@ const RUNTIME_GLUE_PATHS = new Set([
 ]);
 const RUNTIME_PATCHED_ASSET_PATHS = new Set([
   '/assets/useAIStore-B2cv1FZz.js',
+  '/assets/index-BPYJFSVW.js',
   '/assets/App-pJGjDiPw.js',
   '/assets/Auth-Cw0VAaCZ.js',
   '/assets/Focus-BmgY-9vP.js',
@@ -3082,7 +3083,17 @@ button[title="Remove Background"] {
 // the app so first-time users can find setup instructions without searching.
 const DOCS_LINK_HTML = `<a href="https://suydev.github.io/isotope-code/" target="_blank" rel="noopener noreferrer" id="iso-docs-badge" title="IsotopeAI documentation" style="position:fixed;bottom:14px;right:18px;z-index:9998;background:rgba(10,10,20,0.82);border:1px solid rgba(124,58,237,0.38);border-radius:999px;padding:6px 14px;font-size:11px;font-family:system-ui,-apple-system,sans-serif;color:#a78bfa;text-decoration:none;backdrop-filter:blur(6px);letter-spacing:0.02em;pointer-events:auto;user-select:none" onmouseover="this.style.background='rgba(124,58,237,0.22)';this.style.borderColor='rgba(124,58,237,0.7)'" onmouseout="this.style.background='rgba(10,10,20,0.82)';this.style.borderColor='rgba(124,58,237,0.38)'">📖 Docs</a>`;
 
-function injectScripts(html) {
+function injectScripts(html, pathname = '/') {
+  const cleanPath = String(pathname || '/').split('?')[0] || '/';
+  const isPublicAuthPath = /^\/(?:auth|login|signup|reset-password)(?:\/|$)/.test(cleanPath);
+  if (isPublicAuthPath) {
+    // The auth page needs only public Supabase configuration and the existing
+    // synchronous auth bridge. App-only sync/leaderboard/update injections add
+    // ~100 KB of HTML and perform work that cannot be used while logged out.
+    return html
+      .replace('</head>', ORIGIN_SCRIPT + RELOAD_GUARD_SCRIPT + '</head>')
+      .replace('</body>', DOCS_LINK_HTML + '</body>');
+  }
   // Injection order (all into </head> so they run before React):
   //  1. ORIGIN_SCRIPT   — sets window.__ISO_ORIGIN__, __ISO_SUPA_URL__, __ISO_ANON__
   //  2. LOCAL_DATA_GUARD_SCRIPT — per-user local workspace isolation
@@ -3097,8 +3108,8 @@ function injectScripts(html) {
   out = out.replace('</body>', DOCS_LINK_HTML + UPDATE_COMMAND_DIALOG_SCRIPT + '</body>');
   return out;
 }
-function injectKeys(htmlBuffer) {
-  return Buffer.from(injectScripts(htmlBuffer.toString('utf8')), 'utf8');
+function injectKeys(htmlBuffer, pathname = '/') {
+  return Buffer.from(injectScripts(htmlBuffer.toString('utf8'), pathname), 'utf8');
 }
 
 // ── Feature removal patches: Events and Store ────────────────────────────────
@@ -3111,6 +3122,7 @@ const EVENTS_BUNDLE_ABS        = path.join(PUBLIC_DIR, 'assets', 'EventsCalendar
 const SERVICE_WORKER_ABS       = path.join(PUBLIC_DIR, 'sw.js');
 const USE_SYNC_STORE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useSyncStore-vWs_TdIc.js');
 const PWA_MANAGER_BUNDLE_ABS   = path.join(PUBLIC_DIR, 'assets', 'PWAManager-DjIYufp2.js');
+const ENTRY_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'index-BPYJFSVW.js');
 const REMOVED_FEATURE_MODULE   = Buffer.from('export default function RemovedFeature(){return null;}\\n', 'utf8');
 
 const COMMUNITY_FEATURE_RENDER_FROM = 'a==="store"&&e.jsx(U,{onNavigate:i},"store"),a==="events"&&e.jsx(M,{onNavigate:i},"events"),';
@@ -3173,6 +3185,34 @@ function getPatchedPWAManagerBundle() {
     patchedPWAManagerBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[PWAPatch] Error:', e.message); patchedPWAManagerBundle = null; }
   return patchedPWAManagerBundle;
+}
+
+// ── Entry bundle patch: disable the former hosted Sentry bootstrap ───────────
+// The shipped entry schedules Sentry after 3.5s, loads a 670 KB chunk, enables
+// PII collection, and blocks the auth-page LCP around the five-second mark.
+const SENTRY_BOOTSTRAP_FROM = `V(() => {
+            F()
+        })`;
+const SENTRY_BOOTSTRAP_TO = `V(() => {
+            Promise.resolve(false)
+        })`;
+let patchedEntryBundle = null;
+function getPatchedEntryBundle() {
+  if (patchedEntryBundle) return patchedEntryBundle;
+  try {
+    let raw = fs.readFileSync(ENTRY_BUNDLE_ABS, 'utf8');
+    if (raw.includes(SENTRY_BOOTSTRAP_FROM)) {
+      raw = raw.replace(SENTRY_BOOTSTRAP_FROM, SENTRY_BOOTSTRAP_TO);
+      console.log('[EntryPatch] Hosted Sentry bootstrap disabled');
+    } else {
+      console.warn('[EntryPatch] Sentry bootstrap patch string not found');
+    }
+    patchedEntryBundle = Buffer.from(raw, 'utf8');
+  } catch (e) {
+    console.error('[EntryPatch] Error:', e.message);
+    patchedEntryBundle = null;
+  }
+  return patchedEntryBundle;
 }
 
 // ── App bundle patch: disable demo mode ──────────────────────────────────────
@@ -8127,7 +8167,7 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
   const serveHtml = (buf) => {
     res.setHeader('Cache-Control', cacheHeaderForRequest('/index.html'));
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(injectKeys(buf));
+    res.end(injectKeys(buf, urlPath));
   };
   const spaFallback = () => {
     const indexPath = path.join(__dirname, 'index.html');
@@ -8181,6 +8221,10 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
         res.end(patched);
       });
       return;
+    }
+    if (fp === ENTRY_BUNDLE_ABS) {
+      const buf = getPatchedEntryBundle();
+      if (buf) { send(buf); return; }
     }
     if (fp === FOCUS_BUNDLE_ABS) {
       const buf = getPatchedFocusBundle();
@@ -8309,6 +8353,7 @@ if (process.env.ISOTOPE_TEST_MODE !== '1') {
     getPatchedCommunityBundle();
     getPatchedCommunityHubBundle();
     getPatchedPWAManagerBundle();
+    getPatchedEntryBundle();
 
     // Pre-gzip all patched bundles so first client request is instant.
     // Each bundle is already in memory; gzip runs once in the background.

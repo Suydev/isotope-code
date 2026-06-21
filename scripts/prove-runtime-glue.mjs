@@ -32,6 +32,14 @@ const bridge = await text('/auth-bridge.js');
 assert.match(bridge, /window\.__isoLogin\s*=/, 'auth bridge does not define window.__isoLogin');
 assert.match(bridge, /window\.__isoUp\s*=/, 'auth bridge does not define window.__isoUp');
 
+const entryBundle = await text('/assets/index-BPYJFSVW.js');
+assert.match(entryBundle, /Promise\.resolve\(false\)/, 'served entry must disable hosted Sentry bootstrap');
+assert.doesNotMatch(
+  entryBundle,
+  /V\(\(\) => \{\s*F\(\)\s*\}\)/,
+  'served entry must not schedule the hosted Sentry chunk'
+);
+
 const appBundle = await text('/assets/App-pJGjDiPw.js');
 assert.match(appBundle, /header_manual_sync|manual_full_sync/, 'served app bundle should expose manual sync runtime path');
 assert.doesNotMatch(
@@ -66,6 +74,7 @@ assert.match(
 const authBridgeCache = (await head('/auth-bridge.js')).get('cache-control') || '';
 const restoreCache = (await head('/restore-and-launch.js')).get('cache-control') || '';
 const appBundleCache = (await head('/assets/App-pJGjDiPw.js')).get('cache-control') || '';
+const entryBundleCache = (await head('/assets/index-BPYJFSVW.js')).get('cache-control') || '';
 const syncStoreCache = (await head('/assets/useSyncStore-vWs_TdIc.js')).get('cache-control') || '';
 const settingsCache = (await head('/assets/SettingsLayout-B4OgCkQ5.js')).get('cache-control') || '';
 const swHeaders = await head('/sw.js');
@@ -76,6 +85,7 @@ const assetCache = (await head('/assets/index-CrO6t5EW.css')).get('cache-control
 assert.match(authBridgeCache, /no-store/, 'auth-bridge.js must not be immutable cached');
 assert.match(restoreCache, /no-store/, 'restore-and-launch.js must not be immutable cached');
 assert.match(appBundleCache, /no-store/, 'runtime-patched App bundle must not be immutable cached');
+assert.match(entryBundleCache, /no-store/, 'runtime-patched entry bundle must not be immutable cached');
 assert.match(syncStoreCache, /no-store/, 'runtime-patched sync store bundle must not be immutable cached');
 assert.match(settingsCache, /no-store/, 'runtime-patched Settings bundle must not be immutable cached');
 assert.match(swCache, /no-store/, 'sw.js must not be immutable cached');

@@ -1,7 +1,7 @@
 # Current file audit
 
 Schema: 1
-Worktree fingerprint: 63dc68cbd5705156e546470d88c0d59f33ca849755d19d83a0d6bca9fb0c8d0c
+Worktree fingerprint: 874563c9e84b1ad0e24331f6dbe80e29a9cc4c960b6551e97385108adbb9ab16
 Audited files: 433
 Git-tracked non-audit files: 433
 Untracked non-audit files: 0
@@ -35,7 +35,7 @@ Active/reachable files: 254
 - network.websocket: 24
 - secrets.identifiers: 55
 - sql.rls: 370
-- sql.statements: 4670
+- sql.statements: 4671
 - storage.cache_api: 69
 - storage.filesystem: 21
 - storage.web: 459

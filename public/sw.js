@@ -29,6 +29,7 @@ const RUNTIME_GLUE_PATHS = new Set([
 
 const RUNTIME_PATCHED_ASSET_PATHS = new Set([
   '/assets/useAIStore-B2cv1FZz.js',
+  '/assets/index-BPYJFSVW.js',
   '/assets/App-pJGjDiPw.js',
   '/assets/Auth-Cw0VAaCZ.js',
   '/assets/Focus-BmgY-9vP.js',

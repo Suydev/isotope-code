@@ -22,7 +22,10 @@ module.exports = {
         'categories:performance': ['error', { minScore: 0.75 }],
         'categories:accessibility': ['error', { minScore: 0.9 }],
         'categories:best-practices': ['error', { minScore: 0.9 }],
-        'categories:seo': ['error', { minScore: 0.9 }],
+        // /auth is intentionally noindex. Keep the remaining SEO checks active
+        // while accepting Lighthouse's expected crawlability deduction.
+        'categories:seo': ['error', { minScore: 0.65 }],
+        'is-crawlable': 'off',
         'first-contentful-paint': ['error', { maxNumericValue: 2500 }],
         'largest-contentful-paint': ['error', { maxNumericValue: 4000 }],
         'cumulative-layout-shift': ['error', { maxNumericValue: 0.1 }],

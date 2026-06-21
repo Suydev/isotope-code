@@ -2,7 +2,6 @@
 
 import { createHash } from "node:crypto";
 import {
-  lstat,
   mkdir,
   readFile,
   realpath,
@@ -193,16 +192,6 @@ function isSensitivePath(filePath) {
     /\.(?:key|p12|pfx|pem)$/i.test(filePath);
 }
 
-async function pathExists(filePath) {
-  try {
-    await lstat(filePath);
-    return true;
-  } catch (error) {
-    if (error?.code === "ENOENT") return false;
-    throw error;
-  }
-}
-
 async function collectSourcePaths() {
   const tracked = splitNull(git(["ls-files", "-z"])).map(normalizeRepoPath);
   const untracked = splitNull(
@@ -215,20 +204,6 @@ async function collectSourcePaths() {
   const excludedSensitiveCount = [...candidates].filter(isSensitivePath).length;
   const paths = [...candidates].filter((filePath) => !isSensitivePath(filePath));
   paths.sort((a, b) => a.localeCompare(b, "en"));
-
-  const missing = [];
-  for (const filePath of paths) {
-    if (!(await pathExists(path.join(REPO_ROOT, filePath)))) {
-      missing.push(filePath);
-    }
-  }
-  if (missing.length > 0) {
-    throw new Error(
-      `Cannot audit missing current source files:\n${missing
-        .map((filePath) => `- ${filePath}`)
-        .join("\n")}`,
-    );
-  }
 
   return {
     paths,
@@ -606,15 +581,20 @@ export async function buildCurrentAudit() {
   const files = [];
   for (const filePath of paths) {
     const absolutePath = path.join(REPO_ROOT, filePath);
-    const stats = await lstat(absolutePath);
-    const buffer = await readFile(absolutePath);
+    let buffer;
+    try {
+      buffer = await readFile(absolutePath);
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        throw new Error(`Cannot audit missing current source file: ${filePath}`);
+      }
+      throw error;
+    }
     const extension = path.posix.extname(filePath).toLowerCase();
-    const isText = stats.isSymbolicLink()
-      ? false
-      : detectText(buffer, extension);
+    const isText = detectText(buffer, extension);
     const text = isText ? buffer.toString("utf8") : null;
     textByPath.set(filePath, text);
-    const type = stats.isSymbolicLink() ? "symlink" : detectType(filePath, isText);
+    const type = detectType(filePath, isText);
     const classification = classifyFile(filePath, type, text, buffer.length);
     files.push({
       path: filePath,

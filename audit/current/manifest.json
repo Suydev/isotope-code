@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": {
-    "worktreeFingerprint": "63dc68cbd5705156e546470d88c0d59f33ca849755d19d83a0d6bca9fb0c8d0c"
+    "worktreeFingerprint": "874563c9e84b1ad0e24331f6dbe80e29a9cc4c960b6551e97385108adbb9ab16"
   },
   "scope": {
     "source": "Git index paths with current worktree content",
@@ -15,7 +15,7 @@
     "auditedFileCount": 433
   },
   "summary": {
-    "totalBytes": 71951306,
+    "totalBytes": 71954046,
     "activeFileCount": 254,
     "classifications": {
       "authored:configuration": 25,
@@ -63,7 +63,7 @@
       "network.websocket": 24,
       "secrets.identifiers": 55,
       "sql.rls": 370,
-      "sql.statements": 4670,
+      "sql.statements": 4671,
       "storage.cache_api": 69,
       "storage.filesystem": 21,
       "storage.web": 459,
@@ -1773,8 +1773,8 @@
     {
       "path": "lighthouserc.cjs",
       "source": "git-tracked",
-      "sha256": "d5a5b7c3e855ea1a3a21771294c47c7c38d2fbb8c560d916f60fe6ec34372da0",
-      "size": 1494,
+      "sha256": "945d91667669a763a8075aafb51720cf738f49605eba5478524338fc54874458",
+      "size": 1679,
       "type": "javascript",
       "text": true,
       "classification": "authored:configuration",
@@ -4409,7 +4409,10 @@
         "public/assets/useNotificationStore-BS4df28T.js",
         "public/assets/useSyncStore-vWs_TdIc.js",
         "public/assets/WelcomeTeaser-B96rmBi8.js",
-        "public/restore-and-launch.js"
+        "public/restore-and-launch.js",
+        "public/sw.js",
+        "scripts/prove-runtime-glue.mjs",
+        "server.mjs"
       ],
       "activeConsumers": [
         "index.html",
@@ -4483,7 +4486,10 @@
         "public/assets/useNotificationStore-BS4df28T.js",
         "public/assets/useSyncStore-vWs_TdIc.js",
         "public/assets/WelcomeTeaser-B96rmBi8.js",
-        "public/restore-and-launch.js"
+        "public/restore-and-launch.js",
+        "public/sw.js",
+        "scripts/prove-runtime-glue.mjs",
+        "server.mjs"
       ],
       "active": true,
       "riskSignals": [
@@ -11895,8 +11901,8 @@
     {
       "path": "public/sw.js",
       "source": "git-tracked",
-      "sha256": "1bec8a69b122dcb71e45a4d315db82464a5086f5d3b17ad2dc5e91cf638ee719",
-      "size": 5842,
+      "sha256": "6bf8f58c865cac9d269cbe614f7819164545b42ab701dbaefb9ed11e50f9cbb5",
+      "size": 5873,
       "type": "javascript",
       "text": true,
       "classification": "authored:runtime",
@@ -11912,6 +11918,7 @@
         "public/assets/EventsCalendar-COHF8nOK.js",
         "public/assets/Focus-BmgY-9vP.js",
         "public/assets/FocusStore-D5cRXSIr.js",
+        "public/assets/index-BPYJFSVW.js",
         "public/assets/Onboarding-qvAqCBbb.js",
         "public/assets/PWAManager-DjIYufp2.js",
         "public/assets/sessionSync-mloIEnTd.js",
@@ -12547,8 +12554,8 @@
     {
       "path": "scripts/generate-current-audit.mjs",
       "source": "git-tracked",
-      "sha256": "405e5589bdb38af7bd280f1447782a85c9dab5536f22c7a42314035ee9c62105",
-      "size": 20547,
+      "sha256": "8cf418b84eb7cb86ba39e08803b4a28c20c76a1133aed4aa60f2b4bfb10ebc80",
+      "size": 20078,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -12656,8 +12663,8 @@
     {
       "path": "scripts/prove-runtime-glue.mjs",
       "source": "git-tracked",
-      "sha256": "02f2fc04ce7c1131678ccc00ceb38a883a230ca753d5530d41483dfa6baf32fc",
-      "size": 4897,
+      "sha256": "47c0249c8d5f3286cec654949c12f8b291c693bafb4cd9bc77e48dc8e8fb2f72",
+      "size": 5400,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -12665,6 +12672,7 @@
       "entrypoint": "tool-entry",
       "references": [
         "public/assets/App-pJGjDiPw.js",
+        "public/assets/index-BPYJFSVW.js",
         "public/assets/index-CrO6t5EW.css",
         "public/assets/SettingsLayout-B4OgCkQ5.js",
         "public/assets/useSyncStore-vWs_TdIc.js",
@@ -12985,8 +12993,8 @@
     {
       "path": "scripts/test-server-security.mjs",
       "source": "git-tracked",
-      "sha256": "ca4a55fe68d167083bd2906a6bf1e9a44548ff939018b79a036b608c5835e11a",
-      "size": 7548,
+      "sha256": "9cfea9418eed57d2524328b190a252cdd23709b6b2858e53d7630b7241775c5f",
+      "size": 8074,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -13247,8 +13255,8 @@
     {
       "path": "server.mjs",
       "source": "git-tracked",
-      "sha256": "423a750b354f88ce98c1c724b205b9812953637a4c70ba8f23361638de13a3cd",
-      "size": 436675,
+      "sha256": "2dd04730d8c8e6cd5410007ab819ee46f17b180e4b3dcc8be34b29badf76da81",
+      "size": 438639,
       "type": "javascript",
       "text": true,
       "classification": "authored:source",
@@ -13266,6 +13274,7 @@
         "public/assets/EventsCalendar-COHF8nOK.js",
         "public/assets/Focus-BmgY-9vP.js",
         "public/assets/FocusStore-D5cRXSIr.js",
+        "public/assets/index-BPYJFSVW.js",
         "public/assets/Onboarding-qvAqCBbb.js",
         "public/assets/PWAManager-DjIYufp2.js",
         "public/assets/sessionSync-mloIEnTd.js",
@@ -13383,7 +13392,7 @@
         },
         {
           "id": "sql.statements",
-          "count": 160
+          "count": 161
         },
         {
           "id": "sql.rls",

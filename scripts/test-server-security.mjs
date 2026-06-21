@@ -66,6 +66,14 @@ const html = injectScripts('<!doctype html><html><head></head><body></body></htm
 assert.doesNotMatch(html, new RegExp(escapeRegExp(geminiSecret)), 'served HTML must not contain the Gemini key');
 assert.doesNotMatch(html, new RegExp(escapeRegExp(groqSecret)), 'served HTML must not contain the Groq key');
 assert.doesNotMatch(html, /window\.__IK__/, 'served HTML must not expose the former browser key bridge');
+const authHtml = injectScripts(
+  '<!doctype html><html><head></head><body></body></html>',
+  '/auth',
+);
+assert.match(authHtml, /window\.__ISO_SUPA_URL__/, 'auth HTML must retain public Supabase configuration');
+assert.doesNotMatch(authHtml, /__isoAutoSync/, 'auth HTML must not include app-only sync runtime');
+assert.doesNotMatch(authHtml, /_handleLeaderboard/, 'auth HTML must not include leaderboard compatibility code');
+assert.ok(Buffer.byteLength(authHtml) < 10 * 1024, 'auth HTML injection must remain below 10 KB');
 
 const sameOriginReq = {
   headers: { host: '127.0.0.1:3000', origin: 'http://127.0.0.1:3000' },
