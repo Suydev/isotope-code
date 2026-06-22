@@ -1,7 +1,7 @@
 # Current file audit
 
 Schema: 1
-Worktree fingerprint: 69d98b41205ad15b421b84610e16f9036bff62be09bb1083820e710a9538766e
+Worktree fingerprint: 78276793714b1ccbcad3c278eb0b0003efc5391c32af5bef39d959d34d7ff1f6
 Audited files: 437
 Git-tracked non-audit files: 437
 Untracked non-audit files: 0
@@ -31,7 +31,7 @@ Active/reachable files: 257
 - injection.inner_html: 95
 - network.fetch: 126
 - network.http_client: 12
-- network.supabase_client: 63
+- network.supabase_client: 64
 - network.websocket: 24
 - secrets.identifiers: 55
 - sql.rls: 371

@@ -26,7 +26,7 @@ jobs:
       - name: 🔍 Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: javascript-typescript
+          languages: javascript-typescript, actions
           # Config excludes public/ (154 minified React bundle files) and docs/
           # which would otherwise generate hundreds of false-positive warnings.
           # Uses security-extended only — security-and-quality adds stylistic

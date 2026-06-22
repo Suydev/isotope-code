@@ -3,7 +3,13 @@ import crypto from 'crypto';
 import { loadEnv } from './storage-backup-lib.mjs';
 
 const env = loadEnv();
-const base = env.SUPABASE_URL?.replace(/\/$/, '');
+const expectedBase = 'https://vteqquoqvksshmfhuepu.supabase.co';
+const configuredBase = env.SUPABASE_URL?.replace(/\/$/, '');
+if (configuredBase && configuredBase !== expectedBase) {
+  console.error(`Refusing to run the production security proof against unexpected project URL: ${configuredBase}`);
+  process.exit(1);
+}
+const base = expectedBase;
 const service = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
 const anon = env.SUPABASE_ANON_KEY;
 

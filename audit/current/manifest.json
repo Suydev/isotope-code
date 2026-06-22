@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": {
-    "worktreeFingerprint": "69d98b41205ad15b421b84610e16f9036bff62be09bb1083820e710a9538766e"
+    "worktreeFingerprint": "78276793714b1ccbcad3c278eb0b0003efc5391c32af5bef39d959d34d7ff1f6"
   },
   "scope": {
     "source": "Git index paths with current worktree content",
@@ -15,7 +15,7 @@
     "auditedFileCount": 437
   },
   "summary": {
-    "totalBytes": 71977711,
+    "totalBytes": 71978261,
     "activeFileCount": 257,
     "classifications": {
       "authored:configuration": 26,
@@ -59,7 +59,7 @@
       "injection.inner_html": 95,
       "network.fetch": 126,
       "network.http_client": 12,
-      "network.supabase_client": 63,
+      "network.supabase_client": 64,
       "network.websocket": 24,
       "secrets.identifiers": 55,
       "sql.rls": 371,
@@ -310,8 +310,8 @@
     {
       "path": ".github/workflows/codeql.yml",
       "source": "git-tracked",
-      "sha256": "2a0c9eb1703c8f40a55c3f9047144705ff13269792569c444990e917ab65ac42",
-      "size": 1154,
+      "sha256": "b1d3651761559f3c0add740d345b04ca856e19d0e0ec4d51cc310c61bccab34a",
+      "size": 1163,
       "type": "yaml",
       "text": true,
       "classification": "authored:configuration",
@@ -12669,8 +12669,8 @@
     {
       "path": "scripts/patch-lhci-js-yaml.mjs",
       "source": "git-tracked",
-      "sha256": "ab89a38940aca04dbe5866a8fbc6b171a7e8f248d92135377327d31c6f3524dc",
-      "size": 571,
+      "sha256": "0402e6cbf43f3e7ca392d5cff4423c62fef05774ba3a2ab0332b5f8a42e92ef3",
+      "size": 816,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -13275,8 +13275,8 @@
     {
       "path": "scripts/verify-supabase-security.mjs",
       "source": "git-tracked",
-      "sha256": "e9a3e1d71fbeb2ce7b27d34cd29ff549882f51a69c5a2a74e4a282e90f972c64",
-      "size": 19998,
+      "sha256": "e1f29387c4578f50f170baa67e0037e67091f46123c04239efaf058836629f89",
+      "size": 20294,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -13309,7 +13309,7 @@
         },
         {
           "id": "network.supabase_client",
-          "count": 1
+          "count": 2
         },
         {
           "id": "secrets.identifiers",
