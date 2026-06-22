@@ -1,12 +1,12 @@
 # Current file audit
 
 Schema: 1
-Worktree fingerprint: e6546cd7f44b706517f727c6964675f23c38648494257efbeba8e226228bd142
-Audited files: 437
-Git-tracked non-audit files: 437
+Worktree fingerprint: b2666a9abf513cff496d54ff76f3cf93507ed338bb24d18f2125d945b49d03fc
+Audited files: 438
+Git-tracked non-audit files: 438
 Untracked non-audit files: 0
 Excluded sensitive paths: 0
-Active/reachable files: 257
+Active/reachable files: 258
 
 ## Classification
 
@@ -16,7 +16,7 @@ Active/reachable files: 257
 - authored:runtime: 20
 - authored:source: 64
 - authored:static-asset: 46
-- authored:tooling: 32
+- authored:tooling: 33
 - generated:bundle: 155
 - generated:bundle-asset: 51
 - generated:bundle-wrapper: 6
@@ -35,9 +35,9 @@ Active/reachable files: 257
 - network.websocket: 24
 - secrets.identifiers: 55
 - sql.rls: 371
-- sql.statements: 4757
+- sql.statements: 4758
 - storage.cache_api: 69
-- storage.filesystem: 21
+- storage.filesystem: 27
 - storage.web: 459
 - timers.interval: 33
 - timers.timeout: 238

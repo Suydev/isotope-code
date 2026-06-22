@@ -35,6 +35,8 @@
     "test:supabase-sync": "node scripts/prove-supabase-sync.mjs",
     "audit:generate": "node scripts/generate-current-audit.mjs",
     "audit:verify": "node scripts/verify-current-audit.mjs",
+    "audit:folder:generate": "node scripts/audit-folder-integrity.mjs",
+    "audit:folder:verify": "node scripts/audit-folder-integrity.mjs --verify",
     "lighthouse": "lhci autorun"
   },
   "engines": {

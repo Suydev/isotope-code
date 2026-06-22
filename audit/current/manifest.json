@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": {
-    "worktreeFingerprint": "e6546cd7f44b706517f727c6964675f23c38648494257efbeba8e226228bd142"
+    "worktreeFingerprint": "b2666a9abf513cff496d54ff76f3cf93507ed338bb24d18f2125d945b49d03fc"
   },
   "scope": {
     "source": "Git index paths with current worktree content",
@@ -9,14 +9,14 @@
       "audit/"
     ],
     "sensitivePathPolicy": "Omit live environment, private-key, and credential paths; never emit contents or matched values",
-    "trackedNonAuditFileCount": 437,
+    "trackedNonAuditFileCount": 438,
     "untrackedNonAuditFileCount": 0,
     "excludedSensitivePathCount": 0,
-    "auditedFileCount": 437
+    "auditedFileCount": 438
   },
   "summary": {
-    "totalBytes": 71978428,
-    "activeFileCount": 257,
+    "totalBytes": 71988320,
+    "activeFileCount": 258,
     "classifications": {
       "authored:configuration": 26,
       "authored:database": 13,
@@ -24,7 +24,7 @@
       "authored:runtime": 20,
       "authored:source": 64,
       "authored:static-asset": 46,
-      "authored:tooling": 32,
+      "authored:tooling": 33,
       "generated:bundle": 155,
       "generated:bundle-asset": 51,
       "generated:bundle-wrapper": 6,
@@ -38,7 +38,7 @@
       "html": 9,
       "image": 20,
       "image-vector": 8,
-      "javascript": 191,
+      "javascript": 192,
       "json": 7,
       "license": 1,
       "markdown": 13,
@@ -63,9 +63,9 @@
       "network.websocket": 24,
       "secrets.identifiers": 55,
       "sql.rls": 371,
-      "sql.statements": 4757,
+      "sql.statements": 4758,
       "storage.cache_api": 69,
-      "storage.filesystem": 21,
+      "storage.filesystem": 27,
       "storage.web": 459,
       "timers.interval": 33,
       "timers.timeout": 238
@@ -1896,14 +1896,15 @@
     {
       "path": "package.json",
       "source": "git-tracked",
-      "sha256": "88fb5b548a701b425e52d2bac43f701a1a8ef8e78f8898874d55973219ecc264",
-      "size": 2143,
+      "sha256": "aac226f469d12aaa3b786f58b898cd0820eb2abc83326405f28e01f7c67c6d45",
+      "size": 2294,
       "type": "json",
       "text": true,
       "classification": "authored:configuration",
       "editableSource": true,
       "entrypoint": "build-entry",
       "references": [
+        "scripts/audit-folder-integrity.mjs",
         "scripts/capture-screenshots.mjs",
         "scripts/compare-remote-assets.mjs",
         "scripts/generate-current-audit.mjs",
@@ -12510,6 +12511,35 @@
       "activeConsumers": [],
       "active": false,
       "riskSignals": []
+    },
+    {
+      "path": "scripts/audit-folder-integrity.mjs",
+      "source": "git-tracked",
+      "sha256": "7d7dddd3d8d9717a02076583c42ff9145052bfc1a2eb3ea6ff16b6a0323ded7d",
+      "size": 9741,
+      "type": "javascript",
+      "text": true,
+      "classification": "authored:tooling",
+      "editableSource": true,
+      "entrypoint": "tool-entry",
+      "references": [],
+      "consumers": [
+        "package.json"
+      ],
+      "activeConsumers": [
+        "package.json"
+      ],
+      "active": true,
+      "riskSignals": [
+        {
+          "id": "storage.filesystem",
+          "count": 6
+        },
+        {
+          "id": "sql.statements",
+          "count": 1
+        }
+      ]
     },
     {
       "path": "scripts/capture-screenshots.mjs",
