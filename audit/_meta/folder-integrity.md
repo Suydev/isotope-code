@@ -1,17 +1,17 @@
 # Audit folder integrity
 
 Schema: 1
-Source fingerprint: db034e4578fb5250ed1901a6f9cee4115c70ed7b7dc706d89f8ff445e9084ae0
-Tracked audit files: 457
+Source fingerprint: 25c876454b9d028bb217a6d7470e4a0c9b07ec7433d5a44188cecd0d3abd5ac5
+Tracked audit files: 453
 Current audited source files: 438
-Legacy per-file reports: 425
+Legacy per-file reports: 421
 Historical meta reports: 28
 
 ## Integrity status
 
-- ignored files physically inside audit/: 217
-- untracked files inside audit/: 2
-- orphaned legacy reports: 4
+- ignored files physically inside audit/: 0
+- untracked files inside audit/: 0
+- orphaned legacy reports: 0
 - stale legacy reports with provable SHA drift: 35
 - current legacy reports with matching SHA: 347
 - unverifiable legacy reports without a source SHA: 39
@@ -64,232 +64,12 @@ Historical meta reports: 28
 
 ## Orphaned legacy reports
 
-- `audit/public/tasks-BYRFOrek.js.txt` → missing `public/tasks-BYRFOrek.js`
-- `audit/screenshot.txt` → missing `screenshot`
-- `audit/screenshot.zip.txt` → missing `screenshot.zip`
-- `audit/screenshots/screenshot.zip.txt` → missing `screenshots/screenshot.zip`
+- none
 
 ## Ignored files physically present
 
-- `audit/.env.example.txt`
-- `audit/.env.txt`
-- `audit/artifacts/asset-diff/asset-report.json.txt`
-- `audit/artifacts/asset-diff/local-assets.txt.txt`
-- `audit/artifacts/asset-diff/remote-assets/AIAnalysisCard-qrpOk1g6.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/AIAssistant--spCOe6W.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/AIWeeklySummary-fVbvFqu3.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/About-DbJqhVWT.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Analytics-D74gQMjN.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/AnalyticsPeriod-CGXbfYQB.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/AnalyticsSubjects-DOh8aXlW.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/AnalyticsTasks-DOfUf9Sd.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/AnalyticsToday-BTdRNTb0.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/App-Bcp_57Ks.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/App-pJGjDiPw.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/AppAccessGate-B975UtK7.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Auth-Cw0VAaCZ.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/ChallengesHub-C50y_K_l.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/ChapterHub-BXRydU0B.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/ChipMultiSelect-BU74OOip.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/CodeHighlighter-DSemo1-_.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Community-DIqF5406.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/CommunityHub-gANxZssO.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/CompletionCelebration-ngx4eqoP.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Dashboard-dypAV-0H.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/DashboardHeader-DNuRMna8.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/DemoLauncher-CdcwMBr6.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/EnhancedChallengeCard-BKErZxiW.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/EventsCalendar-COHF8nOK.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/ExamCreateEditModal-BdlzfeFO.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/ExamDetailPage-q_jDT5_x.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/ExamPrimitives-K6hgnm_l.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/ExamTemplateSelectorModal-DsEPEF5X.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Exams-C3jymPwe.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/FAQ-DuTZR-ip.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/FeaturesSection-DQ9ZRk3R.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Focus-BmgY-9vP.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/FocusStore-D5cRXSIr.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/GlobalPresenceBroadcaster-C5JADiwL.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/GlobalQuickActionsModals-BIoAwrDz.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/GlobalTimer-DUR6TMoR.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/GroupChat-j6zM76h9.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/GroupDiscovery-DUcFr2JQ.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/GroupInviteGenerator-B-iMSSXc.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/HeadwayUpdatesButton-DUh668tJ.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/HowItWorks-BS-VN8qB.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/InviteOnlineOnlyRoute-CZgdOWgx.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/IsotopeLogoIcon-oPk5Ru-_.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/IsotopeWrapped2-B4zl9ERi.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_AMS-Regular-BQhdFMY1.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_AMS-Regular-DMm9YOAa.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_AMS-Regular-DRggAlZN.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Bold-BsDP51OF.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Regular-CB_wures.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Bold-Cx986IdX.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Bold-Jm3AIy58.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Bold-waoOVXN0.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-BoldItalic-SpSLRI95.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Italic-3WenGoN9.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Italic-BMLOBm91.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Italic-NWA7e6Wa.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Regular-B22Nviop.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Regular-Dr94JaBh.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Main-Regular-ypZvNtVU.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Math-Italic-DA0__PXp.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Math-Italic-flOr_0UB.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Math-Italic-t53AETM-.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Italic-DN2j7dab.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Script-Regular-C5JkGWo-.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Script-Regular-D3wIWfF6.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Script-Regular-D5yQViql.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Size1-Regular-C195tn64.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Size1-Regular-Dbsnue_I.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Size1-Regular-mCD8mA8B.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Size2-Regular-B7gKUWhC.ttf.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Size2-Regular-Dy4dx90m.woff2.txt`
-- `audit/artifacts/asset-diff/remote-assets/KaTeX_Size2-Regular-oD1tc_U0.woff.txt`
-- `audit/artifacts/asset-diff/remote-assets/Landing-CWRNt7E9.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/LazySection-7u6SQGE2.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Leaderboard-BkEBFdG7.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/MarkdownRenderer-CIV1x0Uq.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/MarkdownRendererContent-DBrMkHal.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/MemberProfile-D-l2e-2X.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/MobileAppTeaser-BkZkKuC5.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Navbar-BJMJUymI.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/NetworkRequiredState-O9ZdVBEy.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/NotFound-X23NBnde.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Onboarding-qvAqCBbb.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/OnboardingNavigation-C6kIq5HV.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/PWAManager-DjIYufp2.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/PageLayout-B8yOy6kS.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/PremiumEffects-BX6T03yQ.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/PremiumGate-CX1zS69D.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Pricing-D9PNd5BR.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Privacy-ClP3A1gm.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/QueryProvider-DusNhG9D.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/QuestionMasterCard-DVOBGNnl.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/QuickActionsMenu-ojdsCiqG.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/QuickChatMenu-BUr6NG9I.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/RadioCard-BtzZXn6i.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/RealAnalyticsOverview-bpioXKtW.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/ResetPassword-mBBJZV4T.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/SafeResponsiveContainer-D7o6DE97.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/SessionEditModal-CNi_rT0l.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/SessionLogTable-CclRAAwc.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/SettingsLayout-B4OgCkQ5.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/SharedAnalyticsComponents-DMxLJbRk.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/SingleGroup-BRE_sMMU.css.txt`
-- `audit/artifacts/asset-diff/remote-assets/SingleGroup-DU1IhoNK.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Step1Identity-BZBwnoJ8.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Step2Academic-BUGsFsTy.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Step3StudyGoals-CQ0yWK1r.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Step4Preferences-D6oDNUqn.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Step5Community-BvHWgTaf.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Step6Personalization-CNdBQkFI.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Story-TXs13Cjc.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Study-pAdAenIl.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/SubjectCreateModal-DhD_Cwbk.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/SubjectIcon-CyCDqtel.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Subscription-UaefsAtQ.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/SupportMessage-BE7j-Ezd.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/SupportPromptDialog-Bkl24oin.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Syllabus-DZSnov0t.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/SyncListener-BMsBLWig.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/TaskCardModal-DZvd1GWt.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/TaskController-BUyiMYKC.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Tasks-BYRFOrek.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Tasks-COZfGapE.css.txt`
-- `audit/artifacts/asset-diff/remote-assets/Terms-BXixZPB6.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Testimonials-CnzXcixO.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/Toggle-D54hkegy.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/ToolsModal-BMUG81iV.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/WebsiteShowcase-DUy56Ho8.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/WelcomeTeaser-B96rmBi8.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/analyticsWorker-BnmTlfYB.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/bootstrap-D1vc155U.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/demoCommunity-DUJ4Y1zo.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/endOfDay-CZDDeNMb.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/endOfMonth-BISTJu4P.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/focusBackground-t8AknbRg.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/groupCache-DVHvdGlY.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/index-B45N-99N.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/index-BPYJFSVW.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/index-CrO6t5EW.css.txt`
-- `audit/artifacts/asset-diff/remote-assets/index-Der0FgF3.css.txt`
-- `audit/artifacts/asset-diff/remote-assets/index-L1EjXFqL.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/index-qd2KF3Jd.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/messaging-BP0KfJxy.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/sessionSync-mloIEnTd.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/sortable.esm-BBuGRz7f.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/studyPreferences-BBZvHe-O.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/studyTimeMaps-B0T_-AX0.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/subjectBranding-DaDo_h8r.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/taskAvailability-B1aDS_ww.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/taskCompletion-DkuS3Ybf.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/timeFormat-CMPo-BX2.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useAIStore-B2cv1FZz.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useChartAnimation-C6FTIqbw.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useFocusStore-CX_Nyp1h.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useGroupChallenges-N8BLPr3m.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useGroupPresence-BmkfUzH6.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useGroups-vEjDKzZY.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useInvites-D9RLFwf8.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useLeaderboard-BpvH5FXA.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useNotificationStore-BS4df28T.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useOnlineStatus-BJOTUERN.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useQuotesStore-C7b4gZp0.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useSupportModalStore-BkYsnKtG.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useSyncStore-vWs_TdIc.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/useUIStore-JhKp1ywd.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/utils-D8mZnxMk.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-charts-BN-djq5a.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-charts-CFLJvnG7.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-driver-Bqothgl5.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-driver-DB0Q8XAf.css.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-icons-BC6UY0dc.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-icons-CqruUz7g.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-katex-ASjZcBK0.css.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-katex-BSXZKQS3.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-markdown-core-B0W_OS7u.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-markdown-core-Pkt6xPHa.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-motion-BrCE_pwp.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-motion-Cp_NPzpZ.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-query-Dco3bNuU.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-query-Rjz85D0S.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-react-BfU3Zn2J.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-router-CmoTwRnm.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-sentry-VzeXdCeF.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-supabase-CdzVlbop.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-supabase-DAiUAuun.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/vendor-syntax-highlighter-CDo2wmi8.js.txt`
-- `audit/artifacts/asset-diff/remote-assets/workbox-window.prod.es5-BIl4cyR9.js.txt`
-- `audit/artifacts/asset-diff/summary.md.txt`
-- `audit/artifacts/isotope/.env.txt`
+- none
 
 ## Untracked files physically present
 
-- `audit/_meta/folder-integrity.json`
-- `audit/_meta/folder-integrity.md`
+- none
