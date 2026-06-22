@@ -238,8 +238,14 @@ for (const keyName of ['SUPABASE_ANON_KEY']) {
 // ── Supabase project — loaded exclusively from environment variables ──────────
 const SUPA_URL         = process.env.SUPABASE_URL;
 const SUPA_ANON_KEY    = process.env.SUPABASE_ANON_KEY;
-const SUPA_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-if (SUPA_SERVICE_KEY && SUPA_SERVICE_KEY.split('.').length < 3) {
+const SUPA_SERVICE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+if (process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SECRET_KEY.startsWith('sb_secret_')) {
+  console.error('[Config] SUPABASE_SECRET_KEY is set but is not a Supabase secret key');
+  process.exit(1);
+}
+if (!process.env.SUPABASE_SECRET_KEY &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY.split('.').length < 3) {
   console.error('[Config] SUPABASE_SERVICE_ROLE_KEY is set but is not JWT-like');
   process.exit(1);
 }
@@ -405,7 +411,7 @@ function sendAdminLogin(req, res, message = '') {
 function sendAdminDisabled(req, res) {
   const missing = [];
   if (!ENABLE_ADMIN_MODE) missing.push('ENABLE_ADMIN_MODE=true');
-  if (!SUPA_SERVICE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  if (!SUPA_SERVICE_KEY) missing.push('SUPABASE_SECRET_KEY');
   const payload = {
     ok: false,
     owner_tools: 'not_enabled',
@@ -414,7 +420,7 @@ function sendAdminDisabled(req, res) {
   };
   if (req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Owner Tools</title><style>body{font-family:system-ui;background:#0a0a0a;color:#eee;margin:0;padding:32px}.box{max-width:720px;margin:auto;background:#111;border:1px solid #333;border-radius:10px;padding:24px}code{background:#222;padding:2px 6px;border-radius:4px;color:#a78bfa}a{color:#8b5cf6}</style></head><body><div class="box"><h1>Owner Tools Are Private</h1><p>The Isotope local app is running normally. This page is only for the project owner to manage Supabase diagnostics, schema patches, and event/admin data.</p><p>Normal users can return to <a href="/">the app</a>.</p><p>Owners can enable this area with <code>ENABLE_ADMIN_MODE=true</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> in a private <code>.env</code>, then restart. Add <code>ADMIN_SECRET</code> for local secret unlock, or <code>ADMIN_EMAIL</code>/<code>ADMIN_EMAILS</code> for Supabase login unlock.</p></div></body></html>`);
+    res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Owner Tools</title><style>body{font-family:system-ui;background:#0a0a0a;color:#eee;margin:0;padding:32px}.box{max-width:720px;margin:auto;background:#111;border:1px solid #333;border-radius:10px;padding:24px}code{background:#222;padding:2px 6px;border-radius:4px;color:#a78bfa}a{color:#8b5cf6}</style></head><body><div class="box"><h1>Owner Tools Are Private</h1><p>The Isotope local app is running normally. This page is only for the project owner to manage Supabase diagnostics, schema patches, and event/admin data.</p><p>Normal users can return to <a href="/">the app</a>.</p><p>Owners can enable this area with <code>ENABLE_ADMIN_MODE=true</code> and <code>SUPABASE_SECRET_KEY</code> in a private <code>.env</code>, then restart. Add <code>ADMIN_SECRET</code> for local secret unlock, or <code>ADMIN_EMAIL</code>/<code>ADMIN_EMAILS</code> for Supabase login unlock.</p></div></body></html>`);
     return;
   }
   res.writeHead(403, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -429,7 +435,7 @@ const CUSTOM_SUPA   = true;
 const PROXY_PATH          = '/__supa';
 
 if (ADMIN_MODE_READY) console.log('[Admin] Admin mode enabled for server-only Supabase management');
-else if (ENABLE_ADMIN_MODE) console.warn('[Admin] Admin mode requested but disabled: set SUPABASE_SERVICE_ROLE_KEY');
+else if (ENABLE_ADMIN_MODE) console.warn('[Admin] Admin mode requested but disabled: set SUPABASE_SECRET_KEY');
 if (CUSTOM_SUPA) {
   console.log('[Cloud] Supabase cloud sync target ready');
 }
@@ -4386,11 +4392,12 @@ async function uploadAvatarDataUrlForUser(userId, dataUrl, userJwt, previousPath
 
 function stripPrivateSnapshotKeys(value) {
   const blocked = /(^|_)(password|access_token|refresh_token|service_role|service_role_key|admin_secret|supabase_access_token|github_pat|gemini_api_key|groq_api_key|cookie|authorization|jwt|secret|token)($|_)/i;
+  const dangerousKeys = new Set(['__proto__', 'prototype', 'constructor']);
   if (Array.isArray(value)) return value.map(stripPrivateSnapshotKeys);
   if (!value || typeof value !== 'object') return value;
-  const out = {};
+  const out = Object.create(null);
   for (const [key, val] of Object.entries(value)) {
-    if (blocked.test(key)) continue;
+    if (dangerousKeys.has(key) || blocked.test(key)) continue;
     out[key] = stripPrivateSnapshotKeys(val);
   }
   return out;
@@ -5125,10 +5132,8 @@ function authRequiredPayload(extra = {}) {
 
 function extractBearerToken(req) {
   const rawAuth = (req.headers['authorization'] || req.headers['Authorization'] || '').toString().trim();
-  if (!rawAuth) return null;
-  const match = rawAuth.match(/^Bearer\s+(.+)$/i);
-  if (!match) return null;
-  const token = String(match[1] || '').trim();
+  if (rawAuth.length < 8 || rawAuth.slice(0, 7).toLowerCase() !== 'bearer ') return null;
+  const token = rawAuth.slice(7).trim();
   if (!token || token.split('.').length < 3) return null;
   return token;
 }
@@ -5183,8 +5188,9 @@ function buildSupabaseProxyHeaders(requestHeaders = {}) {
     if (!skip.has(k.toLowerCase())) fwdHeaders[k] = v;
   }
   const rawAuth = String(requestHeaders.authorization || requestHeaders.Authorization || '').trim();
-  const match = rawAuth.match(/^Bearer\s+(.+)$/i);
-  const callerToken = match ? String(match[1] || '').trim() : '';
+  const callerToken = rawAuth.length >= 8 && rawAuth.slice(0, 7).toLowerCase() === 'bearer '
+    ? rawAuth.slice(7).trim()
+    : '';
   const callerPayload = callerToken ? decodeJwtPayload(callerToken) : null;
   if (callerToken && (callerToken === SUPA_SERVICE_KEY || callerPayload?.role === 'service_role')) {
     const error = new Error('Service-role credentials are not accepted by the user proxy');
@@ -5419,7 +5425,7 @@ function browserProofStartHtml({ run, email, error }) {
   const statusUrl = safeRun?.run_id ? '/__admin/browser-proof-status?run_id=' + encodeURIComponent(safeRun.run_id) : '';
   const setup = [
     'ENABLE_ADMIN_MODE=true',
-    'SUPABASE_SERVICE_ROLE_KEY=<service role key>',
+    'SUPABASE_SECRET_KEY=<server secret key>',
     'ADMIN_SECRET=<private local secret>',
     'ADMIN_EMAIL=<existing Supabase user email> or BROWSER_PROOF_EMAIL=<existing Supabase user email>',
   ];
@@ -5445,7 +5451,7 @@ ${pageUrl ? `<a class="btn" href="${escapeHtml(pageUrl)}">Open Browser Proof Pag
 <a class="btn secondary" href="/__admin/verify">Back to Verify</a>
 <h2>Required private config</h2>
 <pre>${escapeHtml(setup.join('\n'))}</pre>
-<p class="muted">If this page shows a setup error, fix the private <code>.env</code>, restart the local server, then open <code>/__admin/browser-proof</code> again. No service-role key or proof session is written to this page.</p>
+<p class="muted">If this page shows a setup error, fix the private <code>.env</code>, restart the local server, then open <code>/__admin/browser-proof</code> again. No server secret or proof session is written to this page.</p>
 </main></body></html>`;
 }
 
@@ -6764,7 +6770,7 @@ function cleanupPreview(){ return post('/__admin/storage/cleanup-preview',{user_
         return;
       }
       if (!SUPA_SERVICE_KEY) {
-        sendJson(res, 503, { ok: false, code: 'SERVICE_ROLE_REQUIRED', error: 'Admin repair requires SUPABASE_SERVICE_ROLE_KEY on the server.' });
+        sendJson(res, 503, { ok: false, code: 'SERVICE_ROLE_REQUIRED', error: 'Admin repair requires SUPABASE_SECRET_KEY on the server.' });
         return;
       }
       const manager = canonicalBackupManager();
@@ -6839,7 +6845,7 @@ function applyCleanup(){ if(!confirm('Apply cleanup for this user after reviewin
         return;
       }
       if (!SUPA_SERVICE_KEY) {
-        sendJson(res, 503, { ok: false, code: 'SERVICE_ROLE_REQUIRED', error: 'Admin storage cleanup requires SUPABASE_SERVICE_ROLE_KEY on the server.' });
+        sendJson(res, 503, { ok: false, code: 'SERVICE_ROLE_REQUIRED', error: 'Admin storage cleanup requires SUPABASE_SECRET_KEY on the server.' });
         return;
       }
       const manager = canonicalBackupManager();
@@ -7022,12 +7028,12 @@ function showMsg(type, msg) {
   // ── /__admin/patch — current security/RLS hardening migration ───────────────
   if (req.method === 'GET' && (req.url === '/__admin/patch' || req.url === '/__admin/patch.sql')) {
     try {
-      const sqlPath = path.join(__dirname, 'sql', '007_comprehensive_sql_rls_hardening.sql');
+      const sqlPath = path.join(__dirname, 'sql', '008_security_invoker_rpc_boundary.sql');
       const sql = fs.readFileSync(sqlPath, 'utf8');
       if (req.url === '/__admin/patch.sql') {
         res.writeHead(200, {
           'Content-Type': 'text/plain; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="007_comprehensive_sql_rls_hardening.sql"',
+          'Content-Disposition': 'attachment; filename="008_security_invoker_rpc_boundary.sql"',
           'Cache-Control': 'no-store',
         });
         res.end(sql);
@@ -8316,9 +8322,9 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
   if (!ENABLE_ADMIN_MODE) {
     console.info('[Startup] Local app mode ready. Shared Supabase cloud sync is enabled.');
   } else if (!ADMIN_MODE_READY) {
-    console.warn('[Startup] Owner tools requested but not ready. Add SUPABASE_SERVICE_ROLE_KEY in your private .env.');
+    console.warn('[Startup] Owner tools requested but not ready. Add SUPABASE_SECRET_KEY in your private .env.');
   } else {
-    console.info('[Startup] Owner tools enabled. Protect admin credentials and service-role key.');
+    console.info('[Startup] Owner tools enabled. Protect admin credentials and the Supabase server secret.');
     console.info('[Startup] Admin panel: /__admin/verify | /__admin/roles | /__admin/patch');
     if (!ADMIN_PASSWORD || !ADMIN_EMAIL) {
       console.info('[Startup] ADMIN_EMAIL/ADMIN_PASSWORD not both set; admin account auto-create will be skipped.');
@@ -8392,7 +8398,7 @@ if (process.env.ISOTOPE_TEST_MODE !== '1') {
 
 // ── Storage bucket auto-setup (runs on every server start) ────────────────────
 // Creates the three required Storage buckets if they do not yet exist.
-// Uses the service-role key (ADMIN_MODE_READY required). Safe to run multiple
+// Uses the server-side Supabase secret (ADMIN_MODE_READY required). Safe to run multiple
 // times — it only creates buckets that return 404.
 async function ensureStorageBuckets() {
   if (!ADMIN_MODE_READY) return; // service key required to create buckets

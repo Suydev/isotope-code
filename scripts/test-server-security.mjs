@@ -4,6 +4,7 @@ import { PassThrough, Readable } from 'node:stream';
 
 const anonKey = makeJwt({ iss: 'supabase', role: 'anon' });
 const serviceKey = makeJwt({ iss: 'supabase', role: 'service_role' });
+const secretKey = 'sb_secret_security_regression_value';
 const userJwt = makeJwt({
   iss: 'https://security-test.supabase.co/auth/v1',
   role: 'authenticated',
@@ -15,6 +16,7 @@ const groqSecret = 'groq-regression-secret-value';
 process.env.ISOTOPE_TEST_MODE = '1';
 process.env.SUPABASE_URL = 'https://security-test.supabase.co';
 process.env.SUPABASE_ANON_KEY = anonKey;
+process.env.SUPABASE_SECRET_KEY = secretKey;
 process.env.SUPABASE_SERVICE_ROLE_KEY = serviceKey;
 process.env.ENABLE_ADMIN_MODE = 'true';
 process.env.ADMIN_SECRET = 'admin-regression-secret';
@@ -49,9 +51,9 @@ assert.equal(userHeaders.apikey, anonKey, 'authenticated proxy traffic must stil
 assert.equal(userHeaders.authorization, `Bearer ${userJwt}`, 'authenticated proxy traffic must preserve the user JWT');
 
 assert.throws(
-  () => buildSupabaseProxyHeaders({ authorization: `Bearer ${serviceKey}` }),
+  () => buildSupabaseProxyHeaders({ authorization: `Bearer ${secretKey}` }),
   /Service-role credentials are not accepted/,
-  'the general proxy must reject service-role bearer credentials'
+  'the general proxy must reject modern Supabase secret credentials'
 );
 assert.equal(
   resolveSupabaseProxyTarget('/__supa/rest/v1/profiles?select=id', 'GET'),

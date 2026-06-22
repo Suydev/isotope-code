@@ -113,6 +113,7 @@ if (!README) {
 
   // Secret patterns
   const secretPatterns = [
+    [/SUPABASE_SECRET_KEY\s*=\s*[A-Za-z0-9]/g, 'SUPABASE_SECRET_KEY with value'],
     [/SUPABASE_SERVICE_ROLE_KEY\s*=\s*[A-Za-z0-9]/g, 'SUPABASE_SERVICE_ROLE_KEY with value'],
     [/eyJ[A-Za-z0-9_-]{40,}/g, 'Potential JWT token'],
     [/sbp_[A-Za-z0-9]{20,}/g, 'Potential Supabase PAT'],
@@ -212,6 +213,9 @@ const REQUIRED_FILES = [
   'bin/isotope',
   'bin/isotope.bat',
   'isotope-complete.sql',
+  'sql/007_comprehensive_sql_rls_hardening.sql',
+  'sql/008_security_invoker_rpc_boundary.sql',
+  'sql/009_remove_redundant_indexes.sql',
   '.env.example',
   'README.md',
   'CHANGELOG.md',

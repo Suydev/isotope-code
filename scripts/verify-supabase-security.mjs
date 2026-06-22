@@ -4,7 +4,7 @@ import { loadEnv } from './storage-backup-lib.mjs';
 
 const env = loadEnv();
 const base = env.SUPABASE_URL?.replace(/\/$/, '');
-const service = env.SUPABASE_SERVICE_ROLE_KEY;
+const service = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
 const anon = env.SUPABASE_ANON_KEY;
 
 if (!base || !service || !anon) {
@@ -19,21 +19,38 @@ const createdSessionIds = [];
 const createdNotificationIds = [];
 const createdSyncIds = [];
 const createdManifestPaths = [];
+const createdEventIds = [];
 
 function headers(key, extra = {}) {
-  return { apikey: key, authorization: `Bearer ${key}`, ...extra };
+  return {
+    apikey: key,
+    authorization: `Bearer ${key}`,
+    'x-client-info': 'isotope-security-proof',
+    ...extra,
+  };
 }
 
 function userHeaders(user, extra = {}) {
-  return { apikey: anon, authorization: `Bearer ${user.jwt}`, ...extra };
+  return {
+    apikey: anon,
+    authorization: `Bearer ${user.jwt}`,
+    'x-client-info': 'isotope-security-proof',
+    ...extra,
+  };
 }
 
 async function jsonFetch(url, options = {}) {
-  const res = await fetch(url, options);
-  const text = await res.text();
-  let body = text;
-  try { body = text ? JSON.parse(text) : null; } catch {}
-  return { status: res.status, ok: res.ok, body, text };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20_000);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    const text = await res.text();
+    let body = text;
+    try { body = text ? JSON.parse(text) : null; } catch {}
+    return { status: res.status, ok: res.ok, body, text };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function restUrl(table, query = '') {
@@ -59,6 +76,28 @@ async function restAsService(table, query, init = {}) {
       prefer: 'return=representation,resolution=merge-duplicates',
       ...(init.headers || {}),
     }),
+  });
+}
+
+async function rpcAsUser(user, functionName, body = {}) {
+  return jsonFetch(`${base}/rest/v1/rpc/${encodeURIComponent(functionName)}`, {
+    method: 'POST',
+    headers: userHeaders(user, {
+      'content-type': 'application/json',
+      accept: 'application/json',
+    }),
+    body: JSON.stringify(body),
+  });
+}
+
+async function rpcAsAnon(functionName, body = {}) {
+  return jsonFetch(`${base}/rest/v1/rpc/${encodeURIComponent(functionName)}`, {
+    method: 'POST',
+    headers: headers(anon, {
+      'content-type': 'application/json',
+      accept: 'application/json',
+    }),
+    body: JSON.stringify(body),
   });
 }
 
@@ -218,38 +257,75 @@ async function testStorageBucket(bucket, contentType = 'application/json', body 
 }
 
 async function cleanup() {
-  for (const id of createdSessionIds) await restAsService('study_sessions_log', `?id=eq.${id}`, { method: 'DELETE' }).catch(() => null);
-  for (const id of createdNotificationIds) await restAsService('notifications', `?id=eq.${id}`, { method: 'DELETE' }).catch(() => null);
-  for (const id of createdSyncIds) await restAsService('sync_items', `?id=eq.${id}`, { method: 'DELETE' }).catch(() => null);
-  for (const path of createdManifestPaths) await restAsService('backup_manifests', `?path=eq.${encodeURIComponent(path)}`, { method: 'DELETE' }).catch(() => null);
+  async function requireCleanup(label, promise) {
+    const result = await promise;
+    if (!isOk(result) && !isMissingTable(result)) {
+      throw new Error(`Cleanup failed for ${label}: HTTP ${result.status}`);
+    }
+  }
+
+  for (const id of createdSessionIds) {
+    await requireCleanup(`study_sessions_log ${id}`, restAsService('study_sessions_log', `?id=eq.${id}`, { method: 'DELETE' }));
+  }
+  for (const id of createdNotificationIds) {
+    await requireCleanup(`notifications ${id}`, restAsService('notifications', `?id=eq.${id}`, { method: 'DELETE' }));
+  }
+  for (const id of createdSyncIds) {
+    await requireCleanup(`sync_items ${id}`, restAsService('sync_items', `?id=eq.${id}`, { method: 'DELETE' }));
+  }
+  for (const path of createdManifestPaths) {
+    await requireCleanup(`backup_manifests ${path}`, restAsService('backup_manifests', `?path=eq.${encodeURIComponent(path)}`, { method: 'DELETE' }));
+  }
+  for (const id of createdEventIds) {
+    await requireCleanup(`community_events ${id}`, restAsService('community_events', `?id=eq.${id}`, { method: 'DELETE' }));
+  }
+
   for (const user of users) {
+    for (const bucket of ['avatars', 'user-content', 'notes']) {
+      await requireCleanup(`${bucket} objects for ${user.id}`, jsonFetch(`${base}/storage/v1/object/${encodeURIComponent(bucket)}`, {
+        method: 'DELETE',
+        headers: headers(service, { 'content-type': 'application/json' }),
+        body: JSON.stringify({ prefixes: [`${user.id}/security-proof-${runId}.json`, `${user.id}/security-proof-${runId}.png`] }),
+      }));
+    }
+
     for (const table of [
       'backup_manifests',
       'sync_items',
       'notifications',
       'study_sessions_log',
       'daily_user_stats',
+      'user_inventory',
+      'group_members',
+      'community_event_attendees',
       'user_presence',
       'user_settings',
       'user_onboarding',
       'user_stats_summary',
       'user_profiles',
-      'users',
+      'user_points',
     ]) {
-      await restAsService(table, `?user_id=eq.${encodeURIComponent(user.id)}`, { method: 'DELETE' }).catch(() => null);
+      await requireCleanup(`${table} rows for ${user.id}`, restAsService(
+        table,
+        `?user_id=eq.${encodeURIComponent(user.id)}`,
+        { method: 'DELETE' },
+      ));
     }
-    await restAsService('users', `?id=eq.${encodeURIComponent(user.id)}`, { method: 'DELETE' }).catch(() => null);
-    for (const bucket of ['avatars', 'user-content', 'notes']) {
-      await jsonFetch(`${base}/storage/v1/object/${encodeURIComponent(bucket)}`, {
-        method: 'DELETE',
-        headers: headers(service, { 'content-type': 'application/json' }),
-        body: JSON.stringify({ prefixes: [`${user.id}/security-proof-${runId}.json`, `${user.id}/security-proof-${runId}.png`] }),
-      }).catch(() => null);
-    }
-    await jsonFetch(`${base}/auth/v1/admin/users/${user.id}`, {
+
+    await requireCleanup(`public.users ${user.id}`, restAsService(
+      'users',
+      `?id=eq.${encodeURIComponent(user.id)}`,
+      { method: 'DELETE' },
+    ));
+    await requireCleanup(`auth user ${user.id}`, jsonFetch(`${base}/auth/v1/admin/users/${user.id}`, {
       method: 'DELETE',
       headers: headers(service),
-    }).catch(() => null);
+    }));
+
+    const remaining = await restAsService('users', `?id=eq.${encodeURIComponent(user.id)}&select=id`);
+    if (!isOk(remaining) || (Array.isArray(remaining.body) && remaining.body.length > 0)) {
+      throw new Error(`Cleanup verification failed for public.users ${user.id}`);
+    }
   }
 }
 
@@ -261,6 +337,78 @@ try {
   bUser = await createUser('b');
   await seedUserRows(aUser);
   await seedUserRows(bUser);
+
+  const privateEventId = crypto.randomUUID();
+  createdEventIds.push(privateEventId);
+  const eventInsert = await restAsService('community_events', '', {
+    method: 'POST',
+    body: JSON.stringify({
+      id: privateEventId,
+      title: `Security proof ${runId}`,
+      is_active: false,
+      creator_id: aUser.id,
+    }),
+  });
+  record('inactive event fixture created', isOk(eventInsert), `HTTP ${eventInsert.status}`);
+  const attendeeInsert = await restAsService('community_event_attendees', '', {
+    method: 'POST',
+    body: JSON.stringify({ event_id: privateEventId, user_id: aUser.id }),
+  });
+  record('inactive event attendee fixture created', isOk(attendeeInsert), `HTTP ${attendeeInsert.status}`);
+  const hiddenAttendees = await rpcAsUser(bUser, 'get_event_attendees', { p_event_id: privateEventId });
+  record(
+    'inactive event attendees hidden from other users',
+    hiddenAttendees.status === 200 && Array.isArray(hiddenAttendees.body) && hiddenAttendees.body.length === 0,
+    `HTTP ${hiddenAttendees.status}`,
+  );
+
+  const invitePreview = await rpcAsAnon('get_invite_details', { p_code: `missing-${runId}` });
+  record('get_invite_details anonymous preview allowed', invitePreview.status === 200, `HTTP ${invitePreview.status}`);
+
+  const anonymousAccept = await rpcAsAnon('accept_invite', { p_code: `missing-${runId}` });
+  record(
+    'accept_invite anonymous mutation denied',
+    anonymousAccept.status === 401 || anonymousAccept.status === 403 || anonymousAccept.status === 404,
+    `HTTP ${anonymousAccept.status}`,
+  );
+
+  const ownMembership = await rpcAsUser(aUser, 'get_membership_snapshot', { p_user_id: aUser.id });
+  record(
+    'get_membership_snapshot own user allowed',
+    ownMembership.status === 200 && ownMembership.body?.user_id === aUser.id,
+    `HTTP ${ownMembership.status}`,
+  );
+
+  const crossMembership = await rpcAsUser(aUser, 'get_membership_snapshot', { p_user_id: bUser.id });
+  record(
+    'get_membership_snapshot cross-user data denied',
+    crossMembership.status === 200 && crossMembership.body === null,
+    `HTTP ${crossMembership.status}`,
+  );
+
+  const rpcSessionId = crypto.randomUUID();
+  createdSessionIds.push(rpcSessionId);
+  const sessionBody = {
+    p_session_id: rpcSessionId,
+    p_action: 'complete',
+    p_duration_minutes: 1,
+    p_group_id: null,
+    p_session_type: 'security-proof',
+    p_notes: runId,
+    p_ended_at: new Date().toISOString(),
+  };
+  const firstSession = await rpcAsUser(aUser, 'finish_session_sync', sessionBody);
+  const replaySession = await rpcAsUser(aUser, 'finish_session_sync', sessionBody);
+  record(
+    'finish_session_sync first commit allowed',
+    firstSession.status === 200 && firstSession.body?.already_processed === false,
+    `HTTP ${firstSession.status}`,
+  );
+  record(
+    'finish_session_sync replay idempotent',
+    replaySession.status === 200 && replaySession.body?.already_processed === true,
+    `HTTP ${replaySession.status}`,
+  );
 
   await testOwnOnlyTable({
     table: 'user_profiles',

@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: ⬇️ Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -47,7 +47,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
 
@@ -107,6 +107,8 @@ jobs:
             isotope-complete.sql
             sql/backup_manifests.sql
             sql/007_comprehensive_sql_rls_hardening.sql
+            sql/008_security_invoker_rpc_boundary.sql
+            sql/009_remove_redundant_indexes.sql
             scripts/verify-sql-hardening.sql
             docs/sync-system.md
             docs/storage-backup-system.md

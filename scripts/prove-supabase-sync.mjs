@@ -22,11 +22,14 @@ function readEnv(file) {
 const env = readEnv(envFile);
 const supaUrl = String(env.SUPABASE_URL || '').replace(/\/+$/, '');
 const anonKey = env.SUPABASE_ANON_KEY || '';
-const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || '';
+const serviceKey = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 assert.ok(/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supaUrl), 'SUPABASE_URL is missing or invalid');
 assert.ok(anonKey.split('.').length >= 3, 'SUPABASE_ANON_KEY is missing or invalid');
-assert.ok(serviceKey.split('.').length >= 3, 'SUPABASE_SERVICE_ROLE_KEY is required for this smoke test');
+assert.ok(
+  serviceKey.startsWith('sb_secret_') || serviceKey.split('.').length >= 3,
+  'SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY is required for this smoke test',
+);
 
 async function jsonFetch(url, options = {}) {
   const response = await fetch(url, options);

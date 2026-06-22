@@ -10,6 +10,7 @@
     "url": "https://github.com/Suydev/isotope-code.git"
   },
   "scripts": {
+    "postinstall": "node scripts/patch-lhci-js-yaml.mjs",
     "start": "node server.mjs",
     "dev": "node --env-file=.env --watch server.mjs",
     "preview": "node server.mjs",
@@ -43,6 +44,8 @@
     "@lhci/cli": "0.15.1"
   },
   "overrides": {
+    "js-yaml": "5.0.0",
+    "uuid": "11.1.1",
     "tmp": "0.2.7"
   }
 }

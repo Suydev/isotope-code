@@ -1,6 +1,10 @@
 -- ============================================================================
 -- IsotopeAI — Community Patch v4
 -- ============================================================================
+-- LEGACY SNAPSHOT: do not use this as the final schema or reapply it after the
+-- current migrations. For a supported install, run isotope-complete.sql and
+-- then sql/007, sql/008, and sql/009 in numeric order.
+--
 -- Run this in Supabase SQL Editor (Project > SQL Editor > New query > Run).
 -- Fully idempotent: safe to run multiple times on the same database.
 -- Fixes EVERY mismatch between the compiled frontend JS and the DB schema.

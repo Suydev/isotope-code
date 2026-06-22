@@ -1,6 +1,10 @@
 -- ============================================================================
 -- IsotopeAI — Self-Hosted Database Schema v2
 -- ============================================================================
+-- LEGACY SNAPSHOT: do not use this as the final schema or reapply it after the
+-- current migrations. For a supported install, run isotope-complete.sql and
+-- then sql/007, sql/008, and sql/009 in numeric order.
+--
 -- Safe to run multiple times (fully idempotent).
 -- Paste the ENTIRE file into Supabase SQL Editor → Run.
 --

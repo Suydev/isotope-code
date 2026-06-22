@@ -1,7 +1,8 @@
 -- Post-migration catalog verification for
--- sql/007_comprehensive_sql_rls_hardening.sql.
+-- sql/007_comprehensive_sql_rls_hardening.sql and
+-- sql/008_security_invoker_rpc_boundary.sql.
 --
--- Run in the Supabase SQL editor after applying migration 007. The DO blocks
+-- Run in the Supabase SQL editor after applying migrations 007 and 008. The DO blocks
 -- fail on security regressions; the final queries report duplicate indexes and
 -- the effective policy/grant surface for review.
 
@@ -41,7 +42,28 @@ begin
   into v_names
   from pg_proc p
   join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname in ('public', 'private')
+  where n.nspname = 'public'
+    and p.prosecdef
+    and (
+      has_function_privilege('anon', p.oid, 'EXECUTE')
+      or has_function_privilege('authenticated', p.oid, 'EXECUTE')
+    );
+
+  if v_names is not null then
+    raise exception 'Exposed SECURITY DEFINER functions executable by API roles: %', v_names;
+  end if;
+end
+$$;
+
+do $$
+declare
+  v_names text;
+begin
+  select string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text)
+  into v_names
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname in ('public', 'private', 'rpc_private')
     and p.prosecdef
     and not coalesce(p.proconfig, '{}'::text[]) @> array['search_path=""'];
 
@@ -59,7 +81,7 @@ begin
   into v_names
   from pg_proc p
   join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname in ('public', 'private')
+  where n.nspname in ('public', 'private', 'rpc_private')
     and exists (
       select 1
       from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) acl

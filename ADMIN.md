@@ -27,7 +27,7 @@ To enable owner/admin mode, set:
 ```env
 ENABLE_ADMIN_MODE=true
 ADMIN_SECRET=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SECRET_KEY=
 ADMIN_EMAIL=
 ADMIN_EMAILS=
 SUPABASE_ACCESS_TOKEN=
@@ -45,7 +45,7 @@ Access via:
 |----------|---------|---------|
 | `ENABLE_ADMIN_MODE` | `false` | Enables `/__admin/*` tools when set to `true` |
 | `ADMIN_SECRET` | _(empty)_ | Optional local unlock secret for `/__admin/*` routes |
-| `SUPABASE_SERVICE_ROLE_KEY` | _(empty)_ | Required for owner/admin data management |
+| `SUPABASE_SECRET_KEY` | _(empty)_ | Required for owner/admin data management |
 | `SUPABASE_ACCESS_TOKEN` | _(empty)_ | Optional; applies SQL through Supabase Management API |
 | `ADMIN_EMAIL` | _(empty)_ | Optional Supabase admin email for browser unlock and auto-create/check |
 | `ADMIN_EMAILS` | _(empty)_ | Optional comma-separated Supabase admin email allowlist |
@@ -209,7 +209,7 @@ Events and Store checks are intentionally absent because those product surfaces 
 
 ### What it does
 
-Serves the full contents of `community-patch-v4.sql` as a runnable SQL patch. Provides:
+Serves the current advisor-hardening migration, `sql/008_security_invoker_rpc_boundary.sql`, as a runnable SQL patch.
 - **One-click apply** via Supabase Personal Access Token (PAT) — no copy-paste needed
 - **Download** as `.sql` file
 - **Copy to clipboard** for manual Supabase SQL Editor paste
@@ -417,7 +417,7 @@ user-managed credentials or a dedicated authenticated server endpoint.
 |----------|----------|---------|---------|
 | `SUPABASE_URL` | Yes | Built-in project | Your Supabase project URL |
 | `SUPABASE_ANON_KEY` | Yes | Built-in key | Public/anon JWT key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Owner tools only | _(none)_ | Server-only management authority; never exposed to clients |
+| `SUPABASE_SECRET_KEY` | Owner tools only | _(none)_ | Server-only management authority; never exposed to clients |
 | `SUPABASE_ACCESS_TOKEN` | Optional | _(none)_ | Server-only Management API PAT for one-click SQL patching |
 | `ISOTOPE_BIND_HOST` | Optional | `127.0.0.1` | Explicit local/LAN bind address |
 | `CORS_ALLOWED_ORIGINS` | Optional | _(empty)_ | Additional comma-separated browser origins |
@@ -442,7 +442,7 @@ The server logs `[Config] ⚠️` warnings at boot for:
 - Using the built-in Supabase project (not your own)
 - `ADMIN_PASSWORD` at default value
 - admin unlock methods not configured
-- `SUPABASE_SERVICE_ROLE_KEY` missing or short
+- `SUPABASE_SECRET_KEY` missing or malformed
 - `ADMIN_EMAIL` at placeholder default
 
 ---
@@ -484,7 +484,7 @@ On first start, the server automatically:
 1. **`_is_group_member(group_id, user_id)`** — SECURITY DEFINER helper prevents RLS infinite recursion. Every group membership policy must use this function instead of direct `EXISTS (SELECT 1 FROM group_members …)`.
 2. **`get_membership_snapshot()`** — always returns `ranker`/`active`/`2099` in self-hosted mode. Overrides the SaaS subscription check.
 3. **`finish_session_sync`** — RPC must be called with the user's own JWT (not service_role), because it uses `auth.uid()` internally.
-4. **Server-side Supabase proxy** — uses `SUPABASE_SERVICE_ROLE_KEY` only inside server handlers. Browser bundles receive the anon key only.
+4. **Server-side Supabase proxy** — uses `SUPABASE_SECRET_KEY` only inside server handlers. Browser bundles receive the anon key only.
 
 ---
 

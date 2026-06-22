@@ -17,7 +17,9 @@ export function loadEnv() {
     }
   }
   if (!env.SUPABASE_URL) throw new Error('SUPABASE_URL is missing');
-  if (!env.SUPABASE_SERVICE_ROLE_KEY && !env.SUPABASE_ANON_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY is missing');
+  if (!env.SUPABASE_SECRET_KEY && !env.SUPABASE_SERVICE_ROLE_KEY && !env.SUPABASE_ANON_KEY) {
+    throw new Error('SUPABASE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY, or SUPABASE_ANON_KEY is missing');
+  }
   return env;
 }
 
@@ -35,7 +37,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
 
 export function createStorageDeps(env) {
   const base = env.SUPABASE_URL.replace(/\/$/, '');
-  const authKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
+  const authKey = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
   const anonKey = env.SUPABASE_ANON_KEY || authKey;
   const headers = (extra = {}) => ({
     apikey: anonKey,

@@ -7,7 +7,7 @@ const apply = args.apply === true;
 
 const env = loadEnv();
 const manager = createScriptBackupManager(env);
-const jwt = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
+const jwt = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
 
 const emptyLocalBackup = {
   version: 1,

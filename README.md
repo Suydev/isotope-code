@@ -160,12 +160,14 @@ Steps:
 2. Open SQL Editor.
 3. Paste and run [isotope-complete.sql](./isotope-complete.sql).
 4. Paste and run [sql/007_comprehensive_sql_rls_hardening.sql](./sql/007_comprehensive_sql_rls_hardening.sql).
-5. Create these Storage buckets if they do not already exist:
+5. Paste and run [sql/008_security_invoker_rpc_boundary.sql](./sql/008_security_invoker_rpc_boundary.sql).
+6. Paste and run [sql/009_remove_redundant_indexes.sql](./sql/009_remove_redundant_indexes.sql).
+7. Create these Storage buckets if they do not already exist:
    - `avatars`
    - `user-content`
    - `notes`
-6. Copy your Project URL and anon key.
-7. Put them in `.env`.
+8. Copy your Project URL and anon key.
+9. Put them in `.env`.
 
 Example:
 
@@ -240,7 +242,7 @@ ADMIN_SECRET=<long-random-secret>
 ADMIN_EMAIL=<your-email@example.com>
 ```
 
-Add `SUPABASE_SERVICE_ROLE_KEY` only in your private `.env` when you need admin repair tools.
+Add `SUPABASE_SECRET_KEY` only in your private `.env` when you need admin repair tools. The legacy `SUPABASE_SERVICE_ROLE_KEY` remains a compatibility fallback but should not be used for new deployments.
 
 Open:
 
@@ -290,7 +292,7 @@ node scripts/validate-storage-cleanup.mjs --user <user-id> --dry-run
 | Port is busy | `isotope stop` or set `PORT=3001` in `.env` |
 | Login fails | Check `SUPABASE_URL` and `SUPABASE_ANON_KEY` |
 | Sync is blocked | Restore the cloud backup first |
-| Storage permission error | Re-run `sql/007_comprehensive_sql_rls_hardening.sql` |
+| Storage permission error | Re-run `sql/007_comprehensive_sql_rls_hardening.sql`, then `sql/008_security_invoker_rpc_boundary.sql` |
 | Android widget is missing | `isotope reinstall-widgets` |
 | Update failed | `isotope doctor`, then `isotope repair` |
 

@@ -3,6 +3,8 @@
 -- ============================================================================
 -- Single authoritative SQL file for a fresh Supabase project.
 -- Fully idempotent: safe to run multiple times on any existing database.
+-- IMPORTANT: finish every install by applying sql/007_comprehensive_sql_rls_hardening.sql,
+-- sql/008_security_invoker_rpc_boundary.sql, and sql/009_remove_redundant_indexes.sql.
 --
 -- Tables (25):
 --   users, user_profiles, user_points, user_stats_summary, daily_user_stats,
@@ -14,8 +16,8 @@
 --   group_challenge_participants,
 --   community_events, community_event_attendees
 --
--- Run order: run this file once in Supabase SQL Editor, then
--- run performance-patch.sql for additional index/RLS optimisations.
+-- Run order: run this file once in Supabase SQL Editor, then apply migrations
+-- 007, 008, and 009 from the sql/ directory in numeric order.
 -- ============================================================================
 
 -- ── §0. Drop function overloads with return-type drift ───────────────────────
@@ -256,7 +258,6 @@ CREATE TABLE IF NOT EXISTS public.sync_items (
   last_synced_at timestamptz,
   CONSTRAINT sync_items_user_entity_id_unique UNIQUE (user_id, entity, entity_id)
 );
-CREATE INDEX IF NOT EXISTS sync_items_user_id_idx ON public.sync_items(user_id);
 CREATE INDEX IF NOT EXISTS sync_items_status_idx ON public.sync_items(user_id, status);
 CREATE INDEX IF NOT EXISTS sync_items_entity_idx ON public.sync_items(user_id, entity, entity_id);
 
@@ -619,7 +620,6 @@ CREATE INDEX IF NOT EXISTS idx_sessions_u_v8       ON public.study_sessions_log 
 CREATE INDEX IF NOT EXISTS idx_sessions_user_started ON public.study_sessions_log (user_id, started_at DESC);
 
 -- user_presence
-CREATE INDEX IF NOT EXISTS idx_presence_status     ON public.user_presence (status);
 CREATE INDEX IF NOT EXISTS idx_presence_last_seen  ON public.user_presence (last_seen DESC);
 CREATE INDEX IF NOT EXISTS idx_presence_updated_at ON public.user_presence (updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_presence_s_v8       ON public.user_presence (status, last_seen DESC);
@@ -641,7 +641,6 @@ CREATE INDEX IF NOT EXISTS idx_store_act_v8        ON public.store_items (active
 
 -- user_inventory
 CREATE INDEX IF NOT EXISTS idx_inventory_u_v8      ON public.user_inventory (user_id);
-CREATE INDEX IF NOT EXISTS idx_inventory_user      ON public.user_inventory (user_id);
 
 -- groups
 CREATE INDEX IF NOT EXISTS idx_groups_fts          ON public.groups USING GIN (fts);
@@ -653,7 +652,6 @@ CREATE INDEX IF NOT EXISTS idx_groups_del          ON public.groups (deleted_at)
 
 -- group_members
 CREATE INDEX IF NOT EXISTS idx_gm_group            ON public.group_members (group_id);
-CREATE INDEX IF NOT EXISTS idx_gm_user             ON public.group_members (user_id);
 CREATE INDEX IF NOT EXISTS idx_gm_user_group_covering ON public.group_members (user_id, group_id);
 CREATE INDEX IF NOT EXISTS idx_gmembers_gu_v8      ON public.group_members (group_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_gmembers_u_v8       ON public.group_members (user_id);
@@ -672,7 +670,6 @@ CREATE INDEX IF NOT EXISTS idx_invites_code_v8     ON public.group_invites (invi
 CREATE INDEX IF NOT EXISTS idx_invites_tok_v8      ON public.group_invites (token);
 
 -- group_announcements
-CREATE INDEX IF NOT EXISTS idx_gann_group          ON public.group_announcements (group_id);
 CREATE INDEX IF NOT EXISTS idx_gann_pinned         ON public.group_announcements (group_id, pinned DESC, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_gann_author         ON public.group_announcements (author_id);
 
@@ -1075,7 +1072,11 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER AS $$
   )
   FROM public.users u
   LEFT JOIN public.user_points up ON up.user_id = u.id
-  WHERE u.id = COALESCE(p_user_id, target_user_id);
+  WHERE u.id = COALESCE(p_user_id, target_user_id, (SELECT auth.uid()))
+    AND (
+      (SELECT auth.role()) = 'service_role'
+      OR u.id = (SELECT auth.uid())
+    );
 $$;
 
 -- get_group_analytics_from_snapshots
@@ -1311,6 +1312,16 @@ DECLARE
   v_pts   integer;
   v_owned boolean;
 BEGIN
+  IF p_user_id IS NULL
+     OR (
+       (SELECT auth.role()) <> 'service_role'
+       AND (
+         (SELECT auth.uid()) IS NULL
+         OR p_user_id IS DISTINCT FROM (SELECT auth.uid())
+       )
+     ) THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'not_authorized');
+  END IF;
   SELECT * INTO v_item FROM public.store_items WHERE id = p_item_id AND active = true;
   IF NOT FOUND THEN RETURN jsonb_build_object('ok', false, 'error', 'item_not_found'); END IF;
   SELECT EXISTS(SELECT 1 FROM public.user_inventory WHERE user_id = p_user_id AND item_id = p_item_id) INTO v_owned;

@@ -41,7 +41,10 @@ Tables/RPCs/buckets are defined in:
 Run order for fresh setup:
 
 1. `isotope-complete.sql`
-2. Optional compatibility migrations in `sql/` only if upgrading an older install
-3. `sql/verify-security.sql` for verification queries
+2. `sql/007_comprehensive_sql_rls_hardening.sql`
+3. `sql/008_security_invoker_rpc_boundary.sql`
+4. `sql/009_remove_redundant_indexes.sql`
+5. Optional compatibility migrations in `sql/` only if upgrading an older install
+6. `sql/verify-security.sql` for verification queries
 
 `isotope-complete.sql` now includes `sync_items` and `backup_manifests` for fresh installs.

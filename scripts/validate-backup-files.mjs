@@ -33,7 +33,10 @@ if (localFiles.length) {
 const userId = args.user || '3f56d64e-b1c5-45d6-9ba3-4e204f6bc9df';
 const env = loadEnv();
 const manager = createScriptBackupManager(env);
-const best = await manager.findBestCloudBackup(userId, env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY);
+const best = await manager.findBestCloudBackup(
+  userId,
+  env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY,
+);
 
 console.log(`user=${userId}`);
 console.log('selected=');

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": {
-    "worktreeFingerprint": "874563c9e84b1ad0e24331f6dbe80e29a9cc4c960b6551e97385108adbb9ab16"
+    "worktreeFingerprint": "69d98b41205ad15b421b84610e16f9036bff62be09bb1083820e710a9538766e"
   },
   "scope": {
     "source": "Git index paths with current worktree content",
@@ -10,21 +10,21 @@
     ],
     "sensitivePathPolicy": "Omit live environment, private-key, and credential paths; never emit contents or matched values",
     "trackedNonAuditFileCount": 433,
-    "untrackedNonAuditFileCount": 0,
+    "untrackedNonAuditFileCount": 4,
     "excludedSensitivePathCount": 0,
-    "auditedFileCount": 433
+    "auditedFileCount": 437
   },
   "summary": {
-    "totalBytes": 71954046,
-    "activeFileCount": 254,
+    "totalBytes": 71977711,
+    "activeFileCount": 257,
     "classifications": {
-      "authored:configuration": 25,
-      "authored:database": 11,
+      "authored:configuration": 26,
+      "authored:database": 13,
       "authored:documentation": 23,
       "authored:runtime": 20,
       "authored:source": 64,
       "authored:static-asset": 46,
-      "authored:tooling": 31,
+      "authored:tooling": 32,
       "generated:bundle": 155,
       "generated:bundle-asset": 51,
       "generated:bundle-wrapper": 6,
@@ -38,18 +38,18 @@
       "html": 9,
       "image": 20,
       "image-vector": 8,
-      "javascript": 190,
+      "javascript": 191,
       "json": 7,
       "license": 1,
       "markdown": 13,
       "shell-script": 12,
-      "sql": 12,
+      "sql": 14,
       "stylesheet": 9,
       "text": 4,
       "typescript": 62,
       "version": 1,
       "video": 1,
-      "yaml": 14
+      "yaml": 15
     },
     "riskSignals": {
       "connection.hardcoded_localhost": 45,
@@ -62,21 +62,21 @@
       "network.supabase_client": 63,
       "network.websocket": 24,
       "secrets.identifiers": 55,
-      "sql.rls": 370,
-      "sql.statements": 4671,
+      "sql.rls": 371,
+      "sql.statements": 4757,
       "storage.cache_api": 69,
       "storage.filesystem": 21,
       "storage.web": 459,
       "timers.interval": 33,
-      "timers.timeout": 237
+      "timers.timeout": 238
     }
   },
   "files": [
     {
       "path": ".env.example",
       "source": "git-tracked",
-      "sha256": "5ea7aaf55fa624a900604b300d207d4486e894f69bfe27f2be3b102059fe306e",
-      "size": 2483,
+      "sha256": "c6110597e5532042e4871eff79abff4d819cbadd46c441e3fe69a5971a78ebcb",
+      "size": 2584,
       "type": "environment-template",
       "text": false,
       "classification": "authored:configuration",
@@ -93,6 +93,22 @@
       "source": "git-tracked",
       "sha256": "e442135091171b4747e90fc68a0287f80946840bcb5dc48941c6a67d3d5b30ab",
       "size": 173,
+      "type": "yaml",
+      "text": true,
+      "classification": "authored:configuration",
+      "editableSource": true,
+      "entrypoint": null,
+      "references": [],
+      "consumers": [],
+      "activeConsumers": [],
+      "active": false,
+      "riskSignals": []
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "source": "worktree-untracked",
+      "sha256": "80abbb1f0826b3093f917cf1158fea7038dd4b11c826ea16a357044a09eb7af6",
+      "size": 549,
       "type": "yaml",
       "text": true,
       "classification": "authored:configuration",
@@ -211,7 +227,7 @@
     {
       "path": ".github/workflows/auto-label.yml",
       "source": "git-tracked",
-      "sha256": "26aa17167549da51b26b7ceb4a80846e239559baf67230a714d8bec5a2d80e60",
+      "sha256": "9dcb0203740a97f3efaa8a45fc82d3e4f94e32361ddc653edd082ba4cd758e0f",
       "size": 479,
       "type": "yaml",
       "text": true,
@@ -227,8 +243,8 @@
     {
       "path": ".github/workflows/ci.yml",
       "source": "git-tracked",
-      "sha256": "21762641df7bfd7a964027b73d9d006238e50c2bb1d72a348e3eef8241a0aa5a",
-      "size": 14734,
+      "sha256": "08878364e1aecd7b9237ccedd98f2733debd6f55c300b6225c1abed39e2934f6",
+      "size": 15068,
       "type": "yaml",
       "text": true,
       "classification": "authored:configuration",
@@ -259,6 +275,8 @@
         "server/backup-manager.mjs",
         "sql/006_security_policy_cleanup.sql",
         "sql/007_comprehensive_sql_rls_hardening.sql",
+        "sql/008_security_invoker_rpc_boundary.sql",
+        "sql/009_remove_redundant_indexes.sql",
         "sql/backup_manifests.sql",
         "sql/verify-security.sql",
         "TERMUX_WIDGET.md"
@@ -292,7 +310,7 @@
     {
       "path": ".github/workflows/codeql.yml",
       "source": "git-tracked",
-      "sha256": "182ac64d90e84aa2e87d35b0104fedbfb33808247bb57dbded12e16ff5d7a6ed",
+      "sha256": "2a0c9eb1703c8f40a55c3f9047144705ff13269792569c444990e917ab65ac42",
       "size": 1154,
       "type": "yaml",
       "text": true,
@@ -308,7 +326,7 @@
     {
       "path": ".github/workflows/dependency-review.yml",
       "source": "git-tracked",
-      "sha256": "d12463ced2d9bc607bd4330560338ddac4987c020c43ee5452d2a935757fa39c",
+      "sha256": "fc26c5123e4c47a8a4c5cb9de00454d74267f6212e17e19af1adb03b6aac6e16",
       "size": 1124,
       "type": "yaml",
       "text": true,
@@ -324,7 +342,7 @@
     {
       "path": ".github/workflows/lighthouse.yml",
       "source": "git-tracked",
-      "sha256": "0b40cd193619cd59f3a30ad8ae83c5f85d03ec8dde04b2af069620a5ebd2d09a",
+      "sha256": "51d16a28f849f9caf65e32e69b9f83e2545bebd0abc5b55db070018c31974ace",
       "size": 1100,
       "type": "yaml",
       "text": true,
@@ -340,7 +358,7 @@
     {
       "path": ".github/workflows/pages.yml",
       "source": "git-tracked",
-      "sha256": "c552eb65fbd204959293a319a6d3a3bcae860b9ae9f8eb30f5317edee1e70f4f",
+      "sha256": "f2bca303afd0bc13dd33cc749cde91934ec2587e2770df48a4e156c58f7de43f",
       "size": 823,
       "type": "yaml",
       "text": true,
@@ -359,8 +377,8 @@
     {
       "path": ".github/workflows/regenerate-release.yml",
       "source": "git-tracked",
-      "sha256": "ac9e26d99189c05df5d7aa56c4c572f70d498baba91395b267cd37165f6e8682",
-      "size": 5408,
+      "sha256": "1b0093d67674d3a38648c0817fd898c9c955467d91744fb0a8a8a64a80e3e7b9",
+      "size": 5511,
       "type": "yaml",
       "text": true,
       "classification": "authored:configuration",
@@ -386,6 +404,8 @@
         "server.mjs",
         "server/backup-manager.mjs",
         "sql/007_comprehensive_sql_rls_hardening.sql",
+        "sql/008_security_invoker_rpc_boundary.sql",
+        "sql/009_remove_redundant_indexes.sql",
         "sql/backup_manifests.sql"
       ],
       "consumers": [],
@@ -413,8 +433,8 @@
     {
       "path": ".github/workflows/release.yml",
       "source": "git-tracked",
-      "sha256": "46c02f3d44e722985d4921a45d0d8dc052490a3677d2781759c7439ea24f4ac5",
-      "size": 10362,
+      "sha256": "40418f6db10eeb7c7614ae1e152e1323cd8cc3081f76fbc8ec25819160dadea1",
+      "size": 10465,
       "type": "yaml",
       "text": true,
       "classification": "authored:configuration",
@@ -449,6 +469,8 @@
         "server/backup-manager.mjs",
         "sql/006_security_policy_cleanup.sql",
         "sql/007_comprehensive_sql_rls_hardening.sql",
+        "sql/008_security_invoker_rpc_boundary.sql",
+        "sql/009_remove_redundant_indexes.sql",
         "sql/backup_manifests.sql"
       ],
       "consumers": [],
@@ -476,7 +498,7 @@
     {
       "path": ".github/workflows/schema-lint.yml",
       "source": "git-tracked",
-      "sha256": "91b5a0c132155bfcb909496206dbef51e7fc614c8533438082f3842466131275",
+      "sha256": "523f3416e529b63e0686b5a26ea768218015bb01b0380455606015561524dd98",
       "size": 8974,
       "type": "yaml",
       "text": true,
@@ -505,8 +527,8 @@
     {
       "path": ".github/workflows/stale.yml",
       "source": "git-tracked",
-      "sha256": "a711f4a61cb190835456e64e5173ab57e1a24fe803c68a89d5335177747b7d5c",
-      "size": 1950,
+      "sha256": "c20666f53f73f54b5d436c0793379eb2f99ac034f9a21f8a22b21a3828a787d1",
+      "size": 1951,
       "type": "yaml",
       "text": true,
       "classification": "authored:configuration",
@@ -521,7 +543,7 @@
     {
       "path": ".github/workflows/welcome.yml",
       "source": "git-tracked",
-      "sha256": "1dabc056e3c14f5b534a6f9422209612b9a3bc43a91652a24ec5094cbe6d21fd",
+      "sha256": "25ef68c688bcb361238583b8af1139363df1a550987046335a85623a398e415a",
       "size": 2920,
       "type": "yaml",
       "text": true,
@@ -573,8 +595,8 @@
     {
       "path": "ADMIN.md",
       "source": "git-tracked",
-      "sha256": "9b1421c3c47247912099bb64168ea60139a8320c60c1bb9a46830e879334428a",
-      "size": 21623,
+      "sha256": "203e1a232d931353e50f98c74a06f93bf01a9583e361b6f2b5e06ced446d0637",
+      "size": 21627,
       "type": "markdown",
       "text": true,
       "classification": "authored:documentation",
@@ -585,7 +607,8 @@
         "events-expansion.sql",
         "index.html",
         "isotope-schema.sql",
-        "public/auth-bridge.js"
+        "public/auth-bridge.js",
+        "sql/008_security_invoker_rpc_boundary.sql"
       ],
       "consumers": [
         ".github/workflows/ci.yml",
@@ -767,14 +790,15 @@
     {
       "path": "community-patch-v4.sql",
       "source": "git-tracked",
-      "sha256": "2de588bcff90d60846ac9652a07fa6c131b8e90a4abf9f8c220cdff6f8499b80",
-      "size": 121696,
+      "sha256": "bcef142e6d8a6ddc5f9a5eafa6f733a565c6ce49a53a6a003280baaec954f6e2",
+      "size": 121912,
       "type": "sql",
       "text": true,
       "classification": "authored:database",
       "editableSource": true,
       "entrypoint": null,
       "references": [
+        "isotope-complete.sql",
         "isotope-schema.sql",
         "public/assets/App-pJGjDiPw.js",
         "server.mjs"
@@ -885,8 +909,8 @@
     {
       "path": "docs/admin.html",
       "source": "git-tracked",
-      "sha256": "c54078fe7c3a51095fb6cb1bcc3b9e4d0e3a3877fdc2f35fa56d6fe2f7a0166b",
-      "size": 5596,
+      "sha256": "f350592944e9a32d12e24b25cdb7e29927cd29bbe4680670d5e674b1d663462c",
+      "size": 5591,
       "type": "html",
       "text": true,
       "classification": "authored:documentation",
@@ -1362,8 +1386,8 @@
     {
       "path": "docs/supabase-connection-map.md",
       "source": "git-tracked",
-      "sha256": "b391d417bc9a5180b9bea336ca71f232167763591b4b9f3bd36151990ab7ab6b",
-      "size": 6456,
+      "sha256": "0818e8e55d0439bf46ee862086fc4cff274f2f679ab5c425c7e9aecbe6a6e40a",
+      "size": 6594,
       "type": "markdown",
       "text": true,
       "classification": "authored:documentation",
@@ -1376,6 +1400,9 @@
         "public/assets/sessionSync-mloIEnTd.js",
         "public/restore-and-launch.js",
         "server.mjs",
+        "sql/007_comprehensive_sql_rls_hardening.sql",
+        "sql/008_security_invoker_rpc_boundary.sql",
+        "sql/009_remove_redundant_indexes.sql",
         "sql/backup_manifests.sql",
         "sql/verify-security.sql"
       ],
@@ -1664,16 +1691,18 @@
     {
       "path": "isotope-complete.sql",
       "source": "git-tracked",
-      "sha256": "5d963e8cdd2628d6b9aaced393535584eb624ca253939749ea57f4c57180ef9b",
-      "size": 98992,
+      "sha256": "7ff2f1ffce883bf654b77381ebb1429fce41d3137db813660ec261705efc086c",
+      "size": 99158,
       "type": "sql",
       "text": true,
       "classification": "authored:database",
       "editableSource": true,
       "entrypoint": null,
       "references": [
-        "performance-patch.sql",
-        "server.mjs"
+        "server.mjs",
+        "sql/007_comprehensive_sql_rls_hardening.sql",
+        "sql/008_security_invoker_rpc_boundary.sql",
+        "sql/009_remove_redundant_indexes.sql"
       ],
       "consumers": [
         ".github/labeler.yml",
@@ -1683,8 +1712,10 @@
         ".github/workflows/schema-lint.yml",
         ".github/workflows/welcome.yml",
         "CHANGELOG.md",
+        "community-patch-v4.sql",
         "CONTRIBUTING.md",
         "docs/supabase-connection-map.md",
+        "isotope-schema.sql",
         "performance-patch.sql",
         "README.md",
         "scripts/validate-docs.mjs",
@@ -1697,8 +1728,10 @@
         ".github/workflows/schema-lint.yml",
         ".github/workflows/welcome.yml",
         "CHANGELOG.md",
+        "community-patch-v4.sql",
         "CONTRIBUTING.md",
         "docs/supabase-connection-map.md",
+        "isotope-schema.sql",
         "performance-patch.sql",
         "README.md",
         "scripts/validate-docs.mjs",
@@ -1709,7 +1742,7 @@
       "riskSignals": [
         {
           "id": "sql.statements",
-          "count": 795
+          "count": 796
         },
         {
           "id": "sql.rls",
@@ -1720,14 +1753,16 @@
     {
       "path": "isotope-schema.sql",
       "source": "git-tracked",
-      "sha256": "0e40841ab97ae5939ab99501ce45981adddc71c9225c6c95d956a0ac01de7101",
-      "size": 33138,
+      "sha256": "8a65311ba11ee27579a78ece938d354fd0194069e2716438f0fd6588f6903dd5",
+      "size": 33354,
       "type": "sql",
       "text": true,
       "classification": "authored:database",
       "editableSource": true,
       "entrypoint": null,
-      "references": [],
+      "references": [
+        "isotope-complete.sql"
+      ],
       "consumers": [
         "ADMIN.md",
         "CHANGELOG.md",
@@ -1840,8 +1875,8 @@
     {
       "path": "package-lock.json",
       "source": "git-tracked",
-      "sha256": "ddefe92d0b44b1499318e63cf3fe5f223596eb5470d6946e13bf700a087f8cf3",
-      "size": 142267,
+      "sha256": "bdeafec6af2ee6718a827dd9432e3657bc537dbde0b07fbdd19d0b9906632bf7",
+      "size": 142043,
       "type": "json",
       "text": true,
       "classification": "generated:dependency-lock",
@@ -1854,15 +1889,15 @@
       "riskSignals": [
         {
           "id": "sql.statements",
-          "count": 2
+          "count": 1
         }
       ]
     },
     {
       "path": "package.json",
       "source": "git-tracked",
-      "sha256": "3cc2686ac585c93d7e52bab5cf80939665291010012cfcaeb44bff540959c804",
-      "size": 2039,
+      "sha256": "88fb5b548a701b425e52d2bac43f701a1a8ef8e78f8898874d55973219ecc264",
+      "size": 2143,
       "type": "json",
       "text": true,
       "classification": "authored:configuration",
@@ -1872,6 +1907,7 @@
         "scripts/capture-screenshots.mjs",
         "scripts/compare-remote-assets.mjs",
         "scripts/generate-current-audit.mjs",
+        "scripts/patch-lhci-js-yaml.mjs",
         "scripts/prove-new-browser-restore.mjs",
         "scripts/prove-runtime-glue.mjs",
         "scripts/prove-supabase-sync.mjs",
@@ -1938,14 +1974,12 @@
         ".github/workflows/ci.yml",
         ".github/workflows/schema-lint.yml",
         "CHANGELOG.md",
-        "isotope-complete.sql",
         "server.mjs"
       ],
       "activeConsumers": [
         ".github/workflows/ci.yml",
         ".github/workflows/schema-lint.yml",
         "CHANGELOG.md",
-        "isotope-complete.sql",
         "server.mjs"
       ],
       "active": true,
@@ -12196,8 +12230,8 @@
     {
       "path": "README.md",
       "source": "git-tracked",
-      "sha256": "a88e5e2789fa2f68b547c6c7d7c8f2f3485fbe4a6bc867b7a254e8b6ec062bf3",
-      "size": 8206,
+      "sha256": "db30146dfb68d42f62e450ee71689a4c1fc51ed1071b656646d82210f0607527",
+      "size": 8570,
       "type": "markdown",
       "text": true,
       "classification": "authored:documentation",
@@ -12218,7 +12252,9 @@
         "scripts/validate-storage-cleanup.mjs",
         "server.mjs",
         "server/backup-manager.mjs",
-        "sql/007_comprehensive_sql_rls_hardening.sql"
+        "sql/007_comprehensive_sql_rls_hardening.sql",
+        "sql/008_security_invoker_rpc_boundary.sql",
+        "sql/009_remove_redundant_indexes.sql"
       ],
       "consumers": [
         ".github/workflows/ci.yml",
@@ -12631,10 +12667,35 @@
       ]
     },
     {
+      "path": "scripts/patch-lhci-js-yaml.mjs",
+      "source": "worktree-untracked",
+      "sha256": "ab89a38940aca04dbe5866a8fbc6b171a7e8f248d92135377327d31c6f3524dc",
+      "size": 571,
+      "type": "javascript",
+      "text": true,
+      "classification": "authored:tooling",
+      "editableSource": true,
+      "entrypoint": "tool-entry",
+      "references": [],
+      "consumers": [
+        "package.json"
+      ],
+      "activeConsumers": [
+        "package.json"
+      ],
+      "active": true,
+      "riskSignals": [
+        {
+          "id": "sql.statements",
+          "count": 1
+        }
+      ]
+    },
+    {
       "path": "scripts/prove-new-browser-restore.mjs",
       "source": "git-tracked",
-      "sha256": "0787252882048ffdc0702b0b4f8a1871db564b1f7c5a969e9914a7f6f00347d4",
-      "size": 2593,
+      "sha256": "7019f262321e30f322a7670db0985feadc887d39036e88f0d6bcdb9f21b40906",
+      "size": 2620,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -12701,8 +12762,8 @@
     {
       "path": "scripts/prove-supabase-sync.mjs",
       "source": "git-tracked",
-      "sha256": "ee654da42275c51cdc53047d6c6368562b4d9e16a8539c32679a71a459947adf",
-      "size": 6291,
+      "sha256": "cfda4e0d2085b3afbf08655baf442a2dc30f401292ab249bb0dc2d9aec5da1a8",
+      "size": 6387,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -12742,8 +12803,8 @@
     {
       "path": "scripts/repair-user-backup.mjs",
       "source": "git-tracked",
-      "sha256": "9d0c15f50b8079d11f4ad4f9ff0408fd402585e2e2ca8e2d5c0192f7e3cee40b",
-      "size": 2019,
+      "sha256": "13c9cf46368667bc67dbeba5d217503d223adbcfe5aa12cc2c873f594c3243cf",
+      "size": 2046,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -12815,8 +12876,8 @@
     {
       "path": "scripts/storage-backup-lib.mjs",
       "source": "git-tracked",
-      "sha256": "b06914f86852652286744eabf8c4e4c48c3dfac78968b4a593d4c7c8a2e8d969",
-      "size": 4843,
+      "sha256": "352e7c42403c4284d9314fbfb38a988789d91f42364c5b06e360b6f9f8422e26",
+      "size": 4930,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -12993,8 +13054,8 @@
     {
       "path": "scripts/test-server-security.mjs",
       "source": "git-tracked",
-      "sha256": "9cfea9418eed57d2524328b190a252cdd23709b6b2858e53d7630b7241775c5f",
-      "size": 8074,
+      "sha256": "6d68680ed0975cfbbec78750e86bc9ad161461ebf3ff5baea7f7fd38be4ffc15",
+      "size": 8178,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -13036,8 +13097,8 @@
     {
       "path": "scripts/validate-backup-files.mjs",
       "source": "git-tracked",
-      "sha256": "3f1b5441056669ae3faa5bf880835c211565a28cfec60946ce3b58c4505b1b3e",
-      "size": 1552,
+      "sha256": "8cfd96d7a4eff819ff671b3aa3ab945fe3e0c372fda3a51c2791da3e9c210e26",
+      "size": 1586,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -13072,8 +13133,8 @@
     {
       "path": "scripts/validate-docs.mjs",
       "source": "git-tracked",
-      "sha256": "2a474b4e35923dda44e5ff546cc59a4a40aa6e961d09cc47f40ef71d8dc0854c",
-      "size": 11991,
+      "sha256": "f323b567cf759d8285e7ed63fb253fdfbe0e5f79c21124b2e4b5617a2e461eb8",
+      "size": 12211,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -13097,6 +13158,9 @@
         "scripts/capture-screenshots.mjs",
         "scripts/seed-demo-data.mjs",
         "server.mjs",
+        "sql/007_comprehensive_sql_rls_hardening.sql",
+        "sql/008_security_invoker_rpc_boundary.sql",
+        "sql/009_remove_redundant_indexes.sql",
         "TERMUX_WIDGET.md"
       ],
       "consumers": [
@@ -13118,8 +13182,8 @@
     {
       "path": "scripts/validate-storage-cleanup.mjs",
       "source": "git-tracked",
-      "sha256": "4914a15d4e0ab5b4da1c5f3170ed610e9e466c12f7ae618b3926e059605e6595",
-      "size": 883,
+      "sha256": "484b0a50348fcd21a1df9c7a1e72b7ee68eb00e43150bcbb4f0f813e4b04dd37",
+      "size": 910,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -13179,15 +13243,16 @@
     {
       "path": "scripts/verify-sql-hardening.sql",
       "source": "git-tracked",
-      "sha256": "6e9bea0270285efcad04b91017ce421f09de0f90c442068706bffb9c6ed158e6",
-      "size": 7747,
+      "sha256": "d4c2936a2e23405f2a7828d71939fddb23e721b959de70d0ea4502307d109427",
+      "size": 8371,
       "type": "sql",
       "text": true,
       "classification": "authored:tooling",
       "editableSource": true,
       "entrypoint": "tool-entry",
       "references": [
-        "sql/007_comprehensive_sql_rls_hardening.sql"
+        "sql/007_comprehensive_sql_rls_hardening.sql",
+        "sql/008_security_invoker_rpc_boundary.sql"
       ],
       "consumers": [
         ".github/workflows/ci.yml",
@@ -13203,15 +13268,15 @@
       "riskSignals": [
         {
           "id": "sql.statements",
-          "count": 37
+          "count": 38
         }
       ]
     },
     {
       "path": "scripts/verify-supabase-security.mjs",
       "source": "git-tracked",
-      "sha256": "e9cf469ed560f6f2a8a414247da3a2830cddec373e61940c503ff1fbaec2827a",
-      "size": 14965,
+      "sha256": "e9a3e1d71fbeb2ce7b27d34cd29ff549882f51a69c5a2a74e4a282e90f972c64",
+      "size": 19998,
       "type": "javascript",
       "text": true,
       "classification": "authored:tooling",
@@ -13235,6 +13300,10 @@
       "active": true,
       "riskSignals": [
         {
+          "id": "timers.timeout",
+          "count": 1
+        },
+        {
           "id": "network.fetch",
           "count": 1
         },
@@ -13248,15 +13317,15 @@
         },
         {
           "id": "sql.statements",
-          "count": 21
+          "count": 23
         }
       ]
     },
     {
       "path": "server.mjs",
       "source": "git-tracked",
-      "sha256": "2dd04730d8c8e6cd5410007ab819ee46f17b180e4b3dcc8be34b29badf76da81",
-      "size": 438639,
+      "sha256": "b0759cc763f72446c38d406e0e67e5a3efbb4e9fa7a993e9ddadc128e7b6bad1",
+      "size": 439055,
       "type": "javascript",
       "text": true,
       "classification": "authored:source",
@@ -13298,7 +13367,7 @@
         "public/update-checker.js",
         "public/ux-setup.js",
         "server/backup-manager.mjs",
-        "sql/007_comprehensive_sql_rls_hardening.sql"
+        "sql/008_security_invoker_rpc_boundary.sql"
       ],
       "consumers": [
         ".github/labeler.yml",
@@ -13392,7 +13461,7 @@
         },
         {
           "id": "sql.statements",
-          "count": 161
+          "count": 162
         },
         {
           "id": "sql.rls",
@@ -13583,17 +13652,21 @@
         ".github/workflows/ci.yml",
         ".github/workflows/regenerate-release.yml",
         ".github/workflows/release.yml",
+        "docs/supabase-connection-map.md",
+        "isotope-complete.sql",
         "README.md",
-        "scripts/verify-sql-hardening.sql",
-        "server.mjs"
+        "scripts/validate-docs.mjs",
+        "scripts/verify-sql-hardening.sql"
       ],
       "activeConsumers": [
         ".github/workflows/ci.yml",
         ".github/workflows/regenerate-release.yml",
         ".github/workflows/release.yml",
+        "docs/supabase-connection-map.md",
+        "isotope-complete.sql",
         "README.md",
-        "scripts/verify-sql-hardening.sql",
-        "server.mjs"
+        "scripts/validate-docs.mjs",
+        "scripts/verify-sql-hardening.sql"
       ],
       "active": true,
       "riskSignals": [
@@ -13604,6 +13677,90 @@
         {
           "id": "sql.rls",
           "count": 96
+        }
+      ]
+    },
+    {
+      "path": "sql/008_security_invoker_rpc_boundary.sql",
+      "source": "worktree-untracked",
+      "sha256": "12dcf6892a852b5e4ac82c9991355643bc4edec17bf28e92c76c3525caadb3d0",
+      "size": 13684,
+      "type": "sql",
+      "text": true,
+      "classification": "authored:database",
+      "editableSource": true,
+      "entrypoint": null,
+      "references": [],
+      "consumers": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/regenerate-release.yml",
+        ".github/workflows/release.yml",
+        "ADMIN.md",
+        "docs/supabase-connection-map.md",
+        "isotope-complete.sql",
+        "README.md",
+        "scripts/validate-docs.mjs",
+        "scripts/verify-sql-hardening.sql",
+        "server.mjs"
+      ],
+      "activeConsumers": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/regenerate-release.yml",
+        ".github/workflows/release.yml",
+        "ADMIN.md",
+        "docs/supabase-connection-map.md",
+        "isotope-complete.sql",
+        "README.md",
+        "scripts/validate-docs.mjs",
+        "scripts/verify-sql-hardening.sql",
+        "server.mjs"
+      ],
+      "active": true,
+      "riskSignals": [
+        {
+          "id": "sql.statements",
+          "count": 76
+        },
+        {
+          "id": "sql.rls",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "path": "sql/009_remove_redundant_indexes.sql",
+      "source": "worktree-untracked",
+      "sha256": "bf0a548461d0426c60588b2828a7c4834f5ca4e3f20dd622cbf73779bb22b9fd",
+      "size": 545,
+      "type": "sql",
+      "text": true,
+      "classification": "authored:database",
+      "editableSource": true,
+      "entrypoint": null,
+      "references": [],
+      "consumers": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/regenerate-release.yml",
+        ".github/workflows/release.yml",
+        "docs/supabase-connection-map.md",
+        "isotope-complete.sql",
+        "README.md",
+        "scripts/validate-docs.mjs"
+      ],
+      "activeConsumers": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/regenerate-release.yml",
+        ".github/workflows/release.yml",
+        "docs/supabase-connection-map.md",
+        "isotope-complete.sql",
+        "README.md",
+        "scripts/validate-docs.mjs"
+      ],
+      "active": true,
+      "riskSignals": [
+        {
+          "id": "sql.statements",
+          "count": 5
         }
       ]
     },

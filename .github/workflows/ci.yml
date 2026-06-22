@@ -25,10 +25,10 @@ jobs:
 
     steps:
       - name: ⬇️ Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 🟢 Setup Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
 
@@ -202,6 +202,8 @@ jobs:
             community-patch-v4.sql
             sql/006_security_policy_cleanup.sql
             sql/007_comprehensive_sql_rls_hardening.sql
+            sql/008_security_invoker_rpc_boundary.sql
+            sql/009_remove_redundant_indexes.sql
             sql/backup_manifests.sql
             scripts/verify-sql-hardening.sql
             sql/verify-security.sql
@@ -241,7 +243,7 @@ jobs:
             echo "❌ .env is tracked; remove it before release"
             exit 1
           fi
-          if git grep -nE 'SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=[[:space:]]*eyJ|SUPABASE_ACCESS_TOKEN[[:space:]]*=[[:space:]]*sbp_|ADMIN_SECRET[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{24,}' -- \
+          if git grep -nE 'SUPABASE_SECRET_KEY[[:space:]]*=[[:space:]]*sb_secret_[A-Za-z0-9_-]{16,}|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=[[:space:]]*eyJ|SUPABASE_ACCESS_TOKEN[[:space:]]*=[[:space:]]*sbp_|ADMIN_SECRET[[:space:]]*=[[:space:]]*[A-Za-z0-9_-]{24,}' -- \
                ':!*.md' ':!.env.example' ':!public/assets/**'; then
             echo "❌ Hardcoded private secret detected!"
             exit 1
@@ -252,7 +254,7 @@ jobs:
       - name: 📋 Schema file stats
         run: |
           set -euo pipefail
-          for f in isotope-complete.sql community-patch-v4.sql sql/006_security_policy_cleanup.sql sql/007_comprehensive_sql_rls_hardening.sql sql/backup_manifests.sql sql/verify-security.sql scripts/verify-sql-hardening.sql performance-patch.sql; do
+          for f in isotope-complete.sql community-patch-v4.sql sql/006_security_policy_cleanup.sql sql/007_comprehensive_sql_rls_hardening.sql sql/008_security_invoker_rpc_boundary.sql sql/009_remove_redundant_indexes.sql sql/backup_manifests.sql sql/verify-security.sql scripts/verify-sql-hardening.sql performance-patch.sql; do
             if [ -f "$f" ]; then
               echo "=== $f ==="
               echo "  Size   : $(wc -c < "$f") bytes"
@@ -334,7 +336,7 @@ jobs:
           unzip -q "isotope-v${VERSION}-ci-test.zip" -d "$TMPDIR"
           echo "Verifying extracted release..."
           FAIL=0
-          for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql sql/007_comprehensive_sql_rls_hardening.sql scripts/verify-sql-hardening.sql docs/sync-system.md docs/storage-backup-system.md docs/supabase-connection-map.md; do
+          for f in server.mjs package.json setup.sh install-termux.sh bin/isotope .env.example public/sync/backup-normalizer.js public/sync/local-data-adapter.js server/backup-manager.mjs scripts/prove-new-browser-restore.mjs sql/backup_manifests.sql sql/007_comprehensive_sql_rls_hardening.sql sql/008_security_invoker_rpc_boundary.sql sql/009_remove_redundant_indexes.sql scripts/verify-sql-hardening.sql docs/sync-system.md docs/storage-backup-system.md docs/supabase-connection-map.md; do
             if [ -f "$TMPDIR/$f" ]; then
               echo "  ✅ $f"
             else
@@ -358,7 +360,7 @@ jobs:
       # ── Upload logs on failure ────────────────────────────────────────────────
       - name: 📤 Upload CI logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ci-logs-node${{ matrix.node }}-${{ github.run_id }}
           path: |

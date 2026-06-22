@@ -14,7 +14,7 @@ if (!/^[0-9a-f-]{36}$/i.test(userId)) {
 
 const env = loadEnv();
 const manager = createScriptBackupManager(env);
-const userJwt = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
+const userJwt = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
 
 console.log(`user=${userId}`);
 console.log(`mode=${dryRun ? 'dry-run' : 'apply'}`);
