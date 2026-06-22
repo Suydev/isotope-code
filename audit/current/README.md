@@ -3,8 +3,8 @@
 Schema: 1
 Worktree fingerprint: 69d98b41205ad15b421b84610e16f9036bff62be09bb1083820e710a9538766e
 Audited files: 437
-Git-tracked non-audit files: 433
-Untracked non-audit files: 4
+Git-tracked non-audit files: 437
+Untracked non-audit files: 0
 Excluded sensitive paths: 0
 Active/reachable files: 257
 

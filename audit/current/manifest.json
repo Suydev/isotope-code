@@ -9,8 +9,8 @@
       "audit/"
     ],
     "sensitivePathPolicy": "Omit live environment, private-key, and credential paths; never emit contents or matched values",
-    "trackedNonAuditFileCount": 433,
-    "untrackedNonAuditFileCount": 4,
+    "trackedNonAuditFileCount": 437,
+    "untrackedNonAuditFileCount": 0,
     "excludedSensitivePathCount": 0,
     "auditedFileCount": 437
   },
@@ -106,7 +106,7 @@
     },
     {
       "path": ".github/dependabot.yml",
-      "source": "worktree-untracked",
+      "source": "git-tracked",
       "sha256": "80abbb1f0826b3093f917cf1158fea7038dd4b11c826ea16a357044a09eb7af6",
       "size": 549,
       "type": "yaml",
@@ -12668,7 +12668,7 @@
     },
     {
       "path": "scripts/patch-lhci-js-yaml.mjs",
-      "source": "worktree-untracked",
+      "source": "git-tracked",
       "sha256": "ab89a38940aca04dbe5866a8fbc6b171a7e8f248d92135377327d31c6f3524dc",
       "size": 571,
       "type": "javascript",
@@ -13682,7 +13682,7 @@
     },
     {
       "path": "sql/008_security_invoker_rpc_boundary.sql",
-      "source": "worktree-untracked",
+      "source": "git-tracked",
       "sha256": "12dcf6892a852b5e4ac82c9991355643bc4edec17bf28e92c76c3525caadb3d0",
       "size": 13684,
       "type": "sql",
@@ -13729,7 +13729,7 @@
     },
     {
       "path": "sql/009_remove_redundant_indexes.sql",
-      "source": "worktree-untracked",
+      "source": "git-tracked",
       "sha256": "bf0a548461d0426c60588b2828a7c4834f5ca4e3f20dd622cbf73779bb22b9fd",
       "size": 545,
       "type": "sql",
