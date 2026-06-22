@@ -1,7 +1,7 @@
 # Current file audit
 
 Schema: 1
-Worktree fingerprint: 78276793714b1ccbcad3c278eb0b0003efc5391c32af5bef39d959d34d7ff1f6
+Worktree fingerprint: e6546cd7f44b706517f727c6964675f23c38648494257efbeba8e226228bd142
 Audited files: 437
 Git-tracked non-audit files: 437
 Untracked non-audit files: 0

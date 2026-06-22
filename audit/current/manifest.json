@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": {
-    "worktreeFingerprint": "78276793714b1ccbcad3c278eb0b0003efc5391c32af5bef39d959d34d7ff1f6"
+    "worktreeFingerprint": "e6546cd7f44b706517f727c6964675f23c38648494257efbeba8e226228bd142"
   },
   "scope": {
     "source": "Git index paths with current worktree content",
@@ -15,7 +15,7 @@
     "auditedFileCount": 437
   },
   "summary": {
-    "totalBytes": 71978261,
+    "totalBytes": 71978428,
     "activeFileCount": 257,
     "classifications": {
       "authored:configuration": 26,
@@ -310,8 +310,8 @@
     {
       "path": ".github/workflows/codeql.yml",
       "source": "git-tracked",
-      "sha256": "b1d3651761559f3c0add740d345b04ca856e19d0e0ec4d51cc310c61bccab34a",
-      "size": 1163,
+      "sha256": "551d24405fe546abe2e1d55e9eb0c944cfac34551e4bec539928c3baafb320a2",
+      "size": 1097,
       "type": "yaml",
       "text": true,
       "classification": "authored:configuration",
@@ -1808,8 +1808,8 @@
     {
       "path": "lighthouserc.cjs",
       "source": "git-tracked",
-      "sha256": "945d91667669a763a8075aafb51720cf738f49605eba5478524338fc54874458",
-      "size": 1679,
+      "sha256": "cd6cf1b352f79e1cc7af675e1cfa0623e32bce43fc63ccfb2df5e2475ab55eaa",
+      "size": 1912,
       "type": "javascript",
       "text": true,
       "classification": "authored:configuration",
