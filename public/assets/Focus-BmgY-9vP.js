@@ -2139,8 +2139,30 @@ const an = ({
                                 hs = S.document.getElementById("pip-undo"),
                                 ps = S.document.getElementById("pip-target");
                             ms ?.addEventListener("click", () => Ce("correct")), xs ?.addEventListener("click", () => Ce("incorrect")), bs ?.addEventListener("click", () => Ce("skipped")), hs ?.addEventListener("click", () => as()), ps ?.addEventListener("click", () => {
-                                const ot = S.prompt("Set target questions", String(ze || ""));
-                                ot !== null && rs(Math.max(0, parseInt(ot, 10) || 0))
+                                S.document.getElementById("pip-target-dialog") ?.remove();
+                                const dlg = S.document.createElement("div");
+                                dlg.id = "pip-target-dialog", dlg.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:9999;";
+                                dlg.innerHTML = `
+                                    <div style="background:${s?"rgba(24,24,27,0.96)":"rgba(255,255,255,0.97)"};color:${s?"#fff":"#18181b"};border:1px solid ${s?"rgba(255,255,255,0.1)":"rgba(24,24,27,0.1)"};border-radius:20px;padding:18px;width:85%;max-width:260px;box-shadow:0 20px 40px rgba(0,0,0,0.35);box-sizing:border-box;">
+                                        <div style="font-size:0.9rem;font-weight:700;margin-bottom:12px;">Set target questions</div>
+                                        <input id="pip-target-input" type="number" min="0" inputmode="numeric" value="${ze||""}" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:10px;border:1px solid ${s?"rgba(255,255,255,0.16)":"rgba(24,24,27,0.16)"};background:${s?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.03)"};color:inherit;font-size:0.9rem;margin-bottom:14px;" />
+                                        <div style="display:flex;justify-content:flex-end;gap:6px;">
+                                            <button id="pip-target-cancel" style="border:0;background:transparent;color:${s?"rgba(255,255,255,0.7)":"rgba(24,24,27,0.7)"};font-weight:700;font-size:0.8rem;padding:8px 10px;cursor:pointer;">Cancel</button>
+                                            <button id="pip-target-set" style="border:0;background:#059669;color:#fff;font-weight:800;font-size:0.8rem;padding:8px 14px;border-radius:999px;cursor:pointer;">Set</button>
+                                        </div>
+                                    </div>`;
+                                S.document.body.appendChild(dlg);
+                                const inp = S.document.getElementById("pip-target-input");
+                                inp.focus(), inp.select();
+                                const close = () => dlg.remove(),
+                                    commit = () => {
+                                        rs(Math.max(0, parseInt(inp.value, 10) || 0)), close()
+                                    };
+                                S.document.getElementById("pip-target-cancel").addEventListener("click", close), S.document.getElementById("pip-target-set").addEventListener("click", commit), dlg.addEventListener("click", ev => {
+                                    ev.target === dlg && close()
+                                }), inp.addEventListener("keydown", ev => {
+                                    ev.key === "Enter" && commit(), ev.key === "Escape" && close()
+                                })
                             })
                         },
                         Wt = setInterval(X, 1e3);
