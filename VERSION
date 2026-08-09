@@ -1,6 +1,6 @@
 {
   "version": "3.3.8",
-  "sha": "41825c04f0aaca8a3e5828e7d32078368f4c3dfd",
-  "message": "ci: include env example in release archives",
-  "updated_at": "2026-06-12T04:47:41.814Z"
+  "sha": "4bc0e8418e4a694a25a7fc7f92a01f2fa7e65201",
+  "message": "Replace native prompt() with themed dialog in PiP floating timer target-questions control",
+  "updated_at": "2026-08-09T03:52:29.798Z"
 }

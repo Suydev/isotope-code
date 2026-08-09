@@ -552,6 +552,27 @@ cmd_update_body() {
   cd "$project" || exit 1
   [ -d .git ] || fail "Not a Git checkout. Clone the repo or download the latest release."
 
+  branch="$(git rev-parse --abbrev-ref HEAD)"
+  [ "$branch" != "HEAD" ] || fail "Detached HEAD. Checkout a branch before updating."
+
+  # Local-only branch (never pushed): no point fetching or stashing.
+  # Check BEFORE stashing so local work is never touched.
+  if ! git rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null; then
+    info "Branch '$branch' has no remote yet (local-only development) — skipping fetch/merge."
+    info "Local files stay untouched. Nothing to update from GitHub."
+    node --check server.mjs >/dev/null 2>&1 || fail "server.mjs syntax check failed."
+    write_version_file "$project"
+    info "Update complete (local-only)."
+    if is_running; then
+      info "Restarting server so the running app picks up any local changes..."
+      cmd_stop
+      cmd_start
+    else
+      info "Start with: isotope start"
+    fi
+    return
+  fi
+
   stash_name=""
   if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
     stash_name="isotope-auto-stash-$(date +%Y%m%d%H%M%S)"
@@ -559,24 +580,26 @@ cmd_update_body() {
     git stash push -u -m "$stash_name" >/dev/null || fail "Could not stash local changes."
   fi
 
-  branch="$(git rev-parse --abbrev-ref HEAD)"
-  [ "$branch" != "HEAD" ] || fail "Detached HEAD. Checkout a branch before updating."
   info "Fetching origin/$branch..."
-  git fetch origin "$branch" || fail "git fetch failed. Check internet connection."
+  git fetch origin "$branch" || { git stash pop >/dev/null 2>&1; fail "git fetch failed. Check internet connection."; }
   local_sha="$(git rev-parse HEAD)"
   remote_sha="$(git rev-parse "origin/$branch")"
   if [ "$local_sha" = "$remote_sha" ]; then
     info "Already up to date."
   else
     git merge-base --is-ancestor "$local_sha" "$remote_sha" \
-      || fail "Local branch has diverged. Your changes are safe. Update manually with Git."
+      || { git stash pop >/dev/null 2>&1; fail "Local branch has diverged. Your changes are safe. Update manually with Git."; }
     package_changed="$(git diff --name-only "$local_sha" "$remote_sha" | grep -E '^(package\.json|package-lock\.json)$' || true)"
     info "Applying fast-forward update..."
-    git merge --ff-only "$remote_sha" || fail "Fast-forward merge failed."
+    git merge --ff-only "$remote_sha" || { git stash pop >/dev/null 2>&1; fail "Fast-forward merge failed."; }
     if [ -n "$package_changed" ] && has npm; then
       info "Package files changed — running npm install..."
       npm install || fail "npm install failed."
     fi
+  fi
+  if [ -n "$stash_name" ] && ! git stash list | grep -q "$stash_name"; then
+    info "Restoring local changes..."
+    git stash pop >/dev/null 2>&1 || info "Stash restore had warnings — review 'git stash list'."
   fi
 
   [ -f .env ] || { [ -f .env.example ] && cp .env.example .env && info "Created .env from .env.example."; }

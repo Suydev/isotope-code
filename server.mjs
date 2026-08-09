@@ -2,9 +2,10 @@ import http from 'http';
 import https from 'https';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import zlib from 'zlib';
 import crypto from 'crypto';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { createBackupManager } from './server/backup-manager.mjs';
 import {
@@ -125,23 +126,27 @@ const RUNTIME_GLUE_PATHS = new Set([
   '/manifest.webmanifest',
 ]);
 const RUNTIME_PATCHED_ASSET_PATHS = new Set([
-  '/assets/useAIStore-B2cv1FZz.js',
-  '/assets/App-pJGjDiPw.js',
-  '/assets/Auth-Cw0VAaCZ.js',
-  '/assets/Focus-BmgY-9vP.js',
-  '/assets/Onboarding-qvAqCBbb.js',
+  '/assets/useAIStore-DRa7CkEN.js',
+  '/assets/App-CQ9mV4wu.js',
+  '/assets/marketing-core-DzcTqL0l.js',
+  '/assets/useAuthStore-Aw1au7RF.js',
+  '/assets/index-D1Y5F8Lk.js',
+  '/assets/Auth-D0Y8CB1f.js',
+  '/assets/Focus-B4gLsWoP.js',
+  '/assets/Onboarding-C0svxOgT.js',
   '/assets/SingleGroup-DU1IhoNK.js',
   '/assets/useLeaderboard-BpvH5FXA.js',
-  '/assets/SettingsLayout-B4OgCkQ5.js',
-  '/assets/useSyncStore-vWs_TdIc.js',
-  '/assets/AppAccessGate-B975UtK7.js',
+  '/assets/SettingsLayout-DkuooNHv.js',
+  '/assets/useSyncStore-Di0wBMnH.js',
+  '/assets/AppAccessGate-DzNuNpuU.js',
   '/assets/sessionSync-mloIEnTd.js',
   '/assets/useInvites-D9RLFwf8.js',
-  '/assets/Community-DIqF5406.js',
+  '/assets/Community-CEnEgsrd.js',
+  '/assets/communityApi-Ccw5N_9O.js',
   '/assets/CommunityHub-gANxZssO.js',
   '/assets/FocusStore-D5cRXSIr.js',
   '/assets/EventsCalendar-COHF8nOK.js',
-  '/assets/PWAManager-DjIYufp2.js',
+  '/assets/PWAManager-CUuXr3sv.js',
 ]);
 
 function isRuntimePatchedAsset(pathname) {
@@ -1037,7 +1042,7 @@ function buildUsernameAuthScript() {
         normalized = normalizer.normalizeAnyBackup(text || '{}');
       }
       best = await authedJson('/__auth/backup/best', { method: 'GET', timeoutMs: 30000 });
-      if (!options.force && best && best.selected && /\/backups\/latest\.json$/.test(String(best.selected.path || '')) && best.selected.data_hash === dataHash) {
+      if (!options.force && best && best.selected && /\\\/backups\\\/latest\\\.json$/.test(String(best.selected.path || '')) && best.selected.data_hash === dataHash) {
         writeSyncMetadata({
           last_sync_status: 'synced',
           last_error: null,
@@ -2850,6 +2855,26 @@ const PREMIUM_SCRIPT = `<script>
       });
     }
 
+  // ── Header copier (handles Headers/plain-objects) ───────────────────────────
+  // for..in over a Headers instance yields nothing → the rewrite above stripped
+  // Authorization/Content-Type/Prefer and returned PGRST102 "Content-Type not
+  // acceptable: text/plain" 400s. Copy via forEach instead.
+    function _replaceHeader(init, name, value) {
+      var out = {};
+      var src = init && init.headers;
+      if (src) {
+        if (typeof src.forEach === 'function') {
+          src.forEach(function(v, k) { out[k] = v; });
+        } else if (Array.isArray(src)) {
+          for (var i = 0; i < src.length; i++) out[src[i][0]] = src[i][1];
+        } else if (typeof src === 'object') {
+          for (var k in src) { try { out[k] = String(src[k]); } catch(e) {} }
+        }
+      }
+      out[name] = value;
+      return out;
+    }
+
   // ── Storage write normalization ─────────────────────────────────────────────
   // Keep browser storage writes on the public anon key plus user JWT. Service-role
   // credentials must never be exposed to client JavaScript.
@@ -2858,10 +2883,7 @@ const PREMIUM_SCRIPT = `<script>
     if (isStorageWrite) {
       var _swInit = {};
       for (var _swk in (init || {})) _swInit[_swk] = init[_swk];
-      var _swHdrs = {};
-      for (var _swh in (_swInit.headers || {})) _swHdrs[_swh] = _swInit.headers[_swh];
-      _swHdrs['apikey'] = ANON;
-      _swInit.headers = _swHdrs;
+      _swInit.headers = _replaceHeader(init, 'apikey', ANON);
       return _orig.call(this, input, _swInit);
     }
 
@@ -2875,11 +2897,26 @@ const PREMIUM_SCRIPT = `<script>
     if (isProfileWrite) {
       var _newInit = {};
       for (var _ki in (init || {})) _newInit[_ki] = init[_ki];
-      var _newHdrs = {};
-      for (var _hi in (_newInit.headers || {})) _newHdrs[_hi] = _newInit.headers[_hi];
-      _newHdrs['apikey'] = ANON;
+      var _newHdrs = _replaceHeader(init, 'apikey', ANON);
       _newInit.headers = _newHdrs;
-      return _orig.call(this, input, _newInit).then(function(res) { return patchResp(res); });
+            var _pwBody = null;
+      try { _pwBody = typeof init.body === 'string' ? init.body : JSON.stringify(init.body || null); } catch {}
+      var _pwHdrs = {};
+      try { var _ph = _newHdrs || {}; for (var _pk in _ph) { var _pv = String(_ph[_pk] || ''); _pwHdrs[_pk] = _pv.length > 40 ? _pv.slice(0, 12) + '…' + _pv.slice(-24) : _pv; } } catch {}
+      return _orig.call(this, input, _newInit).then(function(res) {
+        if (!res.ok) {
+          try {
+            var _respTxt = null;
+            res.clone().text().then(function(txt) { _respTxt = txt; }).catch(function(){});
+            var _dbg = { t: Date.now(), u: url, status: res.status, body: _pwBody ? _pwBody.slice(0, 3000) : null, hdrs: _pwHdrs, page: location.pathname };
+            res.clone().text().then(function(txt) {
+              _dbg.resp = txt.slice(0, 800);
+              fetch('/__errors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ errors: [{ t: Date.now(), u: location.pathname, label: 'profile-write', name: 'ProfileWriteError', message: 'profile write failed status=' + res.status, extra: JSON.stringify(_dbg) }] }) });
+            });
+          } catch {}
+        }
+        return patchResp(res);
+      });
     }
 
     // Patch all Supabase REST/RPC responses (plan_type → ranker etc)
@@ -3076,6 +3113,93 @@ const UPDATE_COMMAND_DIALOG_SCRIPT = `<script>
 })();
 </script>`;
 
+// ── In-app "Update available" pill ───────────────────────────────────────────
+// Since this project is edited locally (github check-update is always false),
+// the server stamps every served HTML with a build stamp (LOCAL_VERSION +
+// server.mjs mtime). A small client script compares it to the stamp the browser
+// last saw in localStorage; when it differs, a floating pill appears that opens
+// the update dialog, so the user can apply updates from inside the app.
+function currentBuildStamp() {
+  try {
+    const v = (typeof LOCAL_VERSION !== 'undefined' && LOCAL_VERSION) ? LOCAL_VERSION : readLocalVersionInfo();
+    let stamp = 'v' + String(v.version || '0.0.0') + '|' + String(v.sha || 'x').slice(0, 12);
+    try {
+      const st = fs.statSync(path.join(__dirname, 'server.mjs'));
+      stamp += '|' + String(st.mtimeMs);
+    } catch (e) {}
+    return stamp;
+  } catch (e) {
+    return 'unknown';
+  }
+}
+function buildUpdatePillScript() {
+  const stamp = currentBuildStamp();
+  return `<script>
+(function() {
+  var KEY = 'isotope-app-stamp';
+  var CURRENT = ${JSON.stringify(stamp)};
+  var shown = false;
+  try {
+    shown = localStorage.getItem(KEY) === CURRENT;
+  } catch (e) {}
+  if (shown) return;
+  if (!document.body) { setTimeout(arguments.callee, 400); return; }
+
+  var pill = document.createElement('div');
+  pill.id = '__iso_update_pill__';
+  pill.style.cssText = 'position:fixed;right:16px;bottom:78px;z-index:2147483646;display:flex;align-items:center;gap:10px;background:rgba(24,24,27,.92);border:1px solid rgba(245,158,11,.45);border-radius:999px;padding:10px 14px;box-shadow:0 10px 32px rgba(0,0,0,.45);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backdrop-filter:blur(6px)';
+  var dot = document.createElement('span');
+  dot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 10px #34d399;flex:none';
+  var label = document.createElement('button');
+  label.type = 'button';
+  label.textContent = 'Update now';
+  label.style.cssText = 'border:0;background:#f59e0b;color:#18181b;font-size:13px;font-weight:800;cursor:pointer;padding:8px 14px;border-radius:999px;white-space:nowrap';
+  var dismiss = document.createElement('button');
+  dismiss.type = 'button';
+  dismiss.setAttribute('aria-label', 'Dismiss');
+  dismiss.textContent = 'x';
+  dismiss.style.cssText = 'border:0;background:transparent;color:#a1a1aa;font-size:15px;cursor:pointer;padding:0 2px';
+  pill.appendChild(dot);
+  pill.appendChild(label);
+  pill.appendChild(dismiss);
+  document.body.appendChild(pill);
+
+  var remember = function(){ try { localStorage.setItem('isotope-app-stamp', CURRENT); } catch (e) {} };
+  function setBusy() {
+    label.textContent = 'Updating…';
+    label.disabled = true;
+    dismiss.style.display = 'none';
+    label.style.opacity = '0.6';
+  }
+  function launchReloadCheck(attempt) {
+    fetch('/api/version', { cache: 'no-store' }).then(function(r){ return r.ok; }).then(function(ok){
+      if (ok) { remember(); window.location.reload(); }
+      else if (attempt < 60) setTimeout(function(){ launchReloadCheck(attempt + 1); }, 2000);
+      else { label.textContent = 'Update now'; label.disabled = false; dismiss.style.display = ''; }
+    }).catch(function(){
+      if (attempt < 60) setTimeout(function(){ launchReloadCheck(attempt + 1); }, 2000);
+      else { label.textContent = 'Update now'; label.disabled = false; dismiss.style.display = ''; }
+    });
+  }
+  function updateNow() {
+    remember();
+    setBusy();
+    fetch('/api/update-now', { method: 'POST', cache: 'no-store' })
+      .then(function () { launchReloadCheck(0); })
+      .catch(function () { launchReloadCheck(0); });
+  }
+  label.addEventListener('click', updateNow);
+  dismiss.addEventListener('click', function(){
+    remember();
+    if (pill.parentNode) pill.parentNode.removeChild(pill);
+  });
+  setTimeout(function(){
+    if (pill.parentNode) pill.parentNode.removeChild(pill);
+  }, 6 * 60 * 60 * 1000);
+})();
+</script>`;
+}
+
 // ── Auth guard: redirect unauthenticated users early ────────────────────────
 // Injected at </head> — runs synchronously BEFORE React loads to prevent any
 // flash of protected content. Onboarding is deliberately decided later by the
@@ -3209,7 +3333,7 @@ function injectScripts(html) {
   let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + RELOAD_GUARD_SCRIPT + FEATURE_REMOVAL_STYLE + '</head>');
   if (KEY_SCRIPT) out = out.replace('</head>', KEY_SCRIPT + '</head>');
   out = out.replace('</head>', USERNAME_AUTH_SCRIPT + '</head>');
-  out = out.replace('</body>', DOCS_LINK_HTML + UPDATE_COMMAND_DIALOG_SCRIPT + '</body>');
+  out = out.replace('</body>', DOCS_LINK_HTML + UPDATE_COMMAND_DIALOG_SCRIPT + buildUpdatePillScript() + '</body>');
   return out;
 }
 function injectKeys(htmlBuffer) {
@@ -3217,7 +3341,7 @@ function injectKeys(htmlBuffer) {
 }
 
 // ── AI store patch ────────────────────────────────────────────────────────────
-const AI_STORE_ABS  = path.join(PUBLIC_DIR, 'assets', 'useAIStore-B2cv1FZz.js');
+const AI_STORE_ABS  = path.join(PUBLIC_DIR, 'assets', 'useAIStore-DRa7CkEN.js');
 const AI_PATCH_FROM = 'async getApiKey(n) {\n            const e = `ai_api_key_${n}`';
 const AI_PATCH_TO   = 'async getApiKey(n) {\n            if(typeof window!=="undefined"&&window.__IK__&&window.__IK__[n])return window.__IK__[n];\n            const e = `ai_api_key_${n}`';
 let patchedAiStore = null;
@@ -3235,19 +3359,45 @@ function getPatchedAiStore() {
 // ── Feature removal patches: Events and Store ────────────────────────────────
 // The app is distributed as pre-built chunks.  Keep removal in serve-time patches
 // so the original compiled assets remain untouched and no rebuild is required.
-const COMMUNITY_BUNDLE_ABS     = path.join(PUBLIC_DIR, 'assets', 'Community-DIqF5406.js');
+const COMMUNITY_BUNDLE_ABS     = path.join(PUBLIC_DIR, 'assets', 'Community-CEnEgsrd.js');
+const COMMUNITY_API_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'communityApi-Ccw5N_9O.js');
 const COMMUNITY_HUB_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityHub-gANxZssO.js');
+const COMMUNITY_VISUALS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityVisuals-mHr4KGyg.js');
+const DASHBOARD_BUNDLE_ABS     = path.join(PUBLIC_DIR, 'assets', 'Dashboard-Dzf-IC_a.js');
 const STORE_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'FocusStore-D5cRXSIr.js');
 const EVENTS_BUNDLE_ABS        = path.join(PUBLIC_DIR, 'assets', 'EventsCalendar-COHF8nOK.js');
 const SERVICE_WORKER_ABS       = path.join(PUBLIC_DIR, 'sw.js');
-const USE_SYNC_STORE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useSyncStore-vWs_TdIc.js');
-const PWA_MANAGER_BUNDLE_ABS   = path.join(PUBLIC_DIR, 'assets', 'PWAManager-DjIYufp2.js');
+const USE_SYNC_STORE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useSyncStore-Di0wBMnH.js');
+const PWA_MANAGER_BUNDLE_ABS   = path.join(PUBLIC_DIR, 'assets', 'PWAManager-CUuXr3sv.js');
 const REMOVED_FEATURE_MODULE   = Buffer.from('export default function RemovedFeature(){return null;}\\n', 'utf8');
 
 const COMMUNITY_FEATURE_RENDER_FROM = 'a==="store"&&e.jsx(U,{onNavigate:i},"store"),a==="events"&&e.jsx(M,{onNavigate:i},"events"),';
 const COMMUNITY_FEATURE_RENDER_TO   = '';
 const COMMUNITY_HUB_CARDS_FROM = 'h=[{id:"discovery",label:"Browse Groups",icon:xe,color:"text-brand-500"},{id:"challenges",label:"Challenges",icon:T,color:"text-rose-500"},{id:"leaderboard",label:"Leaderboard",icon:z,color:"text-amber-500"},{id:"store",label:"Store",icon:ge,color:"text-orange-500"},{id:"events",label:"Events",icon:be,color:"text-emerald-500"}]';
 const COMMUNITY_HUB_CARDS_TO   = 'h=[{id:"discovery",label:"Browse Groups",icon:xe,color:"text-brand-500"},{id:"challenges",label:"Challenges",icon:T,color:"text-rose-500"},{id:"leaderboard",label:"Leaderboard",icon:z,color:"text-amber-500"}]';
+// Group chat panel injected into the v3 Community group page (`ts` component).
+// Backed by community_get_group_messages / community_send_group_message RPCs
+// (community-rpc-v3.sql) and the matching methods patched into
+// communityApi-Ccw5N_9O.js. The component is appended at module scope, then
+// rendered inside the group page just before the "Group settings" modal.
+const COMMUNITY_CHAT_COMPONENT_FROM = '};export{Is as default};';
+const COMMUNITY_CHAT_COMPONENT_TO = '};const Qa=({groupId:u,role:z})=>{const[l,m]=p.useState([]),[d,f]=p.useState(""),[g,h]=p.useState(!1),[k,q]=p.useState(null),j=p.useRef(null),Y=async()=>{try{const o=await ue.getGroupMessages(u,50);if(o&&o.success===!1){q(o.error);return}if(o&&Array.isArray(o.messages)){m(o.messages);q(null)}}catch(v){q(v&&v.message||"Could not load chat")}},t=async()=>{const v=d.trim();if(!v||g)return;h(!0);try{const o=await ue.sendGroupMessage(u,v);if(o&&o.success===!1){q(o.error||"Could not send message")}else{f("");await Y()}}catch(x){q(x&&x.message||"Could not send message")}finally{h(!1)}};p.useEffect(()=>{Y();const v=setInterval(Y,8000);return()=>clearInterval(v)},[u]);return e.jsxs(e.Fragment,{children:[e.jsx("style",{children:\`.community-chat-scroll{scrollbar-width:thin;scrollbar-color:var(--community-accent-strong,rgba(120,120,140,.45)) transparent}\`}),e.jsxs("section",{className:"community-stage mt-5 w-full p-4",children:[e.jsxs("div",{className:"mb-3 flex items-center justify-between",children:[e.jsx("h3",{className:"text-sm font-semibold",children:"Group chat"}),e.jsx("span",{className:"text-xs text-zinc-500",children:l.length?l.length+" messages":"No messages yet"})]}),e.jsx("div",{ref:j,className:"community-chat-scroll mt-1 h-[min(28rem,62vh)] min-h-56 w-full space-y-3 overflow-y-auto overscroll-contain pr-1.5",children:l.length?l.map(m=>e.jsx("div",{className:"flex gap-3 rounded-xl border border-black/10 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5",children:[e.jsx("img",{src:n.authorAvatar||`https://api.dicebear.com/7.x/avataaars/svg?seed=${n.authorId||n.authorName||"member"}`,alt:n.authorName||"Member",width:28,height:28,className:"h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-[var(--community-line)]",loading:"lazy",decoding:"async"}),e.jsxs("div",{className:"min-w-0 flex-1",children:[e.jsxs("div",{className:"flex items-center justify-between gap-2",children:[e.jsx("span",{className:"truncate text-xs font-bold",children:n.authorName||"Member"}),e.jsx("span",{className:"shrink-0 text-[10px] text-zinc-500",children:n.createdAt?new Date(n.createdAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""})]}),e.jsx("p",{className:"mt-1 whitespace-pre-wrap break-words text-sm",children:n.content})]})]},"msg-"+n.id)):e.jsx("p",{className:"py-4 text-center text-xs text-zinc-500",children:"Start the conversation."})}),e.jsxs("div",{className:"mt-3 flex gap-2",children:[e.jsx("input",{value:d,onChange:n=>f(n.target.value.slice(0,2000)),onKeyDown:n=>{if(n.key==="Enter"&&!n.shiftKey){n.preventDefault();t()}},placeholder:"Type a message…",disabled:!z,className:"min-h-11 flex-1 rounded-lg border border-black/15 bg-transparent px-3 text-sm focus:outline-none dark:border-white/15"}),e.jsx("button",{type:"button",onClick:t,disabled:!z||g||!d.trim(),className:"community-primary-button min-h-11 px-4 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50",children:g?"Sending…":"Send"})]})]})]})};const Zb=({onUser:t})=>{const[l,m]=p.useState("weekly"),[d,f]=p.useState(null),[g,h]=p.useState(!0),[b,k]=p.useState(null),j=p.useRef(null),u=Se(r=>r.userId),Y=async(e)=>{try{const o=await ue.getLeaderboard(e||l,50);if(o&&Array.isArray(o.rankings)){f(o);k(null)}else k("Could not load the leaderboard")}catch(v){k(v&&v.message||"Could not load the leaderboard")}},z=async()=>{h(!0);await Y();h(!1)};p.useEffect(()=>{z();const v=setInterval(()=>Y(),6e4);return()=>clearInterval(v)},[l]);const q=Array.isArray(d?.rankings)?d.rankings:[],x=q.slice(0,3),w=q.slice(3),a=v=>v.avatar_url||`https://api.dicebear.com/7.x/avataaars/svg?seed=${v.user_id||v.name}`;const H=v=>{const t=v?.hours??v?.weekly_hours??v?.daily_hours??v?.monthly_hours??0;return Number(t)||0},pod=x.find(r=>r.rank===1)||x[0],sil=x.find(r=>r.rank===2)||x[1],br=x.find(r=>r.rank===3)||x[2],podium=[sil,pod,br].filter(Boolean);return e.jsxs("section",{className:"community-stage mt-5 p-4 sm:p-6",children:[e.jsxs("div",{className:"community-view-heading flex flex-wrap items-end justify-between gap-4",children:[e.jsxs("div",{children:[e.jsx("span",{className:"community-view-kicker",children:"RANKINGS"}),e.jsx("h2",{className:"community-view-title",children:"Leaderboard"}),e.jsx("p",{className:"community-view-copy",children:"Top focus hours across the community."})]}),e.jsxs("div",{className:"community-segmented",children:[["daily","Today"],["weekly","Week"],["monthly","Month"]].map(n=>e.jsx("button",{type:"button","aria-pressed":l===n[0],onClick:()=>m(n[0]),className:"min-h-9 px-3 text-xs font-bold",children:n[1]},n[0]))})]}),g?e.jsx("p",{className:"py-16 text-center text-sm text-zinc-500",children:"Computing rankings…"}):b?e.jsxs("div",{className:"py-14 text-center",children:[e.jsx("p",{className:"text-sm font-semibold",children:"Leaderboard unavailable"}),e.jsx("p",{className:"mt-1 text-xs text-zinc-500",children:typeof b==="string"?b.slice(0,140):"Try again in a moment."}),e.jsx("button",{type:"button",onClick:z,className:"community-primary-button mt-4 min-h-10 px-4 text-sm font-bold",children:"Retry"})]}):q.length?e.jsxs("div",{className:"space-y-6",children:[podium.length?e.jsxs("div",{className:"grid grid-cols-3 items-end gap-2 sm:gap-3",children:podium.map(n=>e.jsxs("div",{className:`flex flex-col items-center rounded-2xl border border-[var(--community-line)] bg-[var(--community-panel-2)] p-3 text-center ${n===pod?"pb-6":"pb-3"}`,children:[n===pod&&e.jsx("span",{className:"mb-1 text-xl",children:"👑"}),e.jsx("div",{className:`relative rounded-full p-0.5 ${n.rank===1?"bg-gradient-to-br from-amber-300 to-yellow-500":n.rank===2?"bg-gradient-to-br from-zinc-300 to-zinc-500":"bg-gradient-to-br from-orange-300 to-amber-600"}`,children:[e.jsx("img",{src:a(n),alt:n.name,width:96,height:96,className:"h-14 w-14 rounded-full border-2 border-[var(--community-panel)] object-cover sm:h-16 sm:w-16",loading:"lazy",decoding:"async"})]}),e.jsx("span",{className:`mt-2 font-mono text-xs font-bold ${n.rank===1?"text-amber-500":n.rank===2?"text-zinc-400":"text-orange-400"}`,children:"#"+(n.rank||0)}),e.jsx("p",{className:"mt-1 w-full truncate text-sm font-bold",children:n.name}),e.jsx("p",{className:"text-[11px] text-zinc-500",children:N(Math.round(H(n)*60))})]},n.user_id))}):null,e.jsxs("div",{className:"community-ledger",children:[w.map(n=>e.jsxs("div",{className:`community-ledger-row flex items-center gap-3 px-3 py-3 ${n.user_id===u?"bg-[var(--community-accent-soft)]":""}`,children:[e.jsx("span",{className:"w-8 shrink-0 text-center font-mono text-sm font-bold",style:{color:n.rank<=3?"#f59e0b":void 0},children:"#"+(n.rank||0)}),e.jsx("img",{src:a(n),alt:n.name,width:40,height:40,className:"h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-[var(--community-line)]",loading:"lazy",decoding:"async"}),e.jsxs("div",{className:"min-w-0 flex-1",children:[e.jsxs("span",{className:"flex items-center gap-1.5",children:[e.jsx("span",{className:"truncate text-sm font-bold",children:n.name}),n.user_id===u&&e.jsx("span",{className:"rounded-full bg-[var(--community-accent-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--community-accent-strong)]",children:"You"})]}),e.jsx("span",{className:"block truncate text-[11px] text-zinc-500",children:n.handle?"@"+n.handle:"Community"})]}),e.jsx("span",{className:"shrink-0 font-mono text-sm font-bold",children:N(Math.round(H(n)*60))})]},n.user_id))]})]}):e.jsx("p",{className:"py-16 text-center text-sm text-zinc-500",children:"No rankings yet for this period."})]})};export{Is as default};';
+const COMMUNITY_CHAT_RENDER_FROM = ',g&&e.jsxs(B,{title:"Group settings"';
+const COMMUNITY_CHAT_RENDER_TO   = ',h.group.role&&e.jsx(Qa,{groupId:s,role:h.group.role}),g&&e.jsxs(B,{title:"Group settings"';
+// Create-group button added to the shell header actions so it is reachable from
+// every Community tab (overview, discover, groups), not only the "Your groups"
+// tab. Opens the same modal as `onCreate:()=>D(!0)` and is hidden inside a
+// group page (`!l`), mirroring the "Start focus" button.
+const COMMUNITY_CREATE_BTN_FROM = 'e.jsx("span",{children:"Start focus"})]}),e.jsx("button",{type:"button",onClick:()=>void b.refetch(),"aria-label":"Refresh Community"';
+const COMMUNITY_CREATE_BTN_TO   = 'e.jsx("span",{children:"Start focus"})]}),!l&&e.jsx("button",{type:"button",onClick:()=>D(!0),"aria-label":"Create group",className:"community-primary-button inline-flex min-h-11 items-center gap-2 px-4 text-sm font-bold",children:[e.jsx(ye,{className:"h-4 w-4"}),e.jsx("span",{children:"Create group"})]}),e.jsx("button",{type:"button",onClick:()=>void b.refetch(),"aria-label":"Refresh Community"';
+// Leaderboard: add the tab to the community page (Ve) and render the injected
+// view component (Zb, appended at module scope) when it is selected.
+const COMMUNITY_LB_TAB_FROM = 'const Ve=[{id:"overview",label:"Overview"},{id:"buddies",label:"Buddies"},{id:"groups",label:"Groups"},{id:"discover",label:"Discover"}],';
+const COMMUNITY_LB_TAB_TO   = 'const Ve=[{id:"overview",label:"Overview"},{id:"buddies",label:"Buddies"},{id:"groups",label:"Groups"},{id:"discover",label:"Discover"},{id:"leaderboard",label:"Leaderboard"}],';
+const COMMUNITY_LB_RENDER_FROM = 'er:()=>a("discover"),onNotice:f}):e.jsx(ss,{filters:k,setFilters:Y,groups:F.data??[],loading:F.isLoading,onJoin:E}):e.jsx("section",{className:"community-stage grid min-h';
+const COMMUNITY_LB_RENDER_TO   = 'er:()=>a("discover"),onNotice:f}):t==="leaderboard"?e.jsx(Zb,{onUser:g}):e.jsx(ss,{filters:k,setFilters:Y,groups:F.data??[],loading:F.isLoading,onJoin:E}):e.jsx("section",{className:"community-stage grid min-h';
+const COMMUNITY_LB_ICON_FROM = 's.jsx("path",{d:"m14.3 9.7 2.6-2.6-2.6 2.6-1.1 3.5-3.5 1.1"})]})]})},';
+const COMMUNITY_LB_ICON_TO   = 's.jsx("path",{d:"m14.3 9.7 2.6-2.6-2.6 2.6-1.1 3.5-3.5 1.1"})]}),n==="leaderboard"&&s.jsxs(s.Fragment,{children:[s.jsx("path",{d:"M6 9H4.5a2.5 2.5 0 0 1 0-5H6"}),s.jsx("path",{d:"M18 9h1.5a2.5 2.5 0 0 0 0-5H18"}),s.jsx("path",{d:"M4 22h16"}),s.jsx("path",{d:"M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"}),s.jsx("path",{d:"M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"}),s.jsx("path",{d:"M18 2H6v7a6 6 0 0 0 12 0V2Z"})]})]})},';
 
 let patchedCommunityBundle = null;
 function getPatchedCommunityBundle() {
@@ -3258,6 +3408,84 @@ function getPatchedCommunityBundle() {
       raw = raw.replace(COMMUNITY_FEATURE_RENDER_FROM, COMMUNITY_FEATURE_RENDER_TO);
       console.log('[FeaturePatch] Store and Events render paths removed');
     } else { console.warn('[FeaturePatch] Community render removal string not found'); }
+    const CRASH_FROM = 'j.handle.startsWith("student_")';
+    const CRASH_TO   = 'j.handle?.startsWith("student_")';
+    if (raw.includes(CRASH_FROM)) {
+      raw = raw.replace(CRASH_FROM, CRASH_TO);
+      console.log('[CommunityCrashFix] null-safe startsWith guard added');
+    }
+    // Fix: h.group.subjects is not iterable (subjects can be null from RPC)
+    const SUBJ_FROM = '...h.group.subjects]';
+    const SUBJ_TO   = '...(h.group.subjects||[])]';
+    if (raw.includes(SUBJ_FROM)) {
+      raw = raw.replace(SUBJ_FROM, SUBJ_TO);
+      console.log('[CommunityCrashFix] null-safe subjects spread');
+    }
+    // Fix: s.subjects.slice() — subjects can be null on group cards
+    const SLICE_A_FROM = 's.subjects.slice(0,3)';
+    const SLICE_A_TO   = '(s.subjects||[]).slice(0,3)';
+    if (raw.includes(SLICE_A_FROM)) {
+      raw = raw.replace(SLICE_A_FROM, SLICE_A_TO);
+      console.log('[CommunityCrashFix] null-safe subjects.slice (group card)');
+    }
+    // Fix: t.subjects.slice() — subjects can be null on discovery cards
+    const SLICE_B_FROM = 't.subjects.slice(0,3)';
+    const SLICE_B_TO   = '(t.subjects||[]).slice(0,3)';
+    if (raw.includes(SLICE_B_FROM)) {
+      raw = raw.replace(SLICE_B_FROM, SLICE_B_TO);
+      console.log('[CommunityCrashFix] null-safe subjects.slice (discovery card)');
+    }
+    // Fix: s.groups.slice() — groups can be null
+    const SLICE_C_FROM = 's.groups.slice(0,3)';
+    const SLICE_C_TO   = '(s.groups||[]).slice(0,3)';
+    if (raw.includes(SLICE_C_FROM)) {
+      raw = raw.replace(SLICE_C_FROM, SLICE_C_TO);
+      console.log('[CommunityCrashFix] null-safe groups.slice');
+    }
+    // Fix: h.group.subjects.join(", ") — subjects can be null from RPC
+    const JOIN_FROM = 'P(h.group.subjects.join(", "))';
+    const JOIN_TO   = 'P((h.group.subjects||[]).join(", "))';
+    if (raw.includes(JOIN_FROM)) {
+      raw = raw.replace(JOIN_FROM, JOIN_TO);
+      console.log('[CommunityCrashFix] null-safe subjects.join (group page settings)');
+    }
+    // Fix: d.subjects.length / d.subjects.join on discovery cards
+    const DISC_LEN_FROM = 'd.subjects.length>0';
+    const DISC_LEN_TO   = '(d.subjects||[]).length>0';
+    if (raw.includes(DISC_LEN_FROM)) {
+      raw = raw.replace(DISC_LEN_FROM, DISC_LEN_TO);
+      console.log('[CommunityCrashFix] null-safe subjects.length (discovery card)');
+    }
+    const DISC_JOIN_FROM = 'd.subjects.join(", ")';
+    const DISC_JOIN_TO   = '(d.subjects||[]).join(", ")';
+    if (raw.includes(DISC_JOIN_FROM)) {
+      raw = raw.replace(DISC_JOIN_FROM, DISC_JOIN_TO);
+      console.log('[CommunityCrashFix] null-safe subjects.join (discovery card)');
+    }
+    // Group chat panel: append component at module scope and render it in the
+    // group page before the settings modal (members only).
+    if (raw.includes(COMMUNITY_CHAT_COMPONENT_FROM)) {
+      raw = raw.replace(COMMUNITY_CHAT_COMPONENT_FROM, COMMUNITY_CHAT_COMPONENT_TO);
+      console.log('[CommunityChatPatch] chat component appended to Community bundle');
+    } else { console.warn('[CommunityChatPatch] component anchor not found'); }
+    if (raw.includes(COMMUNITY_CHAT_RENDER_FROM)) {
+      raw = raw.replace(COMMUNITY_CHAT_RENDER_FROM, COMMUNITY_CHAT_RENDER_TO);
+      console.log('[CommunityChatPatch] chat panel rendered in group page');
+    } else { console.warn('[CommunityChatPatch] render anchor not found'); }
+    if (raw.includes(COMMUNITY_CREATE_BTN_FROM)) {
+      raw = raw.replace(COMMUNITY_CREATE_BTN_FROM, COMMUNITY_CREATE_BTN_TO);
+      console.log('[CommunityChatPatch] Create group button added to header actions');
+    } else { console.warn('[CommunityChatPatch] create button anchor not found'); }
+    // Leaderboard: nav tab + view render + trophy icon (icon lives in the
+    // CommunityVisuals bundle and is patched there).
+    if (raw.includes(COMMUNITY_LB_TAB_FROM)) {
+      raw = raw.replace(COMMUNITY_LB_TAB_FROM, COMMUNITY_LB_TAB_TO);
+      console.log('[LeaderboardPatch] Leaderboard tab added to community nav');
+    } else { console.warn('[LeaderboardPatch] nav anchor not found'); }
+    if (raw.includes(COMMUNITY_LB_RENDER_FROM)) {
+      raw = raw.replace(COMMUNITY_LB_RENDER_FROM, COMMUNITY_LB_RENDER_TO);
+      console.log('[LeaderboardPatch] leaderboard view rendered in community page');
+    } else { console.warn('[LeaderboardPatch] render anchor not found'); }
     patchedCommunityBundle = Buffer.from(raw, 'utf8');
   } catch { patchedCommunityBundle = null; }
   return patchedCommunityBundle;
@@ -3275,6 +3503,86 @@ function getPatchedCommunityHubBundle() {
     patchedCommunityHubBundle = Buffer.from(raw, 'utf8');
   } catch { patchedCommunityHubBundle = null; }
   return patchedCommunityHubBundle;
+}
+
+// ── CommunityVisuals patch: trophy icon for the Leaderboard tab ──────────────
+let patchedCommunityVisualsBundle = null;
+function getPatchedCommunityVisualsBundle() {
+  if (patchedCommunityVisualsBundle) return patchedCommunityVisualsBundle;
+  try {
+    let raw = fs.readFileSync(COMMUNITY_VISUALS_BUNDLE_ABS, 'utf8');
+    if (raw.includes(COMMUNITY_LB_ICON_FROM)) {
+      raw = raw.replace(COMMUNITY_LB_ICON_FROM, COMMUNITY_LB_ICON_TO);
+      console.log('[LeaderboardPatch] trophy icon added to destination icons');
+    } else { console.warn('[LeaderboardPatch] icon anchor not found'); }
+    patchedCommunityVisualsBundle = Buffer.from(raw, 'utf8');
+  } catch { patchedCommunityVisualsBundle = null; }
+  return patchedCommunityVisualsBundle;
+}
+
+// ── Dashboard patch: guard `syllabusIds` before reading `.length` ─────────────
+// Browser error bridge caught a runtime crash on /dashboard:
+//   Cannot read properties of undefined (reading 'length')
+//   at ya (Dashboard-Dzf-IC_a.js:1:17580)
+// `ya=(a,r)=>{if(!a||a.syllabusIds.length===0)return r;...}` — when a profile
+// exists but has no syllabusIds field, `a.syllabusIds.length` throws. Patch the
+// guard to be null-safe so the dashboard falls back to the unfiltered list.
+const DASHBOARD_SYLLABUS_FROM = `ya=(a,r)=>{if(!a||a.syllabusIds.length===0)return r;`;
+const DASHBOARD_SYLLABUS_TO   = `ya=(a,r)=>{if(!a||!a.syllabusIds||a.syllabusIds.length===0)return r;`;
+let patchedDashboardBundle = null;
+function getPatchedDashboardBundle() {
+  if (patchedDashboardBundle) return patchedDashboardBundle;
+  try {
+    let raw = fs.readFileSync(DASHBOARD_BUNDLE_ABS, 'utf8');
+    if (raw.includes(DASHBOARD_SYLLABUS_FROM)) {
+      raw = raw.replace(DASHBOARD_SYLLABUS_FROM, DASHBOARD_SYLLABUS_TO);
+      console.log('[DashboardPatch] syllabusIds null-guard added (ya filter)');
+    } else { console.warn('[DashboardPatch] syllabusIds anchor not found'); }
+    patchedDashboardBundle = Buffer.from(raw, 'utf8');
+  } catch { patchedDashboardBundle = null; }
+  return patchedDashboardBundle;
+}
+
+// ── Community API patch: force the real RPC path (self-hosted community) ─────
+// The v3 communityApi bundle gates every call behind a premium check `s()`:
+//   isEnrolled() { return s() || rpc("community_is_enrolled") }
+//   getOverview(){ return s() ? demoData : rpc("community_get_overview") }
+// etc. We force premium (`isPremium:()=>!0`) for the app, so without this
+// patch the community would serve the upstream *demo* data and never touch
+// this install's Supabase. Rebinding the imported premium check to `()=>!1`
+// makes every path call the real RPC functions defined by the
+// community-rpc-v3.sql migration. Import shape is:
+//   import{i as s,s as n}from"./useAuthStore-Aw1au7RF.js"
+// where i=premium check (bound to s in module) and s=supabase client (bound n).
+const COMMUNITY_API_GATE_FROM = `import{i as s,s as n}from"./useAuthStore-Aw1au7RF.js"`;
+const COMMUNITY_API_GATE_TO   = `import{s as n}from"./useAuthStore-Aw1au7RF.js";const s=()=>!1;`;
+// Group chat methods added to the v3 communityApi client. The group page in
+// Community-CEnEgsrd.js calls getGroupMessages(groupId, limit) and
+// sendGroupMessage(groupId, content); both hit the real RPC functions from
+// community-rpc-v3.sql (community_get_group_messages / community_send_group_message),
+// which accept a uuid OR a slug and gate on membership.
+const COMMUNITY_API_CHAT_FROM = `};export{g as c};`;
+const COMMUNITY_API_CHAT_TO   = `,async getGroupMessages(e,t){try{return s()?{messages:[]}:await c(a().rpc("community_get_group_messages",{p_group_id:e,p_limit:t||50}))}catch(r){return{success:!1,error:u(r)}}},async sendGroupMessage(e,t){try{return s()?{success:!1}:{success:!0,...await c(a().rpc("community_send_group_message",{p_group_id:e,p_content:t}))}}catch(r){return{success:!1,error:u(r)}}},async getLeaderboard(e,t=50){try{if(s())return{rankings:[{user_id:"demo-user",user_name:"Arnav",avatar_url:null,hours:12.5,rank:1},{user_id:"demo-1",name:"Isha",handle:"isha_revises",avatar_url:null,hours:9.8,rank:2},{user_id:"demo-2",name:"Kabir",handle:"kabir_math",avatar_url:null,hours:7.4,rank:3},{user_id:"demo-3",name:"Meera",handle:"meera_neet",avatar_url:null,hours:6.1,rank:4},{user_id:"demo-4",name:"Dev",handle:"dev_physics",avatar_url:null,hours:4.9,rank:5}],period:e,source:"user",currentUserRank:{user_id:"demo-user",name:"Arjun",handle:"arnav_studies",avatar_url:null,hours:12.5,rank:1}};const __lbTok=(()=>{try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),v=localStorage.getItem(k);if(!k||!v)continue;try{const s2=JSON.parse(v);const t=(s2&&s2.state&&s2.state.session&&s2.state.session.access_token)||(s2&&s2.access_token)||(s2&&s2.session&&s2.session.access_token)||(s2&&s2.currentSession&&s2.currentSession.access_token);if(t)return t}catch(e){}}}catch(e){}return null})();const res=await fetch("/__leaderboard",{method:"POST",headers:{"Content-Type":"application/json",...(__lbTok?{"Authorization":"Bearer "+__lbTok}:{})},body:JSON.stringify({period:e,limit:t})});if(!res.ok)throw new Error("Leaderboard request failed ("+res.status+")");const d=await res.json();if(d.error)throw new Error(d.error);return{...d,rankings:Array.isArray(d?.rankings)?d.rankings.filter(x=>!!(x?.user_id&&x?.name)):[],currentUserRank:d?.currentUserRank}}catch(x){throw new Error(u(x))}}};export{g as c};`;
+let patchedCommunityApiBundle = null;
+function getPatchedCommunityApiBundle() {
+  if (patchedCommunityApiBundle) return patchedCommunityApiBundle;
+  try {
+    let raw = fs.readFileSync(COMMUNITY_API_BUNDLE_ABS, 'utf8');
+    if (raw.includes(COMMUNITY_API_GATE_FROM)) {
+      raw = raw.replace(COMMUNITY_API_GATE_FROM, COMMUNITY_API_GATE_TO);
+      console.log('[CommunityApiPatch] premium demo-gate neutralised -> real RPC path enabled');
+    } else {
+      console.warn('[CommunityApiPatch] import gate anchor not found; community may show demo data');
+    }
+    if (raw.includes(COMMUNITY_API_CHAT_FROM)) {
+      raw = raw.replace(COMMUNITY_API_CHAT_FROM, COMMUNITY_API_CHAT_TO);
+      console.log('[CommunityApiPatch] group chat methods (getGroupMessages/sendGroupMessage) added');
+    } else {
+      console.warn('[CommunityApiPatch] chat anchor not found; chat methods missing');
+    }
+    patchedCommunityApiBundle = Buffer.from(raw, 'utf8');
+  } catch (e) { console.error('[CommunityApiPatch] Error:', e && e.message); patchedCommunityApiBundle = null; }
+  return patchedCommunityApiBundle;
 }
 
 // ── PWA manager patch: guard SW-triggered reloads ─────────────────────────────
@@ -3297,7 +3605,13 @@ function getPatchedPWAManagerBundle() {
 }
 
 // ── App bundle patch: disable demo mode ──────────────────────────────────────
-const APP_BUNDLE_ABS  = path.join(PUBLIC_DIR, 'assets', 'App-pJGjDiPw.js');
+const APP_BUNDLE_ABS  = path.join(PUBLIC_DIR, 'assets', 'App-CQ9mV4wu.js');
+// The new (premium) app bakes its Supabase URL + anon key into exactly these two
+// core modules. Normalize both at serve time so login/sync/community run against
+// this install's own Supabase from env, not the upstream project.
+const MARKETING_CORE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'marketing-core-DzcTqL0l.js');
+const USE_AUTH_STORE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useAuthStore-Aw1au7RF.js');
+const ENTRY_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'index-D1Y5F8Lk.js');
 // [Patch 1] Disable demo mode: ge() always returns false
 const APP_DEMO_FROM = 'ge = () => typeof window > "u" ? !1 : Ys(window.location.pathname) || window.sessionStorage.getItem(Et) === "1",';
 const APP_DEMO_TO   = 'ge = () => !1,';
@@ -3346,6 +3660,93 @@ function replaceSupabaseUrlConstants(bundle) {
   });
   if (replaced) console.log(`[AppPatch] Supabase URL constants normalized (${replaced})`);
   return out;
+}
+
+function getPatchedCoreBundle() {
+  try {
+    const raw = fs.readFileSync(MARKETING_CORE_BUNDLE_ABS, 'utf8');
+    let patched = replaceSupabaseUrlConstants(raw);
+    patched = replaceSupabaseJwtConstants(patched);
+    return patched;
+  } catch (e) {
+    console.warn('[CorePatch] read failed:', e && e.message);
+    return null;
+  }
+}
+
+function getPatchedAuthStoreBundle() {
+  try {
+    const raw = fs.readFileSync(USE_AUTH_STORE_BUNDLE_ABS, 'utf8');
+    let patched = replaceSupabaseUrlConstants(raw);
+    patched = replaceSupabaseJwtConstants(patched);
+
+    // Force premium on this install: the auth store treats scholar & ranker as
+    // "premium"; always return true so every gate (incl. community) unlocks.
+    const PREM_FROM = 'isPremium:()=>{const{planType:t}=e();return t==="scholar"||t==="ranker"}';
+    const PREM_TO   = 'isPremium:()=>!0';
+    if (patched.includes(PREM_FROM)) {
+      patched = patched.split(PREM_FROM).join(PREM_TO);
+      console.log('[AuthStorePatch] isPremium forced true');
+    } else { console.warn('[AuthStorePatch] isPremium anchor not found'); }
+
+    // Default account plan → ranker (premium) instead of "free".
+    const PLAN_COUNT = (patched.split('planType:"free"').length - 1);
+    if (PLAN_COUNT > 0) {
+      patched = patched.split('planType:"free"').join('planType:"ranker"');
+      console.log(`[AuthStorePatch] default planType → ranker (${PLAN_COUNT})`);
+    } else { console.warn('[AuthStorePatch] planType:"free" anchor not found'); }
+
+    // Session persistence: the upstream client persists the session through the
+    // custom IndexedDB adapter (`vs` → `ws`/`M`), so restore-and-launch.js can
+    // never find it in plain localStorage → on every reload the boot state is
+    // "readyLoggedOut" → the app redirects (incl. all private routes) to /auth.
+    // Mirror the auth-token key into plain localStorage so both worlds agree,
+    // and fall back to it on read (keep the freshest copy across refreshes).
+    const VS_FROM = 'vs={getItem:async a=>{const e=await M.getItem(a);return typeof e=="string"?e:null},setItem:async(a,e)=>{await M.setItem(a,e)},removeItem:async a=>{await M.removeItem(a)}}';
+    const VS_TO   = 'vs={getItem:async a=>{if(a==="isotope-auth-token"){try{const l=localStorage.getItem("isotope-auth-token");if(typeof l=="string"&&l)return l}catch{}}const e=await M.getItem(a);return typeof e=="string"?e:null},setItem:async(a,e)=>{await M.setItem(a,e);if(a==="isotope-auth-token"){try{const l=typeof e=="string"?e:JSON.stringify(e);localStorage.setItem("isotope-auth-token",l)}catch{}}},removeItem:async a=>{await M.removeItem(a);if(a==="isotope-auth-token"){try{localStorage.removeItem("isotope-auth-token")}catch{}}}}';
+    if (patched.includes(VS_FROM)) {
+      patched = patched.split(VS_FROM).join(VS_TO);
+      console.log('[AuthStorePatch] auth-token mirrored to plain localStorage');
+    } else { console.warn('[AuthStorePatch] vs storage adapter anchor not found'); }
+
+    // Session freshness: upstream ships autoRefreshToken:false (only the
+    // restore-and-launch bootstrap refreshes once at boot). In-app that means
+    // the access token goes stale after ~1h and every RPC 401s → hard logout
+    // while the app is open. Enable in-app auto-refresh so sessions stay alive.
+    const AR_FROM = 'auth:{autoRefreshToken:!1,persistSession:!0,detectSessionInUrl:!0,storage:vs,storageKey:"isotope-auth-token"}';
+    const AR_TO   = 'auth:{autoRefreshToken:!0,persistSession:!0,detectSessionInUrl:!0,storage:vs,storageKey:"isotope-auth-token"}';
+    if (patched.includes(AR_FROM)) {
+      patched = patched.split(AR_FROM).join(AR_TO);
+      console.log('[AuthStorePatch] supabase autoRefreshToken enabled');
+    } else { console.warn('[AuthStorePatch] auth config anchor not found'); }
+    return patched;
+  } catch (e) {
+    console.warn('[AuthStorePatch] read failed:', e && e.message);
+    return null;
+  }
+}
+
+function getPatchedEntryBundle() {
+  try {
+    const raw = fs.readFileSync(ENTRY_BUNDLE_ABS, 'utf8');
+    let patched = raw;
+    // Neutralize upstream Sentry telemetry: this is a self-hosted install, no
+    // events should leave the device. Empty DSN + zero sampling does it.
+    const SENTRY_DSN_FROM = '"https://b5c41db34258cb3b6d44c47d80d3284f@o4510670882865152.ingest.us.sentry.io/4510670885224448"';
+    if (patched.includes(SENTRY_DSN_FROM)) {
+      patched = patched.split(SENTRY_DSN_FROM).join('""');
+      console.log('[EntryPatch] Sentry DSN neutralized');
+    } else { console.warn('[EntryPatch] Sentry DSN anchor not found'); }
+    const TRACE_FROM = 'tracesSampleRate:1,tracePropagationTargets:["localhost",/^https:\\/\\/yourserver\\.io\\/api/],replaysSessionSampleRate:.1,replaysOnErrorSampleRate:1,enableLogs:!1';
+    if (patched.includes(TRACE_FROM)) {
+      patched = patched.split(TRACE_FROM).join('tracesSampleRate:0,tracePropagationTargets:[],replaysSessionSampleRate:0,replaysOnErrorSampleRate:0,enableLogs:!1');
+      console.log('[EntryPatch] Sentry sampling zeroed');
+    } else { console.warn('[EntryPatch] Sentry sampling anchor not found'); }
+    return patched;
+  } catch (e) {
+    console.warn('[EntryPatch] read failed:', e && e.message);
+    return null;
+  }
 }
 
 function getPatchedAppBundle() {
@@ -3561,7 +3962,7 @@ function getPatchedAppBundle() {
 }
 
 // ── Focus bundle patch ───────────────────────────────────────────────────────
-const FOCUS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Focus-BmgY-9vP.js');
+const FOCUS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Focus-B4gLsWoP.js');
 const PIP_POLYFILL = `(function(){
 var _isAndroid=/Android|Mobile|iPhone|iPad|iPod/i.test(navigator.userAgent);
 if('documentPictureInPicture' in window && !_isAndroid)return;
@@ -3662,7 +4063,7 @@ function getPatchedFocusBundle() {
 // Warm up caches — deferred to after server.listen() so port opens immediately
 
 // ── Auth bundle patch: username-based auth (no email) ────────────────────────
-const AUTH_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Auth-Cw0VAaCZ.js');
+const AUTH_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Auth-D0Y8CB1f.js');
 let patchedAuthBundle = null;
 function getPatchedAuthBundle() {
   if (patchedAuthBundle) return patchedAuthBundle;
@@ -3716,7 +4117,7 @@ function getPatchedAuthBundle() {
 // getPatchedAuthBundle() — deferred to after server.listen()
 
 // ── Onboarding bundle patch: cloud-verified completion ──────────────────────
-const ONBOARDING_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Onboarding-qvAqCBbb.js');
+const ONBOARDING_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Onboarding-C0svxOgT.js');
 let patchedOnboardingBundle = null;
 function getPatchedOnboardingBundle() {
   if (patchedOnboardingBundle) return patchedOnboardingBundle;
@@ -3789,7 +4190,7 @@ function getPatchedLeaderboardBundle() {
 }
 
 // ── Settings bundle patch: remove fake synced language and persist avatar clear
-const SETTINGS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'SettingsLayout-B4OgCkQ5.js');
+const SETTINGS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'SettingsLayout-DkuooNHv.js');
 let patchedSettingsBundle = null;
 function getPatchedSettingsBundle() {
   if (patchedSettingsBundle) return patchedSettingsBundle;
@@ -4000,7 +4401,7 @@ function getPatchedUseSyncStoreBundle() {
 }
 
 // ── AppAccessGate bundle patch: empty devices automatically import cloud backup
-const APP_ACCESS_GATE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'AppAccessGate-B975UtK7.js');
+const APP_ACCESS_GATE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'AppAccessGate-DzNuNpuU.js');
 let patchedAppAccessGateBundle = null;
 function getPatchedAppAccessGateBundle() {
   if (patchedAppAccessGateBundle) return patchedAppAccessGateBundle;
@@ -5662,6 +6063,27 @@ const server = http.createServer((req, res) => {
   try { adminPath = new URL('http://x' + req.url).pathname; } catch { adminPath = req.url.split('?')[0]; }
 
   // ── Admin route auth guard ──────────────────────────────────────────────────
+  // Browser error bridge: clients POST captured console/runtime errors here so
+  // the developer can read them from logs/browser-errors.log on the device.
+  if (req.method === 'POST' && adminPath === '/__errors') {
+    readReqBody(req, 1 * 1024 * 1024).then(({ errors }) => {
+      const list = Array.isArray(errors) ? errors : [];
+      if (list.length) {
+        const isoHome = process.env.ISOTOPE_HOME || path.join(os.homedir(), '.isotope');
+        const logDir = path.join(isoHome, 'logs');
+        fs.mkdirSync(logDir, { recursive: true });
+        const line = '[' + new Date().toISOString() + '] ' + JSON.stringify(list) + '\n';
+        fs.appendFile(path.join(logDir, 'browser-errors.log'), line, () => {});
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ ok: true, received: list.length }));
+    }).catch(() => {
+      res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ ok: false, error: 'bad body' }));
+    });
+    return;
+  }
+
   // Admin routes are disabled unless owner/admin mode is explicitly enabled.
   if (adminPath === '/__admin') {
     res.writeHead(302, { Location: isAdminAuthed(req) ? '/__admin/verify' : '/__admin/login?next=%2F__admin%2Fverify' });
@@ -6024,6 +6446,27 @@ const server = http.createServer((req, res) => {
       command: 'isotope update',
       message: 'This self-hosted local app is updated through the command system. The server was not stopped.',
     }));
+    return;
+  }
+
+  // ── /api/update-now — run `isotope update` from the browser ────────────────
+  if (req.method === 'POST' && adminPath === '/api/update-now') {
+    try {
+      const bin = path.join(__dirname, 'bin', 'isotope');
+      const child = spawn('bash', [bin, 'update'], {
+        cwd: __dirname,
+        detached: true,
+        stdio: 'ignore',
+      });
+      child.unref();
+      console.log('[OK] Browser-triggered isotope update (spawned detached pid ' + child.pid + ')');
+      res.writeHead(202, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ ok: true, message: 'Update started — the app will reload automatically.' }));
+    } catch (e) {
+      console.error('[Update] Failed to spawn isotope update:', e && e.message);
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ ok: false, error: (e && e.message) || 'Failed to start update' }));
+    }
     return;
   }
 
@@ -8178,6 +8621,77 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
     return;
   }
 
+  // ── /__leaderboard — server-side leaderboard (service key, no RLS/anonymity issues) ──
+  if (req.method === 'POST' && adminPath === '/__leaderboard') {
+    (async () => {
+      const auth = await requireUserAuth(req, res);
+      if (!auth) return;
+      const body = await readReqBody(req, 64 * 1024);
+      const period  = String(body?.period || 'weekly');
+      const limitN  = Math.min(parseInt(String(body?.limit || '50'), 10) || 50, 100);
+      const groupId = body?.group_id ? String(body.group_id) : null;
+      const isDaily = period === 'daily';
+      const sortCol = period === 'monthly' ? 'monthly_hours' : 'weekly_hours';
+      const today   = new Date().toISOString().slice(0, 10);
+
+      const fetchRows = async (path) => {
+        const r = await supaRestReq('GET', path);
+        return Array.isArray(r.body) ? r.body : [];
+      };
+
+      try {
+        let rows;
+        if (isDaily) {
+          rows = await fetchRows('/rest/v1/daily_user_stats?select=user_id,seconds_studied&date=eq.' + today + '&order=seconds_studied.desc.nullslast&limit=' + limitN);
+        } else if (groupId) {
+          const members = await fetchRows('/rest/v1/group_members?group_id=eq.' + encodeURIComponent(groupId) + '&select=user_id&limit=200');
+          const ids = (Array.isArray(members) ? members : []).map(m => m.user_id).filter(Boolean);
+          if (!ids.length) return sendJson(res, 200, { rankings: [], period, source: 'db', currentUserRank: null, display_names_resolved: true });
+          const inQ = ids.join(',');
+          rows = await fetchRows('/rest/v1/user_stats_summary?select=user_id,total_hours,weekly_hours,monthly_hours,total_sessions,current_streak,last_session_at&user_id=in.(' + inQ + ')&order=' + sortCol + '.desc.nullslast&limit=' + limitN);
+        } else {
+          rows = await fetchRows('/rest/v1/user_stats_summary?select=user_id,total_hours,weekly_hours,monthly_hours,total_sessions,current_streak,last_session_at&order=' + sortCol + '.desc.nullslast&limit=' + limitN);
+        }
+        if (!rows.length) return sendJson(res, 200, { rankings: [], period, source: 'db', currentUserRank: null, display_names_resolved: true });
+
+        // Enrich with names/avatars from `users` (admin key bypasses RLS).
+        const ids = rows.map(r => r.user_id).filter(Boolean);
+        let users = [];
+        if (ids.length) {
+          const u = await fetchRows('/rest/v1/users?select=id,username,name,avatar_url&id=in.(' + ids.join(',') + ')&limit=200');
+          users = Array.isArray(u) ? u : [];
+        }
+        const byId = {};
+        for (const x of users) byId[x.id] = x;
+
+        const rankings = rows.map((r, i) => {
+          const u = byId[r.user_id] || {};
+          const hours = isDaily ? (Number(r.seconds_studied) || 0) / 3600 : Number(r[sortCol]) || 0;
+          return {
+            user_id: r.user_id, rank: i + 1,
+            name: u.name || u.username || 'Student',
+            username: u.username || null,
+            avatar_url: u.avatar_url || null,
+            hours,
+            total_hours:    Number(r.total_hours) || 0,
+            weekly_hours:   Number(r.weekly_hours) || 0,
+            monthly_hours:  Number(r.monthly_hours) || 0,
+            total_sessions: Number(r.total_sessions) || 0,
+            current_streak: Number(r.current_streak) || 0,
+            last_session_at: r.last_session_at || null,
+            score: hours,
+          };
+        });
+        const uid = auth.userId || null;
+        const cur = uid ? (rankings.find(x => x.user_id === uid) || null) : null;
+        sendJson(res, 200, { rankings, period, source: 'db', currentUserRank: cur, display_names_resolved: true });
+      } catch (e) {
+        sendJson(res, 502, { rankings: [], period, source: 'error', error: e && e.message || 'Leaderboard query failed' });
+      }
+    })();
+    return;
+  }
+
   // ── Static file serving ─────────────────────────────────────────────────────
   let urlPath = req.url.split('?')[0];
   try { urlPath = decodeURIComponent(urlPath); } catch {}
@@ -8293,6 +8807,18 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const buf = getPatchedAppBundle();
       if (buf) { send(buf); return; }
     }
+    if (fp === MARKETING_CORE_BUNDLE_ABS) {
+      const buf = getPatchedCoreBundle();
+      if (buf) { send(buf); return; }
+    }
+    if (fp === USE_AUTH_STORE_BUNDLE_ABS) {
+      const buf = getPatchedAuthStoreBundle();
+      if (buf) { send(buf); return; }
+    }
+    if (fp === ENTRY_BUNDLE_ABS) {
+      const buf = getPatchedEntryBundle();
+      if (buf) { send(buf); return; }
+    }
     if (fp === AUTH_BUNDLE_ABS) {
       const buf = getPatchedAuthBundle();
       if (buf) { send(buf); return; }
@@ -8333,8 +8859,20 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const buf = getPatchedCommunityBundle();
       if (buf) { send(buf); return; }
     }
+    if (fp === COMMUNITY_API_BUNDLE_ABS) {
+      const buf = getPatchedCommunityApiBundle();
+      if (buf) { send(buf); return; }
+    }
     if (fp === COMMUNITY_HUB_BUNDLE_ABS) {
       const buf = getPatchedCommunityHubBundle();
+      if (buf) { send(buf); return; }
+    }
+    if (fp === COMMUNITY_VISUALS_BUNDLE_ABS) {
+      const buf = getPatchedCommunityVisualsBundle();
+      if (buf) { send(buf); return; }
+    }
+    if (fp === DASHBOARD_BUNDLE_ABS) {
+      const buf = getPatchedDashboardBundle();
       if (buf) { send(buf); return; }
     }
     if (fp === PWA_MANAGER_BUNDLE_ABS) {
@@ -8399,37 +8937,42 @@ server.listen(port, '0.0.0.0', () => {
   if (GROQ_API_KEY)   console.log('Groq API key: configured');
 
   // Warm up bundle caches after port is open so startup is fast
+  const safeWarm = (abs, fn) => { try { if (fs.existsSync(abs)) fn(); } catch (e) {} };
+  const getIfExists = (abs, fn) => { try { if (fs.existsSync(abs)) return fn(); } catch (e) {} return null; };
   setImmediate(() => {
     if (GEMINI_API_KEY || GROQ_API_KEY) getPatchedAiStore();
-    getPatchedFocusBundle();
-    getPatchedAppBundle();
-    getPatchedAuthBundle();
-    getPatchedOnboardingBundle();
-    getPatchedSingleGroupBundle();
-    getPatchedLeaderboardBundle();
-    getPatchedSettingsBundle();
-    getPatchedUseSyncStoreBundle();
-    getPatchedAppAccessGateBundle();
-    getPatchedSessionSyncBundle();
-    getPatchedInvitesBundle();
-    getPatchedCommunityBundle();
-    getPatchedCommunityHubBundle();
-    getPatchedPWAManagerBundle();
+    safeWarm(FOCUS_BUNDLE_ABS, getPatchedFocusBundle);
+    safeWarm(APP_BUNDLE_ABS, getPatchedAppBundle);
+    safeWarm(AUTH_BUNDLE_ABS, getPatchedAuthBundle);
+    safeWarm(ONBOARDING_BUNDLE_ABS, getPatchedOnboardingBundle);
+    safeWarm(SINGLE_GROUP_BUNDLE_ABS, getPatchedSingleGroupBundle);
+    safeWarm(LEADERBOARD_BUNDLE_ABS, getPatchedLeaderboardBundle);
+    safeWarm(SETTINGS_BUNDLE_ABS, getPatchedSettingsBundle);
+    safeWarm(USE_SYNC_STORE_BUNDLE_ABS, getPatchedUseSyncStoreBundle);
+    safeWarm(APP_ACCESS_GATE_BUNDLE_ABS, getPatchedAppAccessGateBundle);
+    safeWarm(SESSION_SYNC_BUNDLE_ABS, getPatchedSessionSyncBundle);
+    safeWarm(INVITES_BUNDLE_ABS, getPatchedInvitesBundle);
+    safeWarm(COMMUNITY_BUNDLE_ABS, getPatchedCommunityBundle);
+    safeWarm(COMMUNITY_API_BUNDLE_ABS, getPatchedCommunityApiBundle);
+    safeWarm(COMMUNITY_HUB_BUNDLE_ABS, getPatchedCommunityHubBundle);
+    safeWarm(COMMUNITY_VISUALS_BUNDLE_ABS, getPatchedCommunityVisualsBundle);
+    safeWarm(DASHBOARD_BUNDLE_ABS, getPatchedDashboardBundle);
+    safeWarm(PWA_MANAGER_BUNDLE_ABS, getPatchedPWAManagerBundle);
 
     // Pre-gzip all patched bundles so first client request is instant.
     // Each bundle is already in memory; gzip runs once in the background.
     const toPreGzip = [
-      [APP_BUNDLE_ABS,             getPatchedAppBundle()],
-      [AUTH_BUNDLE_ABS,            getPatchedAuthBundle()],
-      [FOCUS_BUNDLE_ABS,           getPatchedFocusBundle()],
-      [ONBOARDING_BUNDLE_ABS,      getPatchedOnboardingBundle()],
-      [SINGLE_GROUP_BUNDLE_ABS,    getPatchedSingleGroupBundle()],
-      [LEADERBOARD_BUNDLE_ABS,     getPatchedLeaderboardBundle()],
-      [SETTINGS_BUNDLE_ABS,        getPatchedSettingsBundle()],
-      [USE_SYNC_STORE_BUNDLE_ABS,   getPatchedUseSyncStoreBundle()],
-      [APP_ACCESS_GATE_BUNDLE_ABS, getPatchedAppAccessGateBundle()],
-      [SESSION_SYNC_BUNDLE_ABS,    getPatchedSessionSyncBundle()],
-      [INVITES_BUNDLE_ABS,         getPatchedInvitesBundle()],
+      [APP_BUNDLE_ABS,             getIfExists(APP_BUNDLE_ABS, getPatchedAppBundle)],
+      [AUTH_BUNDLE_ABS,            getIfExists(AUTH_BUNDLE_ABS, getPatchedAuthBundle)],
+      [FOCUS_BUNDLE_ABS,           getIfExists(FOCUS_BUNDLE_ABS, getPatchedFocusBundle)],
+      [ONBOARDING_BUNDLE_ABS,      getIfExists(ONBOARDING_BUNDLE_ABS, getPatchedOnboardingBundle)],
+      [SINGLE_GROUP_BUNDLE_ABS,    getIfExists(SINGLE_GROUP_BUNDLE_ABS, getPatchedSingleGroupBundle)],
+      [LEADERBOARD_BUNDLE_ABS,     getIfExists(LEADERBOARD_BUNDLE_ABS, getPatchedLeaderboardBundle)],
+      [SETTINGS_BUNDLE_ABS,        getIfExists(SETTINGS_BUNDLE_ABS, getPatchedSettingsBundle)],
+      [USE_SYNC_STORE_BUNDLE_ABS,   getIfExists(USE_SYNC_STORE_BUNDLE_ABS, getPatchedUseSyncStoreBundle)],
+      [APP_ACCESS_GATE_BUNDLE_ABS, getIfExists(APP_ACCESS_GATE_BUNDLE_ABS, getPatchedAppAccessGateBundle)],
+      [SESSION_SYNC_BUNDLE_ABS,    getIfExists(SESSION_SYNC_BUNDLE_ABS, getPatchedSessionSyncBundle)],
+      [INVITES_BUNDLE_ABS,         getIfExists(INVITES_BUNDLE_ABS, getPatchedInvitesBundle)],
     ];
     let i = 0;
     const preGzipNext = () => {
