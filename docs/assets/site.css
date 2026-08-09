@@ -794,3 +794,139 @@ pre.code {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   v2 — pro-max pass (ui-ux-pro-max)
+   tokens, focus rings, touch sizes, scrollbars, CLS guards, readability
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+  --focus: #dfff7a;
+  --scrollbar: rgba(141, 243, 31, 0.35);
+  --muted-strong: #c6cec0;
+}
+
+/* visible focus rings for keyboard nav — never remove outlines */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+::selection {
+  background: rgba(141, 243, 31, 0.32);
+  color: #081006;
+}
+
+html {
+  scroll-padding-top: 84px;
+}
+
+/* consistent thin scrollbars (webkit + firefox) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.28)) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--focus);
+}
+
+/* gallery rail gets a branded scrollbar */
+.gallery-rail {
+  scrollbar-color: var(--focus-soft, rgba(141, 243, 31, 0.5)) transparent;
+}
+
+/* touch targets ≥44px for nav + command items */
+.nav-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.cmd-item {
+  min-height: 48px;
+}
+
+.cmd-search::placeholder {
+  color: rgba(245, 247, 240, 0.6);
+}
+
+/* hover/active state clarity on nav + buttons */
+.nav-links a:active {
+  transform: translateY(0) scale(0.97);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.button:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* CLS guard — hero screenshot container */
+.hero-shot img {
+  aspect-ratio: 1180 / 800;
+}
+
+/* keep body copy ≥16px and preserve the readable line length */
+.lead {
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3 {
+  max-width: 22ch;
+}
+
+.section-head p,
+.doc-card p,
+.command-card p,
+.timeline-item p {
+  line-height: 1.65;
+}
+
+/* tabular data reads better in monospace-style numbers */
+.proof-pill strong,
+.number,
+.timeline-item .label {
+  font-variant-numeric: tabular-nums;
+}
+
+/* avoid layout jitter when reveal fires late */
+.reveal {
+  will-change: opacity, transform;
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --text: #ffffff;
+    --muted: #c6cec0;
+  }
+
+  .nav-links a {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  .cmd-search::placeholder {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .eyebrow {
+    border-color: rgba(141, 243, 31, 0.5);
+  }
+}

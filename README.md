@@ -23,6 +23,8 @@
   <a href="https://suydev.github.io/isotope-code/admin.html">Admin proof</a>
   ·
   <a href="https://suydev.github.io/isotope-code/gallery.html">Screenshots</a>
+  ·
+  <a href="https://suydev.github.io/isotope-code/motion.html">Motion</a>
 </p>
 
 <p align="center">
@@ -44,6 +46,9 @@ Start here:
 - Animated web guide: https://suydev.github.io/isotope-code/
 - Install guide: https://suydev.github.io/isotope-code/install.html
 - Screenshot gallery: https://suydev.github.io/isotope-code/gallery.html
+- Sync safety: https://suydev.github.io/isotope-code/sync.html
+- Admin proof: https://suydev.github.io/isotope-code/admin.html
+- Motion showcase: https://suydev.github.io/isotope-code/motion.html
 - Admin guide: [ADMIN.md](./ADMIN.md)
 - Sync details: [docs/sync-system.md](./docs/sync-system.md)
 - Backup storage details: [docs/storage-backup-system.md](./docs/storage-backup-system.md)
