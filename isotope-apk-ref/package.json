@@ -28,7 +28,7 @@
     "@capacitor/status-bar": "6.0.3"
   },
   "devDependencies": {
-    "@capacitor/cli": "6.2.1",
+    "@capacitor/cli": "8.5.0",
     "katex": "^0.16.28"
   }
 }
