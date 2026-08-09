@@ -54,9 +54,6 @@ jobs:
           done
           [ "$STATUS" = "200" ] || { echo "Server failed to start"; exit 1; }
 
-      - name: 🌱 Seed demo data (best effort)
-        run: node scripts/seed-demo-data.mjs --reset || echo "seed skipped (continuing)"
-
       - name: 📷 Capture screenshots
         run: |
           sudo apt-get install -y pngquant >/dev/null 2>&1 || true
@@ -84,10 +81,10 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
-          if ! git diff --quiet -- screenshots; then
+          git add screenshots/
+          if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add screenshots/
             git commit -m "docs(screenshots): refresh UI screenshots (automated)"
             git push origin HEAD:main
             echo "✅ Screenshots committed"

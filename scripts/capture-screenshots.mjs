@@ -146,44 +146,60 @@ async function waitForSelector(page, selectors, timeout = 8000) {
   const list = selectors.split(',').map(s => s.trim());
   const start = Date.now();
   while (Date.now() - start < timeout) {
-    for (const sel of list) {
-      const el = await page.$(sel);
-      if (el) return true;
+    let found = false;
+    try {
+      for (const sel of list) {
+        const el = await page.$(sel);
+        if (el) { found = true; break; }
+      }
+    } catch {
+      // navigation in progress — execution context destroyed; wait and retry
+      found = false;
     }
+    if (found) return true;
     await page.waitForTimeout(200);
   }
   return false;
 }
 
 async function isBlankPage(page) {
-  return await page.evaluate(() => {
-    const body = document.body;
-    if (!body) return true;
-    const text = (body.innerText || '').trim();
-    const imgs = document.querySelectorAll('img').length;
-    const visible = document.querySelectorAll('[class], div, section, main').length;
-    return text.length < 30 && imgs === 0 && visible < 5;
-  });
+  try {
+    return await page.evaluate(() => {
+      const body = document.body;
+      if (!body) return true;
+      const text = (body.innerText || '').trim();
+      const imgs = document.querySelectorAll('img').length;
+      const visible = document.querySelectorAll('[class], div, section, main').length;
+      return text.length < 30 && imgs === 0 && visible < 5;
+    });
+  } catch {
+    return false; // navigation in progress — not blank, just unstable
+  }
 }
 
 async function isMainlyWhite(page, file) {
   // Rough check: if screenshot is > 90% white pixels, warn
   // This is a heuristic — a full pixel comparison would require canvas access
-  const pixel = await page.evaluate(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 20; canvas.height = 20;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    const bodyBg = window.getComputedStyle(document.body).backgroundColor;
-    ctx.fillStyle = bodyBg || '#fff';
-    ctx.fillRect(0, 0, 20, 20);
-    const d = ctx.getImageData(0, 0, 20, 20).data;
-    let bright = 0;
-    for (let i = 0; i < d.length; i += 4) {
-      if (d[i] > 230 && d[i+1] > 230 && d[i+2] > 230) bright++;
-    }
-    return bright / 400;
-  });
+  let pixel = null;
+  try {
+    pixel = await page.evaluate(() => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 20; canvas.height = 20;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+      ctx.fillStyle = bodyBg || '#fff';
+      ctx.fillRect(0, 0, 20, 20);
+      const d = ctx.getImageData(0, 0, 20, 20).data;
+      let bright = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i] > 230 && d[i+1] > 230 && d[i+2] > 230) bright++;
+      }
+      return bright / 400;
+    });
+  } catch {
+    pixel = null; // navigation in progress — skip heuristic
+  }
   if (pixel !== null && pixel > 0.9) {
     warn(`${file} may be mostly white (ratio: ${pixel.toFixed(2)}) — check manually`);
     return true;
@@ -264,11 +280,14 @@ for (const route of toCapture) {
   log(`Capturing: ${route.key} (${route.file}) @ ${route.viewport.width}×${route.viewport.height}`);
 
   try {
-    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    const response = await page.goto(url, { waitUntil: 'load', timeout: 25000 });
 
     if (!response || response.status() >= 500) {
       throw new Error(`HTTP ${response?.status()} on ${url}`);
     }
+
+    // Let client-side router redirects settle before polling selectors
+    await page.waitForTimeout(800);
 
     // Wait for meaningful content
     await waitForSelector(page, route.waitFor, 8000);
