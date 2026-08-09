@@ -1,0 +1,126 @@
+{
+  "captured_at": "2026-08-09T09:01:41.603Z",
+  "base_url": "http://127.0.0.1:3000",
+  "screenshots": [
+    {
+      "key": "hero-dashboard",
+      "file": "hero-dashboard.png",
+      "path": "screenshots/hero-dashboard.png",
+      "description": "Main dashboard with stats, streak, timer",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:3000/?demo=1",
+      "status": "captured"
+    },
+    {
+      "key": "focus-timer",
+      "file": "focus-timer.png",
+      "path": "screenshots/focus-timer.png",
+      "description": "Focus timer with subject/task selected",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:3000/focus?demo=1",
+      "status": "captured"
+    },
+    {
+      "key": "analytics",
+      "file": "analytics.png",
+      "path": "screenshots/analytics.png",
+      "description": "Analytics charts — weekly hours, subject breakdown",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:3000/analytics?demo=1",
+      "status": "captured"
+    },
+    {
+      "key": "syllabus",
+      "file": "syllabus.png",
+      "path": "screenshots/syllabus.png",
+      "description": "Syllabus progress with chapter breakdown",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:3000/syllabus?demo=1",
+      "status": "captured"
+    },
+    {
+      "key": "tasks",
+      "file": "tasks.png",
+      "path": "screenshots/tasks.png",
+      "description": "Task manager with priorities and due dates",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:3000/tasks?demo=1",
+      "status": "captured"
+    },
+    {
+      "key": "exams",
+      "file": "exams.png",
+      "path": "screenshots/exams.png",
+      "description": "Exam countdown and mock test analytics",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:3000/exams?demo=1",
+      "status": "captured"
+    },
+    {
+      "key": "community",
+      "file": "community.png",
+      "path": "screenshots/community.png",
+      "description": "Groups, leaderboard, challenges",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:3000/community?demo=1",
+      "status": "captured"
+    },
+    {
+      "key": "settings-sync",
+      "file": "settings-sync.png",
+      "path": "screenshots/settings-sync.png",
+      "description": "Cloud sync status and profile settings",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:3000/settings?demo=1",
+      "status": "captured"
+    },
+    {
+      "key": "mobile-dashboard",
+      "file": "mobile-dashboard.png",
+      "path": "screenshots/mobile-dashboard.png",
+      "description": "Mobile responsive dashboard",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://127.0.0.1:3000/?demo=1",
+      "status": "captured"
+    },
+    {
+      "key": "mobile-focus",
+      "file": "mobile-focus.png",
+      "path": "screenshots/mobile-focus.png",
+      "description": "Mobile focus timer",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://127.0.0.1:3000/focus?demo=1",
+      "status": "captured"
+    }
+  ]
+}
