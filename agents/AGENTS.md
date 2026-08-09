@@ -77,6 +77,13 @@ The server serves the PREMIUM (new) build from `public/assets/` and patches each
     - Docs updated: README (one-liners + ISOTOPE_BRANCH), docs/install.html, docs/index.html (v3.3.9 + all-platform one-liners), docs/index.md, docs/gallery.html (auto-refresh note), CONTRIBUTING.md (new files table), CHANGELOG.md (3.3.9 entry). validate-docs.mjs REQUIRED_FILES + install-script list extended; 34 checks / 0 warnings / 0 errors.
     - Version bumped 3.3.8 → 3.3.9 (package.json, VERSION, README badge, docs hero).
     - Server restarted (PID 10289); `/api/version` = 3.3.9; authstore bundle 200; `isotope doctor` all ok; `/usr/bin/isotope` synced.
+13. Aug 9: **Screenshot pipeline fixes** (v3.3.9 follow-ups):
+    - Server had no `/api/health` — added it (server.mjs ~6340) as a health alias used by capture + seed scripts.
+    - `capture-screenshots.mjs` failed 8/10 on first CI run ("Execution context was destroyed" — client-side router navigation raced `page.$`). Fixed: `waitForSelector`/`isBlankPage`/`isMainlyWhite` now catch destroyed contexts and retry; `goto` uses `waitUntil:'load'` + 800ms settle delay. All 10 routes now capture (verified in CI).
+    - `screenshots.yml` commit step used `git diff --quiet -- screenshots` which ignores UNTRACKED files → new PNGs never committed. Fixed by `git add screenshots/` then `git diff --cached --quiet`. Screenshot commit `4054a2a` pushed to main.
+    - Removed the `seed-demo-data.mjs --reset` step from CI — its `/api/subjects`, `/api/tasks`, `/api/habits`, `/api/sessions` endpoints don't exist server-side; demo data is client-side via `?demo=1` (hero/mobile dashboard captured fine without it).
+    - docs/gallery.html + docs/index.html now reference the 10 fresh captures (`screenshots/hero-dashboard.png`, `focus-timer.png`, `analytics.png`, `syllabus.png`, `tasks.png`, `exams.png`, `community.png`, `settings-sync.png`, `mobile-dashboard.png`, `mobile-focus.png`) instead of June Android JPGs. validate-docs: 34 checks / 0 warnings / 0 errors.
+    - Pushed to main: `6a87214` (release 3.3.9), `002b081` (health endpoint), `55567af` (capture fixes), `4054a2a` (screenshots), `edd34e3` (gallery docs). Local branch now `main` (upgrade/premium-app deleted). Stale auto-stashes (isotope-auto-stash-*) from earlier sessions left in place.
 
 ## Known quirks
 - `/api/check-update` compares VERSION.sha vs local; pill shows when mismatch. Pushed sha now `c017e20...`; local prep is same so pill hides until a new push. Server restart changes stamp (server.mjs mtime) → pill reappears until dismissed.
