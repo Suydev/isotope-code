@@ -131,6 +131,7 @@ if (!README) {
   const installScripts = [
     ['setup.sh',       'bash setup.sh'],
     ['setup.bat',      'setup.bat'],
+    ['install.sh',     'install.sh'],
     ['install.ps1',    'install.ps1'],
     ['install-termux.sh', 'install-termux.sh'],
   ];
@@ -202,6 +203,7 @@ const REQUIRED_FILES = [
   'setup.bat',
   'install.ps1',
   'install-termux.sh',
+  'install.sh',
   'setup-termux-widget.sh',
   'update.sh',
   'update.bat',
@@ -211,6 +213,7 @@ const REQUIRED_FILES = [
   'doctor.bat',
   'bin/isotope',
   'bin/isotope.bat',
+  'bin/isotope.ps1',
   'isotope-complete.sql',
   '.env.example',
   'README.md',

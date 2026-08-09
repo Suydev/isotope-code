@@ -9,6 +9,12 @@ Open the animated GitHub Pages site:
 
 https://suydev.github.io/isotope-code/
 
+One-line installers (all pull the latest `main` branch):
+
+- Android Termux: `bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)`
+- Linux / macOS: `bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install.sh)`
+- Windows PowerShell: `irm https://raw.githubusercontent.com/Suydev/isotope-code/main/install.ps1 | iex`
+
 Main pages:
 
 - [Install guide](./install.html)

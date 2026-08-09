@@ -41,6 +41,7 @@ jobs:
             setup.sh \
             setup-termux-widget.sh \
             install-termux.sh \
+            install.sh \
             update.sh \
             start.sh \
             doctor.sh \
@@ -72,6 +73,7 @@ jobs:
             setup.sh \
             setup-termux-widget.sh \
             install-termux.sh \
+            install.sh \
             update.sh \
             start.sh \
             doctor.sh \
@@ -189,6 +191,7 @@ jobs:
             setup.bat
             install.ps1
             install-termux.sh
+            install.sh
             setup-termux-widget.sh
             update.sh
             update.bat
@@ -198,6 +201,7 @@ jobs:
             doctor.bat
             bin/isotope
             bin/isotope.bat
+            bin/isotope.ps1
             isotope-complete.sql
             community-patch-v4.sql
             sql/006_security_policy_cleanup.sql
@@ -270,6 +274,7 @@ jobs:
           echo "Checking Termux scripts without running installers..."
           bash -n setup.sh
           bash -n install-termux.sh
+          bash -n install.sh
           bash -n setup-termux-widget.sh
           bash -n bin/isotope
           grep -q 'TERMUX_VERSION' setup.sh install-termux.sh

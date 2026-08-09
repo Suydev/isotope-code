@@ -5,6 +5,34 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.3.9] — 2026-08-09 — Cross-platform CLI, one-line installers, main-branch updates, auto screenshots
+
+### Added
+
+- **One-line installers for every platform**:
+  - Linux / macOS: `bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install.sh)`
+  - Windows PowerShell: `irm https://raw.githubusercontent.com/Suydev/isotope-code/main/install.ps1 | iex`
+  - Android Termux: `bash <(curl -fsSL .../main/install-termux.sh)` (unchanged, now documented everywhere)
+- **PowerShell CLI `bin/isotope.ps1`** — full parity with the bash CLI: `start`, `stop`, `restart`, `update`, `status`, `doctor`, `open`, `logs`, `version`, `repair`, `help`. Works on Windows and anywhere PowerShell exists.
+- `isotope update` now **tracks `main` by default** — installs on local-only/dev branches no longer skip updates; `ISOTOPE_BRANCH` overrides the channel.
+- `bin/isotope.bat` gains `version`, `repair`, and `setup` commands plus the same main-branch update fallback.
+- `install.ps1` can now run as a true one-liner (`irm ... | iex`): auto-clones the repo, installs the `isotope` command, and adds it to the user PATH automatically.
+- **Auto screenshot refresh workflow** (`.github/workflows/screenshots.yml`) — on every push to `main`, Playwright captures fresh UI screenshots (dashboard, focus timer, analytics, syllabus, tasks, exams, community, settings, mobile views) and commits them back, keeping the gallery current.
+- Release notes now ship with one-line install commands for all four platforms.
+
+### Changed
+
+- `install.sh` (Linux/macOS) clones `main`, installs Node 18+/Git when missing (apt/dnf/pacman/nvm/brew), runs `setup.sh`, and starts the server.
+- CI validates `install.sh` and `bin/isotope.ps1` (syntax + required-files checks).
+- README, docs/install.html, and docs/index.md document the new installers and the `ISOTOPE_BRANCH` override.
+
+### Fixed
+
+- Windows `isotope.bat` no longer fails on a local-only branch — it falls back to `origin/main` for updates.
+- `install.ps1` no longer requires running inside a cloned repo.
+
+---
+
 ## [3.3.7] — 2026-06-08 — Fix: auth-gated sync state machine; stop infinite retry on auth failure
 
 ### Fixed (sync state machine — complete rebuild)

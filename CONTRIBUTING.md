@@ -42,7 +42,11 @@ git checkout -b docs/update-readme     # for documentation
 | `public/sw.js` | Service worker — PWA caching |
 | `public/update-checker.js` | In-app update banner |
 | `bin/isotope` | Linux/macOS/Termux CLI |
-| `bin/isotope.bat` | Windows CLI |
+| `bin/isotope.ps1` | Windows / PowerShell CLI |
+| `bin/isotope.bat` | Windows CMD CLI |
+| `install.sh` | Linux/macOS one-line installer |
+| `install.ps1` | Windows one-line installer |
+| `install-termux.sh` | Android Termux one-line installer |
 | `CHANGELOG.md` | All notable changes — update this with your PR |
 
 ---

@@ -237,13 +237,32 @@ jobs:
 
           ---
 
-          ### 📥 Quick Install
+          ### 📥 One-line Install
 
+          **Android (Termux)** — install Termux from F-Droid, then:
+          ```bash
+          bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
+          ```
+
+          **Linux / macOS**:
+          ```bash
+          bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install.sh)
+          ```
+
+          **Windows (PowerShell)**:
+          ```powershell
+          irm https://raw.githubusercontent.com/Suydev/isotope-code/main/install.ps1 | iex
+          ```
+
+          **Manual (any OS with Git + Node 18+)**:
           ```bash
           git clone https://github.com/Suydev/isotope-code.git
           cd isotope-code
-          bash setup.sh
+          bash setup.sh          # Windows: .\install.ps1
+          isotope start
           ```
+
+          After install, update anytime with: `isotope update`
 
           ### 📋 What's Changed
           See [CHANGELOG.md](https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md) for the full history.

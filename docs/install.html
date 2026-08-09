@@ -54,7 +54,7 @@
       </div>
       <div class="grid two">
         <article class="command-card reveal">
-          <h3>Install</h3>
+          <h3>One-line install</h3>
           <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)</pre>
         </article>
         <article class="command-card reveal">
@@ -71,27 +71,33 @@ isotope open</pre>
           <p class="eyebrow"><span class="dot"></span> Desktop</p>
           <h2>Windows, Linux, macOS.</h2>
         </div>
+        <p>One-line installers pull the latest version from the <code>main</code> branch and install the <code>isotope</code> command automatically.</p>
       </div>
       <div class="grid">
         <article class="command-card reveal">
           <h3>Linux</h3>
-          <pre>git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-bash setup.sh
-isotope start</pre>
+          <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install.sh)</pre>
         </article>
         <article class="command-card reveal">
           <h3>macOS</h3>
-          <pre>git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-bash setup.sh
-isotope start</pre>
+          <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install.sh)</pre>
         </article>
         <article class="command-card reveal">
           <h3>Windows PowerShell</h3>
+          <pre>irm https://raw.githubusercontent.com/Suydev/isotope-code/main/install.ps1 | iex</pre>
+        </article>
+      </div>
+      <div class="grid two">
+        <article class="command-card reveal">
+          <h3>Manual (any OS)</h3>
           <pre>git clone https://github.com/Suydev/isotope-code.git
 cd isotope-code
-.\install.ps1</pre>
+bash setup.sh          # Windows: .\install.ps1
+isotope start</pre>
+        </article>
+        <article class="command-card reveal">
+          <h3>Update anytime</h3>
+          <pre>isotope update</pre>
         </article>
       </div>
     </section>

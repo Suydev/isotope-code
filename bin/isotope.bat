@@ -35,6 +35,9 @@ if "%CMD%"=="status" goto status
 if "%CMD%"=="doctor" goto doctor
 if "%CMD%"=="open" goto open
 if "%CMD%"=="logs" goto logs
+if "%CMD%"=="version" goto version
+if "%CMD%"=="repair" goto repair
+if "%CMD%"=="setup" goto setup
 goto usage
 
 :resolve_project
@@ -163,6 +166,15 @@ if "%DIRTY%"=="1" (
   git stash push -u -m "!STASH_NAME!" >>"%UPDATE_LOG%" 2>&1
 )
 for /f %%b in ('git rev-parse --abbrev-ref HEAD') do set BRANCH=%%b
+if not "%ISOTOPE_BRANCH%"=="" (
+  set BRANCH=%ISOTOPE_BRANCH%
+) else (
+  git rev-parse --verify --quiet "refs/remotes/origin/%BRANCH%" >nul 2>nul
+  if errorlevel 1 (
+    echo Branch %BRANCH% has no remote - updating from origin/main.>>"%UPDATE_LOG%"
+    set BRANCH=main
+  )
+)
 echo Fetching origin/%BRANCH%...>>"%UPDATE_LOG%"
 git fetch origin %BRANCH% >>"%UPDATE_LOG%" 2>&1
 if errorlevel 1 goto update_fail
@@ -198,6 +210,47 @@ echo ERROR: Update failed. Your .env was not deleted.>>"%UPDATE_LOG%"
 popd
 type "%UPDATE_LOG%"
 exit /b 1
+
+:version
+if not exist "%PROJECT_DIR%\package.json" (
+  echo IsotopeAI (project not found)
+  exit /b 1
+)
+for /f %%v in ('node -e "const fs=require('fs');let v='unknown';try{v=JSON.parse(fs.readFileSync('%PROJECT_DIR:\=/%/package.json','utf8')).version}catch{}process.stdout.write(v)"') do echo IsotopeAI v%%v
+if exist "%PROJECT_DIR%\VERSION" (
+  for /f %%s in ('node -e "const fs=require('fs');let s='';try{s=JSON.parse(fs.readFileSync('%PROJECT_DIR:\=/%/VERSION','utf8')).sha||''}catch{}process.stdout.write(' (sha: '+s.slice(0,8)+')')"') do echo %%s
+)
+exit /b 0
+
+:repair
+echo IsotopeAI repair
+echo Project: %PROJECT_DIR%
+echo Re-running dependency install and CLI reinstall...
+if exist "%PROJECT_DIR%\package.json" (
+  where npm >nul 2>nul
+  if not errorlevel 1 (
+    pushd "%PROJECT_DIR%"
+    npm install
+    if errorlevel 1 (
+      echo WARN: npm install had errors.
+    )
+    popd
+  )
+)
+if not exist "%ISO_HOME%" mkdir "%ISO_HOME%" >nul 2>nul
+if not exist "%ISO_HOME%\logs" mkdir "%ISO_HOME%\logs" >nul 2>nul
+if not exist "%USERPROFILE%\isotope-bin" mkdir "%USERPROFILE%\isotope-bin" >nul 2>nul
+copy "%PROJECT_DIR%\bin\isotope.bat" "%USERPROFILE%\isotope-bin\isotope.bat" >nul
+copy "%PROJECT_DIR%\bin\isotope.ps1" "%USERPROFILE%\isotope-bin\isotope.ps1" >nul
+>"%ISO_HOME%\project-path" echo %PROJECT_DIR%
+call :is_running
+if not "%RUNNING%"=="1" if exist "%PID_FILE%" del "%PID_FILE%" >nul 2>nul
+echo Repair complete. Run "isotope doctor" to verify.
+exit /b 0
+
+:setup
+call "%PROJECT_DIR%\setup.bat" --no-start
+exit /b %ERRORLEVEL%
 
 :status
 call :read_port
@@ -258,9 +311,14 @@ echo Commands:
 echo   start     Start the local Isotope server
 echo   stop      Stop the managed local server
 echo   restart   Stop, start, and open the local app
-echo   update    Safely pull the latest GitHub version
+echo   update    Safely pull the latest GitHub version (main by default)
 echo   status    Show project, port, version, and config status
 echo   doctor    Check dependencies and local app files
 echo   open      Open the local app URL
 echo   logs      Show recent server logs
+echo   version   Print the installed version
+echo   repair    Re-run dependency install and CLI reinstall
+echo   setup     Run setup.bat --no-start
+echo.
+echo Environment: ISOTOPE_BRANCH overrides the update branch (default main).
 exit /b 1

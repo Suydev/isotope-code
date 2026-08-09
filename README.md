@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="./CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-3.3.8-314f28"></a>
+  <a href="./CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-3.3.9-314f28"></a>
   <a href="https://suydev.github.io/isotope-code/"><img alt="Docs" src="https://img.shields.io/badge/docs-animated%20GitHub%20Pages-8df31f"></a>
 </p>
 
@@ -50,6 +50,9 @@ Start here:
 
 ## Pick Your Device
 
+One-line installers pull the latest version from the `main` branch and set up the
+`isotope` command for you.
+
 ### Android with Termux
 
 Install Termux from F-Droid or GitHub, not the old Play Store app.
@@ -58,57 +61,34 @@ Install Termux from F-Droid or GitHub, not the old Play Store app.
 bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install-termux.sh)
 ```
 
-After install:
+### Linux and macOS
 
 ```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Suydev/isotope-code/main/install.sh)
+```
+
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/Suydev/isotope-code/main/install.ps1 | iex
+```
+
+### Manual install (any OS)
+
+```bash
+git clone https://github.com/Suydev/isotope-code.git
+cd isotope-code
+bash setup.sh          # Windows: .\install.ps1 or setup.bat
 isotope start
+```
+
+After install, update anytime with:
+
+```bash
+isotope update
 ```
 
 Open:
-
-```text
-http://127.0.0.1:3000
-```
-
-### Linux
-
-```bash
-git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-bash setup.sh
-isotope start
-```
-
-### macOS
-
-Install Git and Node.js first if you do not have them.
-
-```bash
-git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-bash setup.sh
-isotope start
-```
-
-### Windows
-
-Use PowerShell:
-
-```powershell
-git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-.\install.ps1
-```
-
-Or use Command Prompt:
-
-```bat
-git clone https://github.com/Suydev/isotope-code.git
-cd isotope-code
-setup.bat
-```
-
-Then open:
 
 ```text
 http://127.0.0.1:3000
@@ -128,17 +108,29 @@ It then installs the `isotope` command.
 
 ## Useful Commands
 
+The same `isotope` command works everywhere: Linux, macOS, Termux (bash CLI,
+`bin/isotope`) and Windows (PowerShell `bin/isotope.ps1` or CMD `bin/isotope.bat`).
+
 ```bash
 isotope start              # start the app
 isotope stop               # stop the app
 isotope restart            # restart the app
 isotope open               # open in browser
-isotope update             # update from GitHub
+isotope update             # update from GitHub (main branch by default)
 isotope status             # show status
 isotope doctor             # find problems
 isotope logs               # show logs
+isotope version            # print installed version
 isotope repair             # repair install
+isotope setup              # re-run setup
 isotope reinstall-widgets  # Android Termux widget shortcuts
+```
+
+`isotope update` tracks the `main` branch by default. Set `ISOTOPE_BRANCH`
+to override, e.g. to follow a different branch:
+
+```bash
+ISOTOPE_BRANCH=my-branch isotope update
 ```
 
 ## Supabase Setup

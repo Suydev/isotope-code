@@ -1,0 +1,96 @@
+name: 📸 Screenshot Refresh
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'server.mjs'
+      - 'docs/**'
+      - '.github/workflows/screenshots.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: screenshots
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    name: Capture and commit UI screenshots
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 📦 Install Playwright
+        run: |
+          npm install --no-save playwright >/dev/null 2>&1 || true
+          npx playwright install --with-deps chromium
+
+      - name: 🚀 Start local server
+        run: |
+          PORT=3000 \
+          SUPABASE_URL=https://placeholder.supabase.co \
+          SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature \
+          SESSION_SECRET=screenshot_ci_secret_not_real \
+          node server.mjs &
+          echo $! > /tmp/iso.pid
+          for i in $(seq 1 40); do
+            STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/__isotope/ping 2>/dev/null || echo 000)"
+            if [ "$STATUS" = "200" ]; then echo "Server up (HTTP $STATUS)"; break; fi
+            sleep 0.5
+          done
+          [ "$STATUS" = "200" ] || { echo "Server failed to start"; exit 1; }
+
+      - name: 🌱 Seed demo data (best effort)
+        run: node scripts/seed-demo-data.mjs --reset || echo "seed skipped (continuing)"
+
+      - name: 📷 Capture screenshots
+        run: |
+          sudo apt-get install -y pngquant >/dev/null 2>&1 || true
+          node scripts/capture-screenshots.mjs \
+            --server=http://127.0.0.1:3000 \
+            --out=screenshots \
+            --demo \
+            --compress \
+            || echo "capture had failures (manifest reflects them)"
+          node -e "
+            const fs = require('fs');
+            try {
+              const m = JSON.parse(fs.readFileSync('screenshots/screenshot-manifest.json','utf8'));
+              const ok = (m.screenshots||[]).filter(s => s.status === 'captured').length;
+              console.log('Captured:', ok, 'of', (m.screenshots||[]).length);
+              if (ok === 0) process.exit(1);
+            } catch(e) { console.log('No manifest — failing'); process.exit(1); }
+          "
+
+      - name: ⏹️ Stop server
+        if: always()
+        run: kill $(cat /tmp/iso.pid) 2>/dev/null || true
+
+      - name: 💾 Commit screenshots back to main
+        if: always()
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet -- screenshots; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add screenshots/
+            git commit -m "docs(screenshots): refresh UI screenshots (automated)"
+            git push origin HEAD:main
+            echo "✅ Screenshots committed"
+          else
+            echo "No screenshot changes — nothing to commit"
+          fi

@@ -5,7 +5,7 @@
 #   start              Start the local server in the background
 #   stop               Stop the managed local server
 #   restart            Stop, start, and open the local app
-#   update             Safely pull the latest GitHub version
+#   update             Safely pull the latest GitHub version (main by default)
 #   status             Show project path, port, version, and config
 #   doctor             Full diagnostic check
 #   open               Open http://127.0.0.1:<PORT> in browser
@@ -14,6 +14,12 @@
 #   repair             Re-run dependency install + CLI reinstall
 #   reinstall-widgets  Refresh Termux Widget shortcuts (Termux only)
 #   setup              Run setup.sh --no-start from the project dir
+#
+# Environment:
+#   ISOTOPE_BRANCH     Override the git branch used by `isotope update`
+#                      (default: current branch if it has a remote, else main)
+#   ISOTOPE_HOME       Override the state dir (~/.isotope)
+#   ISOTOPE_PROJECT_DIR  Override the project dir auto-detection
 # ──────────────────────────────────────────────────────────────────────────────
 set -u
 
@@ -555,23 +561,19 @@ cmd_update_body() {
   branch="$(git rev-parse --abbrev-ref HEAD)"
   [ "$branch" != "HEAD" ] || fail "Detached HEAD. Checkout a branch before updating."
 
-  # Local-only branch (never pushed): no point fetching or stashing.
-  # Check BEFORE stashing so local work is never touched.
-  if ! git rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null; then
-    info "Branch '$branch' has no remote yet (local-only development) — skipping fetch/merge."
-    info "Local files stay untouched. Nothing to update from GitHub."
-    node --check server.mjs >/dev/null 2>&1 || fail "server.mjs syntax check failed."
-    write_version_file "$project"
-    info "Update complete (local-only)."
-    if is_running; then
-      info "Restarting server so the running app picks up any local changes..."
-      cmd_stop
-      cmd_start
+  # Update channel: ISOTOPE_BRANCH wins. Otherwise follow the current branch
+  # when it has a remote, else fall back to main (the official release line)
+  # so local-only/dev installs still update from GitHub.
+  channel="${ISOTOPE_BRANCH:-}"
+  if [ -z "$channel" ]; then
+    if git rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null; then
+      channel="$branch"
     else
-      info "Start with: isotope start"
+      channel="main"
+      info "Branch '$branch' has no remote — updating from origin/main (set ISOTOPE_BRANCH to override)."
     fi
-    return
   fi
+  branch="$channel"
 
   stash_name=""
   if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
@@ -667,7 +669,7 @@ Commands:
   start               Start the local IsotopeAI server (background)
   stop                Stop the managed local server
   restart             Stop, start, and open the local app
-  update              Safely pull the latest GitHub version
+  update              Safely pull the latest GitHub version (main by default)
   status              Show project path, port, version, and config
   doctor              Full diagnostic — checks all dependencies
   open                Open http://127.0.0.1:<PORT> in browser
@@ -677,6 +679,10 @@ Commands:
   reinstall-widgets   Refresh Termux home-screen shortcuts (Termux only)
   setup               Run setup.sh --no-start from the project directory
   help / --help       Show this message
+
+Environment:
+  ISOTOPE_BRANCH      Git branch used by `isotope update` (default: current
+                      branch if it has a remote, otherwise main)
 EOF
 }
 

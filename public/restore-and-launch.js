@@ -739,13 +739,13 @@ function preloadAssets() {
   const link       = document.createElement('link');
   link.rel         = 'modulepreload';
   link.crossOrigin = '';
-  link.href        = '/assets/vendor-react-BfU3Zn2J.js';
+  link.href        = '/assets/vendor-react-BWKHxYQy.js';
   document.head.appendChild(link);
 
   const script       = document.createElement('script');
   script.type        = 'module';
   script.crossOrigin = '';
-  script.src         = '/assets/index-BPYJFSVW.js';
+  script.src         = '/assets/index-D1Y5F8Lk.js';
   document.head.appendChild(script);
 }
 
