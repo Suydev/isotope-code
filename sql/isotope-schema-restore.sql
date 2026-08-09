@@ -1,6 +1,6 @@
 -- =============================================================================
 -- IsotopeAI — full portable schema dump (NO user data)
--- Generated: 2026-08-09 11:59:20 UTC
+-- Generated: 2026-08-09 17:52:24 UTC
 -- Project ref: vteqquoqvksshmfhuepu
 -- Schemas: private, rpc_private, public
 --

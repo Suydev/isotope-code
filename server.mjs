@@ -3186,7 +3186,18 @@ function buildUpdatePillScript() {
     remember();
     setBusy();
     fetch('/api/update-now', { method: 'POST', cache: 'no-store' })
-      .then(function () { launchReloadCheck(0); })
+      .then(function (r) {
+        if (r.status === 403 || r.status === 401) {
+          // Admin unlock needed — route to /__admin/login once; the admin
+          // cookie (Path=/) then authorizes /api/update-now on retry.
+          label.textContent = 'Admin unlock needed';
+          label.disabled = false;
+          dismiss.style.display = '';
+          window.location.href = '/__admin/login?next=/';
+          return;
+        }
+        launchReloadCheck(0);
+      })
       .catch(function () { launchReloadCheck(0); });
   }
   label.addEventListener('click', updateNow);
@@ -5860,7 +5871,12 @@ async function requireUserAuth(req, res, options = {}) {
 // Without: forwards user's Authorization header (relies on profile upgrade).
 function handleSupabaseProxy(req, res) {
   const targetPath = req.url.replace(PROXY_PATH, '') || '/';
-  const useServiceKey = ADMIN_MODE_READY;
+  // Only escalate to the service key when the caller is admin-authed
+  // (x-admin-secret header / ?secret= / iso_admin cookie). Without that the
+  // proxy must run as the browser's own identity (anon key + user token) so
+  // RLS still applies — otherwise ANY visitor to the local server gets full
+  // admin DB access through /__supa/*.
+  const useServiceKey = ADMIN_MODE_READY && isAdminAuthed(req);
   const apiKey  = useServiceKey ? SUPA_SERVICE_KEY : SUPA_ANON_KEY;
   const authHdr = useServiceKey
     ? 'Bearer ' + SUPA_SERVICE_KEY
@@ -6299,7 +6315,9 @@ const server = http.createServer((req, res) => {
           }
           res.writeHead(303, {
             Location: next,
-            'Set-Cookie': 'iso_admin=' + encodeURIComponent(adminCookieValue()) + '; Path=/__admin; HttpOnly; SameSite=Strict; Max-Age=86400' + (isRequestHttps(req) ? '; Secure' : ''),
+            // Path=/ (not /__admin) so the admin cookie also authorizes
+            // non-admin-prefixed protected routes (/api/update-now, /__supa/*).
+            'Set-Cookie': 'iso_admin=' + encodeURIComponent(adminCookieValue()) + '; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400' + (isRequestHttps(req) ? '; Secure' : ''),
             'Cache-Control': 'no-store'
           });
           res.end();
@@ -6497,8 +6515,8 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (req.method === 'GET' && req.url === '/api/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, ts: Date.now(), version: LOCAL_VERSION?.version || null }));
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ ok: true, status: 'ok', ts: Date.now(), version: LOCAL_VERSION?.version || null }));
     return;
   }
   if (req.method === 'GET' && req.url === '/__isotope/state') {
@@ -6639,7 +6657,13 @@ const server = http.createServer((req, res) => {
   }
 
   // ── /api/update-now — run `isotope update` from the browser ────────────────
+  // Admin-only: an arbitrary visitor could otherwise overwrite the install.
   if (req.method === 'POST' && adminPath === '/api/update-now') {
+    if (!isAdminAuthed(req)) {
+      res.writeHead(403, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ ok: false, error: 'Admin authentication required' }));
+      return;
+    }
     try {
       const bin = path.join(__dirname, 'bin', 'isotope');
       const child = spawn('bash', [bin, 'update'], {
@@ -7716,7 +7740,7 @@ function showMsg(type, msg) {
   // ── /__admin/patch — community schema patch v6 (HTML UI + raw SQL) ─────────
   if (req.method === 'GET' && (req.url === '/__admin/patch' || req.url === '/__admin/patch.sql')) {
     try {
-      const sqlPath = path.join(__dirname, 'community-patch-v4.sql');
+      const sqlPath = path.join(__dirname, 'community-patch-v6.sql');
       const sql = fs.readFileSync(sqlPath, 'utf8');
       if (req.url === '/__admin/patch.sql') {
         res.writeHead(200, {
