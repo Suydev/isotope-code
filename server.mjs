@@ -6337,6 +6337,11 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ ok: true, ts: Date.now(), proxy: ADMIN_MODE_READY }));
     return;
   }
+  if (req.method === 'GET' && req.url === '/api/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, ts: Date.now(), version: LOCAL_VERSION?.version || null }));
+    return;
+  }
   if (req.method === 'GET' && req.url === '/__isotope/state') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(appStateStore));
