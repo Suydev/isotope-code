@@ -1,0 +1,10 @@
+.env
+.env.*
+node_modules/
+# www/ is pre-built from isotope-code and committed so builds don't require a
+# separate isotope-code checkout. Regenerate with: npm run prepare-www
+# www/
+*.apk
+*.aab
+isotope-code/
+.replit-tmp/

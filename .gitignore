@@ -14,3 +14,9 @@ artifacts/
 /screenshot
 /screenshot.zip
 /screenshots/*.zip
+# isotope-apk-ref: heavy prebuilt dirs stay out of this repo (own .gitignore applies)
+isotope-apk-ref/node_modules/
+isotope-apk-ref/www/
+isotope-apk-ref/attached_assets/
+isotope-apk-ref/.env
+isotope-apk-ref/.env.*

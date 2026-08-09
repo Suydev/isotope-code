@@ -1,0 +1,16 @@
+- [Community SQL hardening](community-sql-hardening.md) — 009+010+011 applied; gm_read_members self-referential subquery → HTTP 500 circuit-breaker; fixed with SECURITY DEFINER fn
+- [www/ pre-built in repo](www-prebuilt.md) — www/ committed to isotope-apk so CI builds don't need separate isotope-code checkout
+- [Workflow action versions](workflow-action-versions.md) — v7/v6/v5 were invalid; correct versions are checkout@v4, setup-node@v4, setup-java@v4, upload-artifact@v4, setup-android@v3
+- [Deep link routing pattern](deep-link-routing.md) — intent filters in manifest + resolveDeepLinkRoute + navigateWebViewTo in MainActivity; custom scheme isotopeai:// as fallback
+- [Test SOURCE_REPO path](test-source-repo-path.md) — all test files must resolve isotope-code as ./isotope-code first, then ../isotope-code for CI
+- [isotope-code checkout & KaTeX gap](isotope-code-checkout.md) — clone into ./isotope-code (gitignored) with GITHUB_PAT; KaTeX font gap fixed & pushed upstream (commit 28c02a6)
+- [Nested git repo wipe](nested-git-repo-wipe.md) — cloned repos like isotope-code lose .git between turns; do init+commit+push atomically in one code_execution call
+- [Scroll enabler Node.js guard](scroll-enabler-guard.md) — installScrollEnabler must guard pushState existence; Node test harness has no pushState and crashes the IIFE otherwise
+- [syncFailed boot trap fix](sync-failed-boot-trap.md) — AppAccessGate syncFailed screen must CTA to /auth not / for unauthenticated users; patch is in AppAccessGate patchFile block
+- [Group creation error handling](group-creation-error.md) — useGroups createGroup mutation silently swallowed group_members INSERT failure; now throws so UI surfaces it
+- [Community challenges unlock](community-challenges-unlock.md) — useGroupChallenges has 3 isPremium() gates (L/B/R fns) that must be patched; minifier-sensitive; 012 seed data applied to prod (expires ~30 days)
+- [Missing community DB grants](community-db-grants.md) — group_announcements had ZERO grants (community crash); group_members needs anon SELECT for RLS EXISTS traversal; groups needs INSERT for authenticated; see 013/013b migrations
+- [Community FKs target auth.users](community-fk-auth-users.md) — all user-referencing FKs in community tables pointed to auth.users; PostgREST only resolves public schema FKs; must target public.users; users_select_own also limits to own row only — need users_read_member_profiles policy
+- [EnhancedChallengeCard goal_type crash](challenge-card-goal-type.md) — DB has study_hours goal_type; component H config only has hours/sessions/tasks; crash on .icon of undefined; fix: add study_hours alias + || {} fallback on all three lookups
+- [Bundle patch href vs window.open](bundle-patch-variants.md) — featurebase bug-report link uses href attribute in SettingsLayout, not window.open; DashboardHeader uses window.open; patch both separately
+- [Invite custom scheme](invite-custom-scheme.md) — __ISO_INVITE_DOMAIN__ = 'isotopeai:/' so invite URLs = isotopeai://invite/CODE; MainActivity handles this scheme; web fallback via __isoGetInviteUrl(code,'web')

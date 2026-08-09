@@ -1,0 +1,3 @@
+-- Symlink/copy of isotope-code/sql/011_fix_rls_recursion.sql for reference.
+-- Apply via Supabase management API or CLI.
+-- See isotope-code/sql/011_fix_rls_recursion.sql for full content.

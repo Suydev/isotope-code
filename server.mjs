@@ -3343,8 +3343,8 @@ function injectKeys(htmlBuffer) {
 
 // ── AI store patch ────────────────────────────────────────────────────────────
 const AI_STORE_ABS  = path.join(PUBLIC_DIR, 'assets', 'useAIStore-DRa7CkEN.js');
-const AI_PATCH_FROM = 'async getApiKey(n) {\n            const e = `ai_api_key_${n}`';
-const AI_PATCH_TO   = 'async getApiKey(n) {\n            if(typeof window!=="undefined"&&window.__IK__&&window.__IK__[n])return window.__IK__[n];\n            const e = `ai_api_key_${n}`';
+const AI_PATCH_FROM = 'async getApiKey(n){const e=`ai_api_key_${n}`,t=await';
+const AI_PATCH_TO   = 'async getApiKey(n){if(typeof window!=="undefined"&&window.__IK__&&window.__IK__[n])return window.__IK__[n];const e=`ai_api_key_${n}`,t=await';
 let patchedAiStore = null;
 function getPatchedAiStore() {
   if (patchedAiStore) return patchedAiStore;
@@ -3369,7 +3369,7 @@ const STORE_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'FocusStore-D5c
 const EVENTS_BUNDLE_ABS        = path.join(PUBLIC_DIR, 'assets', 'EventsCalendar-COHF8nOK.js');
 const SERVICE_WORKER_ABS       = path.join(PUBLIC_DIR, 'sw.js');
 const USE_SYNC_STORE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useSyncStore-Di0wBMnH.js');
-const PWA_MANAGER_BUNDLE_ABS   = path.join(PUBLIC_DIR, 'assets', 'PWAManager-CUuXr3sv.js');
+const PWA_MANAGER_BUNDLE_ABS   = path.join(PUBLIC_DIR, 'assets', 'usePWA-BOujtGOv.js');
 const REMOVED_FEATURE_MODULE   = Buffer.from('export default function RemovedFeature(){return null;}\\n', 'utf8');
 
 const COMMUNITY_FEATURE_RENDER_FROM = 'a==="store"&&e.jsx(U,{onNavigate:i},"store"),a==="events"&&e.jsx(M,{onNavigate:i},"events"),';
@@ -3405,10 +3405,9 @@ function getPatchedCommunityBundle() {
   if (patchedCommunityBundle) return patchedCommunityBundle;
   try {
     let raw = fs.readFileSync(COMMUNITY_BUNDLE_ABS, 'utf8');
-    if (raw.includes(COMMUNITY_FEATURE_RENDER_FROM)) {
-      raw = raw.replace(COMMUNITY_FEATURE_RENDER_FROM, COMMUNITY_FEATURE_RENDER_TO);
-      console.log('[FeaturePatch] Store and Events render paths removed');
-    } else { console.warn('[FeaturePatch] Community render removal string not found'); }
+    // Store/Events page-level render paths were REMOVED in the current build
+    // (Community-CEnEgsrd.js contains no "store"/"events" feature switch).
+    // The hub-cards patch above already strips the hub nav entries.
     const CRASH_FROM = 'j.handle.startsWith("student_")';
     const CRASH_TO   = 'j.handle?.startsWith("student_")';
     if (raw.includes(CRASH_FROM)) {
@@ -3587,8 +3586,10 @@ function getPatchedCommunityApiBundle() {
 }
 
 // ── PWA manager patch: guard SW-triggered reloads ─────────────────────────────
-const PWA_RELOAD_FROM = `(r.isUpdate || r.isExternal) && window.location.reload()`;
-const PWA_RELOAD_TO   = `(r.isUpdate || r.isExternal) && (typeof window.__isoReloadGuard==='function' ? window.__isoReloadGuard() : window.location.reload())`;
+// The SW-update reload hook moved from PWAManager-* into usePWA-* in the
+// current build: `controlling` listener reloads when u.isUpdate is true.
+const PWA_RELOAD_FROM = 'u.isUpdate&&window.location.reload()';
+const PWA_RELOAD_TO   = 'u.isUpdate&&(typeof window.__isoReloadGuard===\'function\' ? window.__isoReloadGuard() : window.location.reload())';
 let patchedPWAManagerBundle = null;
 function getPatchedPWAManagerBundle() {
   if (patchedPWAManagerBundle) return patchedPWAManagerBundle;
@@ -3614,14 +3615,11 @@ const MARKETING_CORE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'marketing-cor
 const USE_AUTH_STORE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useAuthStore-Aw1au7RF.js');
 const ENTRY_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'index-D1Y5F8Lk.js');
 // [Patch 1] Disable demo mode: ge() always returns false
-const APP_DEMO_FROM = 'ge = () => typeof window > "u" ? !1 : Ys(window.location.pathname) || window.sessionStorage.getItem(Et) === "1",';
-const APP_DEMO_TO   = 'ge = () => !1,';
+// Demo-mode gate moved into useAuthStore in this build — see
+// getPatchedAuthStoreBundle for the demo-gate + circuit-breaker patches.
 // [Patch 2] fetchUserData grandfathered path: scholar → ranker
-const APP_PLAN_FROM_A = 'planType: "scholar",\n                    planExpiresAt: k ?.access_ends_at';
-const APP_PLAN_TO_A   = 'planType: "ranker",\n                    planExpiresAt: k ?.access_ends_at';
-// [Patch 3] Auth store initial state: scholar → ranker
-const APP_PLAN_FROM_B = 'planType: "scholar",\n        planExpiresAt: null,\n        accessSource: "grandfathered"';
-const APP_PLAN_TO_B   = 'planType: "ranker",\n        planExpiresAt: null,\n        accessSource: "grandfathered"';
+// planType defaults moved to useAuthStore in this build (App bundle has no
+// planType refs) — see getPatchedAuthStoreBundle.
 
 let patchedAppBundle = null;
 function decodeJwtPayload(token) {
@@ -3689,6 +3687,27 @@ function getPatchedAuthStoreBundle() {
       patched = patched.split(PREM_FROM).join(PREM_TO);
       console.log('[AuthStorePatch] isPremium forced true');
     } else { console.warn('[AuthStorePatch] isPremium anchor not found'); }
+
+    // Demo-mode gate: upstream gates app+community on a demo path/session flag.
+    // This build moved the gate into the auth store (App no longer has it), so
+    // the old getPatchedAppBundle block was removed and patched here instead.
+    const DEMO_GATE_FROM = 'ce=()=>typeof window>"u"?!1:Is(window.location.pathname)||window.sessionStorage.getItem(ut)==="1"';
+    const DEMO_GATE_TO   = 'ce=()=>!1';
+    if (patched.includes(DEMO_GATE_FROM)) {
+      patched = patched.split(DEMO_GATE_FROM).join(DEMO_GATE_TO);
+      console.log('[AuthStorePatch] Demo-mode gate disabled');
+    } else { console.warn('[AuthStorePatch] Demo gate anchor not found'); }
+
+    // Circuit breaker: prevents a single failed request from locking ALL
+    // Supabase calls for 5 minutes. The x() predicate decides whether an error
+    // should trip the breaker; short-circuiting it with "return false" disables
+    // tripping entirely while normal per-request errors still surface.
+    const CB_FROM = 'function x(a){if(!a)return!1;if(typeof a=="object"){const t=a.status??a.statusCode;';
+    const CB_TO   = 'function x(a){return!1;if(!a)return!1;if(typeof a=="object"){const t=a.status??a.statusCode;';
+    if (patched.includes(CB_FROM)) {
+      patched = patched.split(CB_FROM).join(CB_TO);
+      console.log('[AuthStorePatch] Circuit breaker disabled');
+    } else { console.warn('[AuthStorePatch] Circuit breaker anchor not found'); }
 
     // Default account plan → ranker (premium) instead of "free".
     const PLAN_COUNT = (patched.split('planType:"free"').length - 1);
@@ -3772,20 +3791,9 @@ function getPatchedAppBundle() {
     const raw = fs.readFileSync(APP_BUNDLE_ABS, 'utf8');
     let patched = raw;
 
-    if (patched.includes(APP_DEMO_FROM)) {
-      patched = patched.replace(APP_DEMO_FROM, APP_DEMO_TO);
-      console.log('[AppPatch] Demo-mode disabled');
-    } else { console.warn('[AppPatch] Demo patch string not found'); }
-
-    if (patched.includes(APP_PLAN_FROM_A)) {
-      patched = patched.replace(APP_PLAN_FROM_A, APP_PLAN_TO_A);
-      console.log('[AppPatch] fetchUserData planType → ranker');
-    } else { console.warn('[AppPatch] Plan patch A not found'); }
-
-    if (patched.includes(APP_PLAN_FROM_B)) {
-      patched = patched.replace(APP_PLAN_FROM_B, APP_PLAN_TO_B);
-      console.log('[AppPatch] Initial store planType → ranker');
-    } else { console.warn('[AppPatch] Plan patch B not found'); }
+    // planType default ("scholar"→"ranker") moved to useAuthStore in this
+    // build — App-CQ9mV4wu.js has no planType refs. Covered by the auth-store
+    // patch `planType:"free"`→`planType:"ranker"` in getPatchedAuthStoreBundle.
 
     // [Patch 4] Replace Supabase placeholders and any embedded Supabase URL/JWT
     // constants with this local install's environment values.
@@ -3803,16 +3811,9 @@ function getPatchedAppBundle() {
     patched = replaceSupabaseUrlConstants(patched);
     patched = replaceSupabaseJwtConstants(patched);
 
-    // [Patch 5] Disable circuit breaker — prevents a single failed request from
-    // locking ALL Supabase calls for 5 minutes.  The O() function decides whether
-    // an error should trip the breaker; replacing its body with "return false"
-    // disables it entirely. Normal per-request errors still surface to the UI.
-    const CB_FROM = 'function O(a) {\n    if (!a) return !1;';
-    const CB_TO   = 'function O(a) {\n    return !1; if (!a) return !1;';
-    if (patched.includes(CB_FROM)) {
-      patched = patched.replace(CB_FROM, CB_TO);
-      console.log('[AppPatch] Circuit breaker disabled');
-    } else { console.warn('[AppPatch] Circuit breaker patch string not found'); }
+    // [Patch 5 → MOVED to getPatchedAuthStoreBundle] Disable circuit breaker.
+    // In this build the breaker O() lives in useAuthStore, not App. See the
+    // auth-store patcher below; the old in-this-file block was removed.
 
     const appPatch = (from, to, label) => {
       if (patched.includes(from)) {
@@ -3980,80 +3981,238 @@ function getPatchedAppBundle() {
 
 // ── Focus bundle patch ───────────────────────────────────────────────────────
 const FOCUS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'Focus-B4gLsWoP.js');
+// Android: no documentPictureInPicture in Chrome for Android — only video elements
+// can enter PiP. So we polyfill the app's window API with a canvas.captureStream()
+// -> hidden <video> -> video.requestPictureInPicture() chain and render the timer
+// overlay (mode, time, status, question stats) onto the canvas ourselves.
 const PIP_POLYFILL = `(function(){
-var _isAndroid=/Android|Mobile|iPhone|iPad|iPod/i.test(navigator.userAgent);
-if('documentPictureInPicture' in window && !_isAndroid)return;
+// Native document PiP exists on desktop Chrome — leave it untouched.
+if('documentPictureInPicture' in window)return;
+// Everything else (Android Chromium, desktop Firefox/Edge etc.) gets the
+// video-based implementation. Never rely on navigator.userAgent here: this
+// device runs an Android build that reports a desktop UA string.
+if(typeof HTMLCanvasElement.prototype.captureStream!=='function'||typeof HTMLVideoElement.prototype.requestPictureInPicture!=='function')return;
+var W=340,H=390,canvas=null,ctx=null,stream=null,video=null,mirror=null,win=null,active=false,raf=0,iv=0,ph=[],light=false,trace=[],lastSig='';
+function firePagehide(){
+  var arr=ph.slice();ph.length=0;
+  for(var i=0;i<arr.length;i++){try{arr[i]({type:'pagehide'});}catch(e){}}
+}
+function closePip(){
+  if(!active)return;
+  active=false;
+  cancelAnimationFrame(raf);clearInterval(iv);
+  firePagehide();
+  try{if(document.pictureInPictureElement)document.exitPictureInPicture();}catch(e){}
+  try{stream&&stream.getTracks().forEach(function(t){t.stop();});}catch(e){}
+  try{video&&video.remove();}catch(e){}
+  try{canvas&&canvas.remove();}catch(e){}
+  canvas=ctx=stream=video=null;
+}
+function setFont(el){
+  var st=getComputedStyle(el),fs=parseFloat(st.fontSize)||16,wgt=parseInt(st.fontWeight,10)||400;
+  if(wgt>=800)wgt=800;else if(wgt>=600)wgt=600;else if(wgt>=500)wgt=500;else wgt=400;
+  ctx.font=wgt+' '+fs+'px system-ui,-apple-system,sans-serif';
+  return st;
+}
+function colorOf(st,dark){
+  var c=(st.color||'').trim();
+  if(dark){
+    if(!c||c==='rgb(0, 0, 0)'||c==='#000'||c==='black'||c==='rgb(24, 24, 27)')return '#f4f4f5';
+  }
+  return c||'#f4f4f5';
+}
+function wrapText(txt,x,y,maxW,lh){
+  var words=txt.split(' '),line='',yy=y,lines=0;
+  for(var i=0;i<words.length;i++){
+    var t=line?line+' '+words[i]:words[i];
+    if(line&&ctx.measureText(t).width>maxW){ctx.fillText(line,x,yy);yy+=lh;lines++;line=words[i];}
+    else line=t;
+  }
+  if(line){ctx.fillText(line,x,yy);lines++;}
+  return lines*lh;
+}
+function measureEst(el){
+  if(!el||!el.nodeType)return 0;
+  if(el.nodeType===3){var t0=(el.nodeValue||'').replace(/\\s+/g,' ').trim();return t0?ctx.measureText(t0).width+2:0;}
+  if(el.tagName==='BUTTON'){
+    var t1=(el.textContent||'').replace(/\\s+/g,' ').trim(),st1=getComputedStyle(el);
+    setFont(el);
+    return ctx.measureText(t1).width+(parseFloat(st1.paddingLeft)||10)+(parseFloat(st1.paddingRight)||10);
+  }
+  var st2=getComputedStyle(el),wpx=parseFloat(st2.width)||0;
+  if(wpx>0&&st2.width.indexOf('%')<0)return wpx;
+  var wsum=0;
+  for(var i=0;i<el.childNodes.length;i++)wsum+=measureEst(el.childNodes[i]);
+  return wsum;
+}
+function layoutChild(el,x,y,w){try{return layout(el,x,y,w);}catch(e){if(trace.length<60)trace.push('CHILD-THROW:'+(e&&e.message||e));return 0;}}
+function layout(el,x,y,w){
+  if(!el||!el.nodeType)return 0;
+  if(el.nodeType===3){
+    var t=(el.nodeValue||'').replace(/\\s+/g,' ').trim();
+    if(!t)return 0;
+    var st=setFont(el.parentNode),fs=parseFloat(st.fontSize)||16;
+    trace.push('TXT '+t.slice(0,10)+' @'+Math.round(y));
+    ctx.fillStyle=colorOf(st,light);
+    ctx.globalAlpha=parseFloat(st.opacity)||1;
+    ctx.textAlign='center';
+    var hh=wrapText(t,x+w/2,y,Math.max(20,w-8),fs*1.18);
+    ctx.globalAlpha=1;
+    return hh;
+  }
+  var st2=setFont(el);
+  if(el.tagName==='STYLE'||el.tagName==='SCRIPT'||el.tagName==='LINK'||el.tagName==='META'||el.tagName==='BASE')return 0;
+  if(el.tagName==='BUTTON'){
+    var t2=(el.textContent||'').replace(/\\s+/g,' ').trim();
+    if(!t2)return 0;
+    var fs2=parseFloat(st2.fontSize)||14;
+    var pt=parseFloat(st2.paddingTop)||8,pb=parseFloat(st2.paddingBottom)||8;
+    var pl=parseFloat(st2.paddingLeft)||10,pr=parseFloat(st2.paddingRight)||10;
+    var full=el.style.width==='100%';
+    var bw=full?w:ctx.measureText(t2).width+pl+pr;
+    var bh=fs2+pt+pb;
+    var bx=x+(full?0:(w-bw)/2),by=y;
+    var bg=st2.backgroundColor;
+    ctx.textAlign='center';
+    if(el.disabled)ctx.fillStyle='rgba(113,113,122,0.3)';
+    else if(bg&&bg!=='rgba(0, 0, 0, 0)'&&bg!=='transparent')ctx.fillStyle=bg;
+    else ctx.fillStyle='rgba(255,255,255,0.07)';
+    trace.push('BTN '+t2+' @'+Math.round(bx)+','+Math.round(by)+' '+bg);
+    ctx.beginPath();
+    ctx.roundRect(bx,by,bw,bh,Math.min(12,bh/2));
+    ctx.fill();
+    ctx.fillStyle=el.disabled?'rgba(255,255,255,0.35)':colorOf(st2,light);
+    ctx.fillText(t2,bx+bw/2,by+bh/2+fs2*0.35);
+    return bh;
+  }
+  var children=[];for(var i=0;i<el.childNodes.length;i++)children.push(el.childNodes[i]);
+  if(!children.length){
+    var dw=parseFloat(st2.width)||parseFloat(el.style&&el.style.width)||0;
+    var dh=parseFloat(st2.height)||parseFloat(el.style&&el.style.height)||0;
+    trace.push('DOT '+dw+'x'+dh+' '+st2.backgroundColor+' @'+Math.round(x)+','+Math.round(y));
+    if(dw>0&&dh>0&&st2.backgroundColor&&st2.backgroundColor!=='rgba(0, 0, 0, 0)'){
+      ctx.fillStyle=st2.backgroundColor;
+      ctx.beginPath();
+      ctx.arc(x+dw/2,y+dh/2,dw/2,0,Math.PI*2);
+      ctx.fill();
+    }
+    return dh;
+  }
+  var isRow=st2.display==='flex'&&st2.flexDirection.indexOf('row')===0;
+  var isGrid=st2.display==='grid';
+  var gap=parseFloat(st2.rowGap)||parseFloat(st2.gap)||0;
+  trace.push('GRID n='+children.length+' cols='+st2.gridTemplateColumns+' gap='+gap);
+  if(isGrid){
+    var cols=/repeat\\(\\s*3/.test(st2.gridTemplateColumns)?3:1;
+    var cellW=(w-gap*(cols-1))/cols;
+    var maxH=0;
+    for(var g=0;g<children.length;g++){
+      var col=g%cols,row=Math.floor(g/cols);
+      var ch=layoutChild(children[g],x+col*(cellW+gap),y+row*56,cellW);
+      if(ch>maxH)maxH=ch;
+    }
+    return Math.max(maxH,children.length>cols?56*Math.ceil(children.length/cols):56);
+  }
+  trace.push('ROW n='+children.length+' gap='+gap);
+  if(isRow){
+    var widths=[];var total=0;
+    for(var r=0;r<children.length;r++){
+      var cw2=measureEst(children[r]);
+      widths.push(cw2);total+=cw2;
+    }
+    var scale=Math.min(1,(w-gap*Math.max(0,children.length-1))/Math.max(1,total));
+    var cx=x,maxH2=0;
+    for(var r2=0;r2<children.length;r2++){
+      var cw3=Math.max(4,widths[r2]*scale);
+      var ch2=layoutChild(children[r2],cx,y,cw3);
+      if(ch2>maxH2)maxH2=ch2;
+      cx+=cw3+gap;
+    }
+    return maxH2;
+  }
+  trace.push('COL n='+children.length);
+  var cy=y;
+  for(var c=0;c<children.length;c++){
+    var ch3=layoutChild(children[c],x,cy,w);
+    cy+=ch3+gap;
+  }
+  return cy-y-gap;
+}
+function draw(){
+  if(!active||!ctx||!mirror)return;
+  var rootEl=mirror.body?mirror.body.firstChild:null;
+  var nextLast=rootEl?rootEl.innerHTML.length:0;
+  var nextSig=rootEl?(rootEl.innerHTML.length+ '|' + (rootEl.textContent||'').length):'0';
+  if(lastSig===nextSig){return;}
+  lastSig=nextSig;
+  var bg='#050506';light=false;
+  if(rootEl){
+    var rb=getComputedStyle(rootEl).backgroundColor||'';
+    if(rb&&rb!=='rgba(0, 0, 0, 0)'&&rb.indexOf('0, 0, 0')<0){
+      var m=rb.match(/\\d+(\\.\\d+)?/g);
+      if(m&&m.length>=3&&(+m[0]*299+ +m[1]*587+ +m[2]*114)/1000>140){bg=rb;light=true;}
+    }
+  }
+  ctx.fillStyle=bg;
+  ctx.fillRect(0,0,W,H);
+  ctx.textAlign='left';
+  ctx.textBaseline='alphabetic';
+  trace=[];
+  if(rootEl){
+    var st=getComputedStyle(rootEl);
+    var pad=parseFloat(st.paddingTop)||20;
+    try{layout(rootEl,0,pad,W);}catch(e){trace.push('THROW: '+(e&&e.message||e));trace.push(String(e&&e.stack||'').split('\\n').slice(0,2).join(' | '));}
+  }
+  window.__pipTrace=trace;
+}
 window.documentPictureInPicture={
-requestWindow:async function(opts){
-var w=(opts&&opts.width)||340,h=(opts&&opts.height)||390;
-var old=document.getElementById('__pip_poly__');if(old)old.remove();
-var ov=document.createElement('div');
-ov.id='__pip_poly__';
-var phl=[];
-function doClose(){
-  ov.style.opacity='0';
-  ov.style.transform=_isAndroid?'translateY(20px) scale(0.95)':'scale(0.97)';
-  setTimeout(function(){ov.remove();},280);
-  phl.forEach(function(fn){try{fn({type:'pagehide'});}catch(e){}});
-}
-var ca=document.createElement('div');
-var sty=new Proxy(ca.style,{
-  set:function(t,p,v){if(_isAndroid&&p==='backgroundColor')return true;t[p]=v;return true;},
-  get:function(t,p){var v=t[p];return typeof v==='function'?v.bind(t):v;}
-});
-var body=new Proxy(ca,{
-  get:function(t,p){if(p==='style')return sty;var v=t[p];return typeof v==='function'?v.bind(t):v;},
-  set:function(t,p,v){t[p]=v;return true;}
-});
-var fd={
-  body:body,
-  createElement:function(tag){return document.createElement(tag);},
-  createElementNS:function(ns,tag){return document.createElementNS(ns,tag);},
-  getElementById:function(id){return ca.querySelector('#'+id);},
-  querySelector:function(s){return ca.querySelector(s);},
-  querySelectorAll:function(s){return ca.querySelectorAll(s);},
-  head:{appendChild:function(){},querySelectorAll:function(){return[];}}
+  prompt:function(m,d){return window.prompt(m,d);},
+  requestWindow:function(opts){
+    return new Promise(function(resolve,reject){
+      try{
+        if(active)closePip();
+        W=(opts&&opts.width)||340;H=(opts&&opts.height)||390;
+        canvas=document.createElement('canvas');
+        canvas.width=W;canvas.height=H;
+        canvas.style.cssText='position:fixed;left:-99999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+        document.body.appendChild(canvas);
+        ctx=canvas.getContext('2d');
+        ctx.fillStyle='#050506';ctx.fillRect(0,0,W,H);
+        stream=canvas.captureStream(10);
+        video=document.createElement('video');
+        video.muted=true;video.playsInline=true;
+        video.srcObject=stream;
+        video.style.cssText='position:fixed;left:-20000px;top:0;width:'+W+'px;height:'+H+'px;opacity:0.01;pointer-events:none;';
+        document.body.appendChild(video);
+        var p=video.play();if(p&&typeof p['catch']==='function')p['catch'](function(){});
+        video.addEventListener('leavepictureinpicture',function(){if(win)closePip();});
+        Promise.resolve(p)['catch'](function(){}).then(function(){
+          return video.requestPictureInPicture();
+        }).then(function(){
+          active=true;
+          lastSig='';
+          mirror=document.implementation.createHTMLDocument('pip');
+          win={
+            document:mirror,
+            close:function(){closePip();},
+            prompt:function(m,d){return window.prompt(m,d);},
+            addEventListener:function(e,fn){if(e==='pagehide'&&typeof fn==='function')ph.push(fn);},
+            removeEventListener:function(){}
+          };
+          iv=setInterval(draw,500);
+          raf=requestAnimationFrame(function loop(){if(active){draw();raf=requestAnimationFrame(loop);}});
+          resolve(win);
+        })['catch'](function(err){
+          try{stream&&stream.getTracks().forEach(function(t){t.stop();});}catch(e){}
+          try{video&&video.remove();}catch(e){}
+          try{canvas&&canvas.remove();}catch(e){}
+          canvas=ctx=stream=video=null;
+          reject(err);
+        });
+      }catch(err){reject(err);}
+    });
+  }
 };
-if(_isAndroid){
-  var cw=Math.min(w,210);
-  var glow=document.createElement('div');
-  glow.setAttribute('style','position:fixed;bottom:70px;right:14px;width:'+(cw+12)+'px;height:'+(Math.round(h*0.58)+12)+'px;border-radius:30px;background:transparent;box-shadow:0 0 28px 6px rgba(249,115,22,0.30),0 0 56px 12px rgba(249,115,22,0.12);z-index:2147483646;pointer-events:none;transition:opacity 0.28s ease;');
-  document.body.appendChild(glow);
-  ov.setAttribute('style','position:fixed;bottom:70px;right:14px;width:'+cw+'px;border-radius:26px;z-index:2147483647;overflow:hidden;font-family:system-ui,-apple-system,sans-serif;background:rgba(8,8,14,0.62);backdrop-filter:blur(32px) saturate(1.8);-webkit-backdrop-filter:blur(32px) saturate(1.8);border:1px solid rgba(249,115,22,0.42);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 12px 40px rgba(0,0,0,0.55);opacity:0;transform:translateY(16px) scale(0.96);transition:opacity 0.32s cubic-bezier(0.22,1,0.36,1),transform 0.32s cubic-bezier(0.22,1,0.36,1);');
-  ca.setAttribute('style','width:100%;');
-  ov.appendChild(ca);
-  var pill=document.createElement('div');
-  pill.setAttribute('style','display:flex;align-items:center;justify-content:center;padding:6px 0 10px;cursor:pointer;');
-  var pillDot=document.createElement('div');
-  pillDot.setAttribute('style','width:36px;height:4px;border-radius:9999px;background:rgba(249,115,22,0.55);');
-  pill.appendChild(pillDot);
-  pill.addEventListener('click',doClose);
-  ov.appendChild(pill);
-  document.body.appendChild(ov);
-  requestAnimationFrame(function(){requestAnimationFrame(function(){ov.style.opacity='1';ov.style.transform='translateY(0) scale(1)';});});
-  var _origClose=doClose;
-  doClose=function(){glow.style.opacity='0';setTimeout(function(){glow.remove();},300);_origClose();};
-} else {
-  ov.setAttribute('style','position:fixed;top:20px;right:20px;width:'+w+'px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.28);z-index:2147483647;overflow:hidden;font-family:system-ui,sans-serif;border:1px solid rgba(0,0,0,.08);background:#09090b;opacity:0;transform:scale(0.97);transition:opacity 0.22s ease,transform 0.22s ease;');
-  var bar=document.createElement('div');
-  bar.setAttribute('style','position:absolute;top:0;left:0;right:0;height:26px;cursor:grab;z-index:1;display:flex;align-items:center;justify-content:flex-end;padding:0 7px;background:rgba(255,255,255,0.06);border-radius:16px 16px 0 0;box-sizing:border-box;border-bottom:1px solid rgba(255,255,255,0.07);');
-  var xBtn=document.createElement('button');
-  xBtn.textContent='\u2715';
-  xBtn.setAttribute('style','background:rgba(255,255,255,0.12);border:none;border-radius:50%;width:17px;height:17px;cursor:pointer;font-size:9px;color:rgba(255,255,255,0.7);display:flex;align-items:center;justify-content:center;padding:0;');
-  bar.appendChild(xBtn);
-  ov.appendChild(bar);
-  ca.setAttribute('style','margin-top:26px;min-height:'+(h-26)+'px;');
-  ov.appendChild(ca);
-  document.body.appendChild(ov);
-  requestAnimationFrame(function(){requestAnimationFrame(function(){ov.style.opacity='1';ov.style.transform='scale(1)';});});
-  var drag=false,ox=0,oy=0;
-  bar.addEventListener('mousedown',function(e){if(e.target===xBtn)return;drag=true;var r=ov.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;bar.style.cursor='grabbing';e.preventDefault();});
-  document.addEventListener('mousemove',function(e){if(!drag)return;ov.style.right='auto';ov.style.left=Math.max(0,Math.min(e.clientX-ox,window.innerWidth-w-4))+'px';ov.style.top=Math.max(0,e.clientY-oy)+'px';});
-  document.addEventListener('mouseup',function(){drag=false;bar.style.cursor='grab';});
-  xBtn.addEventListener('click',doClose);
-}
-return{document:fd,close:doClose,prompt:function(m,d){return window.prompt(m,d);},addEventListener:function(e,fn){if(e==='pagehide')phl.push(fn);},removeEventListener:function(){}};
-}};
 })();`;
 
 const URL_PATCHES = [

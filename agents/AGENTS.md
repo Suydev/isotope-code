@@ -1,5 +1,39 @@
 # Isotope Local Project Memory
 
+## Session Context (updated Aug 9 2026, night session — PiP + H1 audit + APK)
+
+### Overall goal
+- User asleep ~8h, will reconnect on new WiFi, ADB port will change (old `10.171.170.148:42067`, new likely `10.171.170.148:34069`). Keep working autonomously; record everything here.
+- Full access granted: `isotope-apk` reference project already copied into repo at `isotope-apk-ref/` (android/, android-bridge.js, android-floating-timer-bridge.js, capacitor.config.json, attached_assets/).
+- 3 workstreams: (1) PiP video-polyfill device verification, (2) problems.md audit H1→H3→M1→M2–M5/L1–L3 (H4/M6 comment-only), (3) build PiP APK (Kotlin Activity with real `enterPictureInPictureMode()`, poll loop to localhost API every ~750ms, POST-back; build via GitHub Actions — no Android SDK in Termux).
+
+### PiP polyfill state (server.mjs ~3984, `PIP_POLYFILL`)
+- Only viable Android path = `canvas.captureStream()` → hidden `<video>` → `video.requestPictureInPicture()`. `documentPictureInPicture` absent on Android (verified live: `documentPip:false`). Live test: `pipRequest:"SUCCESS", inPip:true` on Cromite.
+- **No UA guard allowed**: device UA = `Mozilla/5.0 (X11; Linux x86_64)` (Android build reporting desktop UA). Feature-detect only.
+- Fixed bugs (user reports): (a) `@keyframes` text leaked = `<style>` rendered as text → `layout()` skips STYLE/SCRIPT/LINK/META/BASE; (b) lag = rAF redraw every frame → dirty-check (`lastSig` = innerHTML.length + textContent.length) + rAF + 500ms interval; (c) bad aspect = hidden video was 1x1 → now canvas+video both 340x390; canvas MUST stay in DOM (`document.body.appendChild`) or it gets GC'd (`canvases:0`).
+- `layoutChild()` wraps each child layout in try/catch (records `CHILD-THROW:` in `__pipTrace`, capped 60 entries) — one bad child never kills overlay.
+- **Known unresolved**: last pixel probe showed text drawn (4525 white px) but green/red/amber = 0 → buttons/status-dot missing, content stopped ~row 141 (~280px). NEED re-verification after current fixes via CDP + `__pipTrace` + pixel sample (`pipsample`-style script in `~/.cache/opencode/tmp/`).
+- PiP innerHTML contract (Focus bundle, test harness `__openTestPip`): ids pip-root/pip-correct/pip-incorrect/pip-skipped/pip-undo/pip-target; texts `✓ N`/`✕ N`/`Skip N`/`Undo`/`Target`; grid `repeat(3,1fr)`; status dot 6px; time `3.1rem/800`; separator `rgba(255,255,255,0.12)`.
+- CDP to device is flaky; relaunch browser via: `adb -s <device> forward tcp:9223 localabstract:chrome_devtools_remote` then `adb -s <device> shell "am start -n org.cromite.cromite/com.google.android.apps.chrome.Main --es remote-debugging-socket chrome_devtools_remote -a android.intent.action.VIEW -d http://127.0.0.1:3000/focus"`.
+- SW cache on device must be purged after every bundle change: caches `isotope-local-shell-3.3.9-9eb04bc2e06e` + `isotope-local-runtime-3.3.9-9eb04bc2e06e`.
+
+### Crash that was fixed
+- Instrumentation script wrote a literal newline inside `split('\n')` in the generated `PIP_POLYFILL` → served Focus bundle line 170 → `SyntaxError: Invalid or unexpected token` at `Focus-B4gLsWoP.js:169:121` → blank page (`rootKids:0`). Fixed to `split('\\n')`; `node --check` on served bundle passes; user confirmed "focus page loads now". Earlier device-log error (`useAuthStore-Aw1au7RF.js:14 Unexpected token ')'`) was the stale SW-cached bundle, NOT current.
+
+### H1 audit (problems.md) status
+- All 5 dead anchors are minified-build moves: `AI_PATCH_FROM` (done, new anchor `async getApiKey(n){const e=`ai_api_key_${n}`,t=await` in `useAIStore-DRa7CkEN.js`), `PWA_RELOAD_FROM` (done, re-pointed to `usePWA-BOujtGOv.js`, anchor `u.isUpdate&&window.location.reload()`, `PWA_MANAGER_BUNDLE_ABS` now = usePWA-BOujtGOv.js), `APP_DEMO_FROM` (demo gate `ge`/`Ys`/`Et="isotope-demo-mode"` moved to `useAuthStore-Aw1au7RF.js` — anchor `ce=()=>typeof window>"u"?!1:Is(window.location.pathname)||window.sessionStorage.getItem(ut)==="1"`), `CB_FROM` (circuit breaker `function O(a){if(!a)return!1;...hr.has...yr.has...}` moved to useAuthStore too), `COMMUNITY_FEATURE_RENDER_FROM` (obsolete — new `Community-CEnEgsrd.js` has zero "store" refs; replaced patch block with a comment; `CRASH_FROM = 'j.handle.startsWith("student_")'` preserved).
+- **In progress**: move APP_DEMO + CB patches from `getPatchedAppBundle` (server.mjs ~3776, ~3811) into `getPatchedAuthStoreBundle` (server.mjs 3679). Must pick the right minified breaker — `x(a){if(!a)return!1;if(typeof a=="object"){const t=a.status??a.statusCode;...` (distinguish via `hr.has(t)`/`yr.has(r)`; `Or` also starts `if(!a)return!1`).
+- `sw.js` `RUNTIME_PATCHED_ASSET_PATHS` (~line 85) lists `PWAManager-CUuXr3sv.js` — update to new patched bundle names after H1 done.
+- Working anchors that must NOT break: TRACE_FROM, COMMUNITY_HUB_CARDS_FROM, COMMUNITY_LB_ICON_FROM, DASHBOARD_SYLLABUS_FROM, chat/leaderboard, SENTRY_DSN_FROM, APP_PLAN_FROM_*, PREM_FROM.
+- Full audit: `problems.md` at repo root (H2 = /__supa proxy ~5858 service key only when `isAdminAuthed`, H3 = /api/update-now ~6633 add admin check, M1 = 8 unguarded `readReqBody` chains at 6244/6397/6655/7338/7637/7673/8694/8757, M2 index.html stale assets, M3 focus-bg-import.js:15, M4 restore-and-launch.js:542+622 removeItem try/catch, M5 manifest.webmanifest screenshots, L1 purge dead builds after H1 verified, L2 sw.js dedupe, L3 manifest.json, H4/M6 comment-only).
+- Verify order after H1: anchor-script from problems.md, `node --check server.mjs`, H2/H3 HTTP tests, `bash bin/isotope restart` (no +x bit), device cache-clear + reload + PiP trace.
+
+### Operational notes
+- Server latest PID 24403; `/api/health` = `{"ok":true,"version":"3.3.9"}`. Restart via `bash bin/isotope restart`; log `~/.isotope/logs/server.log`.
+- Helper scripts in `~/.cache/opencode/tmp/` (piprepro3.mjs, pipconsole.mjs, pipbust.mjs, pipdiag2.mjs — exact exception url/line/col capture, etc.).
+- gh authenticated as **Suydev** (PAT); origin `https://github.com/Suydev/isotope-code`, branch `main`. All fixes must be committed+pushed.
+- Do NOT commit .env. Never use UA for feature gating on this device.
+
 ## Project State (updated Aug 9 2026)
 - Repo: `/data/data/com.termux/files/home/isotope-code`, runs as local PWA server on localhost:3000 on this Termux device.
 - Git remote `origin` = https://github.com/Suydev/isotope-code, branch `upgrade/premium-app`. Committed + pushed: `c017e20` ("fix: safe local-only update, in-app update pill, leaderboard auth, safe bundle warmup").
@@ -32,9 +66,9 @@ The server serves the PREMIUM (new) build from `public/assets/` and patches each
 | `SESSION_SYNC_BUNDLE_ABS` | `sessionSync-mloIEnTd.js` | session sync |
 | `APP_ACCESS_GATE_BUNDLE_ABS` | `AppAccessGate-DzNuNpuU.js` | gate open |
 | `USE_SYNC_STORE_BUNDLE_ABS` | `useSyncStore-Di0wBMnH.js` | sync store |
-| `AI_STORE_ABS` | `useAIStore-DRa7CkEN.js` | AI store |
+| `AI_STORE_ABS` | `useAIStore-DRa7CkEN.js` | AI store (AI_PATCH_FROM re-anchored to minified `async getApiKey(n){const e=`ai_api_key_${n}`,t=await`) |
 | `DASHBOARD_BUNDLE_ABS` | `Dashboard-Dzf-IC_a.js` | dashboard |
-| `PWA_MANAGER_BUNDLE_ABS` | `PWAManager-CUuXr3sv.js` | reload guard |
+| `PWA_MANAGER_BUNDLE_ABS` | `usePWA-BOujtGOv.js` | reload guard (re-pointed Aug 9: old PWAManager-CUuXr3sv.js no longer has the hook) |
 | `STORE_BUNDLE_ABS` | `FocusStore-D5cRXSIr.js` | store |
 | `EVENTS_BUNDLE_ABS` | `EventsCalendar-COHF8nOK.js` | events |
 

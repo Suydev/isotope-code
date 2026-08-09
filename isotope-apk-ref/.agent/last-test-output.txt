@@ -1,0 +1,29 @@
+npm test
+
+Result: PASS
+Date: 2026-06-30
+Branch: codex/android-production-repair
+
+Summary:
+- tests 18
+- pass 18
+- fail 0
+- duration_ms 12875.035308
+
+Covered in this run:
+- neutral non-destructive /__auth/check
+- canonical bootstrap onboarding/profile contract
+- onboarding completion verified upsert
+- RPC failure propagation
+- Android auth storage fallback
+- stale readyLoggedOut boot-state guard
+- PWA manager disablement
+- native notification scheduling hooks
+- Capacitor Network-backed online state
+- native notification icon and allowWhileIdle scheduling
+- focus timer notification cancellation/reschedule
+- Focus PiP bridge delegation
+- online/PiP/font-size bundle patch contracts
+- Android resource contracts for PiP, keyboard resize, notification icon, launcher logo
+
+APK assembly for this checkpoint must be validated by GitHub Actions only.

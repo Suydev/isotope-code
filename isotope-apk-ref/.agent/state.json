@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "branch": "codex/android-production-repair",
+  "commit": "community group atomic creation and notification panel patch pending commit",
+  "phase": "ANDROID-012: Floating Timer, Supabase sync bridge, and Analytics WebView stability repair",
+  "activeTaskId": "ANDROID-012",
+  "lastSuccessfulBuild": "GitHub Actions run 28518336667 for commit cbe98ac",
+  "lastSuccessfulApk": "IsotopeAI-debug-46 artifact id 8009649602 from earlier inspected commit 8f5cb1f",
+  "lastSuccessfulAab": "",
+  "blockingIssue": "GitHub Actions artifact 8009649602 was downloaded and statically inspected, but adb devices showed no connected device. OnePlus Pad Go runtime tests are pending.",
+  "workingTreeClean": false,
+  "pushed": false,
+  "updatedAt": "2026-07-01T18:20:42+05:30",
+  "nextCommand": "Commit and push the Android community group atomic creation plus notification panel patch, then wait for GitHub Actions APK build and runtime-test community create/join/invite and notification panel flows",
+  "githubActionsRun": "https://github.com/Suydev/isotope-apk/actions/runs/28518336667",
+  "pullRequest": "https://github.com/Suydev/isotope-apk/pull/1",
+  "supabaseProjectRef": "vteqquoqvksshmfhuepu",
+  "appId": "in.isotopeai.app",
+  "capacitorVersion": "6.2.1",
+  "isotopeCodeSha": "fd39fad1384333ad774f19f35b754659a34dae60",
+  "gradleVersion": "8.7",
+  "androidGradlePluginVersion": "8.6.1",
+  "androidSdk": {
+    "minSdk": 24,
+    "compileSdk": 35,
+    "targetSdk": 35
+  },
+  "lastLocalTests": {
+    "npmTest": "PASS: 43 tests",
+    "npmRunBuild": "PASS: prepare-www, apply-patches, cap sync, idempotent apply-patches with community group action and notification panel patches",
+    "gitDiffCheck": "PASS",
+    "npmAudit": "BLOCKED: dev-only @capacitor/cli tar/glob issues require forced Capacitor 8.4.1 upgrade"
+  },
+  "knownIssues": [
+    "ISSUE-004",
+    "ISSUE-006",
+    "ISSUE-007",
+    "ISSUE-008",
+    "ISSUE-009",
+    "ISSUE-010",
+    "ISSUE-014",
+    "ISSUE-015",
+    "ISSUE-016",
+    "ISSUE-017",
+    "ISSUE-018",
+    "ISSUE-019",
+    "ISSUE-020",
+    "ISSUE-021",
+    "ISSUE-022"
+  ],
+  "completedTasks": [
+    "ANDROID-001",
+    "ANDROID-002",
+    "ANDROID-003",
+    "ANDROID-004",
+    "ANDROID-005"
+  ],
+  "indexedDbName": "isotope_main",
+  "activeEntryPoint": "assets/index-BPYJFSVW.js",
+  "activeAppBundle": "assets/App-pJGjDiPw.js",
+  "srcAppTsxIsPlaceholder": true
+}
