@@ -35,16 +35,18 @@ Last updated: 2026-08-10
 - **H1 (anchors)** — DONE: AI_PATCH_FROM→useAIStore-DRa7CkEN.js; PWA_RELOAD_FROM→usePWA-BOujtGOv.js with `__isoReloadGuard` fallback; demo gate & circuit breaker moved into `getPatchedAuthStoreBundle` (`DEMO_GATE_FROM='ce=()=>typeof window>"u"?!1:Is(window.location.pathname)||window.sessionStorage.getItem(ut)==="1"'`→`'ce=()=>!1'`; CB_FROM=`function x(a){if(!a)return!1;if(typeof a=="object"){const t=a.status??a.statusCode;`→`return!1;` short-circuit). Minified name is `x` (has `Cs.has(t)`,`Ms.has(r)`,`Ps.some`). Dead anchors retired with comments: APP_PLAN_FROM_A/B (App-CQ9mV4wu.js has ZERO planType refs), COMMUNITY_FEATURE_RENDER.
 - **H2 (service-key gating)** — DONE: `handleSupabaseProxy` uses `const useServiceKey = ADMIN_MODE_READY && isAdminAuthed(req)`.
 - **H3 (update-now admin gating)** — DONE: `/api/update-now` requires admin auth (403 otherwise); admin cookie `Path=/`; update pill 403 → redirect to `/__admin/login?next=/`.
-- **H4** — PENDING (comment-only doc edit).
+- **H4** — DONE (2026-08-10, comment-only): owner-approved premium self-PATCH documented in PREMIUM_SCRIPT header. NOT removed — intentional revenue model.
 - **L1 (dead builds)** — DONE (see §3; purge safe because safeWarm/getIfExists tolerate missing files).
 - **L2 (sw.js dedupe)** — DONE: `useSyncStore-Di0wBMnH.js` duplicate removed from RUNTIME_GLUE_PATHS.
-- **L3 (manifest.json legacy)** — PENDING: decide update vs delete vs symlink; only manifest.webmanifest is referenced by index.html.
+- **L3 (manifest.json legacy)** — DONE (2026-08-10): deleted public/manifest.json (0 refs, referenced nonexistent icons). manifest.webmanifest is canonical.
+- **L1 note update**: the earlier statement "L2 done" is right; L3 delete is committed.
 - **M1 (readReqBody catches)** — DONE: all 8 chains have `.catch()`; oversized body test → server survives; malformed JSON resolves `{}` (catch only on too-large/network errors).
 - **M2 (index.html stale assets)** — DONE: line 18 `index-LkPKl--4.css`, line 36 `vendor-react-BWKHxYQy.js` (current); katex CSS verified still current.
 - **M3 (focusBackground)** — DONE: public/focus-bg-import.js line 15 → `focusBackground-Dc8Rc9XQ.js`.
 - **M4 (localStorage guards)** — DONE: restore-and-launch.js 542/622 → try/catch removeItem; purgeStaleFakeData body wrapped in try/catch. Other getItem calls already guarded.
 - **M5 (manifest screenshots)** — DONE: hero-dashboard.png 2880x2000, community.png 2880x2000, type image/png.
-- **M6 (refresh tokens plaintext)** — PENDING (comment-only; owner decision, no behavior change).
+- **M6 (refresh tokens plaintext)** — DONE (2026-08-10, comment-only): comments added in restore-and-launch.js ~229 + auth-bridge.js ~46 documenting owner approval; no behavior change.
+- **Committed & pushed**: 24a57b6 (L1 purge 177 chunks) + 82415df (L1/L3/H4/M6 docs + memory.md). Rebase needed before push (auto-update had moved remote head).
 - **Stale note**: problems.md keep-list was based on the OLD build (CommunityHub/SingleGroup/useLeaderboard/sessionSync/useInvites/FocusStore/EventsCalendar + Community-DIqF5406, App-pJGjDiPw, Leaderboard-BkEBFdG7). Do NOT trust it blindly for future purge decisions — regenerate the graph (`~/.cache/opencode/tmp/graph2.cjs`).
 
 ## 5. Device / ADB / PiP Setup
@@ -73,9 +75,6 @@ Last updated: 2026-08-10
 
 ## 8. Remaining Work
 
-- [ ] L3: public/manifest.json vs manifest.webmanifest (only webmanifest is linked).
-- [ ] H4 + M6: comment-only doc edits.
-- [ ] Commit + push L1 purge (purged files stay in ~/.cache backup, NOT in git).
 - [ ] Device PiP final re-verify on port 45355 (clear caches → open /focus → __pipTrace + screencap; check green/red buttons visible).
-- [ ] Update agents/AGENTS.md + this file with final state.
 - [ ] PiP APK: scaffold Kotlin project in isotope-apk-ref, GitHub Actions build, install/test via ADB.
+- [ ] Update agents/AGENTS.md + this file with final state after PiP verify.
