@@ -4239,6 +4239,11 @@ const URL_PATCHES = [
    '(window.__isoBgInvalid||function(m){alert(m)})("Please enter a valid image URL starting with http:// or https://")'],
 ];
 let patchedFocusBundle = null;
+// Bridge injected at the END of the minified Focus bundle (module scope -> `L`
+// and the store actions are reachable). Single line on purpose: the served
+// bundle must stay one line, or patched-asset validation fails. Pushes state
+// snapshots to /__pip/state (throttled) and receives APK actions over SSE.
+const PIP_BRIDGE_JS = 'window.__pipBridge=window.__pipBridge||(function(){function sec(v){v=Number(v)||0;return v>315360000?Math.round(v/1000):Math.round(v);}function push(){try{var s=L.getState();var running=s.timerState==="running";var sw=s.mode==="stopwatch";var tl=sec(sw?s.stopwatchTime:s.timeLeft);var f=s.focusType;var show=(s.showQuestionTrackingInTimerPip===undefined)||!!s.showQuestionTrackingInTimerPip;var p={ok:true,active:!!s.sessionType,timerState:s.timerState||"idle",mode:s.mode||"pomodoro",activePhase:s.activePhase||null,displayedSeconds:tl,totalSeconds:sec(s.totalSeconds||0),completionAtMs:(!sw&&running)?(Date.now()+tl*1000):(s.completionAtMs||0),updatedAtMs:Date.now(),pomodoroCycle:Math.max(1,Number(s.pomodoroCycle)||1),pomodoroSessionsUntilLongBreak:Math.max(1,Number(s.pomodoroSessionsUntilLongBreak)||4),questionsAttempted:Number(s.questionsAttempted)||0,questionsCorrect:Number(s.questionsCorrect)||0,questionsIncorrect:Number(s.questionsIncorrect)||0,questionsSkipped:Number(s.questionsSkipped)||0,targetQuestions:Number(s.targetQuestions)||0,undoAvailable:Array.isArray(s.questionActionHistory)&&s.questionActionHistory.length>0,showQuestionControls:show&&!!f,focusTypeLabel:(f&&(f.label||f.name))||"",focusTypeIcon:(f&&f.icon)||"",theme:(document.documentElement.getAttribute("data-theme"))||"dark"};fetch(location.origin+"/__pip/state",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p),keepalive:true}).catch(function(){});}catch(e){}}var t=null,last=0;try{L.subscribe(function(){var n=Date.now();if(!t){t=setTimeout(function(){t=null;push();},250);}else if(n-last>250){last=n;push();}});}catch(e){}setTimeout(push,800);try{var es=new EventSource(location.origin+"/__pip/events");es.onmessage=function(ev){try{var a=JSON.parse(ev.data);var s=L.getState();if(a.type==="correct"||a.type==="incorrect"||a.type==="skipped"){if(s.recordQuestionResult){s.recordQuestionResult(a.type);}}else if(a.type==="undo"){if(s.undoLastQuestionResult){s.undoLastQuestionResult();}}else if(a.type==="setTarget"){if(s.setTargetQuestions){s.setTargetQuestions(Number(a.value)||0);}}}catch(e){}};}catch(e){}return true;})();';
 function getPatchedFocusBundle() {
   if (patchedFocusBundle) return patchedFocusBundle;
   try {
@@ -4247,6 +4252,7 @@ function getPatchedFocusBundle() {
       if (raw.includes(from)) raw = raw.split(from).join(to);
       else console.warn('[FocusPatch] String not found:', from.slice(0, 60));
     }
+    if (!raw.includes('__pipBridge')) raw = raw + PIP_BRIDGE_JS;
     patchedFocusBundle = Buffer.from(PIP_POLYFILL + '\n' + raw, 'utf8');
   } catch { patchedFocusBundle = null; }
   return patchedFocusBundle;
@@ -6030,6 +6036,23 @@ function fetchLatestCommit() {
 }
 
 const appStateStore = { timerState: null, localStorage: {} };
+
+// ── PiP companion bridge (pipapk/ client ↔ browser focus store) ─────────────
+// The browser relay pushes focus-store snapshots to POST /__pip/state; the APK
+// polls GET /api/pip/state (served from this cache — cheap for 10ms polling) and
+// POSTs actions to /api/pip/action, which are fanned out to every connected
+// browser tab via the SSE stream at GET /__pip/events.
+let pipStateCache = null;
+let pipStateAt = 0;
+const pipEventClients = new Set();
+const PIP_ALLOWED_ACTIONS = new Set(['correct', 'incorrect', 'skipped', 'undo', 'setTarget', 'expand', 'close']);
+
+function pipBroadcast(action) {
+  const frame = 'data: ' + JSON.stringify(action) + '\n\n';
+  for (const client of pipEventClients) {
+    try { client.write(frame); } catch { pipEventClients.delete(client); }
+  }
+}
 const browserProofRuns = new Map();
 
 function publicProofRun(run) {
@@ -6541,6 +6564,73 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
     });
+    return;
+  }
+  // ── PiP companion endpoints (pipapk/ APK) ──────────────────────────────────
+  // Registered before the /api/* 404 fence so unknown pipelines stay 404 but
+  // the APK's hot-polled snapshot and action endpoint always resolve.
+  if (req.method === 'GET' && adminPath === '/api/pip/state') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    const snapshot = pipStateCache || {
+      ok: true, active: false, timerState: 'idle', mode: 'pomodoro', activePhase: null,
+      displayedSeconds: 0, totalSeconds: 0, completionAtMs: 0, updatedAtMs: pipStateAt,
+      pomodoroCycle: 1, pomodoroSessionsUntilLongBreak: 4,
+      questionsAttempted: 0, questionsCorrect: 0, questionsIncorrect: 0, questionsSkipped: 0,
+      targetQuestions: 0, undoAvailable: false, showQuestionControls: false,
+      focusTypeLabel: 'Focus', focusTypeIcon: '', theme: 'dark',
+      pipConnected: pipStateAt > 0, pipStateAt,
+    };
+    res.end(JSON.stringify(snapshot));
+    return;
+  }
+  if (req.method === 'POST' && adminPath === '/api/pip/action') {
+    let body = '';
+    req.on('data', d => { if (body.length < 8192) body += d; });
+    req.on('end', () => {
+      let action = null;
+      try { action = JSON.parse(body || '{}'); } catch {}
+      const type = action && typeof action.type === 'string' ? action.type : '';
+      if (!PIP_ALLOWED_ACTIONS.has(type)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'unknown action type' }));
+        return;
+      }
+      const value = Number.isFinite(action.value) ? action.value : null;
+      pipBroadcast({ type, value, ts: Date.now() });
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify(pipStateCache || { ok: true, active: false }));
+    });
+    return;
+  }
+  if (req.method === 'POST' && adminPath === '/__pip/state') {
+    let body = '';
+    req.on('data', d => { if (body.length < 32768) body += d; });
+    req.on('end', () => {
+      try {
+        const parsed = JSON.parse(body || '{}');
+        if (parsed && typeof parsed === 'object') {
+          pipStateCache = parsed;
+          pipStateAt = Date.now();
+        }
+      } catch {}
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    });
+    return;
+  }
+  if (req.method === 'GET' && adminPath === '/__pip/events') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    res.write('retry: 2000\n\n');
+    pipEventClients.add(res);
+    const heartbeat = setInterval(() => {
+      try { res.write(': ping\n\n'); } catch { clearInterval(heartbeat); pipEventClients.delete(res); }
+    }, 15000);
+    res.on('close', () => { clearInterval(heartbeat); pipEventClients.delete(res); });
     return;
   }
   // Use adminPath (query-stripped) so /api/health?_=<timestamp> speed-probe calls
