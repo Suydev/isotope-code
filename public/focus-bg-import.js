@@ -12,7 +12,7 @@
   var IDB_NAME = 'isotope_bg_custom';
   var IDB_STORE = 'media';
   var CUSTOM_KEY = 'focus_custom';
-  var FOCUS_BG_MODULE = '/assets/focusBackground-t8AknbRg.js';
+  var FOCUS_BG_MODULE = '/assets/focusBackground-Dc8Rc9XQ.js';
   var MAX_VIDEO_SECONDS = 60;
 
   var _activeUrl = null;

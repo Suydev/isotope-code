@@ -85,7 +85,6 @@ const RUNTIME_PATCHED_ASSET_PATHS = new Set([
   '/assets/usePWA-BOujtGOv.js',
   '/assets/Dashboard-Dzf-IC_a.js',
   '/assets/useAuthStore-Aw1au7RF.js',
-  '/assets/useSyncStore-Di0wBMnH.js',
   '/assets/marketing-core-DzcTqL0l.js',
   '/assets/index-D1Y5F8Lk.js',
 ]);

@@ -6703,6 +6703,9 @@ const server = http.createServer((req, res) => {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ available: false, error: err.message }));
         });
+    }).catch(() => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ available: false, error: 'Invalid request body' }));
     });
     return;
   }
@@ -7435,6 +7438,9 @@ const server = http.createServer((req, res) => {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: err.message }));
       }
+    }).catch(() => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid request body' }));
     });
     return;
   }
@@ -7696,6 +7702,8 @@ function showMsg(type, msg) {
           res.writeHead(400, {'Content-Type':'application/json'}); res.end(JSON.stringify({ok:false,error:'Insert failed: status '+iRes.status}));
         }
       } catch (e) { res.writeHead(500, {'Content-Type':'application/json'}); res.end(JSON.stringify({ok:false,error:e.message})); }
+    }).catch(() => {
+      res.writeHead(500, {'Content-Type':'application/json'}); res.end(JSON.stringify({ok:false,error:'Invalid request body'}));
     });
     return;
   }
@@ -7715,6 +7723,8 @@ function showMsg(type, msg) {
         });
         res.writeHead(200, {'Content-Type':'application/json'}); res.end(JSON.stringify({ok: dRes.status >= 200 && dRes.status < 300}));
       } catch (e) { res.writeHead(500, {'Content-Type':'application/json'}); res.end(JSON.stringify({ok:false,error:e.message})); }
+    }).catch(() => {
+      res.writeHead(500, {'Content-Type':'application/json'}); res.end(JSON.stringify({ok:false,error:'Invalid request body'}));
     });
     return;
   }
@@ -8775,6 +8785,9 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: err.message }));
       }
+    }).catch(() => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid request body' }));
     });
     return;
   }

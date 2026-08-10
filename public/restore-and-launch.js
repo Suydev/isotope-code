@@ -539,7 +539,7 @@ function applyCachedCloudSnapshot(snapshot) {
 
   writeJson('isotope_user_profile_v2', mergedProfile);
   if (snapshot.onboarding.completed === true) writeLocalOnboardingComplete();
-  else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
+  else { try { localStorage.removeItem(ZUSTAND_ONBOARDING_KEY); } catch (_) {} }
   writeJson('isotope-user-tours', snapshot.tours || {});
   writeJson('isotope_cloud_stats_summary', snapshot.stats_summary || null);
   writeJson('isotope_cloud_daily_user_stats', snapshot.daily_user_stats || []);
@@ -619,7 +619,7 @@ function applyBootstrapSnapshot(snapshot) {
     ? cloudSnapshot.onboarding.completed === true
     : snapshot.onboarding && snapshot.onboarding.completed === true;
   if (onboarded) writeLocalOnboardingComplete();
-  else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
+  else { try { localStorage.removeItem(ZUSTAND_ONBOARDING_KEY); } catch (_) {} }
 
   const tours = mergedProfile.tours || {};
   if (tours && typeof tours === 'object') {
@@ -698,13 +698,15 @@ function isStaleLocal(key) {
 }
 
 async function purgeStaleFakeData() {
-  if (isStaleLocal(ZUSTAND_AUTH_KEY))       localStorage.removeItem(ZUSTAND_AUTH_KEY);
-  if (isStaleLocal(ZUSTAND_ONBOARDING_KEY)) localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
+  try {
+    if (isStaleLocal(ZUSTAND_AUTH_KEY))       localStorage.removeItem(ZUSTAND_AUTH_KEY);
+    if (isStaleLocal(ZUSTAND_ONBOARDING_KEY)) localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);
 
-  const oldKeys = ['isotope_restore_done_v1', 'isotope_launched_v2'];
-  for (const k of oldKeys) {
-    if (localStorage.getItem(k)) localStorage.removeItem(k);
-  }
+    const oldKeys = ['isotope_restore_done_v1', 'isotope_launched_v2'];
+    for (const k of oldKeys) {
+      if (localStorage.getItem(k)) localStorage.removeItem(k);
+    }
+  } catch (_) { /* storage may be unavailable in privacy mode — never abort boot */ }
 
   if (!hasRealSupabaseSession()) {
     try {
