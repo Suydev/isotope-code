@@ -5,6 +5,18 @@
 
 ---
 
+## 0. LATEST STATE (2026-08-10, after WebView rewrite)
+
+- **WebView rewrite committed `ac77b1a`; CI build FAILED** with ONE compile error:
+  `PipActivity.kt:52:32 Unresolved reference: FLAG_KEEP_SCREEN_ON` — the flag lives on
+  `WindowManager.LayoutParams` (import `android.view.WindowManager`), NOT `android.view.Window`.
+  **Fix applied locally, NOT yet committed/pushed.**
+- Next: commit Kotlin fix + GitHub-Actions efficiency fixes (see §5b), poll build, then
+  install + smoke-test on ADB `127.0.0.1:34111`.
+- Verified server side for the WebView app: `GET /focus` → 200 with all 16 referenced
+  assets (css/js/fonts/icons/sync scripts) resolving 200. The WebView app has everything
+  it needs from the localhost server.
+
 ## 1. Products & Purpose
 
 | Piece | What it is | Where |
@@ -39,12 +51,29 @@
 
 ## 5. CI / build pipeline
 
-- Workflow `.github/workflows/pip-apk.yml`: paths `pipapk/**`; checkout@v4; temurin 17; `gradle/actions/setup-gradle@v4`; `./gradlew :app:assembleDebug`; upload artifact. Repo is PUBLIC → no secrets needed.
+- Workflow `.github/workflows/pip-apk.yml`: paths `pipapk/**`; checkout@v4; temurin 17; `gradle/actions/setup-gradle@v4`; `./gradlew :app:assembleDebug`; upload artifact. Repo is PUBLIC → no secrets needed. Already lean: path filter, `concurrency: pip-apk-${{ github.ref }}` cancel-in-progress, `timeout-minutes: 20`.
 - **Polling**: `curl -H "Authorization: Bearer $GITHUB_PAT" .../actions/runs?per_page=1` (PAT stored in `.env` at repo root). Artifact download: `.../actions/artifacts/<ID>/zip` with `-L` (302) — **must write to `~/.cache/opencode/tmp/...`, NOT `/tmp` (does not exist in Termux!)**.
 - **CI debug key changes EVERY build** (fresh runner, no keystore cache) → `adb install -r` fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` → always `adb uninstall in.isotopeai.pip` before install.
 - Stack: AGP 8.5.2, Kotlin 1.9.24, Gradle wrapper 8.7, JDK 17, compileSdk 35, minSdk 24.
 - Remote races: automated `docs(screenshots)` commits land on main → push can be rejected → `git stash && git pull --rebase origin main && git stash pop` pattern.
-- Last green run: `31371202541` (success), artifact `9056139608`, APK 2,234,950 B. Skills commit `7161d65` also green (CodeQL + Lint&Health green on `31377721739`/`31372765985`).
+- Last green run: `31371202541` (success), artifact `9056139608`, APK 2,234,950 B. Skills commit `7161d65` (CodeQL `31377721739`, CI `31372765985` green). WebView commit `ac77b1a`: **Build PiP APK `31382113320` FAILED (FLAG_KEEP_SCREEN_ON)**; CodeQL/CI/Release still ran green.
+
+## 5b. GitHub Actions AUDIT (analyzed 2026-08-10 with github-actions-efficiency skill)
+
+12 workflows: auto-label, ci, codeql, dependency-review, pages, pip-apk, regenerate-release, release, schema-lint, screenshots, stale, welcome.
+
+**Waste sources (evidence from live runs):**
+1. `ci.yml` (Lint & Health, matrix node 20+22) — NO path filter: runs on EVERY push incl. screenshots-bot commits and pipapk-only commits.
+2. `codeql.yml` (most expensive job) — NO path filter: runs on every push/PR + weekly cron.
+3. `release.yml` — fires on **every push to main** (not just tags): created/updated a Release for the pipapk-only commit ac77b1a; does `node --check` on 10 files + changelog extraction + release API each time.
+4. `screenshots.yml` — triggers on `server.mjs` changes → produces the racing `docs(screenshots)` bot commits (the recurring push-race cause). Bot commits then re-trigger ci/codeql/release wastefully.
+
+**Fixes to apply (top 3, guardrail-checked):**
+1. ci.yml: `paths-ignore: [pipapk/**]` + job `if: github.actor != 'github-actions[bot]'` (skip re-linting bot screenshot commits). Keep matrix (no explicit removal commitment; node 20 deprecation warnings visible in every log).
+2. codeql.yml: same `paths-ignore` + actor gate (pipapk-only commits never touch JS analysis targets — no validation hidden).
+3. release.yml: `push` trigger gets `paths:` (package.json, CHANGELOG.md, server.mjs, public/**, scripts/**, docs/**, .github/workflows/release.yml, .github/workflows/screenshots.yml) — tags + workflow_dispatch unchanged.
+
+**Validation note:** compile of the Kotlin fix + workflow gates is validated ONLY by the next CI run (no local JDK); the actor-gate behavior is standard GH Actions and low risk.
 
 ## 6. ADB workflow (Termux = on-device adb, no host)
 

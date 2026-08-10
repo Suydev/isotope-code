@@ -3,6 +3,8 @@ name: 🧪 CI — Lint & Health
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'pipapk/**'
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -17,6 +19,7 @@ permissions:
 jobs:
   ci:
     name: Node ${{ matrix.node }} on ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
