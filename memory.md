@@ -1,80 +1,79 @@
-# Project Memory (Session Context)
+# ISOTOPE PIP + SERVER — MEMORY / FINDINGS
 
-Structured context collected during the isotope-code hardening/audit campaign. The purpose of this file is to preserve what we learned so that any future session (fresh model, new contributor) can resume without re-discovering the same facts.
-
-Last updated: 2026-08-10
+> Update this file EVERY session with new findings. Persistent handoff memory.
+> Covers: pipapk (Android overlay app), server.mjs pip API, CI pipeline, ADB workflow.
 
 ---
 
-## 1. Project Shape
+## 1. Products & Purpose
 
-- **Repo**: `Suydev/isotope-code`, pushed to GitHub origin main. Branch strategy: `git pull --rebase` required before push (remote can move via auto-update).
-- **Server**: single-file `server.mjs` (~9200 lines), started via `bash bin/isotope restart`. Logs at `~/.isotope/logs/server.log`. Local URL `http://127.0.0.1:3000`.
-- **Frontend**: static Vite build in `public/`; entry `public/index.html`; chunks in `public/assets/` (hash-named).
-- **Service worker**: `public/sw.js` — caches shell, patches runtime assets via `RUNTIME_PATCHED_ASSET_PATHS`, APP_SHA stamp drives update health-check.
-- **Supabase**: schema dump + data backup stored in `sql/` (isotope-schema-restore.sql, isotope-data-backup.jsonl). Canonical community patch = `community-patch-v6.sql`.
-- **APK lineage**: vendored in `isotope-apk-ref/` (android shell, android-bridge.js, supabase/ patch sources). It is git-ignored for node_modules/www/attached_assets/.env*.
-- **Config**: `.opencode/` (opencode config), `agents/AGENTS.md` (session log; this file parallels it), `.env` (secrets, NEVER committed).
+| Piece | What it is | Where |
+|---|---|---|
+| `isotope-code` | The real product: React/Vite web app (focus timer), Node server.mjs | repo root, this repo |
+| `pipapk/` | Android APK: shell showing the **REAL isotope web UI** in a WebView (like isotope-apk), with a draggable floating window over other apps | `pipapk/` |
+| `isotope-apk-ref/` | Capacitor wrapper reference (wraps compiled `public/` assets) | `isotope-apk-ref/` |
+| `~/.agents/skills/`, repo `isotope-apk-ref/.agents/skills/` | Skills: ui-ux-pro-max, android-kotlin, android-adb, github-actions-efficiency, nodejs-backend-patterns | both locations |
 
-## 2. Architecture: Patch System on server.mjs
+---
 
-- **Patched bundles**: Vite chunks that the server rewrites at serve-time. Patch functions named `getPatched*Bundle`; warm/cached via `safeWarm(getIfExists(ABS, getPatchedX))` — missing file is tolerated (returns null), so purging unused chunks is safe.
-- **Anchor strings**: `FROM` (exact snippet found in the built bundle) and `TO` (replacement) as `${name}_FROM` / `${name}_TO` consts. Re-anchoring is required after every frontend rebuild.
-- **Patch log tags** (grep-able in server.log): `[PWAPatch]`, `[AuthStorePatch]`, `[SettingsPatch]`, `[SyncStorePatch]`, `[AppAccessGatePatch]`, `[CommunityPatch]`, etc. "Not found:" lines are pre-existing anchor misses and are NOT fatal.
-- **ABS constant = canonical path** to an asset that must exist for the serve-path patcher; if a future rebuild renames it, update the ABS first, then the FROM/TO anchors.
+## 2. KEY FINDING — User wants the REAL UI (2026-08-10)
 
-## 3. Current Build Facts (as of 2026-08-10)
+- User rejected the custom-drawn Kotlin card + 10ms polling mirror ("video streaming inside an app", "dumb thing", "bad ui").
+- User directive: **"i want it like isotope-apk"** → the APK must show the actual isotope web UI, not a bespoke mirror card.
+- **Current correct design (rewrite, commit pending)**: `PipActivity` = full-screen WebView → `http://127.0.0.1:3000/focus` (real compiled UI; state owner = server/browser). `FloatingOverlayService` = draggable overlay WebView window (same URL) with drag bar + close. Permission banner for display-over-other-apps + "Float" button. **No FGS, no polling, no notification, no PiP card, no boot receiver.**
+- Deleted: `PipBridgeService.kt`, `PipState.kt`, `BootReceiver.kt`. Manifest pruned to INTERNET + SYSTEM_ALERT_WINDOW only. Gradle deps trimmed to just `androidx.core:core-ktx`.
 
-- Deployed sha: `84ce47b418ce`; VERSION stamped; `/api/health` returns `{ok:true,status:'ok',ts,version}`.
-- Entry: `index-D1Y5F8Lk.js`; main app `App-CQ9mV4wu.js`; 121 chunks reachable from entry (graph keep list in `~/.cache/opencode/tmp/keep2.txt`).
-- **L1 dead-build purge executed**: 177 old chunks (10MB) moved to `~/.cache/opencode/tmp/purged-assets/<ts>/` (backup kept, NOT deleted). Keep set = graph(121) ∪ sw.js lists(31) ∪ server ABS files(23) = 131 files. Post-purge verify: server restarts clean (NO ENOENT in log), all 23 patched bundles return 200 and pass `node --check`.
-- sw.js still lists chunks that are NOT in the current import graph (CommunityHub-gANxZssO, SingleGroup-DU1IhoNK, useLeaderboard-BpvH5FXA, sessionSync-mloIEnTd, useInvites-D9RLFwf8, FocusStore-D5cRXSIr, EventsCalendar-COHF8nOK + 3 CSS). They are kept because sw.js declares them (SW install would fail on a missing SHELL_URL) AND server.mjs has ABS consts + patch fns for them. If a future rebuild drops them, remove from sw.js lists + server ABS/patch fns first, then purge.
+## 3. The web app (state owner)
 
-## 4. problems.md Audit Status
+- Server: `bin/isotope restart` restarts (logs `~/.isotope/logs/server.log`), listens `127.0.0.1:3000`.
+- Real UI served at `http://127.0.0.1:3000/focus` — bundle includes injected `PIP_BRIDGE_JS` (relays focus-store state to `POST /__pip/state`; single-line; guarded by `!raw.includes('__pipBridge')`; appended at END of bundle in `getPatchedFocusBundle` — both polyfill prepend and bridge append must keep output single-line for `node --check`).
+- localStorage sync/bootstrap infra reconciles multiple storages (Cromite vs WebView are separate partitions). Server + browser = state owners; APK is a pure window.
 
-- **H1 (anchors)** — DONE: AI_PATCH_FROM→useAIStore-DRa7CkEN.js; PWA_RELOAD_FROM→usePWA-BOujtGOv.js with `__isoReloadGuard` fallback; demo gate & circuit breaker moved into `getPatchedAuthStoreBundle` (`DEMO_GATE_FROM='ce=()=>typeof window>"u"?!1:Is(window.location.pathname)||window.sessionStorage.getItem(ut)==="1"'`→`'ce=()=>!1'`; CB_FROM=`function x(a){if(!a)return!1;if(typeof a=="object"){const t=a.status??a.statusCode;`→`return!1;` short-circuit). Minified name is `x` (has `Cs.has(t)`,`Ms.has(r)`,`Ps.some`). Dead anchors retired with comments: APP_PLAN_FROM_A/B (App-CQ9mV4wu.js has ZERO planType refs), COMMUNITY_FEATURE_RENDER.
-- **H2 (service-key gating)** — DONE: `handleSupabaseProxy` uses `const useServiceKey = ADMIN_MODE_READY && isAdminAuthed(req)`.
-- **H3 (update-now admin gating)** — DONE: `/api/update-now` requires admin auth (403 otherwise); admin cookie `Path=/`; update pill 403 → redirect to `/__admin/login?next=/`.
-- **H4** — DONE (2026-08-10, comment-only): owner-approved premium self-PATCH documented in PREMIUM_SCRIPT header. NOT removed — intentional revenue model.
-- **L1 (dead builds)** — DONE (see §3; purge safe because safeWarm/getIfExists tolerate missing files).
-- **L2 (sw.js dedupe)** — DONE: `useSyncStore-Di0wBMnH.js` duplicate removed from RUNTIME_GLUE_PATHS.
-- **L3 (manifest.json legacy)** — DONE (2026-08-10): deleted public/manifest.json (0 refs, referenced nonexistent icons). manifest.webmanifest is canonical.
-- **L1 note update**: the earlier statement "L2 done" is right; L3 delete is committed.
-- **M1 (readReqBody catches)** — DONE: all 8 chains have `.catch()`; oversized body test → server survives; malformed JSON resolves `{}` (catch only on too-large/network errors).
-- **M2 (index.html stale assets)** — DONE: line 18 `index-LkPKl--4.css`, line 36 `vendor-react-BWKHxYQy.js` (current); katex CSS verified still current.
-- **M3 (focusBackground)** — DONE: public/focus-bg-import.js line 15 → `focusBackground-Dc8Rc9XQ.js`.
-- **M4 (localStorage guards)** — DONE: restore-and-launch.js 542/622 → try/catch removeItem; purgeStaleFakeData body wrapped in try/catch. Other getItem calls already guarded.
-- **M5 (manifest screenshots)** — DONE: hero-dashboard.png 2880x2000, community.png 2880x2000, type image/png.
-- **M6 (refresh tokens plaintext)** — DONE (2026-08-10, comment-only): comments added in restore-and-launch.js ~229 + auth-bridge.js ~46 documenting owner approval; no behavior change.
-- **Committed & pushed**: 24a57b6 (L1 purge 177 chunks) + 82415df (L1/L3/H4/M6 docs + memory.md). Rebase needed before push (auto-update had moved remote head).
-- **Stale note**: problems.md keep-list was based on the OLD build (CommunityHub/SingleGroup/useLeaderboard/sessionSync/useInvites/FocusStore/EventsCalendar + Community-DIqF5406, App-pJGjDiPw, Leaderboard-BkEBFdG7). Do NOT trust it blindly for future purge decisions — regenerate the graph (`~/.cache/opencode/tmp/graph2.cjs`).
+## 4. Server pip API (server.mjs, before 404 fence ~line 6570)
 
-## 5. Device / ADB / PiP Setup
+- `GET /api/pip/state` → cached snapshot + `seq` (monotonic, bumped per relay push) + `pipClients` (SSE subscriber count). `Cache-Control: no-store`.
+- `POST /api/pip/action` → allowlist `correct|incorrect|skipped|undo|setTarget|expand|close`; 400 on unknown type; `setTarget` requires numeric value, clamped 0-9999; 200 → `{...snapshot, applied:true, seq}`.
+- `POST /__pip/state` (browser relay) → stores cache, bumps `pipSeq`.
+- `GET /__pip/events` → SSE fan-out, 15s heartbeat `: ping`, `X-Accel-Buffering: no`.
+- Verified live with curl; server restart PID changes each time (record new PID in logs).
 
-- Termux on Android; **ADB port is `45355`** (`adb connect 10.171.170.148:45355`). CDP forward: `adb -s 10.171.170.148:45355 forward tcp:9223 localabstract:chrome_devtools_remote` — then query devtools at `http://127.0.0.1:9223/json`.
-- Browser on device: **Cromite** (`org.cromite.cromite`), UA = `Mozilla/5.0 (X11; Linux x86_64)` (desktop-like — this is why UA-guarding is banned).
-- **PiP polyfill** (the flagship feature): server.mjs ~3984. video-PiP only (documentPip:false verified); canvas MUST stay in DOM; dirty-check throttle; `layoutChild` inside try/catch + `__pipTrace` debug (cap 60); serve-time bundle must pass `node --check` (a `split('\\n')` crash was fixed — if you see a PiP crash, check for new literal-newline in patched bundle first).
-- Local prefetch cache names: `isotope-local-shell-3.3.9-<sha>/`, `isotope-local-runtime-<sha>/`. After every rebuild on device, clear caches with the new sha, then re-verify.
-- Helper scripts (in `~/.cache/opencode/tmp/`): piprepro3.mjs (PiP repro), pipconsole.mjs (CDP console), pipbust.mjs (cache bust), pipdiag2.mjs (PiP telemetry), graph2.cjs (build graph walker), pg-probe.mjs / pg-databackup.mjs (Supabase probing/backup).
-- Current device state: connected, CDP forwarded; browser not running (TermuxActivity is foreground). PiP final visual re-verify is STILL OPEN (earlier probe: text drawn, buttons 0px).
+## 5. CI / build pipeline
 
-## 6. Operations Playbook
+- Workflow `.github/workflows/pip-apk.yml`: paths `pipapk/**`; checkout@v4; temurin 17; `gradle/actions/setup-gradle@v4`; `./gradlew :app:assembleDebug`; upload artifact. Repo is PUBLIC → no secrets needed.
+- **Polling**: `curl -H "Authorization: Bearer $GITHUB_PAT" .../actions/runs?per_page=1` (PAT stored in `.env` at repo root). Artifact download: `.../actions/artifacts/<ID>/zip` with `-L` (302) — **must write to `~/.cache/opencode/tmp/...`, NOT `/tmp` (does not exist in Termux!)**.
+- **CI debug key changes EVERY build** (fresh runner, no keystore cache) → `adb install -r` fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE` → always `adb uninstall in.isotopeai.pip` before install.
+- Stack: AGP 8.5.2, Kotlin 1.9.24, Gradle wrapper 8.7, JDK 17, compileSdk 35, minSdk 24.
+- Remote races: automated `docs(screenshots)` commits land on main → push can be rejected → `git stash && git pull --rebase origin main && git stash pop` pattern.
+- Last green run: `31371202541` (success), artifact `9056139608`, APK 2,234,950 B. Skills commit `7161d65` also green (CodeQL + Lint&Health green on `31377721739`/`31372765985`).
 
-- **Restart**: `bash bin/isotope restart`; then check `~/.isotope/logs/server.log` for "ENOENT"/patched-bundle misses.
-- **Verify patched bundles**: loop over the 23 ABS bundle names; `curl -s -o /tmp/x.js -w '%{http_code}' http://127.0.0.1:3000/assets/$f.js` must be 200 AND `node --check` must pass.
-- **Supabase**: live DB already has all v6 deltas applied (probed via pg-probe.mjs). Do NOT press "Apply" on /__admin/patch again — it would re-run 3174 lines in one Management API call (30s timeout risk) with zero benefit.
-- **Update flow**: deploying = `git push` then trigger `/api/update-now` from admin UI; server auto-stashes uncommitted work via `isotope auto-stash` — COMMIT BEFORE hitting update endpoints (we lost uncommitted H2/H3 edits once this way). New SW byte-change (APP_SHA stamp) causes devices to reinstall SW + clear old caches on next visit.
-- **Health/verify**: `/api/health` requires the `status:'ok'` field for the admin verify page to pass.
+## 6. ADB workflow (Termux = on-device adb, no host)
 
-## 7. Known Pre-existing Issues (do NOT regress)
+- **Port changes often — asks user, e.g. 34111. Loopback `adb connect 127.0.0.1:<port>` always works.** Old: 10.191.181.183:34163 (dead), 10.171.170.148:45355 (dead).
+- `adb -s 127.0.0.1:34111 install ~/isotope-pip.apk`, `adb -s ... shell am start -n in.isotopeai.pip/app.isotopeai.pip.PipActivity` (applicationId `in.isotopeai.pip`, component `app.isotopeai.pip`).
+- Screen: 1720x2408 portrait, density override 306 (scale 1.9125) — BUT screencap often returns rotated 2408x1720 (landscape) — always read PNG header, don't assume orientation.
+- **uiautomator dump fails "could not get idle state"** whenever the app animates continuously (Choreographer tickers) → use `screencap` + `~/.cache/opencode/tmp/pip-apk/new/pngscan.py` (pure-python PNG decoder + brand-color cluster finder) to locate buttons. This model cannot view images — never rely on Read for screenshots.
+- Successful uninstall/install test: `u0_a612 2353 ... S in.isotopeai.pip` process confirmed; `mCurrentFocus` check via `dumpsys window`.
 
-- "Not found:" patch-anchor misses in SettingsPatch/SyncStorePatch/AppAccessGatePatch — pre-existing, expected, not-caused-by-purge.
-- Some chunks listed in sw.js are not in the import graph — keep them (see §3).
-- Remote `git push` requires rebase; remote head moved from `9eb04bc` → `acb6ad3` earlier (auto-update rewrites VERSION + commits).
-- `.env` untracked; `tests/` (16MB) and `screenshots/*.png` untracked (not committed, by design).
+## 7. Kotlin/Compile gotchas (burned us in CI)
 
-## 8. Remaining Work
+- `in` is a Kotlin keyword → package `app.isotopeai.pip`; applicationId `in.isotopeai.pip` (launch command uses applicationId prefix).
+- `return` inside `Thread { }` lambda illegal → use `break` (moot now — no manual threads).
+- `coerceAtMost(Int)` on Long receiver returns Long → add `.toInt()`.
+- `FrameLayout.gravity` does not exist → `FrameLayout.LayoutParams(w, h, Gravity.CENTER)`.
+- `ViewGroup.getChildAt()` returns `View!` → cast before typed use (we fixed via destructured Pair).
+- Cleartext HTTP: manifest `usesCleartextTraffic` + `res/xml/network_security_config.xml` (cleartext allowed only for 127.0.0.1/localhost) — WebView JS/localStorage need `javaScriptEnabled`/`domStorageEnabled`.
 
-- [ ] Device PiP final re-verify on port 45355 (clear caches → open /focus → __pipTrace + screencap; check green/red buttons visible).
-- [ ] PiP APK: scaffold Kotlin project in isotope-apk-ref, GitHub Actions build, install/test via ADB.
-- [ ] Update agents/AGENTS.md + this file with final state after PiP verify.
+## 8. UI/UX skill rules applied (ui-ux-pro-max "Exaggerated Minimalism" for dark tool)
+
+- Ripple press feedback on ALL buttons (`RippleDrawable` wrapping pill, overlay `0x33FFFFFF`).
+- Touch targets >= 44-48dp; haptics (`CONFIRM`, API 30+ guard) on timer actions; content descriptions on icon-only buttons.
+- 8dp spacing rhythm; tabular timer numerals (`setFontFeatureSettings("tnum")` on O+).
+- NO emojis as icons (use text glyphs only where they are data, e.g. counters).
+- Remaining pattern: Minimal Single Column, dark `#0F172A`-class bg with violet brand `#8B5CF6`.
+
+## 9. Environment facts
+
+- No JDK/SDK on device → builds ONLY via GitHub Actions; Termux has node/npm/npx (skills CLI 1.5.22), adb, python3 (no PIL — use pngscan.py), bash, curl.
+- Server runs in Termux; browser (Cromite) on same phone hits `127.0.0.1:3000/focus`.
+- `session-ses_*.md` files are auto-generated session artifacts — do NOT commit.
+- Repo branches: work only on `main`. Read `isotope-apk-ref/AGENTS.md` + `.agent/` docs before touching isotope-apk-ref code.

@@ -10,59 +10,39 @@ import android.graphics.drawable.RippleDrawable
 import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
-import android.view.Choreographer
 import android.view.Gravity
-import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 
 /**
- * Floating "display over other apps" card (requires SYSTEM_ALERT_WINDOW).
- * A draggable mini version of the PiP card rendered above every app.
- *
- * Reuses StateHub as its single data source (poller lives in PipBridgeService),
- * renders with its own 10ms Choreographer ticker, and sends actions through
- * PipBridgeService.postAction(). Overlay permission is requested by PipActivity;
- * this service refuses to start without it.
+ * Floating "display over other apps" window. Shows the REAL isotope web app
+ * (same /focus UI PipActivity renders, mirroring isotope-apk's wrapper
+ * approach) above every other app, in a draggable window with a top drag
+ * bar + close button. Refuses to start without SYSTEM_ALERT_WINDOW.
  */
 class FloatingOverlayService : Service() {
 
-    private var windowManager: WindowManager? = null
-    private var cardView: View? = null
-    private var layoutParams: WindowManager.LayoutParams? = null
-
-    private var lastState: PipState? = null
-    private var serverUp = false
-    private var tickerRunning = false
-    private var dragging = false
-
-    // Views
-    private var strip: View? = null
-    private var heading: TextView? = null
-    private var timerText: TextView? = null
-    private var statusDot: TextView? = null
-    private var statusText: TextView? = null
-    private var focusChip: TextView? = null
-    private var attempted: TextView? = null
-    private var targetButton: Button? = null
-    private var correctBtn: Button? = null
-    private var incorrectBtn: Button? = null
-    private var skippedBtn: Button? = null
-    private var undoBtn: Button? = null
-    private var questionRow: LinearLayout? = null
-
-    private val ticker = object : Choreographer.FrameCallback {
-        override fun doFrame(frameTimeNanos: Long) {
-            render()
-            Choreographer.getInstance().postFrameCallback(this)
-        }
+    companion object {
+        const val APP_URL = PipActivity.APP_URL
     }
+
+    private var windowManager: WindowManager? = null
+    private var windowView: View? = null
+    private var layoutParams: WindowManager.LayoutParams? = null
+    private var webView: WebView? = null
+    private var messageView: TextView? = null
+    private var dragging = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -73,8 +53,7 @@ class FloatingOverlayService : Service() {
             return
         }
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        addOverlay()
-        startTicker()
+        addWindow()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -86,28 +65,26 @@ class FloatingOverlayService : Service() {
     }
 
     override fun onDestroy() {
-        stopTicker()
-        cardView?.let { runCatching { windowManager?.removeView(it) } }
-        cardView = null
+        webView?.destroy()
+        webView = null
+        windowView?.let { runCatching { windowManager?.removeView(it) } }
+        windowView = null
         super.onDestroy()
     }
 
-    // ───────────────────────── Overlay construction ────────────────────────
+    // ───────────────────────── Window construction ─────────────────────────
 
     private fun dp(v: Int): Int = Math.round(v * resources.displayMetrics.density)
 
-    private fun addOverlay() {
-        val width = Math.min(resources.displayMetrics.widthPixels, dp(340))
-        val card = buildCard(width)
-        cardView = card
-
-        val gravity = Gravity.TOP or Gravity.START
-        val x = resources.displayMetrics.widthPixels - width - dp(16)
-        val y = dp(80)
+    private fun addWindow() {
+        val windowWidth = Math.min(resources.displayMetrics.widthPixels - dp(16), dp(400))
+        val windowHeight = Math.min(resources.displayMetrics.heightPixels - dp(160), dp(720))
+        val view = buildContent()
+        windowView = view
 
         layoutParams = WindowManager.LayoutParams(
-            width,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            windowWidth,
+            windowHeight,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             else
@@ -117,248 +94,122 @@ class FloatingOverlayService : Service() {
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             android.graphics.PixelFormat.TRANSLUCENT
         ).apply {
-            this.gravity = gravity
-            this.x = x
-            this.y = y
+            gravity = Gravity.TOP or Gravity.END
+            x = -dp(16)
+            y = dp(64)
         }
 
         try {
-            windowManager?.addView(card, layoutParams)
-            makeDraggable(card)
+            windowManager?.addView(view, layoutParams)
+            loadApp()
         } catch (e: Exception) {
             stopSelf()
         }
     }
 
-    private fun buildCard(width: Int): View {
+    private fun buildContent(): View {
         val root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
         root.background = roundedCard()
-        root.gravity = Gravity.CENTER_HORIZONTAL
-        root.setPadding(0, 0, 0, dp(12))
-        root.isClickable = true
-        root.isFocusable = true
 
-        // Progress strip
-        strip = View(this).apply {
-            setScaleX(0f)
-            setPivotX(0f)
-            background = GradientDrawable().apply { setColor(Colors.BRAND_500) }
-        }
-        root.addView(strip, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(4)))
-
-        // Header row: heading + expand + close
-        val header = LinearLayout(this)
-        header.orientation = LinearLayout.HORIZONTAL
-        header.gravity = Gravity.CENTER_VERTICAL
-        header.setPadding(dp(12), dp(8), dp(8), 0)
-        heading = TextView(this).apply {
-            textSize = 10f
+        // Drag bar: handle + title + close
+        val bar = LinearLayout(this)
+        bar.orientation = LinearLayout.HORIZONTAL
+        bar.gravity = Gravity.CENTER_VERTICAL
+        bar.setPadding(dp(12), 0, dp(4), 0)
+        val title = TextView(this).apply {
+            textSize = 11f
             typeface = Typeface.DEFAULT_BOLD
             letterSpacing = 0.08f
             setTextColor(Color.rgb(161, 161, 170))
-            text = "ISOTOPE FLOATING"
+            text = "ISOTOPE"
         }
-        header.addView(heading, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        header.addView(iconBtn("↗", "Open Isotope PiP") { openActivity() })
-        header.addView(iconBtn("×", "Close floating card") { stopSelf() })
-        root.addView(header)
+        bar.addView(title, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        val close = Button(this).apply {
+            text = "\u00d7"
+            contentDescription = "Close floating window"
+            isAllCaps = false
+            textSize = 15f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.rgb(161, 161, 170))
+            background = ripple(Color.argb(15, 255, 255, 255), Color.TRANSPARENT)
+            setOnClickListener { stopSelf() }
+        }
+        bar.addView(close, LinearLayout.LayoutParams(dp(44), dp(36)))
+        makeDraggable(bar)
+        root.addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40)))
 
-        // Focus chip
-        focusChip = TextView(this).apply {
+        // The real isotope web app
+        webView = WebView(this).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.databaseEnabled = true
+            settings.loadWithOverviewMode = true
+            settings.useWideViewPort = true
+            settings.setSupportZoom(false)
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = false
+
+                override fun onPageFinished(view: WebView, url: String?) {
+                    messageView?.visibility = View.GONE
+                }
+
+                override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+                    if (request.isForMainFrame) {
+                        messageView?.visibility = View.VISIBLE
+                        messageView?.text = "Isotope server offline — tap to retry"
+                    }
+                }
+            }
+            setOnClickListener {
+                messageView?.visibility = View.GONE
+                loadApp()
+            }
+        }
+        root.addView(webView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+
+        messageView = TextView(this).apply {
+            text = "Loading isotope\u2026"
             textSize = 12f
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
-            setPadding(dp(12), dp(4), dp(12), dp(4))
-            setTextColor(Color.rgb(196, 181, 253))
-            background = pill(Color.argb(30, 139, 92, 246), Color.argb(50, 139, 92, 246))
-        }
-        val chipLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        chipLp.gravity = Gravity.CENTER_HORIZONTAL
-        chipLp.topMargin = dp(8)
-        root.addView(focusChip, chipLp)
-
-        // Timer
-        timerText = TextView(this).apply {
-            textSize = 36f
-            typeface = Typeface.MONOSPACE
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) setFontFeatureSettings("tnum")
-            gravity = Gravity.CENTER
-            includeFontPadding = false
             setTextColor(Color.WHITE)
+            setBackgroundColor(Color.rgb(9, 9, 11))
+            visibility = View.GONE
         }
-        val timerLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        timerLp.topMargin = dp(4)
-        root.addView(timerText, timerLp)
-
-        // Status row
-        val statusRow = LinearLayout(this)
-        statusRow.orientation = LinearLayout.HORIZONTAL
-        statusRow.gravity = Gravity.CENTER
-        statusDot = TextView(this).apply { textSize = 10f }
-        statusText = TextView(this).apply {
-            textSize = 10f
-            letterSpacing = 0.05f
-            setTextColor(Color.rgb(161, 161, 170))
-        }
-        statusRow.addView(statusDot)
-        statusRow.addView(statusText)
-        root.addView(statusRow)
-
-        // Question tracking section
-        val qr = LinearLayout(this)
-        qr.orientation = LinearLayout.VERTICAL
-        questionRow = qr
-
-        val attemptRow = LinearLayout(this)
-        attemptRow.orientation = LinearLayout.HORIZONTAL
-        attemptRow.gravity = Gravity.CENTER_VERTICAL
-        attemptRow.setPadding(dp(12), dp(8), dp(12), 0)
-        attempted = TextView(this).apply {
-            textSize = 20f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(Color.WHITE)
-        }
-        attemptRow.addView(attempted, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        targetButton = pillBtn("Target") { PipBridgeService.postAction("setTarget", 0) }
-        attemptRow.addView(targetButton)
-        qr.addView(attemptRow)
-
-        val resultRow = LinearLayout(this)
-        resultRow.orientation = LinearLayout.HORIZONTAL
-        resultRow.gravity = Gravity.CENTER
-        resultRow.setPadding(dp(12), dp(8), dp(12), 0)
-        correctBtn = resultBtn("✓") { PipBridgeService.postAction("correct", -1) }
-        incorrectBtn = resultBtn("✕") { PipBridgeService.postAction("incorrect", -1) }
-        skippedBtn = resultBtn("↷") { PipBridgeService.postAction("skipped", -1) }
-        resultRow.addView(correctBtn, weightParams(1f, 0, dp(8)))
-        resultRow.addView(incorrectBtn, weightParams(1f, 0, dp(8)))
-        resultRow.addView(skippedBtn, weightParams(1f, 0, 0))
-        qr.addView(resultRow)
-
-        undoBtn = Button(this).apply {
-            text = "Undo last"
-            isAllCaps = false
-            textSize = 11f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(Color.rgb(161, 161, 170))
-            background = ripple(Color.TRANSPARENT, Color.argb(36, 255, 255, 255))
-            setOnClickListener {
-                haptic(this)
-                PipBridgeService.postAction("undo", -1)
-            }
-        }
-        val undoLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40))
-        undoLp.setMargins(dp(12), dp(8), dp(12), 0)
-        qr.addView(undoBtn, undoLp)
-
-        root.addView(qr)
+        root.addView(messageView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40)))
 
         return root
     }
 
-    private fun weightParams(weight: Float, leftMargin: Int, rightMargin: Int): LinearLayout.LayoutParams {
-        val lp = LinearLayout.LayoutParams(0, dp(44), weight)
-        lp.setMargins(leftMargin, 0, rightMargin, 0)
-        return lp
-    }
-
-    private fun iconBtn(label: String, desc: String, onClick: () -> Unit) = Button(this).apply {
-        text = label
-        contentDescription = desc
-        isAllCaps = false
-        textSize = 14f
-        typeface = Typeface.DEFAULT_BOLD
-        setTextColor(Color.rgb(161, 161, 170))
-        background = ripple(Color.argb(15, 255, 255, 255), Color.TRANSPARENT)
-        setPadding(dp(8), 0, dp(8), 0)
-        setOnClickListener { onClick() }
-        layoutParams = LinearLayout.LayoutParams(dp(44), dp(36))
-    }
-
-    private fun pillBtn(label: String, onClick: () -> Unit) = Button(this).apply {
-        text = label
-        isAllCaps = false
-        textSize = 11f
-        typeface = Typeface.DEFAULT_BOLD
-        setTextColor(Color.WHITE)
-        background = ripple(Colors.BRAND_500, Color.TRANSPARENT)
-        setPadding(dp(10), 0, dp(10), 0)
-        setOnClickListener {
-            haptic(this)
-            onClick()
-        }
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40))
-    }
-
-    private fun resultBtn(label: String, onClick: () -> Unit) = Button(this).apply {
-        text = label
-        isAllCaps = false
-        textSize = 12f
-        typeface = Typeface.DEFAULT_BOLD
-        setTextColor(Color.WHITE)
-        background = ripple(Color.rgb(30, 30, 34), Color.TRANSPARENT)
-        setOnClickListener {
-            haptic(this)
-            onClick()
-        }
-    }
-
-    private fun haptic(v: View) {
-        v.performHapticFeedback(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-                HapticFeedbackConstants.CONFIRM
-            else
-                HapticFeedbackConstants.VIRTUAL_KEY
-        )
-    }
-
-    private fun pill(bg: Int, stroke: Int) = GradientDrawable().apply {
-        setColor(bg)
-        cornerRadius = dp(14).toFloat()
-        if (stroke != Color.TRANSPARENT) setStroke(dp(1), stroke)
-    }
-
-    /** Pill + ripple overlay so every press gives tactile feedback (state layer). */
-    private fun ripple(bg: Int, stroke: Int, overlay: Int = 0x33FFFFFF) = RippleDrawable(
-        ColorStateList.valueOf(overlay),
-        pill(bg, stroke),
-        null
-    )
-
-    private fun roundedCard() = GradientDrawable().apply {
-        setColor(Color.rgb(14, 14, 17))
-        cornerRadius = dp(20).toFloat()
-        setStroke(dp(1), Color.argb(25, 255, 255, 255))
+    private fun loadApp() {
+        messageView?.visibility = View.GONE
+        webView?.loadUrl(APP_URL)
     }
 
     private fun makeDraggable(view: View) {
-        view.setOnTouchListener { _, event ->
+        view.setOnTouchListener { v, event ->
             val params = layoutParams ?: return@setOnTouchListener false
-            val initialRawX = event.rawX
-            val initialRawY = event.rawY
-            var initialX = params.x.toFloat()
-            var initialY = params.y.toFloat()
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     dragging = false
-                    view.tag = floatArrayOf(initialRawX, initialRawY, initialX, initialY)
+                    v.tag = floatArrayOf(event.rawX, event.rawY, params.x.toFloat(), params.y.toFloat())
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    val start = view.tag as FloatArray
+                    val start = v.tag as FloatArray
                     val dx = event.rawX - start[0]
                     val dy = event.rawY - start[1]
                     if (Math.abs(dx) > dp(4) || Math.abs(dy) > dp(4)) dragging = true
                     if (dragging) {
-                        params.x = (start[2] + dx).toInt().coerceIn(-dp(80), resources.displayMetrics.widthPixels - dp(40))
-                        params.y = (start[3] + dy).toInt().coerceIn(dp(20), resources.displayMetrics.heightPixels - dp(120))
-                        runCatching { windowManager?.updateViewLayout(view, params) }
+                        params.x = (start[2] + dx).toInt()
+                        params.y = (start[3] + dy).toInt().coerceIn(dp(16), resources.displayMetrics.heightPixels - dp(160))
+                        runCatching { windowManager?.updateViewLayout(v, params) }
                     }
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (dragging) view.performClick()
+                    if (dragging) v.performClick()
                     true
                 }
                 else -> false
@@ -366,81 +217,20 @@ class FloatingOverlayService : Service() {
         }
     }
 
-    private fun openActivity() {
-        startActivity(Intent(this, PipActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    private fun roundedCard() = GradientDrawable().apply {
+        setColor(Color.rgb(14, 14, 17))
+        cornerRadius = dp(16).toFloat()
+        setStroke(dp(1), Color.argb(35, 255, 255, 255))
     }
 
-    // ───────────────────────── Rendering ───────────────────────────────────
-
-    private fun startTicker() {
-        if (!tickerRunning) {
-            tickerRunning = true
-            Choreographer.getInstance().postFrameCallback(ticker)
-        }
-    }
-
-    private fun stopTicker() {
-        tickerRunning = false
-        runCatching { Choreographer.getInstance().removeFrameCallback(ticker) }
-    }
-
-    private fun render() {
-        val st = StateHub.state.value
-        if (st == null) {
-            timerText?.text = "--:--"
-            statusText?.text = if (serverUp) "Loading…" else "Server offline"
-            return
-        }
-        lastState = st
-        serverUp = StateHub.serverUp.value
-        val root = cardView ?: return
-        val isBreak = st.isBreak
-
-        strip?.setScaleX(
-            when {
-                st.mode == "stopwatch" -> (st.secondsNow() % (25 * 60)).toFloat() / (25 * 60)
-                st.totalSeconds > 0 -> (st.secondsNow().toFloat() / st.totalSeconds).coerceIn(0f, 1f)
-                else -> 0f
-            }
-        )
-        (strip?.background as? GradientDrawable)?.setColor(if (isBreak) Colors.SKY_400 else Colors.BRAND_500)
-
-        heading?.text = when {
-            st.mode == "stopwatch" -> "STOPWATCH"
-            st.pomodoroCycle > 0 -> "POMODORO  ${st.pomodoroCycle} / ${st.pomodoroSessionsUntilLongBreak}"
-            else -> "POMODORO"
-        }
-
-        timerText?.text = PipState.formatSeconds(st.secondsNow())
-
-        val (dotColor, label) = when {
-            !serverUp -> Colors.ZINC_500 to "Server offline"
-            st.timerState == "running" -> Colors.EMERALD_500 to "FOCUSING"
-            st.timerState == "paused" -> Colors.AMBER_500 to "PAUSED"
-            isBreak -> Colors.BLUE_500 to "BREAK"
-            else -> Colors.ZINC_500 to "IDLE"
-        }
-        statusDot?.setTextColor(dotColor)
-        statusDot?.text = "● "
-        statusText?.text = label
-
-        focusChip?.text = buildString {
-            if (st.focusTypeIcon.isNotEmpty()) append(st.focusTypeIcon).append("  ")
-            append(st.focusTypeLabel.ifEmpty { "Focus" })
-        }
-
-        questionRow?.visibility = if (st.showQuestionControls) View.VISIBLE else View.GONE
-        attempted?.text = buildString {
-            append(st.questionsAttempted)
-            if (st.targetQuestions > 0) append(" / ").append(st.targetQuestions)
-        }
-        correctBtn?.text = "✓  ${st.questionsCorrect}"
-        incorrectBtn?.text = "✕  ${st.questionsIncorrect}"
-        skippedBtn?.text = "↷  ${st.questionsSkipped}"
-        undoBtn?.isEnabled = st.undoAvailable
-        undoBtn?.alpha = if (st.undoAvailable) 1f else 0.4f
-
-        // Theme toggle on the card background is skipped; floating card stays dark.
-        root.invalidate()
-    }
+    /** Pill + ripple overlay so every press gives tactile feedback (state layer). */
+    private fun ripple(bg: Int, stroke: Int, overlay: Int = 0x33FFFFFF) = RippleDrawable(
+        ColorStateList.valueOf(overlay),
+        GradientDrawable().apply {
+            setColor(bg)
+            cornerRadius = dp(14).toFloat()
+            if (stroke != Color.TRANSPARENT) setStroke(dp(1), stroke)
+        },
+        null
+    )
 }
