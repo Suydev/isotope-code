@@ -1,4 +1,4 @@
-package in.isotopeai.pip
+package app.isotopeai.pip
 
 import org.json.JSONObject
 import java.util.concurrent.CopyOnWriteArrayList
@@ -61,7 +61,7 @@ class PipState {
         val now = System.currentTimeMillis()
         return when {
             (isRunning || timerState == "break") && mode == "stopwatch" ->
-                (displayedSeconds + ((now - updatedAtMs) / 1000).coerceAtLeast(0)).coerceAtMost(365 * 24 * 3600)
+                (displayedSeconds + ((now - updatedAtMs) / 1000).coerceAtLeast(0)).coerceAtMost(365 * 24 * 3600).toInt()
             (isRunning || timerState == "break") && completionAtMs > 0 ->
                 Math.ceil(((completionAtMs - now).coerceAtLeast(0)) / 1000.0).toInt().coerceAtMost(365 * 24 * 3600)
             else -> displayedSeconds

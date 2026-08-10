@@ -1,4 +1,4 @@
-package in.isotopeai.pip
+package app.isotopeai.pip
 
 import android.graphics.Color
 

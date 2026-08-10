@@ -1,4 +1,4 @@
-package in.isotopeai.pip
+package app.isotopeai.pip
 
 import android.app.AlarmManager
 import android.app.PendingIntent

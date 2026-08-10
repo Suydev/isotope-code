@@ -1,4 +1,4 @@
-package in.isotopeai.pip
+package app.isotopeai.pip
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -79,7 +79,7 @@ class PipBridgeService : Service() {
             val elapsedNs = System.nanoTime() - started
             val sleep = POLL_MS - elapsedNs / 1_000_000L
             if (sleep > 0) {
-                try { Thread.sleep(sleep) } catch (e: InterruptedException) { return }
+                try { Thread.sleep(sleep) } catch (e: InterruptedException) { break }
             }
         }
     }

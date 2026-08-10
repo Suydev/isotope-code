@@ -1,4 +1,4 @@
-package in.isotopeai.pip
+package app.isotopeai.pip
 
 import android.app.Service
 import android.content.Intent
@@ -202,8 +202,9 @@ class FloatingOverlayService : Service() {
         root.addView(statusRow)
 
         // Question tracking section
-        questionRow = LinearLayout(this)
-        questionRow.orientation = LinearLayout.VERTICAL
+        val qr = LinearLayout(this)
+        qr.orientation = LinearLayout.VERTICAL
+        questionRow = qr
 
         val attemptRow = LinearLayout(this)
         attemptRow.orientation = LinearLayout.HORIZONTAL
@@ -217,7 +218,7 @@ class FloatingOverlayService : Service() {
         attemptRow.addView(attempted, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         targetButton = pillBtn("Target") { PipBridgeService.postAction("setTarget", 0) }
         attemptRow.addView(targetButton)
-        questionRow?.addView(attemptRow)
+        qr.addView(attemptRow)
 
         val resultRow = LinearLayout(this)
         resultRow.orientation = LinearLayout.HORIZONTAL
@@ -229,7 +230,7 @@ class FloatingOverlayService : Service() {
         resultRow.addView(correctBtn, weightParams(1f, 0, dp(6)))
         resultRow.addView(incorrectBtn, weightParams(1f, 0, dp(6)))
         resultRow.addView(skippedBtn, weightParams(1f, 0, 0))
-        questionRow?.addView(resultRow)
+        qr.addView(resultRow)
 
         undoBtn = Button(this).apply {
             text = "Undo last"
@@ -242,9 +243,9 @@ class FloatingOverlayService : Service() {
         }
         val undoLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(34))
         undoLp.setMargins(dp(12), dp(6), dp(12), 0)
-        questionRow?.addView(undoBtn, undoLp)
+        qr.addView(undoBtn, undoLp)
 
-        root.addView(questionRow)
+        root.addView(qr)
 
         return root
     }

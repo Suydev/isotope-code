@@ -47,6 +47,10 @@
                 android:value="Isotope PiP timer companion: polls the localhost isotope server and mirrors the focus timer into a picture-in-picture window and notification. Cannot be modeled as another foreground service type." />
         </service>
 
+        <service
+            android:name=".FloatingOverlayService"
+            android:exported="false" />
+
         <receiver
             android:name=".BootReceiver"
             android:exported="false">

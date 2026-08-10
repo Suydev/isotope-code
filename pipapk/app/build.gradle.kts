@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "in.isotopeai.pip"
+    namespace = "app.isotopeai.pip"
     compileSdk = 35
 
     defaultConfig {
