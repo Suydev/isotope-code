@@ -5,31 +5,31 @@
 
 ---
 
-## 0. LATEST STATE (2026-08-10, late — NATIVE TIMER CARD port to pipapk, in progress)
+## 0. LATEST STATE (2026-08-10, night — pipapk rebuilt to pipapk.md Option A; CI pending)
 
-- **User directive (this session, final):** "only the timer part of isotope-apk, put it in pipapk — the whole
-  pip-like thing built in there, but for android", wired "with API with isotopeai in localhost focus tab".
-  → pipapk keeps its WebView `/focus` main UI (accepted earlier) but its floating **WebView window is
-  REPLACED by a native floating timer card** = Kotlin port of isotope-apk's `FloatingTimerService.java`,
-  driven entirely by the localhost pip API (state = the REAL /focus tab's relay).
-- **Architecture (verified live + in code, see §4):** card state ← `GET /api/pip/state` (poll 1s, render
-  only on seq change); SSE `GET /__pip/events` = change signal (carries ACTION ENVELOPES + heartbeats,
-  NOT snapshots — page relays are not SSE-pushed); buttons → `POST /api/pip/action` → server broadcasts
-  over SSE → the /focus page's `PIP_BRIDGE_JS` applies on the REAL store (`recordQuestionResult`,
-  `undoLastQuestionResult`, `setTargetQuestions`) → page relays fresh snapshot → card re-renders.
-  **The action loop is real: card buttons DO drive the actual timer/state.**
-- **Written so far:** `pipapk/.../FloatingTimerService.kt` (full port: card UI identical to isotope-apk,
-  drag/resize, FGS notification, `TimerState.fromJson` key-compatible with `/api/pip/state` snapshot,
-  SSE thread + 1s seq-diff poll + action POSTs; ACTION_START/UPDATE/STOP + state_json action intents).
-  Port bugs fixed: `Math.max(0L, long)` (Kotlin has no int/long mix), `(int)` casts → `.toInt()`,
-  `Typeface.create(MONOSPACE, BOLD)` (not `MONOSPACE_BOLD`, minSdk 24), field/variable name collision.
-- **Remaining:** PipActivity "Float" → start FloatingTimerService (drop FloatingOverlayService), delete
-  `FloatingOverlayService.kt`, manifest = POST_NOTIFICATIONS + FGS + FGS_SPECIAL_USE perms + service
-  decl (specialUse + PROPERTY_SPECIAL_USE_FGS_SUBTYPE), `res/drawable/ic_notification.xml` vector,
-  then CI build → install on `in.isotopeai.pip` → smoke test card + actions on 127.0.0.1:34111.
-- pipapk record: ac77b1a WebView rewrite + 0c9da43 fix committed; build `31383102710` green, artifact
-  `9060637069` installed + tested (real /focus UI via pngscan: violet 2656/amber 1153 px; floating layer
-  `mIsFloatingLayer=true`). That floating layer is the WebView-window design now being replaced.
+- **User: "see planning file of apk — you have overdone" → the plan is `pipapk.md` in the repo root
+  (RESEARCH PLAN, Option A RECOMMENDED):** native PiP companion, **NO WebView at all** vs my
+  build; poll `GET /api/pip/state` every **750ms**; render card natively; POST actions to
+  `/api/pip/action`; enter system PiP (aspect 340:390) automatically on active state;
+  "server offline" badge + last-known state; overlay service = bonus mode. My prior build
+  (WebView /focus shell + SSE subscription + 1s poll + 250ms) was Option B/over-engineered → rebuilt.
+- **Rebuilt (uncommitted, in progress of CI):**
+  - `TimerState.kt` (new): shared snapshot parser (keys = PIP_BRIDGE_JS relay 1:1), moved out of service.
+  - `PipClient.kt` (new): zero-dep HTTP client — `fetchState(ui){state,ok,seq}` + `postAction(type,value)`.
+  - `PipActivity.kt` (rewritten): NO WebView — native card (piP card per §4b contract: heading/
+    time 56sp mono/status dot+label/chip/attempts+Target dialog/✓✕↷/Undo/progress strip), 750ms poll
+    + 250ms tick, auto `enterPictureInPictureMode(Rational(340,390))` on active (guarded once/session,
+    `onUserLeaveHint` too), offline badge, "Float" pill → FloatingTimerService.
+  - `FloatingTimerService.kt` (simplified): dropped SSE thread + 1s poll → shared PipClient 750ms
+    poll (seq-diff render) + 250ms tick; card UI/drag/resize/FGS unchanged; keep expand/close.
+  - Manifest: PipActivity `supportsPictureInPicture="true"` added.
+- The app now REQUIRES a /focus page running somewhere (Cromite/WebView) as the state owner — APK is
+  a pure remote view/remote control (pipapk.md §5 owner model).
+- Previous state: ac77b1a/0c9da43 (WebView shell, installed+tested), d24fc37 (native card port with
+  WebView main UI — build `31386282787` green, installed, blocked by device sleep mid-test; superseded
+  by this Option-A rebuild).
+- pipapk.md checklist to verify on device: state active→auto PiP; buttons change counts in app UI +
+  polls; overlay mode + FGS notification; 750ms cadence; server-down badge.
 
 ## 1. Products & Purpose
 
