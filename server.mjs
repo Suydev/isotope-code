@@ -650,7 +650,13 @@ function buildUsernameAuthScript() {
         saveSession(data);
         return data.access_token;
       }
-    } catch(e) {}
+    } catch(e) {
+      // Network failure (ERR_INTERNET_DISCONNECTED) — return null silently
+      if (e && (e.message || '').indexOf('INTERNET_DISCONNECTED') !== -1 ||
+          (e.message || '').indexOf('Failed to fetch') !== -1) {
+        return null;
+      }
+    }
     return null;
   }
 
@@ -3267,12 +3273,17 @@ function buildAuthGuardScript() {
     window.__ISO_AUTH_GUARD__ = { state: 'sessionRestoring', protectedPath: currentPath, startedAt: Date.now() };
     var redirectIfLoggedOut = function(detail) {
       var boot = (detail && detail.detail) || window.__ISO_BOOT_STATE__ || {};
-      if (boot.state === 'readyLoggedOut') window.location.replace('/auth');
+      // Offline: don't redirect to /auth — allow cached bootstrap to restore session
+      if (boot.state === 'readyLoggedOut' && navigator.onLine !== false) window.location.replace('/auth');
     };
     window.addEventListener('isotope:boot-state', redirectIfLoggedOut);
     setTimeout(function() {
       var boot = window.__ISO_BOOT_STATE__ || {};
-      if (!boot.bootResolved || boot.state === 'readyLoggedOut') window.location.replace('/auth');
+      // Offline fallback: if there's a cached bootstrap, don't redirect to /auth
+      if (!boot.bootResolved || boot.state === 'readyLoggedOut') {
+        if (navigator.onLine === false) return; // stay on page, cached bootstrap will restore
+        window.location.replace('/auth');
+      }
     }, 9000);
     return;
   }
@@ -5869,7 +5880,21 @@ async function requireUserAuth(req, res, options = {}) {
     const userId = user?.id || getUserIdFromJwt(token);
     if (!userId) throw new Error('Missing user id');
     return { userJwt: token, userId, user };
-  } catch {
+  } catch (e) {
+    // Offline fallback: if Supabase is unreachable, decode JWT locally
+    const msg = (e?.message || '').toLowerCase();
+    const isNetworkError = msg.includes('internetworkdisconnected') ||
+                           msg.includes('failed to fetch') ||
+                           msg.includes('econnrefused') ||
+                           msg.includes('enotfound') ||
+                           msg.includes('timeout');
+    if (isNetworkError) {
+      const userId = getUserIdFromJwt(token);
+      if (userId) {
+        console.log('[Auth] Offline fallback: allowing access with local JWT decode for', userId);
+        return { userJwt: token, userId, user: { id: userId }, offlineFallback: true };
+      }
+    }
     sendJson(res, 401, authRequiredPayload(options.payload || {}));
     return null;
   }
