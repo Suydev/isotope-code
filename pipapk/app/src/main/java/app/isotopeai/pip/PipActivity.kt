@@ -1,5 +1,6 @@
 package app.isotopeai.pip
 
+import android.animation.ObjectAnimator
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.PictureInPictureParams
@@ -32,10 +33,17 @@ import android.widget.Toast
  * Choreographer ticker that extrapolates time locally — zero network per
  * frame. Owns PiP lifecycle, the permission UX (display-over-other-apps,
  * notifications, battery exemption) and the floating overlay toggle.
+ *
+ * Layout: two full screens — the compact timer card (also the PiP content)
+ * and a centered permission card shown until every permission is granted.
+ * They never overlap.
  */
 class PipActivity : Activity() {
 
     private lateinit var root: FrameLayout
+    private lateinit var cardScreen: FrameLayout
+    private lateinit var permScreen: FrameLayout
+
     private lateinit var cardView: LinearLayout
     private lateinit var progressFill: View
     private lateinit var headingText: TextView
@@ -44,29 +52,23 @@ class PipActivity : Activity() {
     private lateinit var statusText: TextView
     private lateinit var focusChip: TextView
     private lateinit var attemptedText: TextView
-    private lateinit var targetButton: Button
     private lateinit var correctButton: Button
     private lateinit var incorrectButton: Button
     private lateinit var skippedButton: Button
     private lateinit var undoButton: Button
     private lateinit var actionButtons: LinearLayout
-    private lateinit var expandButton: Button
-    private lateinit var closeButton: Button
-
-    private lateinit var overlayRow: LinearLayout
-    private lateinit var overlayChip: TextView
-    private lateinit var notifRow: LinearLayout
-    private lateinit var notifChip: TextView
-    private lateinit var batteryRow: LinearLayout
-    private lateinit var batteryChip: TextView
-
     private lateinit var floatToggle: Button
+
+    private lateinit var permChipOverlay: TextView
+    private lateinit var permChipNotif: TextView
+    private lateinit var permChipBattery: TextView
 
     private var tickerRunning = false
     private var inPip = false
     private var autoEnterPip = true
     private var lastState: PipState? = null
     private var serverUp = false
+    private var pulse: ObjectAnimator? = null
 
     private val stateListener: (PipState?) -> Unit = { st ->
         serverUp = StateHub.serverUp
@@ -88,7 +90,7 @@ class PipActivity : Activity() {
         super.onCreate(savedInstanceState)
         buildUi()
         startBridgeService()
-        refreshPermissionRows()
+        refreshPermissionScreens()
     }
 
     override fun onStart() {
@@ -108,7 +110,7 @@ class PipActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        refreshPermissionRows()
+        refreshPermissionScreens()
         refreshPiPParams()
     }
 
@@ -118,13 +120,16 @@ class PipActivity : Activity() {
         if (isInPictureInPictureMode) {
             StateHub.addListener(stateListener)
             startTicker()
+            cardScreen.visibility = View.VISIBLE
+            permScreen.visibility = View.GONE
         } else {
-            refreshPermissionRows()
+            refreshPermissionScreens()
         }
     }
 
     override fun onDestroy() {
         stopTicker()
+        pulse?.cancel()
         StateHub.removeListener(stateListener)
         super.onDestroy()
     }
@@ -159,12 +164,35 @@ class PipActivity : Activity() {
         root = FrameLayout(this)
         root.setBackgroundColor(Color.rgb(9, 9, 11))
 
+        // ── Card screen: compact centered card ────────────────────────────
+        cardScreen = FrameLayout(this)
+        cardScreen.gravity = Gravity.CENTER
+        cardScreen.addView(buildCardScreen())
+        root.addView(cardScreen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+
+        // ── Permission screen: shown until everything is granted ──────────
+        permScreen = FrameLayout(this)
+        permScreen.gravity = Gravity.CENTER
+        permScreen.addView(buildPermissionScreen())
+        root.addView(permScreen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+
+        setContentView(root)
+    }
+
+    private fun buildCardScreen(): View {
+        val cardWidth = Math.min(dp(400), resources.displayMetrics.widthPixels - dp(36))
+
+        val wrap = LinearLayout(this)
+        wrap.orientation = LinearLayout.VERTICAL
+        wrap.gravity = Gravity.CENTER_HORIZONTAL
+
         cardView = LinearLayout(this)
         cardView.orientation = LinearLayout.VERTICAL
-        cardView.background = roundedCard(Colors.ZINC_950, 25)
+        cardView.background = roundedCard(Colors.ZINC_950, 22, 26)
+        cardView.elevation = dp(12).toFloat()
         cardView.gravity = Gravity.CENTER_HORIZONTAL
 
-        // Progress strip
+        // Progress strip (4dp, brand/sky) on top
         val strip = FrameLayout(this)
         strip.setBackgroundColor(Color.argb(20, 139, 92, 246))
         progressFill = View(this).apply {
@@ -177,70 +205,70 @@ class PipActivity : Activity() {
 
         val content = LinearLayout(this)
         content.orientation = LinearLayout.VERTICAL
-        content.setPadding(dp(16), dp(12), dp(16), dp(16))
+        content.setPadding(dp(18), dp(14), dp(18), dp(18))
 
         // Header: heading + expand + close
         val header = LinearLayout(this)
         header.orientation = LinearLayout.HORIZONTAL
         header.gravity = Gravity.CENTER_VERTICAL
-        headingText = text(11, true).apply {
-            letterSpacing = 0.08f
+        headingText = text(10, true).apply {
+            letterSpacing = 0.1f
             setTextColor(Colors.MUTED_DARK)
             text = "ISOTOPE PIP"
         }
         header.addView(headingText, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        expandButton = iconButton("↗") { expandWindow() }
-        closeButton = iconButton("×") { closePip() }
-        header.addView(expandButton)
-        header.addView(closeButton)
+        header.addView(iconButton("↗") { expandWindow() })
+        header.addView(iconButton("×") { closePip() })
         content.addView(header)
 
         // Focus chip
         focusChip = text(13, true).apply {
             gravity = Gravity.CENTER
-            setPadding(dp(12), dp(5), dp(12), dp(5))
-            background = pill(Color.argb(30, 139, 92, 246), Color.argb(50, 139, 92, 246))
+            setPadding(dp(14), dp(6), dp(14), dp(6))
+            background = pill(Color.argb(28, 139, 92, 246), Color.argb(45, 139, 92, 246))
             setTextColor(Color.rgb(196, 181, 253))
         }
         val chipLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         chipLp.gravity = Gravity.CENTER_HORIZONTAL
-        chipLp.topMargin = dp(6)
-        chipLp.bottomMargin = dp(4)
+        chipLp.topMargin = dp(10)
+        chipLp.bottomMargin = dp(2)
         content.addView(focusChip, chipLp)
 
-        // Timer
-        timerText = text(40, true).apply {
+        // Timer — large, tabular
+        timerText = TextView(this).apply {
+            textSize = 42f
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
             gravity = Gravity.CENTER
-            typeface = Typeface.MONOSPACE
-            letterSpacing = -0.02f
+            includeFontPadding = false
             setTextColor(Color.WHITE)
         }
         val timerLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        timerLp.topMargin = dp(2)
-        timerLp.bottomMargin = dp(4)
+        timerLp.topMargin = dp(6)
         content.addView(timerText, timerLp)
 
-        // Status row
+        // Status row: pulsing dot + label
         val statusRow = LinearLayout(this)
         statusRow.orientation = LinearLayout.HORIZONTAL
         statusRow.gravity = Gravity.CENTER
-        statusDot = text(10, true)
-        statusText = text(11, false).apply { letterSpacing = 0.05f; setTextColor(Colors.MUTED_DARK) }
+        statusDot = text(11, true)
+        statusText = text(11, false).apply {
+            letterSpacing = 0.06f
+            setTextColor(Colors.MUTED_DARK)
+        }
         statusRow.addView(statusDot)
         statusRow.addView(statusText)
         content.addView(statusRow)
 
-        // ── Question tracking section ──────────────────────────────────────
+        // ── Question tracking section ─────────────────────────────────────
         actionButtons = LinearLayout(this)
         actionButtons.orientation = LinearLayout.VERTICAL
 
         val attemptRow = LinearLayout(this)
         attemptRow.orientation = LinearLayout.HORIZONTAL
         attemptRow.gravity = Gravity.CENTER_VERTICAL
-        attemptedText = text(24, true).apply { setTextColor(Color.WHITE) }
-        targetButton = pillButton("Target") { showTargetDialog() }
+        attemptedText = text(26, true).apply { setTextColor(Color.WHITE) }
         attemptRow.addView(attemptedText, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        attemptRow.addView(targetButton)
+        attemptRow.addView(pillButton("Target") { showTargetDialog() })
         actionButtons.addView(attemptRow)
 
         val editorRow = LinearLayout(this)
@@ -266,15 +294,15 @@ class PipActivity : Activity() {
 
         undoButton = pillButton("Undo last").apply {
             setTextColor(Color.WHITE)
-            background = pill(Color.TRANSPARENT, Color.argb(36, 255, 255, 255))
+            background = pill(Color.TRANSPARENT, Color.argb(38, 255, 255, 255))
         }
         undoButton.setOnClickListener { PipBridgeService.postAction("undo", -1) }
-        val undoLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(36))
+        val undoLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38))
         undoLp.topMargin = dp(6)
         actionButtons.addView(undoButton, undoLp)
 
         val qs = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        qs.topMargin = dp(10)
+        qs.topMargin = dp(12)
         content.addView(actionButtons, qs)
 
         // Floating mode toggle
@@ -283,63 +311,79 @@ class PipActivity : Activity() {
             isAllCaps = false
             textSize = 12f
             typeface = Typeface.DEFAULT_BOLD
-            setTextColor(Color.WHITE)
-            background = pill(Color.argb(30, 139, 92, 246), Color.TRANSPARENT)
+            setTextColor(Color.rgb(196, 181, 253))
+            background = pill(Color.argb(28, 139, 92, 246), Color.TRANSPARENT)
             setOnClickListener { toggleFloatingMode() }
         }
-        val ftLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38))
+        val ftLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40))
         ftLp.topMargin = dp(12)
         content.addView(floatToggle, ftLp)
 
         cardView.addView(content, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        root.addView(cardView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-
-        // ── Permission panel ───────────────────────────────────────────────
-        val panel = LinearLayout(this)
-        panel.orientation = LinearLayout.VERTICAL
-        panel.setPadding(dp(24), dp(24), dp(24), dp(24))
-        panel.visibility = View.GONE
-
-        val title = text(16, true).apply {
-            text = "Isotope PiP — permissions"
-            setTextColor(Color.WHITE)
-        }
-        val subtitle = text(12, false).apply {
-            text = "These make the timer work everywhere: PiP window, floating card above other apps, and background updates."
-            setTextColor(Colors.MUTED_DARK)
-        }
-        panel.addView(title)
-        val subLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        subLp.topMargin = dp(4)
-        subLp.bottomMargin = dp(12)
-        panel.addView(subtitle, subLp)
-
-        overlayRow = buildPermissionRow(panel, "Display over other apps", "Floating card above every app") {
-            openOverlaySettings()
-        }
-        notifRow = buildPermissionRow(panel, "Notifications", "Timer status in the notification bar") {
-            requestNotificationPermission()
-        }
-        batteryRow = buildPermissionRow(panel, "Background running", "Keep the timer live with the screen off") {
-            requestBatteryExemption()
-        }
-        overlayChip = overlayRow.getChildAt(0) as TextView
-        notifChip = notifRow.getChildAt(0) as TextView
-        batteryChip = batteryRow.getChildAt(0) as TextView
-
-        root.addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-
-        setContentView(root)
+        wrap.addView(cardView, LinearLayout.LayoutParams(cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT))
+        return wrap
     }
 
-    private fun buildPermissionRow(container: LinearLayout, title: String, desc: String, onClick: () -> Unit): LinearLayout {
+    private fun buildPermissionScreen(): View {
+        val cardWidth = Math.min(dp(360), resources.displayMetrics.widthPixels - dp(48))
+
+        val wrap = LinearLayout(this)
+        wrap.orientation = LinearLayout.VERTICAL
+        wrap.gravity = Gravity.CENTER_HORIZONTAL
+
+        val card = LinearLayout(this)
+        card.orientation = LinearLayout.VERTICAL
+        card.setPadding(dp(24), dp(24), dp(24), dp(24))
+        card.background = roundedCard(Colors.ZINC_950, 22, 26)
+        card.elevation = dp(12).toFloat()
+
+        val title = text(18, true).apply { text = "Isotope PiP"; setTextColor(Color.WHITE) }
+        card.addView(title)
+        val sub = text(12, false).apply {
+            text = "A floating timer companion. Grant these so it can work everywhere:"
+            setTextColor(Colors.MUTED_DARK)
+        }
+        val subLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        subLp.topMargin = dp(4)
+        subLp.bottomMargin = dp(14)
+        card.addView(sub, subLp)
+
+        card.addView(permRow("Display over other apps", "Floating card above every app") { openOverlaySettings() }.let { it.first })
+        permChipOverlay = card.getChildAt(card.childCount - 1).let { permRowChip(it) }
+        card.addView(permRow("Notifications", "Timer status in the notification bar") { requestNotificationPermission() }.let { it.first })
+        permChipNotif = permRowChip(card.getChildAt(card.childCount - 1))
+        card.addView(permRow("Background running", "Keep the timer live with the screen off") { requestBatteryExemption() }.let { it.first })
+        permChipBattery = permRowChip(card.getChildAt(card.childCount - 1))
+
+        val done = Button(this).apply {
+            text = "Done"
+            isAllCaps = false
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.WHITE)
+            background = pill(Colors.BRAND_500, Color.TRANSPARENT)
+            setOnClickListener { refreshPermissionScreens() }
+        }
+        val doneLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44))
+        doneLp.topMargin = dp(16)
+        card.addView(done, doneLp)
+
+        wrap.addView(card, LinearLayout.LayoutParams(cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT))
+        return wrap
+    }
+
+    private fun permRowChip(row: LinearLayout): TextView = row.getChildAt(0) as TextView
+
+    /** Returns the row (already containing its chip) so callers can extract it. */
+    private fun permRow(title: String, desc: String, onClick: () -> Unit): Pair<LinearLayout, TextView> {
         val row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
         row.gravity = Gravity.CENTER_VERTICAL
-        row.setPadding(0, dp(8), 0, dp(8))
+        row.setPadding(0, dp(10), 0, dp(10))
+
         val chip = TextView(this).apply {
             text = "○"
-            textSize = 14f
+            textSize = 15f
             setTextColor(Colors.MUTED_DARK)
         }
         val texts = LinearLayout(this)
@@ -359,12 +403,11 @@ class PipActivity : Activity() {
         }
         val btnLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34))
         btnLp.leftMargin = dp(12)
+
         row.addView(chip)
         row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = dp(10) })
         row.addView(btn, btnLp)
-        val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        container.addView(row, lp)
-        return row
+        return row to chip
     }
 
     // ───────────────────────── Rendering ───────────────────────────────────
@@ -373,7 +416,7 @@ class PipActivity : Activity() {
         val st = lastState
         if (st == null) {
             timerText.text = "--:--"
-            statusText.text = "Server offline"
+            statusText.text = if (serverUp) "Loading…" else "Server offline"
             return
         }
         val isBreak = st.isBreak
@@ -397,6 +440,20 @@ class PipActivity : Activity() {
         statusDot.text = "● "
         statusDot.setTextColor(dotColor)
         statusText.text = label
+
+        if (st.isRunning && !inPip) {
+            if (pulse == null) {
+                pulse = ObjectAnimator.ofFloat(statusDot, "alpha", 1f, 0.35f).apply {
+                    duration = 900
+                    repeatMode = android.animation.ValueAnimator.REVERSE
+                    repeatCount = android.animation.ValueAnimator.INFINITE
+                }
+            }
+            pulse?.start()
+        } else {
+            pulse?.cancel()
+            statusDot.alpha = 1f
+        }
 
         focusChip.text = buildString {
             if (st.focusTypeIcon.isNotEmpty()) append(st.focusTypeIcon).append("  ")
@@ -434,17 +491,21 @@ class PipActivity : Activity() {
     private fun isIgnoringBatteryOptimizations(): Boolean =
         getSystemService(android.os.PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)
 
-    private fun refreshPermissionRows() {
-        val panel = (root.getChildAt(root.childCount - 1)) // last child = panel
-        val anyMissing = !hasOverlayPermission() || !hasNotifPermission() || !isIgnoringBatteryOptimizations()
-        panel.visibility = if (anyMissing) View.VISIBLE else View.GONE
+    private fun allPermissionsGranted(): Boolean =
+        hasOverlayPermission() && hasNotifPermission() && isIgnoringBatteryOptimizations()
 
-        setPermissionChip(overlayChip, hasOverlayPermission())
-        setPermissionChip(notifChip, hasNotifPermission())
-        setPermissionChip(batteryChip, isIgnoringBatteryOptimizations())
+    private fun refreshPermissionScreens() {
+        if (inPip) return
+        val granted = allPermissionsGranted()
+        cardScreen.visibility = if (granted) View.VISIBLE else View.GONE
+        permScreen.visibility = if (granted) View.GONE else View.VISIBLE
+        setPermChip(permChipOverlay, hasOverlayPermission())
+        setPermChip(permChipNotif, hasNotifPermission())
+        setPermChip(permChipBattery, isIgnoringBatteryOptimizations())
+        floatToggle.text = if (hasOverlayPermission()) "Floating mode (over other apps)" else "Floating mode — grant overlay permission"
     }
 
-    private fun setPermissionChip(chip: TextView, granted: Boolean) {
+    private fun setPermChip(chip: TextView, granted: Boolean) {
         chip.text = if (granted) "●" else "○"
         chip.setTextColor(if (granted) Colors.EMERALD_500 else Colors.MUTED_DARK)
     }
@@ -458,10 +519,8 @@ class PipActivity : Activity() {
     }
 
     private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (!hasNotifPermission()) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIF)
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotifPermission()) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIF)
         }
     }
 
@@ -481,9 +540,9 @@ class PipActivity : Activity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQ_NOTIF) {
             if (grantResults.isEmpty() || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Notification denied — timer still works, but no status notification", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Notification denied — timer still works, just no status notification", Toast.LENGTH_LONG).show()
             }
-            refreshPermissionRows()
+            refreshPermissionScreens()
         }
     }
 
@@ -594,7 +653,7 @@ class PipActivity : Activity() {
     private fun iconButton(label: String, onClick: () -> Unit) = Button(this).apply {
         text = label
         isAllCaps = false
-        textSize = 16f
+        textSize = 15f
         typeface = Typeface.DEFAULT_BOLD
         setPadding(dp(8), 0, dp(8), 0)
         setTextColor(Colors.MUTED_DARK)
@@ -630,9 +689,9 @@ class PipActivity : Activity() {
         if (stroke != Color.TRANSPARENT) setStroke(dp(1), stroke)
     }
 
-    private fun roundedCard(bg: Int, strokeAlpha: Int) = GradientDrawable().apply {
+    private fun roundedCard(bg: Int, radiusDp: Int, strokeAlpha: Int) = GradientDrawable().apply {
         setColor(bg)
-        cornerRadius = dp(24).toFloat()
+        cornerRadius = dp(radiusDp).toFloat()
         if (strokeAlpha > 0) setStroke(dp(1), Color.argb(strokeAlpha, 255, 255, 255))
     }
 
