@@ -447,7 +447,7 @@ class FloatingTimerService : Service() {
         attemptedText = attempted
         targetValueText = targetValue
         targetEditorRow = editorRow
-        questionSection = questionSection
+        this.questionSection = questionSection
         expandButton = expandBtn
         closeButton = closeBtn
         correctButton = correct
@@ -642,11 +642,9 @@ class FloatingTimerService : Service() {
                     conn.connectTimeout = 3000
                     conn.readTimeout = 60000
                     val reader = BufferedReader(InputStreamReader(conn.inputStream))
-                    var line: String?
-                    while (sseRunning && reader.readLine().also { line = it } != null) {
-                        if (line == null) continue
-                        val trimmed = line.trim()
-                        if (trimmed.startsWith("data:")) {
+                    while (sseRunning) {
+                        val line = reader.readLine() ?: break
+                        if (line.trim().startsWith("data:")) {
                             refreshState("sse")
                         }
                     }
