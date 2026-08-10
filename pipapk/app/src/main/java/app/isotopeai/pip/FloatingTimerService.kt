@@ -80,6 +80,7 @@ class FloatingTimerService : Service() {
     private var focusTypeText: TextView? = null
     private var attemptedText: TextView? = null
     private var targetValueText: TextView? = null
+    private var targetEditorRow: LinearLayout? = null
     private var expandButton: Button? = null
     private var closeButton: Button? = null
     private var correctButton: Button? = null
