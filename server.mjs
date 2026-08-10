@@ -6044,6 +6044,7 @@ const appStateStore = { timerState: null, localStorage: {} };
 // browser tab via the SSE stream at GET /__pip/events.
 let pipStateCache = null;
 let pipStateAt = 0;
+let pipSeq = 0;
 const pipEventClients = new Set();
 const PIP_ALLOWED_ACTIONS = new Set(['correct', 'incorrect', 'skipped', 'undo', 'setTarget', 'expand', 'close']);
 
@@ -6580,7 +6581,8 @@ const server = http.createServer((req, res) => {
       focusTypeLabel: 'Focus', focusTypeIcon: '', theme: 'dark',
       pipConnected: pipStateAt > 0, pipStateAt,
     };
-    res.end(JSON.stringify(snapshot));
+    // Monotonic seq + live client count let the APK detect staleness cheaply.
+    res.end(JSON.stringify({ ...snapshot, seq: pipSeq, pipClients: pipEventClients.size }));
     return;
   }
   if (req.method === 'POST' && adminPath === '/api/pip/action') {
@@ -6595,10 +6597,18 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ ok: false, error: 'unknown action type' }));
         return;
       }
-      const value = Number.isFinite(action.value) ? action.value : null;
-      pipBroadcast({ type, value, ts: Date.now() });
+      let value = Number.isFinite(action.value) ? action.value : null;
+      if (type === 'setTarget') {
+        if (value === null) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: 'setTarget requires a numeric value' }));
+          return;
+        }
+        value = Math.min(9999, Math.max(0, Math.round(value)));
+      }
+      pipBroadcast({ type, value, ts: Date.now(), seq: pipSeq });
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      res.end(JSON.stringify(pipStateCache || { ok: true, active: false }));
+      res.end(JSON.stringify({ ...(pipStateCache || { ok: true, active: false }), applied: true, seq: pipSeq }));
     });
     return;
   }
@@ -6608,13 +6618,14 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const parsed = JSON.parse(body || '{}');
-        if (parsed && typeof parsed === 'object') {
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
           pipStateCache = parsed;
           pipStateAt = Date.now();
+          pipSeq += 1;
         }
       } catch {}
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true }));
+      res.end(JSON.stringify({ ok: true, seq: pipSeq }));
     });
     return;
   }

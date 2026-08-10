@@ -11,10 +11,17 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Foreground service owning ALL network I/O for the PiP companion.
@@ -43,9 +50,7 @@ class PipBridgeService : Service() {
 
         private val allowedActions = setOf("correct", "incorrect", "skipped", "undo", "setTarget", "expand", "close")
 
-        private val stopped = AtomicBoolean(false)
-        private var running = false
-        private val actionsGuard = object { }
+        private val actionsGuard = Any()
         private val lastActionSent = HashMap<String, Long>()
         private var lastNotifTime = 0L
 
@@ -57,36 +62,11 @@ class PipBridgeService : Service() {
         }
     }
 
-    private val poller = Thread {
-        while (!stopped.get()) {
-            val started = System.nanoTime()
-            try {
-                val json = httpGet(STATE_URL, 1500)
-                if (json != null) {
-                    try {
-                        val st = PipState.parse(json)
-                        StateHub.publish(st, true)
-                    } catch (e: Exception) {
-                        StateHub.publish(null, false, "parse: ${e.message}")
-                    }
-                } else {
-                    StateHub.publish(null, false, "HTTP ${httpGetLastCode()}")
-                }
-                updateNotificationIfDue()
-            } catch (e: Exception) {
-                StateHub.publish(null, false, e.message)
-            }
-            val elapsedNs = System.nanoTime() - started
-            val sleep = POLL_MS - elapsedNs / 1_000_000L
-            if (sleep > 0) {
-                try { Thread.sleep(sleep) } catch (e: InterruptedException) { break }
-            }
-        }
-    }
+    /** Structured concurrency: poller + action posts, all cancelled on destroy. */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var pollerJob: Job? = null
 
     private var lastHttpCode = 0
-
-    private fun httpGetLastCode(): Int = lastHttpCode
 
     override fun onCreate() {
         super.onCreate()
@@ -101,7 +81,33 @@ class PipBridgeService : Service() {
     }
 
     private fun startPollerIfNeeded() {
-        if (!poller.isAlive) poller.start()
+        if (pollerJob?.isActive == true) return
+        pollerJob = scope.launch {
+            while (isActive) {
+                val started = System.nanoTime()
+                pollOnce()
+                val elapsedMs = (System.nanoTime() - started) / 1_000_000L
+                if (POLL_MS - elapsedMs > 0) delay(POLL_MS - elapsedMs)
+            }
+        }
+    }
+
+    private fun pollOnce() {
+        try {
+            val json = httpGet(STATE_URL, 1500)
+            if (json != null) {
+                try {
+                    StateHub.publish(PipState.parse(json), true)
+                } catch (e: Exception) {
+                    StateHub.publish(null, false, "parse: ${e.message}")
+                }
+            } else {
+                StateHub.publish(null, false, "HTTP $lastHttpCode")
+            }
+            updateNotificationIfDue()
+        } catch (e: Exception) {
+            StateHub.publish(null, false, e.message)
+        }
     }
 
     private fun startForegroundCompat() {
@@ -140,9 +146,9 @@ class PipBridgeService : Service() {
     }
 
     private fun buildNotification(): Notification {
-        val st = StateHub.lastState
+        val st = StateHub.state.value
         val title = if (st != null) PipState.formatSeconds(st.secondsNow()) else "Connecting…"
-        val text = if (st != null) st.statusLabel(StateHub.serverUp) else "Waiting for isotope server"
+        val text = if (st != null) st.statusLabel(StateHub.serverUp.value) else "Waiting for isotope server"
         val contentIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, PipActivity::class.java),
@@ -174,29 +180,29 @@ class PipBridgeService : Service() {
         if (!allowedActions.contains(type)) return
         synchronized(actionsGuard) {
             val now = System.currentTimeMillis()
-            val last = lastActionSent[type] ?: 0L
-            if (now - last < 200L) return
+            if (now - (lastActionSent[type] ?: 0L) < 200L) return
             lastActionSent[type] = now
         }
-        Thread {
+        scope.launch {
             try {
                 val body = JSONObject().put("type", type).apply {
                     if (type == "setTarget") put("value", value.coerceIn(0, 9999))
                 }
                 val response = httpPost(ACTION_URL, body.toString())
                 if (response != null) {
-                    try { StateHub.publish(PipState.parse(response), true) } catch (e: Exception) {}
+                    try { StateHub.publish(PipState.parse(response), true) } catch (e: Exception) { /* keep last snapshot */ }
                 }
             } catch (e: Exception) {
                 StateHub.publish(null, false, e.message)
             }
-        }.start()
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        stopped.set(true)
+        pollerJob?.cancel()
+        scope.cancel()
         instance = null
         super.onDestroy()
     }

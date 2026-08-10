@@ -2,14 +2,17 @@ package app.isotopeai.pip
 
 import android.app.Service
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
 import android.view.Choreographer
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -157,8 +160,8 @@ class FloatingOverlayService : Service() {
             text = "ISOTOPE FLOATING"
         }
         header.addView(heading, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        header.addView(iconBtn("↗") { openActivity() })
-        header.addView(iconBtn("×") { stopSelf() })
+        header.addView(iconBtn("↗", "Open Isotope PiP") { openActivity() })
+        header.addView(iconBtn("×", "Close floating card") { stopSelf() })
         root.addView(header)
 
         // Focus chip
@@ -172,19 +175,20 @@ class FloatingOverlayService : Service() {
         }
         val chipLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         chipLp.gravity = Gravity.CENTER_HORIZONTAL
-        chipLp.topMargin = dp(6)
+        chipLp.topMargin = dp(8)
         root.addView(focusChip, chipLp)
 
         // Timer
         timerText = TextView(this).apply {
             textSize = 36f
             typeface = Typeface.MONOSPACE
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) setFontFeatureSettings("tnum")
             gravity = Gravity.CENTER
             includeFontPadding = false
             setTextColor(Color.WHITE)
         }
         val timerLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        timerLp.topMargin = dp(2)
+        timerLp.topMargin = dp(4)
         root.addView(timerText, timerLp)
 
         // Status row
@@ -223,12 +227,12 @@ class FloatingOverlayService : Service() {
         val resultRow = LinearLayout(this)
         resultRow.orientation = LinearLayout.HORIZONTAL
         resultRow.gravity = Gravity.CENTER
-        resultRow.setPadding(dp(12), dp(6), dp(12), 0)
+        resultRow.setPadding(dp(12), dp(8), dp(12), 0)
         correctBtn = resultBtn("✓") { PipBridgeService.postAction("correct", -1) }
         incorrectBtn = resultBtn("✕") { PipBridgeService.postAction("incorrect", -1) }
         skippedBtn = resultBtn("↷") { PipBridgeService.postAction("skipped", -1) }
-        resultRow.addView(correctBtn, weightParams(1f, 0, dp(6)))
-        resultRow.addView(incorrectBtn, weightParams(1f, 0, dp(6)))
+        resultRow.addView(correctBtn, weightParams(1f, 0, dp(8)))
+        resultRow.addView(incorrectBtn, weightParams(1f, 0, dp(8)))
         resultRow.addView(skippedBtn, weightParams(1f, 0, 0))
         qr.addView(resultRow)
 
@@ -238,11 +242,14 @@ class FloatingOverlayService : Service() {
             textSize = 11f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.rgb(161, 161, 170))
-            background = pill(Color.TRANSPARENT, Color.argb(36, 255, 255, 255))
-            setOnClickListener { PipBridgeService.postAction("undo", -1) }
+            background = ripple(Color.TRANSPARENT, Color.argb(36, 255, 255, 255))
+            setOnClickListener {
+                haptic(this)
+                PipBridgeService.postAction("undo", -1)
+            }
         }
-        val undoLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(34))
-        undoLp.setMargins(dp(12), dp(6), dp(12), 0)
+        val undoLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40))
+        undoLp.setMargins(dp(12), dp(8), dp(12), 0)
         qr.addView(undoBtn, undoLp)
 
         root.addView(qr)
@@ -251,21 +258,22 @@ class FloatingOverlayService : Service() {
     }
 
     private fun weightParams(weight: Float, leftMargin: Int, rightMargin: Int): LinearLayout.LayoutParams {
-        val lp = LinearLayout.LayoutParams(0, dp(40), weight)
+        val lp = LinearLayout.LayoutParams(0, dp(44), weight)
         lp.setMargins(leftMargin, 0, rightMargin, 0)
         return lp
     }
 
-    private fun iconBtn(label: String, onClick: () -> Unit) = Button(this).apply {
+    private fun iconBtn(label: String, desc: String, onClick: () -> Unit) = Button(this).apply {
         text = label
+        contentDescription = desc
         isAllCaps = false
         textSize = 14f
         typeface = Typeface.DEFAULT_BOLD
         setTextColor(Color.rgb(161, 161, 170))
-        background = pill(Color.argb(15, 255, 255, 255), Color.TRANSPARENT)
+        background = ripple(Color.argb(15, 255, 255, 255), Color.TRANSPARENT)
         setPadding(dp(8), 0, dp(8), 0)
         setOnClickListener { onClick() }
-        layoutParams = LinearLayout.LayoutParams(dp(36), dp(28))
+        layoutParams = LinearLayout.LayoutParams(dp(44), dp(36))
     }
 
     private fun pillBtn(label: String, onClick: () -> Unit) = Button(this).apply {
@@ -274,9 +282,13 @@ class FloatingOverlayService : Service() {
         textSize = 11f
         typeface = Typeface.DEFAULT_BOLD
         setTextColor(Color.WHITE)
-        background = pill(Colors.BRAND_500, Color.TRANSPARENT)
+        background = ripple(Colors.BRAND_500, Color.TRANSPARENT)
         setPadding(dp(10), 0, dp(10), 0)
-        setOnClickListener { onClick() }
+        setOnClickListener {
+            haptic(this)
+            onClick()
+        }
+        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40))
     }
 
     private fun resultBtn(label: String, onClick: () -> Unit) = Button(this).apply {
@@ -285,8 +297,20 @@ class FloatingOverlayService : Service() {
         textSize = 12f
         typeface = Typeface.DEFAULT_BOLD
         setTextColor(Color.WHITE)
-        background = pill(Color.rgb(30, 30, 34), Color.TRANSPARENT)
-        setOnClickListener { onClick() }
+        background = ripple(Color.rgb(30, 30, 34), Color.TRANSPARENT)
+        setOnClickListener {
+            haptic(this)
+            onClick()
+        }
+    }
+
+    private fun haptic(v: View) {
+        v.performHapticFeedback(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                HapticFeedbackConstants.CONFIRM
+            else
+                HapticFeedbackConstants.VIRTUAL_KEY
+        )
     }
 
     private fun pill(bg: Int, stroke: Int) = GradientDrawable().apply {
@@ -294,6 +318,13 @@ class FloatingOverlayService : Service() {
         cornerRadius = dp(14).toFloat()
         if (stroke != Color.TRANSPARENT) setStroke(dp(1), stroke)
     }
+
+    /** Pill + ripple overlay so every press gives tactile feedback (state layer). */
+    private fun ripple(bg: Int, stroke: Int, overlay: Int = 0x33FFFFFF) = RippleDrawable(
+        ColorStateList.valueOf(overlay),
+        pill(bg, stroke),
+        null
+    )
 
     private fun roundedCard() = GradientDrawable().apply {
         setColor(Color.rgb(14, 14, 17))
@@ -354,14 +385,14 @@ class FloatingOverlayService : Service() {
     }
 
     private fun render() {
-        val st = StateHub.lastState
+        val st = StateHub.state.value
         if (st == null) {
             timerText?.text = "--:--"
             statusText?.text = if (serverUp) "Loading…" else "Server offline"
             return
         }
         lastState = st
-        serverUp = StateHub.serverUp
+        serverUp = StateHub.serverUp.value
         val root = cardView ?: return
         val isBreak = st.isBreak
 

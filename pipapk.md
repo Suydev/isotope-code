@@ -152,16 +152,21 @@ for unknown `/api/*` paths. These endpoints are the only new server work require
     activePhase:"focus|break|null", displayedSeconds, totalSeconds, completionAtMs, updatedAtMs,
     pomodoroCycle, pomodoroSessionsUntilLongBreak,
     questionsAttempted, questionsCorrect, questionsIncorrect, questionsSkipped, targetQuestions,
-    undoAvailable, undoCount, showQuestionControls, focusTypeId, focusTypeLabel, focusTypeIcon, theme, ts }
+    undoAvailable, undoCount, showQuestionControls, focusTypeId, focusTypeLabel, focusTypeIcon, theme, ts,
+    seq, pipClients }
   ```
   (Every field the §4b card renders: attempts/target, all three counter buttons,
   undo flag (`undoCount` = `questionActionHistory.length`, drives #12 disabled state),
   `showQuestionControls` computed with the bundle's `mt = hs && !!Ce` gating rule,
-  pomodoro cycle heading, focus chip, theme.)
+  pomodoro cycle heading, focus chip, theme. `seq` is a monotonic counter bumped on
+  every relay push — the APK uses it to detect staleness; `pipClients` is the live
+  SSE subscriber count.)
 - `POST /api/pip/action` body `{type, value?}`; type allowlist EXACTLY as
   `MainActivity.isAllowedFloatingTimerAction` (`correct|incorrect|skipped|undo|
-  setTarget|expand|close`) → validated → injected into the app's focus store
-  (`dispatch(action)`) → `{ok:true}`.
+  setTarget|expand|close`) → validated → 400 on unknown type or missing
+  `setTarget` value, `setTarget` clamped to 0-9999 → 200 `{...snapshot, applied:true, seq}`
+  (the snapshot republished to the APK's poller means the card re-renders instantly
+  without waiting for the next 10ms poll).
 - Owners: single local user, loopback only, no auth; throttle/rate-limit the state
   endpoint (~5/sec) so the poll loop cannot hammer.
 - JS wiring (new file, mirror of `android-floating-timer-bridge.js` over HTTP):

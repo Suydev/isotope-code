@@ -1,34 +1,33 @@
 package app.isotopeai.pip
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Mutable state hub — the only place polled state and action dispatch live.
- * The foreground service writes into it; the activity renders from it.
- * Listeners are called on the main thread.
+ * The foreground service writes into it; the activity and the floating
+ * overlay render from it. Exposes immutable StateFlows so every consumer
+ * observes the same snapshot and collectors can never miss a publish.
  */
 object StateHub {
-    @Volatile var lastState: PipState? = null
-        private set
-    @Volatile var serverUp = false
-        private set
+    private val _state = MutableStateFlow<PipState?>(null)
+    val state: StateFlow<PipState?> = _state.asStateFlow()
+
+    private val _serverUp = MutableStateFlow(false)
+    val serverUp: StateFlow<Boolean> = _serverUp.asStateFlow()
+
     @Volatile var lastError: String? = null
         private set
 
-    private val listeners = CopyOnWriteArrayList<(PipState?) -> Unit>()
-    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-
     fun publish(state: PipState?, up: Boolean, error: String? = null) {
-        lastState = state
-        serverUp = up
         lastError = error
-        val snapshot = state
-        mainHandler.post { listeners.forEach { it(snapshot) } }
+        _state.value = state
+        _serverUp.value = up
     }
 
-    fun addListener(l: (PipState?) -> Unit) { listeners.addIfAbsent(l) }
-    fun removeListener(l: (PipState?) -> Unit) { listeners.remove(l) }
+    fun snapshot(): PipState? = _state.value
 }
 
 /** Parsed snapshot of GET /api/pip/state (schema: pipapk.md §2). */

@@ -1,15 +1,16 @@
 package app.isotopeai.pip
 
 import android.animation.ObjectAnimator
-import android.app.Activity
 import android.app.AlertDialog
 import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -18,6 +19,7 @@ import android.text.InputType
 import android.util.Rational
 import android.view.Choreographer
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -26,6 +28,12 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 /**
  * Isotope PiP card. Renders exclusively from StateHub (populated by
@@ -38,7 +46,7 @@ import android.widget.Toast
  * and a centered permission card shown until every permission is granted.
  * They never overlap.
  */
-class PipActivity : Activity() {
+class PipActivity : ComponentActivity() {
 
     private lateinit var root: FrameLayout
     private lateinit var cardScreen: FrameLayout
@@ -69,14 +77,30 @@ class PipActivity : Activity() {
     private var lastState: PipState? = null
     private var serverUp = false
     private var pulse: ObjectAnimator? = null
+    private var collectJob: Job? = null
 
-    private val stateListener: (PipState?) -> Unit = { st ->
-        serverUp = StateHub.serverUp
+    private fun onState(st: PipState?) {
+        serverUp = StateHub.serverUp.value
         if (st != null) {
             lastState = st
             if (!tickerRunning) startTicker()
             maybeAutoEnterPip(st)
         }
+    }
+
+    /** Collects StateHub on the main thread while the lifecycle is STARTED. */
+    private fun startCollecting() {
+        if (collectJob != null) return
+        collectJob = lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                StateHub.state.collect { onState(it) }
+            }
+        }
+    }
+
+    private fun stopCollecting() {
+        collectJob?.cancel()
+        collectJob = null
     }
 
     private val ticker = object : Choreographer.FrameCallback {
@@ -95,7 +119,7 @@ class PipActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
-        StateHub.addListener(stateListener)
+        startCollecting()
         startTicker()
         if (!isInPictureInPictureMode) autoEnterPip = true
     }
@@ -103,8 +127,8 @@ class PipActivity : Activity() {
     override fun onStop() {
         super.onStop()
         if (!inPip) {
+            stopCollecting()
             stopTicker()
-            StateHub.removeListener(stateListener)
         }
     }
 
@@ -118,7 +142,7 @@ class PipActivity : Activity() {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         inPip = isInPictureInPictureMode
         if (isInPictureInPictureMode) {
-            StateHub.addListener(stateListener)
+            startCollecting()
             startTicker()
             cardScreen.visibility = View.VISIBLE
             permScreen.visibility = View.GONE
@@ -128,9 +152,9 @@ class PipActivity : Activity() {
     }
 
     override fun onDestroy() {
+        stopCollecting()
         stopTicker()
         pulse?.cancel()
-        StateHub.removeListener(stateListener)
         super.onDestroy()
     }
 
@@ -166,21 +190,19 @@ class PipActivity : Activity() {
 
         // ── Card screen: compact centered card ────────────────────────────
         cardScreen = FrameLayout(this)
-        cardScreen.gravity = Gravity.CENTER
-        cardScreen.addView(buildCardScreen())
+        cardScreen.addView(buildCardScreen(), FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER))
         root.addView(cardScreen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 
         // ── Permission screen: shown until everything is granted ──────────
         permScreen = FrameLayout(this)
-        permScreen.gravity = Gravity.CENTER
-        permScreen.addView(buildPermissionScreen())
+        permScreen.addView(buildPermissionScreen(), FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER))
         root.addView(permScreen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 
         setContentView(root)
     }
 
     private fun buildCardScreen(): View {
-        val cardWidth = Math.min(dp(400), resources.displayMetrics.widthPixels - dp(36))
+        val cardWidth = Math.min(dp(400), resources.displayMetrics.widthPixels - dp(32))
 
         val wrap = LinearLayout(this)
         wrap.orientation = LinearLayout.VERTICAL
@@ -205,7 +227,7 @@ class PipActivity : Activity() {
 
         val content = LinearLayout(this)
         content.orientation = LinearLayout.VERTICAL
-        content.setPadding(dp(18), dp(14), dp(18), dp(18))
+        content.setPadding(dp(16), dp(12), dp(16), dp(16))
 
         // Header: heading + expand + close
         val header = LinearLayout(this)
@@ -217,8 +239,8 @@ class PipActivity : Activity() {
             text = "ISOTOPE PIP"
         }
         header.addView(headingText, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        header.addView(iconButton("↗") { expandWindow() })
-        header.addView(iconButton("×") { closePip() })
+        header.addView(iconButton("↗", "Expand window") { expandWindow() })
+        header.addView(iconButton("×", "Close") { closePip() })
         content.addView(header)
 
         // Focus chip
@@ -230,20 +252,21 @@ class PipActivity : Activity() {
         }
         val chipLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         chipLp.gravity = Gravity.CENTER_HORIZONTAL
-        chipLp.topMargin = dp(10)
-        chipLp.bottomMargin = dp(2)
+        chipLp.topMargin = dp(8)
+        chipLp.bottomMargin = dp(4)
         content.addView(focusChip, chipLp)
 
-        // Timer — large, tabular
+        // Timer — large, tabular numerals so digits never shift layout
         timerText = TextView(this).apply {
             textSize = 42f
             typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) setFontFeatureSettings("tnum")
             gravity = Gravity.CENTER
             includeFontPadding = false
             setTextColor(Color.WHITE)
         }
         val timerLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        timerLp.topMargin = dp(6)
+        timerLp.topMargin = dp(8)
         content.addView(timerText, timerLp)
 
         // Status row: pulsing dot + label
@@ -285,24 +308,27 @@ class PipActivity : Activity() {
         correctButton = resultButton("✓") { PipBridgeService.postAction("correct", -1) }
         incorrectButton = resultButton("✕") { PipBridgeService.postAction("incorrect", -1) }
         skippedButton = resultButton("↷") { PipBridgeService.postAction("skipped", -1) }
-        resultRow.addView(correctButton, weightParams(1f, 0, dp(6)))
-        resultRow.addView(incorrectButton, weightParams(1f, 0, dp(6)))
+        resultRow.addView(correctButton, weightParams(1f, 0, dp(8)))
+        resultRow.addView(incorrectButton, weightParams(1f, 0, dp(8)))
         resultRow.addView(skippedButton, weightParams(1f, 0, 0))
         val rr = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        rr.topMargin = dp(6)
+        rr.topMargin = dp(8)
         actionButtons.addView(resultRow, rr)
 
         undoButton = pillButton("Undo last").apply {
             setTextColor(Color.WHITE)
-            background = pill(Color.TRANSPARENT, Color.argb(38, 255, 255, 255))
+            background = ripple(Color.TRANSPARENT, Color.argb(38, 255, 255, 255))
         }
-        undoButton.setOnClickListener { PipBridgeService.postAction("undo", -1) }
-        val undoLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38))
-        undoLp.topMargin = dp(6)
+        undoButton.setOnClickListener {
+            haptic(undoButton)
+            PipBridgeService.postAction("undo", -1)
+        }
+        val undoLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44))
+        undoLp.topMargin = dp(8)
         actionButtons.addView(undoButton, undoLp)
 
         val qs = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        qs.topMargin = dp(12)
+        qs.topMargin = dp(16)
         content.addView(actionButtons, qs)
 
         // Floating mode toggle
@@ -312,11 +338,11 @@ class PipActivity : Activity() {
             textSize = 12f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.rgb(196, 181, 253))
-            background = pill(Color.argb(28, 139, 92, 246), Color.TRANSPARENT)
+            background = ripple(Color.argb(28, 139, 92, 246), Color.TRANSPARENT)
             setOnClickListener { toggleFloatingMode() }
         }
-        val ftLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(40))
-        ftLp.topMargin = dp(12)
+        val ftLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44))
+        ftLp.topMargin = dp(16)
         content.addView(floatToggle, ftLp)
 
         cardView.addView(content, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -345,15 +371,18 @@ class PipActivity : Activity() {
         }
         val subLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         subLp.topMargin = dp(4)
-        subLp.bottomMargin = dp(14)
+        subLp.bottomMargin = dp(16)
         card.addView(sub, subLp)
 
-        card.addView(permRow("Display over other apps", "Floating card above every app") { openOverlaySettings() }.let { it.first })
-        permChipOverlay = card.getChildAt(card.childCount - 1).let { permRowChip(it) }
-        card.addView(permRow("Notifications", "Timer status in the notification bar") { requestNotificationPermission() }.let { it.first })
-        permChipNotif = permRowChip(card.getChildAt(card.childCount - 1))
-        card.addView(permRow("Background running", "Keep the timer live with the screen off") { requestBatteryExemption() }.let { it.first })
-        permChipBattery = permRowChip(card.getChildAt(card.childCount - 1))
+        val (overlayRow, overlayChip) = permRow("Display over other apps", "Floating card above every app") { openOverlaySettings() }
+        card.addView(overlayRow)
+        permChipOverlay = overlayChip
+        val (notifRow, notifChip) = permRow("Notifications", "Timer status in the notification bar") { requestNotificationPermission() }
+        card.addView(notifRow)
+        permChipNotif = notifChip
+        val (batteryRow, batteryChip) = permRow("Background running", "Keep the timer live with the screen off") { requestBatteryExemption() }
+        card.addView(batteryRow)
+        permChipBattery = batteryChip
 
         val done = Button(this).apply {
             text = "Done"
@@ -361,10 +390,10 @@ class PipActivity : Activity() {
             textSize = 13f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.WHITE)
-            background = pill(Colors.BRAND_500, Color.TRANSPARENT)
+            background = ripple(Colors.BRAND_500, Color.TRANSPARENT)
             setOnClickListener { refreshPermissionScreens() }
         }
-        val doneLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44))
+        val doneLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48))
         doneLp.topMargin = dp(16)
         card.addView(done, doneLp)
 
@@ -372,14 +401,12 @@ class PipActivity : Activity() {
         return wrap
     }
 
-    private fun permRowChip(row: LinearLayout): TextView = row.getChildAt(0) as TextView
-
-    /** Returns the row (already containing its chip) so callers can extract it. */
+    /** Returns the row together with its status chip (chip = row.getChildAt(0)). */
     private fun permRow(title: String, desc: String, onClick: () -> Unit): Pair<LinearLayout, TextView> {
         val row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
         row.gravity = Gravity.CENTER_VERTICAL
-        row.setPadding(0, dp(10), 0, dp(10))
+        row.setPadding(0, dp(8), 0, dp(8))
 
         val chip = TextView(this).apply {
             text = "○"
@@ -398,11 +425,11 @@ class PipActivity : Activity() {
             textSize = 11f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.WHITE)
-            background = pill(Colors.BRAND_500, Color.TRANSPARENT)
+            background = ripple(Colors.BRAND_500, Color.TRANSPARENT)
             setOnClickListener { onClick() }
         }
-        val btnLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34))
-        btnLp.leftMargin = dp(12)
+        val btnLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44))
+        btnLp.leftMargin = dp(16)
 
         row.addView(chip)
         row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = dp(10) })
@@ -650,16 +677,17 @@ class PipActivity : Activity() {
         setTextColor(Color.WHITE)
     }
 
-    private fun iconButton(label: String, onClick: () -> Unit) = Button(this).apply {
+    private fun iconButton(label: String, desc: String, onClick: () -> Unit) = Button(this).apply {
         text = label
+        contentDescription = desc
         isAllCaps = false
         textSize = 15f
         typeface = Typeface.DEFAULT_BOLD
         setPadding(dp(8), 0, dp(8), 0)
         setTextColor(Colors.MUTED_DARK)
-        background = pill(Color.argb(15, 255, 255, 255), Color.TRANSPARENT)
+        background = ripple(Color.argb(15, 255, 255, 255), Color.TRANSPARENT)
         setOnClickListener { onClick() }
-        layoutParams = LinearLayout.LayoutParams(dp(38), dp(30))
+        layoutParams = LinearLayout.LayoutParams(dp(48), dp(40))
     }
 
     private fun pillButton(label: String, onClick: () -> Unit = {}) = Button(this).apply {
@@ -668,9 +696,13 @@ class PipActivity : Activity() {
         textSize = 12f
         typeface = Typeface.DEFAULT_BOLD
         setTextColor(Color.WHITE)
-        background = pill(Colors.BRAND_500, Color.TRANSPARENT)
-        setPadding(dp(10), 0, dp(10), 0)
-        setOnClickListener { onClick() }
+        background = ripple(Colors.BRAND_500, Color.TRANSPARENT)
+        setPadding(dp(12), 0, dp(12), 0)
+        setOnClickListener {
+            haptic(this)
+            onClick()
+        }
+        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40))
     }
 
     private fun resultButton(label: String, onClick: () -> Unit) = Button(this).apply {
@@ -679,8 +711,20 @@ class PipActivity : Activity() {
         textSize = 13f
         typeface = Typeface.DEFAULT_BOLD
         setTextColor(Color.WHITE)
-        background = pill(Color.rgb(30, 30, 34), Color.TRANSPARENT)
-        setOnClickListener { onClick() }
+        background = ripple(Color.rgb(30, 30, 34), Color.TRANSPARENT)
+        setOnClickListener {
+            haptic(this)
+            onClick()
+        }
+    }
+
+    private fun haptic(v: View) {
+        v.performHapticFeedback(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                HapticFeedbackConstants.CONFIRM
+            else
+                HapticFeedbackConstants.VIRTUAL_KEY
+        )
     }
 
     private fun pill(bg: Int, stroke: Int) = GradientDrawable().apply {
@@ -689,6 +733,13 @@ class PipActivity : Activity() {
         if (stroke != Color.TRANSPARENT) setStroke(dp(1), stroke)
     }
 
+    /** Pill + ripple overlay so every press gives tactile feedback (state layer). */
+    private fun ripple(bg: Int, stroke: Int, overlay: Int = 0x33FFFFFF) = RippleDrawable(
+        ColorStateList.valueOf(overlay),
+        pill(bg, stroke),
+        null
+    )
+
     private fun roundedCard(bg: Int, radiusDp: Int, strokeAlpha: Int) = GradientDrawable().apply {
         setColor(bg)
         cornerRadius = dp(radiusDp).toFloat()
@@ -696,7 +747,7 @@ class PipActivity : Activity() {
     }
 
     private fun weightParams(weight: Float, leftMargin: Int, rightMargin: Int): LinearLayout.LayoutParams {
-        val lp = LinearLayout.LayoutParams(0, dp(44), weight)
+        val lp = LinearLayout.LayoutParams(0, dp(48), weight)
         lp.setMargins(leftMargin, 0, rightMargin, 0)
         return lp
     }
