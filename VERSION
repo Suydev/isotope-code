@@ -1,6 +1,6 @@
 {
   "version": "3.3.9",
-  "sha": "4bc0e8418e4a694a25a7fc7f92a01f2fa7e65201",
-  "message": "cross-platform CLI + one-line installers, auto screenshots, main-branch updates",
-  "updated_at": "2026-08-09T08:35:36.037Z"
+  "sha": "3925a373a29bb33c16e4fdcb10b63399d2641bf8",
+  "message": "docs(screenshots): refresh UI screenshots (automated)",
+  "updated_at": "2026-08-09T17:43:03.250Z"
 }
