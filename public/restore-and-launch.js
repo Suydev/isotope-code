@@ -226,6 +226,10 @@ function saveRefreshedSession(session) {
     localStorage.setItem(SUPABASE_TOKEN_KEY, raw);
     if (SUPA_REF) localStorage.setItem('sb-' + SUPA_REF + '-auth-token', raw);
     localStorage.setItem('isotope-last-jwt', session.access_token);
+    // M6 (owner-approved, documented): refresh token persisted to localStorage
+    // is the standard pattern for client-side Supabase apps. Stolen RT = long-
+    // lived session if not rotated; acceptable for this self-hosted app. Not
+    // moved to httpOnly cookie (would break offline SW session restore).
     if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
     localStorage.setItem('isotope-last-session-raw', raw);
   } catch (_) {}

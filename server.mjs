@@ -2226,6 +2226,11 @@ const LOCAL_DATA_GUARD_SCRIPT = buildLocalDataGuardScript();
 //    authenticated RLS policies pass. On success: reload once to flush React
 //    Query stale cache.
 //
+// H4 (owner-approved, intentional): this self-PATCH premium escalation is the
+//    designed revenue model of this self-hosted app — any logged-in user may
+//    upgrade to ranker. Documented, NOT removed. RLS policies and
+//    is_premium_user() usage remain audited in sql/ + verify-security.sql.
+//
 const PREMIUM_SCRIPT = `<script>
 (function(){
   'use strict';

@@ -96,7 +96,9 @@ Verified state (exact substring search across all `public/assets/*.js`):
 
 ---
 
-## H4. Client-side premium escalation via self-PATCH
+## H4. Client-side premium escalation via self-PATCH — ✅ DONE (2026-08-10, comment-only)
+
+**Status:** Owner-approved, intentional (self-hosted app revenue model). Documented in `server.mjs` PREMIUM_SCRIPT header comment. NOT removed. RLS policies and `is_premium_user()` remain audited in `sql/` + `verify-security.sql`.
 
 **File:** `server.mjs`, `PREMIUM_SCRIPT` template starts at **2229** (function `upgradeProfile` below it).
 - Injected into HTML; any logged-in user can `PATCH` their own `users` row (`plan_type:'ranker'`, `billing:'active'`, long expiry) using their own JWT via the RPC/`__supa` path. Combined with H2 this is trivially exploitable.
@@ -171,7 +173,9 @@ else { try { localStorage.removeItem(ZUSTAND_ONBOARDING_KEY); } catch (_) {} }
 
 ---
 
-## M6. Refresh tokens in plaintext localStorage
+## M6. Refresh tokens in plaintext localStorage — ✅ DONE (2026-08-10, comment-only)
+
+**Status:** Owner-approved, documented. Comments added at `public/restore-and-launch.js` saveRefreshedSession (~229) and `public/auth-bridge.js` writeSession (~46). Refresh token NOT moved to httpOnly cookie (would break offline SW session restore). No behavior change.
 
 **File:** `public/restore-and-launch.js`, `saveRefreshedSession` at **223** (body 224-231):
 - Keys written: `SUPABASE_TOKEN_KEY` (= `isotope-auth-token`), `sb-{SUPA_REF}-auth-token`, `isotope-last-jwt`, `isotope-last-rt` (raw refresh token, line **228**), `isotope-last-session-raw`.
@@ -184,16 +188,22 @@ else { try { localStorage.removeItem(ZUSTAND_ONBOARDING_KEY); } catch (_) {} }
 
 # LOW
 
-## L1. Dead builds accumulate in `public/assets` (~18 MB total)
+## L1. Dead builds accumulate in `public/assets` (~18 MB total) — ✅ DONE (2026-08-10)
+
+**Status:** Purged. 177 dead chunks (9.9MB) moved to `~/.cache/opencode/tmp/purged-assets/<ts>/` (backup, not git). Keep set = served graph (121, via graph2.cjs) ∪ sw.js lists (31) ∪ server ABS patched files (23) = 131 files. Post-purge: server restarts clean (0 ENOENT), all 23 patched bundles 200 + `node --check` OK. NOTE: problems.md keep-list below is STALE (lists old-build chunks like CommunityHub-gANxZssO/sessionSync/SingleGroup/useInvites/useLeaderboard/FocusStore/EventsCalendar — these are ONLY referenced by old builds; kept anyway because sw.js lists them + server ABS consts exist). Regenerate with `~/.cache/opencode/tmp/graph2.cjs` for future purges.
+
+Verified leftover builds: `index-qd2KF3Jd.js`, `index-BPYJFSVW.js`, `App-pJGjDiPw.js`, `App-Bcp_57Ks.js`, `App-DIpgIc18.js`, `vendor-react-BfU3Zn2J.js`, `vendor-react-0f7xbcAh.js`, `vendor-charts-*` (4), plus `public/assets/sw.js` (workbox, unreferenced) and `public/workbox-1d81fbea.js`.
 Verified leftover builds: `index-qd2KF3Jd.js`, `index-BPYJFSVW.js`, `App-pJGjDiPw.js`, `App-Bcp_57Ks.js`, `App-DIpgIc18.js`, `vendor-react-BfU3Zn2J.js`, `vendor-react-0f7xbcAh.js`, `vendor-charts-*` (4), plus `public/assets/sw.js` (workbox, unreferenced) and `public/workbox-1d81fbea.js`.
 Served graph (keep these): `index-D1Y5F8Lk.js` + its import list: `marketing-core-DzcTqL0l.js`, `vendor-react-BWKHxYQy.js`, `vendor-router-C2sFoTjv.js`, `vendor-sentry-C0ZzGV-C.js`, `Landing-30Ourhwi.js`, `TodayFeature-BDMr9GlA.js`, `FocusTimerLanding-DwoxLp8t.js`, `TasksFeature-Ih8sP5NE.js`, `ExamPlannerFeature-jR31fGos.js`, `SyllabusFeature-BEN3Gt09.js`, `StudyFeature-MNsr-gPu.js`, `AnalyticsFeature-D58mar4z.js`, `StudyGroupsFeature-DINDKvkz.js`, `About-BynUj5GR.js`, `Privacy-2wg91W65.js`, `Terms-12mtllDS.js`, `PublicMarketingApp-DRuHEFFn.js`, `App-CQ9mV4wu.js`, and (from App-CQ9mV4wu.js) `useAuthStore-Aw1au7RF.js`, `FocusTimerLanding-DwoxLp8t.js`, `Focus-B4gLsWoP.js`, `Community-CEnEgsrd.js`, `PWAManager-CUuXr3sv.js`, plus lazy chunks `CommunityHub-gANxZssO.js`, `CommunityVisuals-mHr4KGyg.js`, `communityApi-Ccw5N_9O.js`, `Dashboard-Dzf-IC_a.js`, `sessionSync-mloIEnTd.js`, `SettingsLayout-DkuooNHv.js`, `useSyncStore-Di0wBMnH.js`, `AppAccessGate-DzNuNpuU.js`, `useInvites-D9RLFwf8.js`, `useLeaderboard-BpvH5FXA.js`, `SingleGroup-DU1IhoNK.js`, `Auth-D0Y8CB1f.js`, `Onboarding-C0svxOgT.js`, `useAIStore-DRa7CkEN.js`.
 **⚠ Do NOT purge old builds until H1 anchors are re-pointed to new files** — old files are currently the only match for broken anchors.
 **Fix:** after fixing H1, delete all other `.js`/`.css` not in the served graph.
 
-## L2. Duplicate entry in `public/sw.js` `RUNTIME_PATCHED_ASSET_PATHS`
-Lines **76** and **83**: `'/assets/useSyncStore-Di0wBMnH.js'` appears twice (dedupe).
+## L2. Duplicate entry in `public/sw.js` `RUNTIME_PATCHED_ASSET_PATHS` — ✅ DONE (2026-08-10)
+Lines **76** and **83**: `'/assets/useSyncStore-Di0wBMnH.js'` appears twice — deduped.
 
-## L3. Dead duplicate manifest `public/manifest.json`
+## L3. Dead duplicate manifest `public/manifest.json` — ✅ DONE (2026-08-10)
+**Status:** Deleted (git-tracked; 0 references anywhere; referenced 6 non-existent icons). `manifest.webmanifest` is canonical (linked from index.html line 17). Webmanifest theme_color `#7c3aed` kept (runtime meta theme is `#f97316`, separate concern).
+
 Not referenced anywhere (index.html line 20 uses `manifest.webmanifest` only). References 6 missing icons (lines 14,20,26,32,38,50): `icon-72x72.png`, `icon-96x96.png`, `icon-128x128.png`, `icon-144x144.png`, `icon-152x152.png`, `icon-384x384.png`. Different `theme_color` (#8b5cf6 vs #7c3aed).
 
 ## L4. Hardcoded fallback Supabase creds in source

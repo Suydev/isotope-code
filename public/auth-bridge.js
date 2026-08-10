@@ -43,6 +43,8 @@
       localStorage.setItem('isotope-auth-token', raw);
       if (ref) localStorage.setItem('sb-' + ref + '-auth-token', raw);
       localStorage.setItem('isotope-last-jwt', session.access_token);
+      // M6 (owner-approved, documented): same as restore-and-launch.js —
+      // refresh token in localStorage is standard for client-side Supabase.
       if (session.refresh_token) localStorage.setItem('isotope-last-rt', session.refresh_token);
       localStorage.setItem('isotope-last-session-raw', raw);
     } catch (e) {}
