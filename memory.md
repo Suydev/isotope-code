@@ -1,21 +1,35 @@
 # ISOTOPE PIP + SERVER — MEMORY / FINDINGS
 
 > Update this file EVERY session with new findings. Persistent handoff memory.
-> Covers: pipapk (Android overlay app), server.mjs pip API, CI pipeline, ADB workflow.
+> Covers: pipapk (Android overlay app), isotope-apk-ref (Capacitor app), server.mjs pip API, CI pipeline, ADB workflow.
 
 ---
 
-## 0. LATEST STATE (2026-08-10, after WebView rewrite)
+## 0. LATEST STATE (2026-08-10, late — NATIVE TIMER CARD port to pipapk, in progress)
 
-- **WebView rewrite committed `ac77b1a`; CI build FAILED** with ONE compile error:
-  `PipActivity.kt:52:32 Unresolved reference: FLAG_KEEP_SCREEN_ON` — the flag lives on
-  `WindowManager.LayoutParams` (import `android.view.WindowManager`), NOT `android.view.Window`.
-  **Fix applied locally, NOT yet committed/pushed.**
-- Next: commit Kotlin fix + GitHub-Actions efficiency fixes (see §5b), poll build, then
-  install + smoke-test on ADB `127.0.0.1:34111`.
-- Verified server side for the WebView app: `GET /focus` → 200 with all 16 referenced
-  assets (css/js/fonts/icons/sync scripts) resolving 200. The WebView app has everything
-  it needs from the localhost server.
+- **User directive (this session, final):** "only the timer part of isotope-apk, put it in pipapk — the whole
+  pip-like thing built in there, but for android", wired "with API with isotopeai in localhost focus tab".
+  → pipapk keeps its WebView `/focus` main UI (accepted earlier) but its floating **WebView window is
+  REPLACED by a native floating timer card** = Kotlin port of isotope-apk's `FloatingTimerService.java`,
+  driven entirely by the localhost pip API (state = the REAL /focus tab's relay).
+- **Architecture (verified live + in code, see §4):** card state ← `GET /api/pip/state` (poll 1s, render
+  only on seq change); SSE `GET /__pip/events` = change signal (carries ACTION ENVELOPES + heartbeats,
+  NOT snapshots — page relays are not SSE-pushed); buttons → `POST /api/pip/action` → server broadcasts
+  over SSE → the /focus page's `PIP_BRIDGE_JS` applies on the REAL store (`recordQuestionResult`,
+  `undoLastQuestionResult`, `setTargetQuestions`) → page relays fresh snapshot → card re-renders.
+  **The action loop is real: card buttons DO drive the actual timer/state.**
+- **Written so far:** `pipapk/.../FloatingTimerService.kt` (full port: card UI identical to isotope-apk,
+  drag/resize, FGS notification, `TimerState.fromJson` key-compatible with `/api/pip/state` snapshot,
+  SSE thread + 1s seq-diff poll + action POSTs; ACTION_START/UPDATE/STOP + state_json action intents).
+  Port bugs fixed: `Math.max(0L, long)` (Kotlin has no int/long mix), `(int)` casts → `.toInt()`,
+  `Typeface.create(MONOSPACE, BOLD)` (not `MONOSPACE_BOLD`, minSdk 24), field/variable name collision.
+- **Remaining:** PipActivity "Float" → start FloatingTimerService (drop FloatingOverlayService), delete
+  `FloatingOverlayService.kt`, manifest = POST_NOTIFICATIONS + FGS + FGS_SPECIAL_USE perms + service
+  decl (specialUse + PROPERTY_SPECIAL_USE_FGS_SUBTYPE), `res/drawable/ic_notification.xml` vector,
+  then CI build → install on `in.isotopeai.pip` → smoke test card + actions on 127.0.0.1:34111.
+- pipapk record: ac77b1a WebView rewrite + 0c9da43 fix committed; build `31383102710` green, artifact
+  `9060637069` installed + tested (real /focus UI via pngscan: violet 2656/amber 1153 px; floating layer
+  `mIsFloatingLayer=true`). That floating layer is the WebView-window design now being replaced.
 
 ## 1. Products & Purpose
 
@@ -23,7 +37,7 @@
 |---|---|---|
 | `isotope-code` | The real product: React/Vite web app (focus timer), Node server.mjs | repo root, this repo |
 | `pipapk/` | Android APK: shell showing the **REAL isotope web UI** in a WebView (like isotope-apk), with a draggable floating window over other apps | `pipapk/` |
-| `isotope-apk-ref/` | Capacitor wrapper reference (wraps compiled `public/` assets) | `isotope-apk-ref/` |
+| `isotope-apk-ref/` | **CURRENT TARGET** — Capacitor wrapper with NATIVE floating timer card + PiP (appId `in.isotopeai.app`) | `isotope-apk-ref/` |
 | `~/.agents/skills/`, repo `isotope-apk-ref/.agents/skills/` | Skills: ui-ux-pro-max, android-kotlin, android-adb, github-actions-efficiency, nodejs-backend-patterns | both locations |
 
 ---
@@ -41,13 +55,42 @@
 - Real UI served at `http://127.0.0.1:3000/focus` — bundle includes injected `PIP_BRIDGE_JS` (relays focus-store state to `POST /__pip/state`; single-line; guarded by `!raw.includes('__pipBridge')`; appended at END of bundle in `getPatchedFocusBundle` — both polyfill prepend and bridge append must keep output single-line for `node --check`).
 - localStorage sync/bootstrap infra reconciles multiple storages (Cromite vs WebView are separate partitions). Server + browser = state owners; APK is a pure window.
 
-## 4. Server pip API (server.mjs, before 404 fence ~line 6570)
+## 3b. isotope-apk-ref (Capacitor app = CURRENT TARGET; "the isotopeapk one")
 
-- `GET /api/pip/state` → cached snapshot + `seq` (monotonic, bumped per relay push) + `pipClients` (SSE subscriber count). `Cache-Control: no-store`.
-- `POST /api/pip/action` → allowlist `correct|incorrect|skipped|undo|setTarget|expand|close`; 400 on unknown type; `setTarget` requires numeric value, clamped 0-9999; 200 → `{...snapshot, applied:true, seq}`.
-- `POST /__pip/state` (browser relay) → stores cache, bumps `pipSeq`.
-- `GET /__pip/events` → SSE fan-out, 15s heartbeat `: ping`, `X-Accel-Buffering: no`.
-- Verified live with curl; server restart PID changes each time (record new PID in logs).
+- Real Capacitor project in-repo: `capacitor.config.json` (appId `in.isotopeai.app`, name IsotopeAI,
+  version v3.3.9, webDir `www`, androidScheme `https`, `webContentsDebuggingEnabled: true`,
+  appendUserAgent `IsotopeAI-Android/3.3.9`), `android/` Gradle project, `scripts/prepare-www.js`.
+- Build chain: `npm run prepare-www` (builds `www/` from repo-root `index.html` + `public/`,
+  injects `android-bridge.js` + `android-floating-timer-bridge.js`) → `npm run apply-patches`
+  → `npx cap sync android` → `cd android && ./gradlew assembleDebug --no-daemon` (script `android:debug`).
+- Permission story: OVERLAY (SYSTEM_ALERT_WINDOW) + PiP + FGS specialUse + exact alarms all declared;
+  Android 14/15 will ask for each at runtime — overlay/PiP need user grant on device.
+- Read `isotope-apk-ref/AGENTS.md` + `.agent/` docs before touching its code (repo rule).
+- **Deprecation risk to check:** vanilla JS classes (FlipTimer/TimerQuirk) with default
+  timer-native-durations vs web app's TimerPipBridge semantics — verify parity of timers on
+  first device test.
+
+## 4. Server pip API (server.mjs, before 404 fence ~line 6570) — VERIFIED LIVE THIS SESSION (exact lines)
+
+- `GET /api/pip/state` (6573): cached snapshot + `seq` (monotonic) + `pipClients` (SSE subscribers).
+  **Default/empty cache shape** (6575-6583): `{ok,active:false,timerState:'idle',mode,activePhase:null,
+  displayedSeconds:0,totalSeconds:0,completionAtMs:0,updatedAtMs,pomodoroCycle:1,
+  pomodoroSessionsUntilLongBreak:4,questionsAttempted/Correct/Incorrect/Skipped:0,targetQuestions:0,
+  undoAvailable:false,showQuestionControls:false,focusTypeLabel:'Focus',focusTypeIcon:'',theme:'dark',
+  pipConnected,pipStateAt}` — **keys match TimerState.fromJson() 1:1** (no mapping needed).
+- `POST /api/pip/action` (6588): JSON body `{type, value}`; allowlist `correct|incorrect|skipped|undo|
+  setTarget|expand|close`; 400 on unknown type; `setTarget` requires numeric, clamped 0-9999;
+  response `{...snapshot, applied:true, seq}`; **broadcasts `{type, value, ts, seq}` to ALL SSE clients**.
+- `POST /__pip/state` (6615): page relay stores cache + `pipSeq += 1`. No SSE broadcast on snapshot.
+- `GET /__pip/events` (6632): **SSE carries ONLY action envelopes `{type,value,ts,seq}` + `: ping`
+  heartbeats — NEVER snapshots.** → native clients must (re)poll `/api/pip/state`; seq-diff renders.
+- **THE ACTION LOOP IS REAL** — `PIP_BRIDGE_JS` (injected into the /focus bundle, line 4246) has
+  `es.onmessage`: `correct|incorrect|skipped` → `s.recordQuestionResult(type)`; `undo` →
+  `s.undoLastQuestionResult()`; `setTarget` → `s.setTargetQuestions(value)`. So: card POST → server SSE
+  → page applies to REAL store → page relays new snapshot → cache → card re-renders. Buttons drive the
+  ACTUAL timer, no mirror. Bridge relay payload (the `push()` fn) is the same key set as above.
+- Live check this session: `curl /api/pip/state` → `{"active":true,"timerState":"running",...,
+  "displayedSeconds":100,"totalSeconds":1500,"completionAtMs":99999999999999,...}`.
 
 ## 5. CI / build pipeline
 
@@ -91,6 +134,7 @@
 - `FrameLayout.gravity` does not exist → `FrameLayout.LayoutParams(w, h, Gravity.CENTER)`.
 - `ViewGroup.getChildAt()` returns `View!` → cast before typed use (we fixed via destructured Pair).
 - Cleartext HTTP: manifest `usesCleartextTraffic` + `res/xml/network_security_config.xml` (cleartext allowed only for 127.0.0.1/localhost) — WebView JS/localStorage need `javaScriptEnabled`/`domStorageEnabled`.
+- **Kotlin port-of-Java gotchas (hit in the FloatingTimerService port):** `Math.max(long,long)` — Kotlin has no int/long overload mixing → `Math.max(0L, x)`; Java `(int)` casts → `.toInt()` (`(screenW*0.36f).toInt()`); `Typeface.MONOSPACE_BOLD` is API 28+ → use `Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)` for minSdk 24; local `val` shadowing a field of the same name silently nulls the field (rename the local); `Content-Type: application/json` body POST via `HttpURLConnection` (doOutput + outputStream.use) works fine for the local server.
 
 ## 8. UI/UX skill rules applied (ui-ux-pro-max "Exaggerated Minimalism" for dark tool)
 

@@ -32,9 +32,10 @@ import android.widget.Toast
  * /focus app from the localhost server (the state owner) so every pixel,
  * control and behaviour is the true product — not a re-imagined card.
  *
- * Adds two small native affordances: a permission banner (system
- * "Display over other apps") and a Float button that lifts the real app
- * into a draggable window above every app (FloatingOverlayService).
+ * Adds a native floating TIMER CARD (FloatingTimerService — ported from
+ * isotope-apk and piped into the localhost pip API, fed by this /focus
+ * tab's relay). One native affordance here: a permission banner for
+ * "Display over other apps" and the button that lifts the card.
  */
 class PipActivity : Activity() {
 
@@ -153,7 +154,7 @@ class PipActivity : Activity() {
         banner.visibility = if (hasOverlayPermission()) View.GONE else View.VISIBLE
 
         val label = text(12, false).apply {
-            text = "Floating window needs 'Display over other apps'"
+            text = "Floating timer needs 'Display over other apps'"
             setTextColor(Colors.MUTED_DARK)
         }
         banner.addView(label, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
@@ -178,8 +179,8 @@ class PipActivity : Activity() {
 
     private fun buildFloatButton(): View {
         val btn = Button(this).apply {
-            text = "Float"
-            contentDescription = "Show Isotope in a floating window above other apps"
+            text = "Float timer"
+            contentDescription = "Show the native floating focus timer card above other apps"
             isAllCaps = false
             textSize = 13f
             typeface = Typeface.DEFAULT_BOLD
@@ -210,8 +211,8 @@ class PipActivity : Activity() {
 
     private fun toggleFloating() {
         if (hasOverlayPermission()) {
-            startService(Intent(this, FloatingOverlayService::class.java))
-            Toast.makeText(this, "Isotope floating window started — drag it by the top bar", Toast.LENGTH_SHORT).show()
+            startService(Intent(this, FloatingTimerService::class.java))
+            Toast.makeText(this, "Floating timer card started — shows your real focus timer", Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(this, "Grant 'Display over other apps' first", Toast.LENGTH_SHORT).show()
             openOverlaySettings()
