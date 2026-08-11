@@ -202,6 +202,122 @@ class PipActivity : Activity() {
             bottomMargin = dp(16)
         })
 
+        // ── Customization Section ──────────────────────────────────────────
+        val customLabel = TextView(this).apply {
+            text = "Customization"
+            textSize = 12f
+            setTextColor(Color.rgb(161, 161, 170))
+            letterSpacing = 0.08f
+            isAllCaps = true
+        }
+        root.addView(customLabel, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(8)
+        })
+
+        // Theme picker
+        val themeRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val themeLabel = TextView(this).apply {
+            text = "Theme"
+            textSize = 14f
+            setTextColor(Color.rgb(200, 200, 210))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val currentTheme = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getString("overlay_theme", "dark") ?: "dark"
+        val themeOptions = arrayOf("dark", "glass")
+        val themeBtn = Button(this).apply {
+            text = currentTheme.uppercase()
+            isAllCaps = false
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.WHITE)
+            background = GradientDrawable().apply {
+                setColor(Color.rgb(139, 92, 246))
+                cornerRadius = dp(10).toFloat()
+            }
+            setPadding(dp(16), dp(4), dp(16), dp(4))
+            setOnClickListener {
+                val next = if (text.toString().lowercase() == "dark") "glass" else "dark"
+                text = next.uppercase()
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                    .putString("overlay_theme", next).apply()
+                Toast.makeText(this@PipActivity, "Theme: $next", Toast.LENGTH_SHORT).show()
+            }
+        }
+        themeRow.addView(themeLabel)
+        themeRow.addView(themeBtn)
+        root.addView(themeRow, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(48)).apply {
+            bottomMargin = dp(8)
+        })
+
+        // Overlay size presets
+        val sizeLabel = TextView(this).apply {
+            text = "Default Overlay Size"
+            textSize = 14f
+            setTextColor(Color.rgb(200, 200, 210))
+        }
+        root.addView(sizeLabel, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(8)
+        })
+
+        val sizeRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        val sizePresets = listOf(
+            "Small" to intArrayOf(dp(240), dp(280)),
+            "Medium" to intArrayOf(dp(300), dp(340)),
+            "Large" to intArrayOf(dp(400), dp(440))
+        )
+        val currentW = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt("overlay_width", dp(300))
+        sizePresets.forEachIndexed { idx, (label, dims) ->
+            val btn = Button(this).apply {
+                text = label
+                isAllCaps = false
+                textSize = 11f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(if (Math.abs(currentW - dims[0]) < dp(20)) Color.WHITE else Color.rgb(161, 161, 170))
+                background = GradientDrawable().apply {
+                    setColor(if (Math.abs(currentW - dims[0]) < dp(20)) Color.rgb(139, 92, 246) else Color.rgb(38, 38, 42))
+                    cornerRadius = dp(10).toFloat()
+                }
+                setPadding(dp(12), dp(4), dp(12), dp(4))
+                setOnClickListener {
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                        .putInt("overlay_width", dims[0])
+                        .putInt("overlay_height", dims[1])
+                        .apply()
+                    Toast.makeText(this@PipActivity, "Size: $label (${dims[0]}x${dims[1]})", Toast.LENGTH_SHORT).show()
+                    // Refresh button states
+                    (parent as? LinearLayout)?.let { row ->
+                        for (i in 0 until row.childCount) {
+                            val child = row.getChildAt(i) as? Button
+                            child?.let {
+                                val isCurrent = it.text == label
+                                it.setTextColor(if (isCurrent) Color.WHITE else Color.rgb(161, 161, 170))
+                                (it.background as? GradientDrawable)?.setColor(
+                                    if (isCurrent) Color.rgb(139, 92, 246) else Color.rgb(38, 38, 42))
+                            }
+                        }
+                    }
+                }
+            }
+            val params = LinearLayout.LayoutParams(0, dp(36), 1f).apply {
+                setMargins(if (idx > 0) dp(6) else 0, 0, 0, 0)
+            }
+            sizeRow.addView(btn, params)
+        }
+        root.addView(sizeRow, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(48)).apply {
+            bottomMargin = dp(12)
+        })
+
         val urlLabel = TextView(this).apply {
             text = "Server URL"
             textSize = 12f

@@ -617,23 +617,74 @@ class FloatingTimerService : Service() {
 
     private fun scaleButtonsToOverlay() {
         val lp = layoutParams ?: return
-        val overlayWidth = lp.width
-        val scale = Math.max(0.7f, Math.min(1.3f, overlayWidth.toFloat() / dp(300)))
+        val overlayWidth = lp.width.toFloat()
+        val overlayHeight = lp.height.toFloat()
+        val wScale = Math.max(0.65f, Math.min(1.4f, overlayWidth / dp(300)))
+        val hScale = Math.max(0.65f, Math.min(1.4f, overlayHeight / dp(340)))
+        val scale = Math.min(wScale, hScale)
 
-        val btnH = (dp(44) * scale).toInt()
+        // Timer text
+        timerText?.textSize = Math.max(24f, 56f * scale)
+        timerText?.setPadding(dp((16 * scale).toInt()), 0, dp((16 * scale).toInt()), 0)
+
+        // Heading / status
+        headingText?.textSize = Math.max(8f, 11f * scale)
+        statusText?.textSize = Math.max(8f, 11f * scale)
+        focusTypeText?.textSize = Math.max(9f, 13f * scale)
+        focusTypeText?.setPadding(dp((12 * scale).toInt()), dp((5 * scale).toInt()), dp((12 * scale).toInt()), dp((5 * scale).toInt()))
+
+        // Attempt counter
+        attemptedText?.textSize = Math.max(16f, 26f * scale)
+        targetValueText?.textSize = Math.max(9f, 12f * scale)
+
+        // Result buttons — scale height, text, padding
+        val btnH = Math.max(dp(32), (dp(44) * scale).toInt())
+        val btnPadH = Math.max(4, (10 * scale).toInt())
+        val btnTextSize = Math.max(10f, 13f * scale)
+        val btnRadius = Math.max(dp(10), dp((14 * scale).toInt()))
         listOf(correctButton, incorrectButton, skippedButton).forEach { btn ->
             btn?.let {
                 val params = it.layoutParams as? LinearLayout.LayoutParams
                 params?.height = btnH
+                params?.weight = 1f
                 it.layoutParams = params
-                it.textSize = 12f * scale
+                it.textSize = btnTextSize
+                it.setPadding(btnPadH, 0, btnPadH, 0)
+                // Update corner radius
+                val bg = it.background
+                if (bg is GradientDrawable) bg.cornerRadius = btnRadius.toFloat()
             }
         }
 
-        timerText?.textSize = 56f * scale
-        headingText?.textSize = 11f * scale
-        statusText?.textSize = 11f * scale
-        attemptedText?.textSize = 26f * scale
+        // Pill buttons (target, undo, theme) — scale height + text
+        val pillH = Math.max(dp(28), (dp(36) * scale).toInt())
+        val pillTextSize = Math.max(9f, 12f * scale)
+        listOf(targetButton, undoButton, themeButton).forEach { btn ->
+            btn?.let {
+                val params = it.layoutParams as? LinearLayout.LayoutParams
+                params?.height = pillH
+                it.layoutParams = params
+                it.textSize = pillTextSize
+                val bg = it.background
+                if (bg is GradientDrawable) bg.cornerRadius = Math.max(dp(8), dp((14 * scale).toInt())).toFloat()
+            }
+        }
+
+        // Icon buttons (expand, close)
+        val iconSize = Math.max(dp(28), (dp(36) * scale).toInt())
+        listOf(expandButton, closeButton).forEach { btn ->
+            btn?.let {
+                val params = it.layoutParams as? LinearLayout.LayoutParams
+                params?.width = iconSize
+                params?.height = iconSize
+                it.layoutParams = params
+                it.textSize = Math.max(12f, 16f * scale)
+            }
+        }
+
+        // Content padding
+        val pad = Math.max(dp(10), (16 * scale).toInt())
+        contentView?.setPadding(pad, dp((12 * scale).toInt()), pad, pad)
     }
 
     private fun handleDragTouch(view: View, event: MotionEvent): Boolean {
