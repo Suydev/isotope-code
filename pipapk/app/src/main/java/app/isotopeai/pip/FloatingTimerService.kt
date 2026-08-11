@@ -498,6 +498,24 @@ class FloatingTimerService : Service() {
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(14)
         })
+
+        // Pause/Resume button
+        pauseResumeButton = Button(this).apply {
+            text = "\u23f8"
+            isAllCaps = false
+            textSize = 20f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(dp(24), dp(8), dp(24), dp(8))
+            setOnClickListener {
+                PipClient.postAction(this@FloatingTimerService, "togglePause", -1)
+            }
+        }
+        contentView!!.addView(pauseResumeButton, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, dp(44)).apply {
+            topMargin = dp(14)
+            gravity = Gravity.CENTER_HORIZONTAL
+        })
+
         contentView!!.addView(questionSection, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(14)
@@ -693,6 +711,16 @@ class FloatingTimerService : Service() {
         }
         themeButton?.setTextColor(Color.WHITE)
 
+        // Pause button
+        pauseResumeButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(17, 255, 255, 255))
+            cornerRadius = dp(14).toFloat()
+            setStroke(dp(1), Color.argb(40, 255, 255, 255))
+        }
+        pauseResumeButton?.setTextColor(Color.WHITE)
+    }
+        themeButton?.setTextColor(Color.WHITE)
+
         // Subject label
         (attemptedText?.parent as? LinearLayout)?.let { parent ->
             for (i in 0 until parent.childCount) {
@@ -753,6 +781,9 @@ class FloatingTimerService : Service() {
 
         themeButton?.background = GradientDrawable().apply { setColor(Color.argb(17, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
         themeButton?.setTextColor(Color.WHITE)
+
+        pauseResumeButton?.background = GradientDrawable().apply { setColor(Color.argb(17, 255, 255, 255)); cornerRadius = dp(14).toFloat(); setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
+        pauseResumeButton?.setTextColor(Color.WHITE)
     }
 
     // ═══════════════════════════════════════════════════════
@@ -816,6 +847,14 @@ class FloatingTimerService : Service() {
         themeButton?.background = GradientDrawable().apply { setColor(Color.argb(204, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 24, 24, 27)) }
         themeButton?.setTextColor(Color.parseColor("#18181b"))
 
+        // Pause button - glass tinted with dark text
+        pauseResumeButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(204, 255, 255, 255))
+            cornerRadius = dp(14).toFloat()
+            setStroke(dp(1), Color.argb(40, 24, 24, 27))
+        }
+        pauseResumeButton?.setTextColor(Color.parseColor("#18181b"))
+
         startLightSweep()
     }
 
@@ -847,6 +886,12 @@ class FloatingTimerService : Service() {
             state.timerState == "paused" -> "Paused"
             state.timerState == "break" || state.activePhase == "break" -> "Break"
             else -> "Idle"
+        }
+
+        // Pause/Resume button icon
+        pauseResumeButton?.text = when {
+            state.timerState == "running" -> "\u23f8"
+            else -> "\u25b6"
         }
 
         questionSection?.visibility = if (state.showQuestionControls) View.VISIBLE else View.GONE
