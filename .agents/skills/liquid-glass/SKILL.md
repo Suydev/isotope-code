@@ -87,11 +87,34 @@ float sdRoundedRect(float2 coord, float2 halfSize, float radius) {
 
 ## Three Theme Modes
 
-| Theme | Body | Text | Buttons | Edge Effects |
-|-------|------|------|---------|--------------|
-| **Dark** | Solid `rgb(14,14,17)` | White | Solid colors | None |
-| **Glass** | `argb(80, 18,18,24)` dark frosted | White | Semi-transparent | None |
-| **Apple Glass** | `argb(120-140, 240,240,248)` milky | Dark `rgb(15,15,20)` | Glass-tinted, colored text | Edge highlights + glow |
+### Dark (Solid)
+```
+Card:   Color.rgb(14, 14, 17)  — solid dark, no transparency
+Border: argb(25, 255,255,255) — faint white edge
+Text:   White primary, rgb(161,161,170) secondary
+Edge:   None
+```
+
+### Glass (Dark Frosted — glassmorphism)
+```
+Card:   Color.argb(55, 17, 25, 40)  — dark translucent (rgba(17,25,40,0.55))
+Border: argb(30, 255,255,255)        — subtle light edge
+Shadow: argb(64, 0,0,0) below card   — soft depth shadow
+Text:   White primary, rgb(161,161,170) secondary
+Edge:   None (shadow creates depth)
+Buttons: semi-transparent tints, bright colored text
+```
+
+### Apple Glass (Liquid Glass — Apple iOS 26 style)
+```
+Card:   Color.argb(120, 240, 240, 248) — milky translucent white
+Border: argb(40, 255,255,255)           — light refraction edge
+Edge Highlight:  argb(100, 255,255,255) → transparent  (top 3dp gradient)
+Inner Glow:      argb(40, 255,255,255)  → transparent  (top 40dp gradient)
+Bottom Shadow:   transparent → argb(30, 0,0,0)          (bottom 2dp)
+Text:   rgb(12,12,18) primary, rgb(65,65,80) secondary
+Buttons: glass-tinted with colored text (NOT white)
+```
 
 ## Button Sizing Rules
 
