@@ -339,41 +339,23 @@ class FloatingTimerService : Service() {
             setPadding(dp(10), dp(8), dp(10), dp(8))
             setOnClickListener { showTargetDialog() }
         }
-        attemptRow.addView(subjectLabel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-            val inner = LinearLayout(this@FloatingTimerService).apply {
-                orientation = LinearLayout.VERTICAL
-            }
-            inner.addView(subjectLabel)
-            val countRow = LinearLayout(this@FloatingTimerService).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-            }
-            countRow.addView(attemptedText)
-            targetValueText = TextView(this@FloatingTimerService).apply {
-                textSize = 14f
-                typeface = Typeface.DEFAULT
-                includeFontPadding = false
-            }
-            countRow.addView(targetValueText)
-            inner.addView(countRow)
-            // Can't nest easily — restructure below
-        })
-        // Reset: simpler approach
-        attemptRow.removeAllViews()
+
+        // Build attempt row cleanly: leftCol (subjectLabel + countRow) + targetButton
         val leftCol = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
-        leftCol.addView(subjectLabel)
         val countRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        countRow.addView(attemptedText)
         targetValueText = TextView(this).apply {
             textSize = 14f
+            typeface = Typeface.DEFAULT
             includeFontPadding = false
         }
+        countRow.addView(attemptedText)
         countRow.addView(targetValueText)
+        leftCol.addView(subjectLabel)
         leftCol.addView(countRow)
         attemptRow.addView(leftCol, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         attemptRow.addView(targetButton)
