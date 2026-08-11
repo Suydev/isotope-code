@@ -958,8 +958,10 @@ class FloatingTimerService : Service() {
                 ?.withEndAction {
                     statusDot?.animate()?.alpha(1f)?.setDuration(1000)
                         ?.setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
-                        ?.withEndAction { /* repeat handled by next tick */ }.start()
-                }.start()
+                        ?.withEndAction { /* repeat handled by next tick */ }
+                        ?.start()
+                }
+                ?.start()
         } else {
             statusDot?.alpha = 1f
         }
