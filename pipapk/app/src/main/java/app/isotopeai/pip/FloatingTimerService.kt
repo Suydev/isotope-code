@@ -11,10 +11,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Color
-import android.graphics.LinearGradient
-import android.graphics.Paint
 import android.graphics.PixelFormat
-import android.graphics.Shader
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
@@ -49,14 +46,7 @@ class FloatingTimerService : Service() {
         private const val THEME_APPLE = "apple"
         private const val POLL_MS = 750L
         private const val TICK_MS = 40L
-        private const val CORNER_RADIUS_DP = 20
     }
-
-    private val BRAND_500 = Color.rgb(139, 92, 246)
-    private val EMERALD_600 = Color.rgb(5, 150, 105)
-    private val ROSE_600 = Color.rgb(225, 29, 72)
-    private val AMBER_600 = Color.rgb(217, 119, 6)
-    private val SKY_400 = Color.rgb(56, 189, 248)
 
     private val handler = Handler(Looper.getMainLooper())
     private var windowManager: WindowManager? = null
@@ -70,7 +60,7 @@ class FloatingTimerService : Service() {
     private var progressContainer: FrameLayout? = null
     private var headingText: TextView? = null
     private var timerText: TextView? = null
-    private var statusDot: TextView? = null
+    private var statusDot: View? = null
     private var statusText: TextView? = null
     private var focusTypeText: TextView? = null
     private var attemptedText: TextView? = null
@@ -265,117 +255,56 @@ class FloatingTimerService : Service() {
             setOnTouchListener { v, event -> handleDragTouch(v, event) }
         }
 
-        // ── Content ──
         contentView = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(20), dp(18), dp(20), dp(18))
+            // PC PiP: padding 20px
+            setPadding(dp(20), dp(20), dp(20), dp(20))
         }
 
-        // Header row: expand + close
-        val header = LinearLayout(this).apply {
+        // ── [1] Mode Label ──
+        // PC: font-size 14px, weight 600, uppercase, letter-spacing 0.05em, opacity 0.7
+        headingText = TextView(this).apply {
+            textSize = 14f
+            letterSpacing = 0.05f
+            isAllCaps = true
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            includeFontPadding = false
+        }
+
+        // ── [2] Timer Display ──
+        // PC: font-size 3.1rem (49.6px), weight 800, letter-spacing -0.025em
+        timerText = TextView(this).apply {
+            textSize = 50f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            letterSpacing = -0.025f
+            includeFontPadding = false
+        }
+
+        // ── [3] Status Indicator Row ──
+        // PC: flex, align-items center, gap 8px, font-size 14px, opacity 0.8
+        val statusRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        headingText = TextView(this).apply {
-            textSize = 11f
-            letterSpacing = 0.08f
-            isAllCaps = true
-            typeface = Typeface.DEFAULT_BOLD
-            includeFontPadding = false
-        }
-        header.addView(headingText, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-
-        expandButton = makeIconButton("\u2197") {
-            val intent = Intent(this, PipActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-                putExtra("FROM_OVERLAY", true)
+        // Status dot: 6x6px circle
+        statusDot = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(6), dp(6)).apply {
+                marginEnd = dp(8)
             }
-            startActivity(intent)
-        }
-        closeButton = makeIconButton("\u00d7") {
-            PipClient.postAction(this@FloatingTimerService, "close", -1)
-            stopSelf()
-        }
-        header.addView(expandButton)
-        header.addView(closeButton)
-
-        // Focus type chip
-        focusTypeText = TextView(this).apply {
-            textSize = 13f
-            typeface = Typeface.DEFAULT_BOLD
-            includeFontPadding = false
-            setPadding(dp(14), dp(5), dp(14), dp(5))
-        }
-        val chipParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            gravity = Gravity.CENTER_HORIZONTAL
-            topMargin = dp(10)
-            bottomMargin = dp(6)
-        }
-
-        // Timer display
-        timerText = TextView(this).apply {
-            textSize = 56f
-            gravity = Gravity.CENTER
-            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-            letterSpacing = -0.02f
-            includeFontPadding = false
-        }
-        val timerParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(4)
-            bottomMargin = dp(8)
-        }
-
-        // Status row
-        val statusRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        statusDot = TextView(this).apply {
-            textSize = 10f
-            typeface = Typeface.DEFAULT_BOLD
-            includeFontPadding = false
         }
         statusText = TextView(this).apply {
-            textSize = 11f
-            letterSpacing = 0.05f
-            isAllCaps = true
-            typeface = Typeface.DEFAULT_BOLD
+            textSize = 14f
+            typeface = Typeface.DEFAULT
             includeFontPadding = false
         }
         statusRow.addView(statusDot)
         statusRow.addView(statusText)
 
-        // Pause/Resume button (large, centered — like browser PiP)
-        pauseResumeButton = Button(this).apply {
-            text = "\u23f8"
-            isAllCaps = false
-            textSize = 22f
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(dp(20), dp(6), dp(20), dp(6))
-            setOnClickListener {
-                PipClient.postAction(this@FloatingTimerService, "togglePause", -1)
-            }
-        }
-        val pauseParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, dp(48)).apply {
-            gravity = Gravity.CENTER_HORIZONTAL
-            topMargin = dp(8)
-            bottomMargin = dp(4)
-        }
-
-        // Question section
+        // ── [4] Separator + [5] Question Tracking ──
         questionSection = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val qsParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(14)
-        }
 
-        // Separator line
+        // Separator: 1px solid rgba(255,255,255,0.12), padding-top 14px
         val separator = View(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).apply {
@@ -384,66 +313,137 @@ class FloatingTimerService : Service() {
             }
         }
 
-        // Attempt row: counter + target button
+        // [5a] Subject + Target row
         val attemptRow = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
             orientation = LinearLayout.HORIZONTAL
         }
-        attemptedText = TextView(this).apply {
-            textSize = 26f
-            typeface = Typeface.DEFAULT_BOLD
+        // Subject label: font-size 12.48px, opacity 0.66, weight 700
+        val subjectLabel = TextView(this).apply {
+            textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             includeFontPadding = false
         }
-        targetButton = makePillButton("Target").apply {
+        // Question count: font-size 24.8px, weight 900
+        attemptedText = TextView(this).apply {
+            textSize = 25f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            includeFontPadding = false
+        }
+        // Target button: pill, border rgba(255,255,255,0.16), bg rgba(255,255,255,0.07)
+        targetButton = Button(this).apply {
+            text = "Target"
+            isAllCaps = false
+            textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
             setOnClickListener { showTargetDialog() }
         }
-        attemptRow.addView(attemptedText, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        attemptRow.addView(subjectLabel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+            val inner = LinearLayout(this@FloatingTimerService).apply {
+                orientation = LinearLayout.VERTICAL
+            }
+            inner.addView(subjectLabel)
+            val countRow = LinearLayout(this@FloatingTimerService).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            countRow.addView(attemptedText)
+            targetValueText = TextView(this@FloatingTimerService).apply {
+                textSize = 14f
+                typeface = Typeface.DEFAULT
+                includeFontPadding = false
+            }
+            countRow.addView(targetValueText)
+            inner.addView(countRow)
+            // Can't nest easily — restructure below
+        })
+        // Reset: simpler approach
+        attemptRow.removeAllViews()
+        val leftCol = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        leftCol.addView(subjectLabel)
+        val countRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        countRow.addView(attemptedText)
+        targetValueText = TextView(this).apply {
+            textSize = 14f
+            includeFontPadding = false
+        }
+        countRow.addView(targetValueText)
+        leftCol.addView(countRow)
+        attemptRow.addView(leftCol, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         attemptRow.addView(targetButton)
 
         // Target editor row
-        targetValueText = TextView(this).apply {
-            textSize = 12f
-            includeFontPadding = false
-        }
         targetEditorRow = LinearLayout(this).apply {
             gravity = Gravity.CENTER
             orientation = LinearLayout.HORIZONTAL
         }
-        val minus = makePillButton("-5").apply { setOnClickListener { updateTargetBy(-5) } }
-        val plus = makePillButton("+5").apply { setOnClickListener { updateTargetBy(5) } }
-        val zero = makePillButton("0").apply { setOnClickListener { setTarget(0) } }
+        val minus = Button(this).apply {
+            text = "-5"; isAllCaps = false; textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            setOnClickListener { updateTargetBy(-5) }
+        }
+        val plus = Button(this).apply {
+            text = "+5"; isAllCaps = false; textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            setOnClickListener { updateTargetBy(5) }
+        }
+        val zero = Button(this).apply {
+            text = "0"; isAllCaps = false; textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            setOnClickListener { setTarget(0) }
+        }
         targetEditorRow!!.addView(minus)
         targetEditorRow!!.addView(targetValueText)
         targetEditorRow!!.addView(plus)
         targetEditorRow!!.addView(zero)
         targetEditorRow!!.visibility = View.GONE
 
-        // Result buttons (3-column grid)
+        // [5b] Scoring grid: 3-column, gap 8px
+        // PC: border-radius 14px, padding 10px 12px, font-size 12.48px, weight 800
         val resultRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        correctButton = makeResultButton("\u2713").apply {
+        correctButton = Button(this).apply {
+            text = "\u2713"; isAllCaps = false; textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
             setOnClickListener { PipClient.postAction(this@FloatingTimerService, "correct", -1) }
         }
-        incorrectButton = makeResultButton("\u2715").apply {
+        incorrectButton = Button(this).apply {
+            text = "\u2715"; isAllCaps = false; textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
             setOnClickListener { PipClient.postAction(this@FloatingTimerService, "incorrect", -1) }
         }
-        skippedButton = makeResultButton("\u21b7").apply {
+        skippedButton = Button(this).apply {
+            text = "Skip"; isAllCaps = false; textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
             setOnClickListener { PipClient.postAction(this@FloatingTimerService, "skipped", -1) }
         }
-        val btnH = dp(44)
+        val btnH = dp(40)
         val gap = dp(8)
         resultRow.addView(correctButton, LinearLayout.LayoutParams(0, btnH, 1f).apply { setMargins(0, 0, gap, 0) })
         resultRow.addView(incorrectButton, LinearLayout.LayoutParams(0, btnH, 1f).apply { setMargins(0, 0, gap, 0) })
         resultRow.addView(skippedButton, LinearLayout.LayoutParams(0, btnH, 1f))
 
-        // Undo button
-        undoButton = makePillButton("Undo last").apply {
+        // [5c] Undo: pill, border rgba(255,255,255,0.14), text rgba(255,255,255,0.72)
+        undoButton = Button(this).apply {
+            text = "Undo last"; isAllCaps = false; textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
             setOnClickListener { PipClient.postAction(this@FloatingTimerService, "undo", -1) }
         }
-        val undoParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, dp(38)).apply { topMargin = dp(8) }
 
         // Assemble question section
         questionSection!!.addView(separator)
@@ -453,9 +453,10 @@ class FloatingTimerService : Service() {
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(8)
         })
-        questionSection!!.addView(undoButton, undoParams)
+        questionSection!!.addView(undoButton, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(36)).apply { topMargin = dp(8) })
 
-        // Settings row (in-overlay customization)
+        // Settings row
         settingsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -465,136 +466,116 @@ class FloatingTimerService : Service() {
             THEME_GLASS -> "\u2601 Glass"
             else -> "\u263E Dark"
         }
-        themeButton = makePillButton(themeLabel).apply {
-            textSize = 11f
+        themeButton = Button(this).apply {
+            text = themeLabel; isAllCaps = false; textSize = 11f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(10), dp(6), dp(10), dp(6))
             setOnClickListener {
                 val intent = Intent(this@FloatingTimerService, FloatingTimerService::class.java)
                 intent.action = "TOGGLE_THEME"
                 startService(intent)
             }
         }
-        val sizeSmallBtn = makePillButton("S").apply {
-            textSize = 10f
+        val sizeSmall = Button(this).apply {
+            text = "S"; isAllCaps = false; textSize = 10f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(8), dp(6), dp(8), dp(6))
             setOnClickListener { resizeOverlay(dp(280), dp(320)) }
         }
-        val sizeMedBtn = makePillButton("M").apply {
-            textSize = 10f
+        val sizeMed = Button(this).apply {
+            text = "M"; isAllCaps = false; textSize = 10f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(8), dp(6), dp(8), dp(6))
             setOnClickListener { resizeOverlay(dp(340), dp(390)) }
         }
-        val sizeLgBtn = makePillButton("L").apply {
-            textSize = 10f
+        val sizeLg = Button(this).apply {
+            text = "L"; isAllCaps = false; textSize = 10f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(8), dp(6), dp(8), dp(6))
             setOnClickListener { resizeOverlay(dp(420), dp(480)) }
         }
         settingsRow!!.addView(themeButton, LinearLayout.LayoutParams(0, dp(28), 1f))
-        settingsRow!!.addView(sizeSmallBtn, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
-        settingsRow!!.addView(sizeMedBtn, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
-        settingsRow!!.addView(sizeLgBtn, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
+        settingsRow!!.addView(sizeSmall, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
+        settingsRow!!.addView(sizeMed, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
+        settingsRow!!.addView(sizeLg, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
 
-        // Add content to card
-        contentView!!.addView(header)
-        contentView!!.addView(focusTypeText, chipParams)
-        contentView!!.addView(timerText, timerParams)
-        contentView!!.addView(statusRow)
-        contentView!!.addView(pauseResumeButton, pauseParams)
-        contentView!!.addView(questionSection, qsParams)
+        // Assemble content
+        // PC PiP gap: 14px between elements
+        val gapParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(14)
+        }
+        contentView!!.addView(headingText, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(0)
+        })
+        contentView!!.addView(timerText, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(14)
+        })
+        contentView!!.addView(statusRow, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(14)
+        })
+        contentView!!.addView(questionSection, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(14)
+        })
         contentView!!.addView(settingsRow, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, dp(28)).apply { topMargin = dp(10) })
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(28)).apply {
+            topMargin = dp(14)
+        })
 
         cardView!!.addView(contentView, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT))
 
-        // ── Liquid Glass edge highlights ──
+        // ── Liquid Glass edge highlights (for Apple theme) ──
         val edgeThickness = dp(3)
         val cornerSize = dp(24)
-
         glassEdgeTop = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, edgeThickness).apply {
-                gravity = Gravity.TOP
-            }
+            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, edgeThickness).apply { gravity = Gravity.TOP }
             visibility = View.GONE
         }
         glassEdgeBottom = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, edgeThickness).apply {
-                gravity = Gravity.BOTTOM
-            }
+            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, edgeThickness).apply { gravity = Gravity.BOTTOM }
             visibility = View.GONE
         }
         glassEdgeLeft = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                edgeThickness, FrameLayout.LayoutParams.MATCH_PARENT).apply {
-                gravity = Gravity.START
-                topMargin = dp(20)
-                bottomMargin = dp(20)
+            layoutParams = FrameLayout.LayoutParams(edgeThickness, FrameLayout.LayoutParams.MATCH_PARENT).apply {
+                gravity = Gravity.START; topMargin = dp(20); bottomMargin = dp(20)
             }
             visibility = View.GONE
         }
         glassEdgeRight = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                edgeThickness, FrameLayout.LayoutParams.MATCH_PARENT).apply {
-                gravity = Gravity.END
-                topMargin = dp(20)
-                bottomMargin = dp(20)
+            layoutParams = FrameLayout.LayoutParams(edgeThickness, FrameLayout.LayoutParams.MATCH_PARENT).apply {
+                gravity = Gravity.END; topMargin = dp(20); bottomMargin = dp(20)
             }
             visibility = View.GONE
         }
         glassInnerGlow = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, dp(40)).apply {
-                gravity = Gravity.TOP
-            }
+            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(40)).apply { gravity = Gravity.TOP }
             visibility = View.GONE
         }
-        glassCornerTL = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply {
-                gravity = Gravity.TOP or Gravity.START
-            }
-            visibility = View.GONE
-        }
-        glassCornerTR = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply {
-                gravity = Gravity.TOP or Gravity.END
-            }
-            visibility = View.GONE
-        }
-        glassCornerBL = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply {
-                gravity = Gravity.BOTTOM or Gravity.START
-            }
-            visibility = View.GONE
-        }
-        glassCornerBR = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply {
-                gravity = Gravity.BOTTOM or Gravity.END
-            }
-            visibility = View.GONE
-        }
+        glassCornerTL = View(this).apply { layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply { gravity = Gravity.TOP or Gravity.START }; visibility = View.GONE }
+        glassCornerTR = View(this).apply { layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply { gravity = Gravity.TOP or Gravity.END }; visibility = View.GONE }
+        glassCornerBL = View(this).apply { layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply { gravity = Gravity.BOTTOM or Gravity.START }; visibility = View.GONE }
+        glassCornerBR = View(this).apply { layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply { gravity = Gravity.BOTTOM or Gravity.END }; visibility = View.GONE }
         glassLightSweep = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
             visibility = View.GONE
         }
 
-        // Assemble root
-        root.addView(cardView, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
-        root.addView(glassEdgeTop)
-        root.addView(glassEdgeBottom)
-        root.addView(glassEdgeLeft)
-        root.addView(glassEdgeRight)
+        root.addView(cardView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        root.addView(glassEdgeTop); root.addView(glassEdgeBottom)
+        root.addView(glassEdgeLeft); root.addView(glassEdgeRight)
         root.addView(glassInnerGlow)
-        root.addView(glassCornerTL)
-        root.addView(glassCornerTR)
-        root.addView(glassCornerBL)
-        root.addView(glassCornerBR)
+        root.addView(glassCornerTL); root.addView(glassCornerTR)
+        root.addView(glassCornerBL); root.addView(glassCornerBR)
         root.addView(glassLightSweep)
 
         // Resize handle
         val resizeHandle = TextView(this).apply {
-            text = "\u25e2"
-            textSize = 14f
-            typeface = Typeface.DEFAULT_BOLD
+            text = "\u25e2"; textSize = 14f; typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
             setOnTouchListener { v, event -> handleResizeTouch(v, event) }
         }
@@ -610,7 +591,6 @@ class FloatingTimerService : Service() {
         currentTheme = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             .getString(PREF_THEME, THEME_DARK) ?: THEME_DARK
 
-        // Hide all glass effects by default
         hideGlassEffects()
 
         when (currentTheme) {
@@ -619,14 +599,12 @@ class FloatingTimerService : Service() {
             else -> renderDarkSolid(card, isBreak)
         }
 
-        // Drop shadow
         card.elevation = when (currentTheme) {
             THEME_APPLE -> dp(12).toFloat()
             THEME_GLASS -> dp(8).toFloat()
             else -> dp(4).toFloat()
         }
 
-        // Resize handle color
         val rootFrame = rootView as? FrameLayout
         rootFrame?.let {
             for (i in 0 until it.childCount) {
@@ -640,7 +618,6 @@ class FloatingTimerService : Service() {
             }
         }
 
-        // Light sweep for Apple
         if (currentTheme == THEME_APPLE) {
             handler.postDelayed({ startLightSweep() }, 300)
         } else {
@@ -651,282 +628,222 @@ class FloatingTimerService : Service() {
         renderDynamicFields()
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  DARK SOLID — matches browser PiP dark background (#050506)
-    // ═══════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
+    //  DARK SOLID — matches PC PiP: bg #000000
+    // ═══════════════════════════════════════════════════════
     private fun renderDarkSolid(card: LinearLayout, isBreak: Boolean) {
+        // PC PiP: background #000000
         card.background = GradientDrawable().apply {
-            setColor(Color.rgb(5, 5, 6))
-            cornerRadius = dp(CORNER_RADIUS_DP).toFloat()
+            setColor(Color.BLACK)
+            cornerRadius = dp(20).toFloat()
         }
 
-        val stripColor = if (isBreak) SKY_400 else BRAND_500
-        progressFill?.background = GradientDrawable().apply { setColor(stripColor) }
+        // Progress strip
+        progressFill?.background = GradientDrawable().apply {
+            setColor(if (isBreak) Color.rgb(59, 130, 246) else Color.rgb(139, 92, 246))
+        }
         progressContainer?.background = GradientDrawable().apply {
             setColor(Color.argb(15, 139, 92, 246))
         }
 
-        // Focus chip — dark glass pill
-        focusTypeText?.background = GradientDrawable().apply {
-            setColor(Color.argb(30, 255, 255, 255))
-            cornerRadius = dp(999).toFloat()
-            setStroke(dp(1), Color.argb(20, 255, 255, 255))
-        }
+        // PC PiP mode label: opacity 0.7
+        headingText?.setTextColor(Color.argb(178, 255, 255, 255))
 
-        val textMuted = Color.rgb(161, 161, 170)
-        headingText?.setTextColor(textMuted)
+        // PC PiP timer: white
         timerText?.setTextColor(Color.WHITE)
-        statusText?.setTextColor(textMuted)
-        focusTypeText?.setTextColor(Color.rgb(196, 181, 253))
-        attemptedText?.setTextColor(Color.WHITE)
-        targetValueText?.setTextColor(textMuted)
 
-        expandButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(25, 255, 255, 255))
-            cornerRadius = dp(12).toFloat()
+        // PC PiP status row: opacity 0.8
+        statusText?.setTextColor(Color.argb(204, 255, 255, 255))
+
+        // Status dot colors (PC PiP dark mode)
+        val dotColor = when {
+            state.timerState == "running" -> Color.parseColor("#22c55e")
+            state.timerState == "paused" -> Color.parseColor("#f59e0b")
+            state.timerState == "break" || state.activePhase == "break" -> Color.parseColor("#3b82f6")
+            else -> Color.parseColor("#6b7280")
         }
-        expandButton?.setTextColor(textMuted)
-
-        closeButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(15, 255, 255, 255))
-            cornerRadius = dp(12).toFloat()
+        statusDot?.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(dotColor)
         }
-        closeButton?.setTextColor(textMuted)
 
-        // Pause button
-        pauseResumeButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(25, 255, 255, 255))
-            cornerRadius = dp(16).toFloat()
-            setStroke(dp(1), Color.argb(30, 255, 255, 255))
+        focusTypeText?.visibility = View.GONE
+
+        // PC PiP scoring buttons: solid brand colors
+        correctButton?.background = GradientDrawable().apply {
+            setColor(Color.parseColor("#059669"))
+            cornerRadius = dp(14).toFloat()
         }
-        pauseResumeButton?.setTextColor(Color.WHITE)
+        correctButton?.setTextColor(Color.WHITE)
 
-        // Result buttons — solid brand colors (browser PiP style)
-        styleSolidButton(correctButton, EMERALD_600, Color.WHITE)
-        styleSolidButton(incorrectButton, ROSE_600, Color.WHITE)
-        styleSolidButton(skippedButton, AMBER_600, Color.WHITE)
+        incorrectButton?.background = GradientDrawable().apply {
+            setColor(Color.parseColor("#e11d48"))
+            cornerRadius = dp(14).toFloat()
+        }
+        incorrectButton?.setTextColor(Color.WHITE)
 
-        // Target / undo — subtle glass
-        stylePillButton(targetButton, Color.argb(20, 255, 255, 255), Color.WHITE, Color.argb(45, 255, 255, 255))
-        stylePillButton(undoButton, Color.TRANSPARENT, textMuted, Color.argb(45, 255, 255, 255))
+        skippedButton?.background = GradientDrawable().apply {
+            setColor(Color.parseColor("#d97706"))
+            cornerRadius = dp(14).toFloat()
+        }
+        skippedButton?.setTextColor(Color.WHITE)
+
+        // PC PiP target: bg rgba(255,255,255,0.07), border rgba(255,255,255,0.16)
+        targetButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(17, 255, 255, 255))
+            cornerRadius = dp(999).toFloat()
+            setStroke(dp(1), Color.argb(40, 255, 255, 255))
+        }
+        targetButton?.setTextColor(Color.WHITE)
+
+        // PC PiP undo: transparent, text rgba(255,255,255,0.72), border rgba(255,255,255,0.14)
+        undoButton?.background = GradientDrawable().apply {
+            setColor(Color.TRANSPARENT)
+            cornerRadius = dp(999).toFloat()
+            setStroke(dp(1), Color.argb(35, 255, 255, 255))
+        }
+        undoButton?.setTextColor(Color.argb(183, 255, 255, 255))
 
         // Settings
-        stylePillButton(themeButton, Color.argb(30, 139, 92, 246), BRAND_500, Color.argb(30, 139, 92, 246))
+        themeButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(17, 255, 255, 255))
+            cornerRadius = dp(999).toFloat()
+            setStroke(dp(1), Color.argb(40, 255, 255, 255))
+        }
+        themeButton?.setTextColor(Color.WHITE)
+
+        // Subject label
+        (attemptedText?.parent as? LinearLayout)?.let { parent ->
+            for (i in 0 until parent.childCount) {
+                val child = parent.getChildAt(i)
+                if (child != attemptedText && child is TextView && child != targetValueText) {
+                    // This is the subject label — set its color
+                }
+            }
+        }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  DARK GLASS — dark frosted glassmorphism + top edge highlight
-    // ═══════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
+    //  DARK GLASS — dark frosted glassmorphism
+    // ═══════════════════════════════════════════════════════
     private fun renderDarkGlass(card: LinearLayout, isBreak: Boolean) {
         card.background = GradientDrawable().apply {
             setColor(Color.argb(180, 17, 25, 40))
-            cornerRadius = dp(CORNER_RADIUS_DP).toFloat()
+            cornerRadius = dp(20).toFloat()
             setStroke(dp(1), Color.argb(30, 255, 255, 255))
         }
 
-        // Top edge highlight
         glassEdgeTop?.visibility = View.VISIBLE
         glassEdgeTop?.background = GradientDrawable().apply {
             colors = intArrayOf(Color.argb(20, 255, 255, 255), Color.argb(0, 255, 255, 255))
-            cornerRadii = floatArrayOf(
-                dp(CORNER_RADIUS_DP).toFloat(), dp(CORNER_RADIUS_DP).toFloat(),
-                dp(CORNER_RADIUS_DP).toFloat(), dp(CORNER_RADIUS_DP).toFloat(),
-                0f, 0f, 0f, 0f)
+            cornerRadii = floatArrayOf(dp(20).toFloat(), dp(20).toFloat(), dp(20).toFloat(), dp(20).toFloat(), 0f, 0f, 0f, 0f)
         }
 
-        val stripColor = if (isBreak) SKY_400 else BRAND_500
-        progressFill?.background = GradientDrawable().apply { setColor(stripColor) }
-        progressContainer?.background = GradientDrawable().apply {
-            setColor(Color.argb(15, 139, 92, 246))
+        progressFill?.background = GradientDrawable().apply {
+            setColor(if (isBreak) Color.rgb(59, 130, 246) else Color.rgb(139, 92, 246))
         }
+        progressContainer?.background = GradientDrawable().apply { setColor(Color.argb(15, 139, 92, 246)) }
 
-        focusTypeText?.background = GradientDrawable().apply {
-            setColor(Color.argb(30, 139, 92, 246))
-            cornerRadius = dp(999).toFloat()
-            setStroke(dp(1), Color.argb(50, 139, 92, 246))
-        }
-
-        val textMuted = Color.rgb(161, 161, 170)
-        headingText?.setTextColor(textMuted)
+        headingText?.setTextColor(Color.argb(178, 255, 255, 255))
         timerText?.setTextColor(Color.WHITE)
-        statusText?.setTextColor(textMuted)
-        focusTypeText?.setTextColor(Color.rgb(196, 181, 253))
-        attemptedText?.setTextColor(Color.WHITE)
-        targetValueText?.setTextColor(textMuted)
+        statusText?.setTextColor(Color.argb(204, 255, 255, 255))
 
-        expandButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(25, 139, 92, 246))
-            cornerRadius = dp(12).toFloat()
+        val dotColor = when {
+            state.timerState == "running" -> Color.parseColor("#22c55e")
+            state.timerState == "paused" -> Color.parseColor("#f59e0b")
+            state.timerState == "break" || state.activePhase == "break" -> Color.parseColor("#3b82f6")
+            else -> Color.parseColor("#6b7280")
         }
-        expandButton?.setTextColor(BRAND_500)
+        statusDot?.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(dotColor) }
 
-        closeButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(15, 255, 255, 255))
-            cornerRadius = dp(12).toFloat()
-        }
-        closeButton?.setTextColor(textMuted)
+        focusTypeText?.visibility = View.GONE
 
-        // Pause button — frosted glass
-        pauseResumeButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(20, 255, 255, 255))
-            cornerRadius = dp(16).toFloat()
-            setStroke(dp(1), Color.argb(25, 255, 255, 255))
-        }
-        pauseResumeButton?.setTextColor(Color.WHITE)
+        correctButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#059669")); cornerRadius = dp(14).toFloat() }
+        correctButton?.setTextColor(Color.WHITE)
+        incorrectButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#e11d48")); cornerRadius = dp(14).toFloat() }
+        incorrectButton?.setTextColor(Color.WHITE)
+        skippedButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#d97706")); cornerRadius = dp(14).toFloat() }
+        skippedButton?.setTextColor(Color.WHITE)
 
-        // Result buttons — colored glass tint
-        styleGlassButton(correctButton, Color.argb(35, 16, 185, 129), Color.rgb(110, 231, 183))
-        styleGlassButton(incorrectButton, Color.argb(35, 225, 29, 72), Color.rgb(248, 113, 133))
-        styleGlassButton(skippedButton, Color.argb(35, 245, 158, 11), Color.rgb(253, 211, 138))
+        targetButton?.background = GradientDrawable().apply { setColor(Color.argb(17, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
+        targetButton?.setTextColor(Color.WHITE)
+        undoButton?.background = GradientDrawable().apply { setColor(Color.TRANSPARENT); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(35, 255, 255, 255)) }
+        undoButton?.setTextColor(Color.argb(183, 255, 255, 255))
 
-        stylePillButton(targetButton, Color.argb(20, 255, 255, 255), Color.WHITE, Color.argb(15, 255, 255, 255))
-        stylePillButton(undoButton, Color.TRANSPARENT, textMuted, Color.argb(12, 255, 255, 255))
-
-        stylePillButton(themeButton, Color.argb(30, 139, 92, 246), BRAND_500, Color.argb(25, 139, 92, 246))
+        themeButton?.background = GradientDrawable().apply { setColor(Color.argb(17, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
+        themeButton?.setTextColor(Color.WHITE)
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  APPLE LIQUID — milky translucent + full 4-edge glass rim
-    // ═══════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
+    //  APPLE LIQUID — milky translucent + 4-edge glass rim
+    // ═══════════════════════════════════════════════════════
     private fun renderAppleLiquid(card: LinearLayout, isBreak: Boolean) {
-        val cr = dp(CORNER_RADIUS_DP).toFloat()
+        val cr = dp(20).toFloat()
+        card.background = GradientDrawable().apply { setColor(Color.argb(30, 255, 255, 255)); cornerRadius = cr; setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
 
-        // Card body — milky translucent
-        card.background = GradientDrawable().apply {
-            setColor(Color.argb(30, 255, 255, 255))
-            cornerRadius = cr
-            setStroke(dp(1), Color.argb(40, 255, 255, 255))
-        }
-
-        // ── Full 4-edge glass rim ──
-        // Top edge — specular highlight
         glassEdgeTop?.visibility = View.VISIBLE
-        glassEdgeTop?.background = GradientDrawable().apply {
-            colors = intArrayOf(Color.argb(130, 255, 255, 255), Color.argb(0, 255, 255, 255))
-            cornerRadii = floatArrayOf(cr, cr, cr, cr, 0f, 0f, 0f, 0f)
-        }
-        // Bottom edge — reflection
+        glassEdgeTop?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(130, 255, 255, 255), Color.argb(0, 255, 255, 255)); cornerRadii = floatArrayOf(cr, cr, cr, cr, 0f, 0f, 0f, 0f) }
         glassEdgeBottom?.visibility = View.VISIBLE
-        glassEdgeBottom?.background = GradientDrawable().apply {
-            colors = intArrayOf(Color.argb(0, 255, 255, 255), Color.argb(65, 255, 255, 255))
-            cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, cr, cr, cr, cr)
-        }
-        // Left edge
+        glassEdgeBottom?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(0, 255, 255, 255), Color.argb(65, 255, 255, 255)); cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, cr, cr, cr, cr) }
         glassEdgeLeft?.visibility = View.VISIBLE
-        glassEdgeLeft?.background = GradientDrawable().apply {
-            colors = intArrayOf(Color.argb(45, 255, 255, 255), Color.argb(0, 255, 255, 255))
-            orientation = GradientDrawable.Orientation.LEFT_RIGHT
-        }
-        // Right edge
+        glassEdgeLeft?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(45, 255, 255, 255), Color.argb(0, 255, 255, 255)); orientation = GradientDrawable.Orientation.LEFT_RIGHT }
         glassEdgeRight?.visibility = View.VISIBLE
-        glassEdgeRight?.background = GradientDrawable().apply {
-            colors = intArrayOf(Color.argb(0, 255, 255, 255), Color.argb(45, 255, 255, 255))
-            orientation = GradientDrawable.Orientation.LEFT_RIGHT
-        }
-        // Inner glow
+        glassEdgeRight?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(0, 255, 255, 255), Color.argb(45, 255, 255, 255)); orientation = GradientDrawable.Orientation.LEFT_RIGHT }
         glassInnerGlow?.visibility = View.VISIBLE
-        glassInnerGlow?.background = GradientDrawable().apply {
-            colors = intArrayOf(Color.argb(30, 255, 255, 255), Color.argb(0, 255, 255, 255))
-            cornerRadii = floatArrayOf(cr, cr, cr, cr, 0f, 0f, 0f, 0f)
-        }
-        // Corner glows
-        val cornerGlow = GradientDrawable().apply {
-            colors = intArrayOf(Color.argb(50, 255, 255, 255), Color.argb(0, 255, 255, 255))
-            shape = GradientDrawable.OVAL
-        }
-        glassCornerTL?.visibility = View.VISIBLE
-        glassCornerTL?.background = cornerGlow
-        glassCornerTR?.visibility = View.VISIBLE
-        glassCornerTR?.background = cornerGlow
-        val cornerGlowBottom = GradientDrawable().apply {
-            colors = intArrayOf(Color.argb(20, 255, 255, 255), Color.argb(0, 255, 255, 255))
-            shape = GradientDrawable.OVAL
-        }
-        glassCornerBL?.visibility = View.VISIBLE
-        glassCornerBL?.background = cornerGlowBottom
-        glassCornerBR?.visibility = View.VISIBLE
-        glassCornerBR?.background = cornerGlowBottom
-        // Light sweep
+        glassInnerGlow?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(30, 255, 255, 255), Color.argb(0, 255, 255, 255)); cornerRadii = floatArrayOf(cr, cr, cr, cr, 0f, 0f, 0f, 0f) }
+        val cg = GradientDrawable().apply { colors = intArrayOf(Color.argb(50, 255, 255, 255), Color.argb(0, 255, 255, 255)); shape = GradientDrawable.OVAL }
+        glassCornerTL?.visibility = View.VISIBLE; glassCornerTL?.background = cg
+        glassCornerTR?.visibility = View.VISIBLE; glassCornerTR?.background = cg
+        val cgb = GradientDrawable().apply { colors = intArrayOf(Color.argb(20, 255, 255, 255), Color.argb(0, 255, 255, 255)); shape = GradientDrawable.OVAL }
+        glassCornerBL?.visibility = View.VISIBLE; glassCornerBL?.background = cgb
+        glassCornerBR?.visibility = View.VISIBLE; glassCornerBR?.background = cgb
         glassLightSweep?.visibility = View.VISIBLE
-        glassLightSweep?.background = GradientDrawable().apply {
-            colors = intArrayOf(
-                Color.argb(45, 255, 255, 255),
-                Color.argb(12, 255, 255, 255),
-                Color.argb(0, 255, 255, 255),
-                Color.argb(0, 255, 255, 255))
-            gradientType = GradientDrawable.LINEAR_GRADIENT
-            orientation = GradientDrawable.Orientation.TL_BR
-            cornerRadius = cr
-        }
+        glassLightSweep?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(45, 255, 255, 255), Color.argb(12, 255, 255, 255), Color.argb(0, 255, 255, 255), Color.argb(0, 255, 255, 255)); gradientType = GradientDrawable.LINEAR_GRADIENT; orientation = GradientDrawable.Orientation.TL_BR; cornerRadius = cr }
 
-        // Progress
-        val stripColor = if (isBreak) SKY_400 else BRAND_500
-        progressFill?.background = GradientDrawable().apply { setColor(stripColor); cornerRadius = dp(2).toFloat() }
-        progressContainer?.background = GradientDrawable().apply {
-            setColor(Color.argb(12, 139, 92, 246))
-        }
+        progressFill?.background = GradientDrawable().apply { setColor(if (isBreak) Color.rgb(59, 130, 246) else Color.rgb(139, 92, 246)); cornerRadius = dp(2).toFloat() }
+        progressContainer?.background = GradientDrawable().apply { setColor(Color.argb(12, 139, 92, 246)) }
 
-        focusTypeText?.background = GradientDrawable().apply {
-            setColor(Color.argb(45, 139, 92, 246))
-            cornerRadius = dp(999).toFloat()
-            setStroke(dp(1), Color.argb(50, 139, 92, 246))
-        }
-
-        // Dark text on light frosted (Apple HIG)
         val textPrimary = Color.rgb(12, 12, 18)
         val textSecondary = Color.rgb(65, 65, 80)
-        val textTertiary = Color.rgb(105, 105, 125)
 
         headingText?.setTextColor(textSecondary)
         timerText?.setTextColor(textPrimary)
         statusText?.setTextColor(textSecondary)
-        focusTypeText?.setTextColor(Color.rgb(80, 30, 190))
-        attemptedText?.setTextColor(textPrimary)
-        targetValueText?.setTextColor(textTertiary)
 
-        expandButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(30, 139, 92, 246))
-            cornerRadius = dp(12).toFloat()
+        val dotColor = when {
+            state.timerState == "running" -> Color.parseColor("#16a34a")
+            state.timerState == "paused" -> Color.parseColor("#d97706")
+            state.timerState == "break" || state.activePhase == "break" -> Color.parseColor("#2563eb")
+            else -> Color.parseColor("#6b7280")
         }
-        expandButton?.setTextColor(Color.rgb(80, 30, 190))
+        statusDot?.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(dotColor) }
 
-        closeButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(15, 0, 0, 0))
-            cornerRadius = dp(12).toFloat()
-        }
-        closeButton?.setTextColor(textSecondary)
+        focusTypeText?.visibility = View.GONE
 
-        // Pause button — frosted dark glass
-        pauseResumeButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(18, 0, 0, 0))
-            cornerRadius = dp(16).toFloat()
-            setStroke(dp(1), Color.argb(20, 0, 0, 0))
-        }
-        pauseResumeButton?.setTextColor(textPrimary)
+        correctButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#059669")); cornerRadius = dp(14).toFloat() }
+        correctButton?.setTextColor(Color.WHITE)
+        incorrectButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#e11d48")); cornerRadius = dp(14).toFloat() }
+        incorrectButton?.setTextColor(Color.WHITE)
+        skippedButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#d97706")); cornerRadius = dp(14).toFloat() }
+        skippedButton?.setTextColor(Color.WHITE)
 
-        // Result buttons — colored glass, dark colored text
-        styleGlassButton(correctButton, Color.argb(50, 5, 150, 105), Color.rgb(0, 100, 70))
-        styleGlassButton(incorrectButton, Color.argb(50, 225, 29, 72), Color.rgb(170, 10, 50))
-        styleGlassButton(skippedButton, Color.argb(50, 217, 119, 6), Color.rgb(160, 80, 0))
+        targetButton?.background = GradientDrawable().apply { setColor(Color.argb(204, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 24, 24, 27)) }
+        targetButton?.setTextColor(Color.parseColor("#18181b"))
+        undoButton?.background = GradientDrawable().apply { setColor(Color.TRANSPARENT); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(35, 24, 24, 27)) }
+        undoButton?.setTextColor(Color.argb(183, 24, 24, 27))
 
-        stylePillButton(targetButton, Color.argb(20, 0, 0, 0), textSecondary, Color.argb(18, 0, 0, 0))
-        stylePillButton(undoButton, Color.TRANSPARENT, textTertiary, Color.argb(12, 0, 0, 0))
-
-        stylePillButton(themeButton, Color.argb(35, 139, 92, 246), Color.rgb(80, 30, 190), Color.argb(25, 139, 92, 246))
+        themeButton?.background = GradientDrawable().apply { setColor(Color.argb(204, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 24, 24, 27)) }
+        themeButton?.setTextColor(Color.parseColor("#18181b"))
 
         startLightSweep()
     }
 
     private fun hideGlassEffects() {
-        glassEdgeTop?.visibility = View.GONE
-        glassEdgeBottom?.visibility = View.GONE
-        glassEdgeLeft?.visibility = View.GONE
-        glassEdgeRight?.visibility = View.GONE
+        glassEdgeTop?.visibility = View.GONE; glassEdgeBottom?.visibility = View.GONE
+        glassEdgeLeft?.visibility = View.GONE; glassEdgeRight?.visibility = View.GONE
         glassInnerGlow?.visibility = View.GONE
-        glassCornerTL?.visibility = View.GONE
-        glassCornerTR?.visibility = View.GONE
-        glassCornerBL?.visibility = View.GONE
-        glassCornerBR?.visibility = View.GONE
+        glassCornerTL?.visibility = View.GONE; glassCornerTR?.visibility = View.GONE
+        glassCornerBL?.visibility = View.GONE; glassCornerBR?.visibility = View.GONE
         glassLightSweep?.visibility = View.GONE
     }
 
@@ -944,15 +861,12 @@ class FloatingTimerService : Service() {
         }
         headingText?.text = heading
 
-        statusDot?.text = "\u25cf "
-        statusDot?.setTextColor(state.statusColor())
-        statusText?.text = state.statusLabel()
-
-        // Pause/Resume icon
-        val isRunning = state.timerState == "running"
-        pauseResumeButton?.text = if (isRunning) "\u23f8" else "\u25b6"
-
-        focusTypeText?.text = "${state.focusTypeIcon}  ${state.focusTypeLabel}"
+        statusText?.text = when {
+            state.timerState == "running" -> "Focusing..."
+            state.timerState == "paused" -> "Paused"
+            state.timerState == "break" || state.activePhase == "break" -> "Break"
+            else -> "Idle"
+        }
 
         questionSection?.visibility = if (state.showQuestionControls) View.VISIBLE else View.GONE
         attemptedText?.text = state.questionsAttempted.toString() +
@@ -960,17 +874,13 @@ class FloatingTimerService : Service() {
         targetValueText?.text = "  Target ${state.targetQuestions}  "
         correctButton?.text = "\u2713  ${state.questionsCorrect}"
         incorrectButton?.text = "\u2715  ${state.questionsIncorrect}"
-        skippedButton?.text = "\u21b7  ${state.questionsSkipped}"
+        skippedButton?.text = "Skip  ${state.questionsSkipped}"
         undoButton?.isEnabled = state.undoAvailable
-        undoButton?.alpha = if (state.undoAvailable) 1f else 0.4f
+        undoButton?.alpha = if (state.undoAvailable) 1f else 0.45f
 
         val ratio = when {
-            state.mode == "stopwatch" -> {
-                val cycleLen = 25 * 60
-                Math.min(1f, (seconds % cycleLen).toFloat() / cycleLen)
-            }
-            state.totalSeconds > 0 ->
-                Math.max(0f, Math.min(1f, seconds.toFloat() / state.totalSeconds))
+            state.mode == "stopwatch" -> Math.min(1f, (seconds % (25 * 60)).toFloat() / (25 * 60))
+            state.totalSeconds > 0 -> Math.max(0f, Math.min(1f, seconds.toFloat() / state.totalSeconds))
             else -> 0f
         }
         progressFill?.post { progressFill?.scaleX = ratio }
@@ -980,72 +890,37 @@ class FloatingTimerService : Service() {
 
     private fun scaleButtonsToOverlay() {
         val lp = layoutParams ?: return
-        val overlayWidth = lp.width.toFloat()
-        val overlayHeight = lp.height.toFloat()
-        val wScale = Math.max(0.65f, Math.min(1.4f, overlayWidth / dp(340)))
-        val hScale = Math.max(0.65f, Math.min(1.4f, overlayHeight / dp(390)))
-        val scale = Math.min(wScale, hScale)
+        val w = lp.width.toFloat()
+        val h = lp.height.toFloat()
+        val scale = Math.min(
+            Math.max(0.65f, Math.min(1.4f, w / dp(340))),
+            Math.max(0.65f, Math.min(1.4f, h / dp(390)))
+        )
 
-        timerText?.textSize = Math.max(24f, 56f * scale)
-        headingText?.textSize = Math.max(8f, 11f * scale)
-        statusText?.textSize = Math.max(8f, 11f * scale)
-        focusTypeText?.textSize = Math.max(9f, 13f * scale)
-        focusTypeText?.setPadding(dp((14 * scale).toInt()), dp((5 * scale).toInt()), dp((14 * scale).toInt()), dp((5 * scale).toInt()))
+        timerText?.textSize = Math.max(24f, 50f * scale)
+        headingText?.textSize = Math.max(10f, 14f * scale)
+        statusText?.textSize = Math.max(10f, 14f * scale)
 
-        attemptedText?.textSize = Math.max(16f, 26f * scale)
-        targetValueText?.textSize = Math.max(9f, 12f * scale)
-
-        val btnH = Math.max(dp(32), (dp(44) * scale).toInt())
-        val btnPadH = Math.max(6, (12 * scale).toInt())
-        val btnTextSize = Math.max(10f, 13f * scale)
-        val btnRadius = Math.max(dp(10), dp((14 * scale).toInt()))
+        val btnH = Math.max(dp(28), (dp(40) * scale).toInt())
+        val btnTextSize = Math.max(9f, 12f * scale)
         listOf(correctButton, incorrectButton, skippedButton).forEach { btn ->
             btn?.let {
-                val params = it.layoutParams as? LinearLayout.LayoutParams
-                params?.height = btnH
-                params?.weight = 1f
-                it.layoutParams = params
+                (it.layoutParams as? LinearLayout.LayoutParams)?.let { p -> p.height = btnH; p.weight = 1f; it.layoutParams = p }
                 it.textSize = btnTextSize
-                it.setPadding(btnPadH, 0, btnPadH, 0)
-                val bg = it.background
-                if (bg is GradientDrawable) bg.cornerRadius = btnRadius.toFloat()
+                (it.background as? GradientDrawable)?.cornerRadius = dp(14).toFloat()
             }
         }
 
-        val pillH = Math.max(dp(28), (dp(38) * scale).toInt())
-        val pillTextSize = Math.max(9f, 12f * scale)
+        val pillH = Math.max(dp(28), (dp(36) * scale).toInt())
         listOf(targetButton, undoButton, themeButton).forEach { btn ->
             btn?.let {
-                val params = it.layoutParams as? LinearLayout.LayoutParams
-                params?.height = pillH
-                it.layoutParams = params
-                it.textSize = pillTextSize
-                val bg = it.background
-                if (bg is GradientDrawable) bg.cornerRadius = Math.max(dp(8), dp((14 * scale).toInt())).toFloat()
+                (it.layoutParams as? LinearLayout.LayoutParams)?.let { p -> p.height = pillH; it.layoutParams = p }
+                it.textSize = Math.max(9f, 12f * scale)
             }
-        }
-
-        val iconSize = Math.max(dp(28), (dp(36) * scale).toInt())
-        listOf(expandButton, closeButton).forEach { btn ->
-            btn?.let {
-                val params = it.layoutParams as? LinearLayout.LayoutParams
-                params?.width = iconSize
-                params?.height = iconSize
-                it.layoutParams = params
-                it.textSize = Math.max(12f, 16f * scale)
-            }
-        }
-
-        // Pause button scale
-        pauseResumeButton?.let {
-            val params = it.layoutParams as? LinearLayout.LayoutParams
-            params?.height = Math.max(dp(36), (dp(48) * scale).toInt())
-            it.layoutParams = params
-            it.textSize = Math.max(16f, 22f * scale)
         }
 
         val pad = Math.max(dp(12), (20 * scale).toInt())
-        contentView?.setPadding(pad, dp((18 * scale).toInt()), pad, pad)
+        contentView?.setPadding(pad, pad, pad, pad)
     }
 
     private fun handleDragTouch(view: View, event: MotionEvent): Boolean {
@@ -1053,33 +928,20 @@ class FloatingTimerService : Service() {
         val wm = windowManager ?: return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                dragging = false
-                touchStartX = event.rawX
-                touchStartY = event.rawY
-                windowStartX = lp.x
-                windowStartY = lp.y
-                return true
+                dragging = false; touchStartX = event.rawX; touchStartY = event.rawY
+                windowStartX = lp.x; windowStartY = lp.y; return true
             }
             MotionEvent.ACTION_MOVE -> {
-                val dx = Math.round(event.rawX - touchStartX)
-                val dy = Math.round(event.rawY - touchStartY)
+                val dx = Math.round(event.rawX - touchStartX); val dy = Math.round(event.rawY - touchStartY)
                 if (Math.abs(dx) > dp(3) || Math.abs(dy) > dp(3)) {
-                    dragging = true
-                    lp.x = windowStartX + dx
-                    lp.y = Math.max(0, windowStartY + dy)
+                    dragging = true; lp.x = windowStartX + dx; lp.y = Math.max(0, windowStartY + dy)
                     try { wm.updateViewLayout(rootView, lp) } catch (ignored: Exception) {}
                 }
                 return true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                if (dragging) {
-                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                        .putInt(PREF_X, lp.x)
-                        .putInt(PREF_Y, lp.y)
-                        .apply()
-                }
-                dragging = false
-                return false
+                if (dragging) getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putInt(PREF_X, lp.x).putInt(PREF_Y, lp.y).apply()
+                dragging = false; return false
             }
         }
         return false
@@ -1090,180 +952,75 @@ class FloatingTimerService : Service() {
         val wm = windowManager ?: return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                resizing = true
-                touchStartX = event.rawX
-                touchStartY = event.rawY
-                resizeStartWidth = lp.width
-                resizeStartHeight = lp.height
-                return true
+                resizing = true; touchStartX = event.rawX; touchStartY = event.rawY
+                resizeStartWidth = lp.width; resizeStartHeight = lp.height; return true
             }
             MotionEvent.ACTION_MOVE -> {
                 if (!resizing) return true
                 lp.width = clampOverlayWidth(resizeStartWidth + Math.round(event.rawX - touchStartX))
                 lp.height = clampOverlayHeight(resizeStartHeight + Math.round(event.rawY - touchStartY))
                 try { wm.updateViewLayout(rootView, lp) } catch (ignored: Exception) {}
-                scaleButtonsToOverlay()
-                return true
+                scaleButtonsToOverlay(); return true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (resizing) {
-                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                        .putInt(PREF_WIDTH, lp.width)
-                        .putInt(PREF_HEIGHT, lp.height)
-                        .apply()
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putInt(PREF_WIDTH, lp.width).putInt(PREF_HEIGHT, lp.height).apply()
                     scaleButtonsToOverlay()
                 }
-                resizing = false
-                return true
+                resizing = false; return true
             }
         }
         return false
     }
 
-    private fun updateTargetBy(delta: Int) {
-        setTarget(Math.max(0, Math.min(9999, state.targetQuestions + delta)))
-    }
+    private fun updateTargetBy(delta: Int) { setTarget(Math.max(0, Math.min(9999, state.targetQuestions + delta))) }
 
     private fun showTargetDialog() {
         val input = EditText(this).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER
-            isSingleLine = true
+            inputType = InputType.TYPE_CLASS_NUMBER; isSingleLine = true
             setText(if (state.targetQuestions > 0) state.targetQuestions.toString() else "")
-            setSelectAllOnFocus(true)
-            setPadding(dp(20), dp(12), dp(20), dp(12))
+            setSelectAllOnFocus(true); setPadding(dp(20), dp(12), dp(20), dp(12))
         }
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("Set target questions")
-            .setView(input)
+        val dialog = AlertDialog.Builder(this).setTitle("Set target questions").setView(input)
             .setNegativeButton("Cancel", null)
-            .setPositiveButton("Set") { _, _ ->
-                var v = 0
-                try { v = input.text.toString().trim().toInt() } catch (ignored: Exception) {}
-                setTarget(Math.max(0, Math.min(9999, v)))
-            }
+            .setPositiveButton("Set") { _, _ -> var v = 0; try { v = input.text.toString().trim().toInt() } catch (ignored: Exception) {}; setTarget(Math.max(0, Math.min(9999, v))) }
             .create()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && dialog.window != null) {
-            dialog.window!!.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-        }
-        dialog.setOnShowListener {
-            if (dialog.window != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                dialog.window!!.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-            }
-            input.requestFocus()
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && dialog.window != null) dialog.window!!.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
+        dialog.setOnShowListener { if (dialog.window != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) dialog.window!!.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY); input.requestFocus() }
         try { dialog.show() } catch (ignored: Exception) { updateTargetBy(5) }
     }
 
-    private fun setTarget(value: Int) {
-        state.targetQuestions = Math.max(0, Math.min(9999, value))
-        PipClient.postAction(this, "setTarget", state.targetQuestions)
-        renderDynamicFields()
-    }
+    private fun setTarget(value: Int) { state.targetQuestions = Math.max(0, Math.min(9999, value)); PipClient.postAction(this, "setTarget", state.targetQuestions); renderDynamicFields() }
 
     private fun resizeOverlay(w: Int, h: Int) {
-        val lp = layoutParams ?: return
-        val wm = windowManager ?: return
-        lp.width = clampOverlayWidth(w)
-        lp.height = clampOverlayHeight(h)
+        val lp = layoutParams ?: return; val wm = windowManager ?: return
+        lp.width = clampOverlayWidth(w); lp.height = clampOverlayHeight(h)
         try { wm.updateViewLayout(rootView, lp) } catch (ignored: Exception) {}
-        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-            .putInt(PREF_WIDTH, lp.width)
-            .putInt(PREF_HEIGHT, lp.height)
-            .apply()
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putInt(PREF_WIDTH, lp.width).putInt(PREF_HEIGHT, lp.height).apply()
         scaleButtonsToOverlay()
     }
 
-    // ── Button factories ──
-
-    private fun makeIconButton(text: String, action: () -> Unit) = Button(this).apply {
-        this.text = text
-        isAllCaps = false
-        textSize = 16f
-        typeface = Typeface.DEFAULT_BOLD
-        setPadding(dp(8), dp(2), dp(8), dp(2))
-        setOnClickListener { action() }
-        layoutParams = LinearLayout.LayoutParams(dp(36), dp(28)).apply {
-            setMargins(dp(4), 0, 0, 0)
-        }
-    }
-
-    private fun makeResultButton(text: String) = makePillButton(text).apply { textSize = 13f }
-
-    private fun makePillButton(text: String) = Button(this).apply {
-        this.text = text
-        isAllCaps = false
-        textSize = 12f
-        typeface = Typeface.DEFAULT_BOLD
-        setTextColor(Color.WHITE)
-        setPadding(dp(10), 0, dp(10), 0)
-        background = GradientDrawable().apply {
-            setColor(BRAND_500)
-            cornerRadius = dp(14).toFloat()
-        }
-    }
-
-    private fun styleSolidButton(button: Button?, bgColor: Int, textColor: Int) {
-        button ?: return
-        button.background = GradientDrawable().apply {
-            setColor(bgColor)
-            cornerRadius = dp(14).toFloat()
-        }
-        button.setTextColor(textColor)
-    }
-
-    private fun styleGlassButton(button: Button?, bgColor: Int, textColor: Int) {
-        button ?: return
-        button.background = GradientDrawable().apply {
-            setColor(bgColor)
-            cornerRadius = dp(14).toFloat()
-        }
-        button.setTextColor(textColor)
-    }
-
-    private fun stylePillButton(button: Button?, bgColor: Int, textColor: Int, strokeColor: Int) {
-        button ?: return
-        button.background = GradientDrawable().apply {
-            setColor(bgColor)
-            cornerRadius = dp(14).toFloat()
-            if (strokeColor != Color.TRANSPARENT) setStroke(dp(1), strokeColor)
-        }
-        button.setTextColor(textColor)
-    }
-
     private fun formatSeconds(totalSeconds: Int): String {
-        val s = Math.max(0, totalSeconds)
-        val days = s / 86400
-        val hours = (s % 86400) / 3600
-        val minutes = (s % 3600) / 60
-        val secs = s % 60
+        val s = Math.max(0, totalSeconds); val d = s / 86400; val h = (s % 86400) / 3600; val m = (s % 3600) / 60; val sec = s % 60
         val two = { v: Int -> if (v < 10) "0$v" else v.toString() }
-        if (days > 0) return "${days}d $hours:${two(minutes)}:${two(secs)}"
-        if (hours > 0) return "$hours:${two(minutes)}:${two(secs)}"
-        return "$minutes:${two(secs)}"
+        if (d > 0) return "${d}d $h:${two(m)}:${two(sec)}"
+        if (h > 0) return "$h:${two(m)}:${two(sec)}"
+        return "$m:${two(sec)}"
     }
 
     private fun startLightSweep() {
         val sweep = glassLightSweep ?: return
-        sweep.alpha = 0f
-        sweep.translationX = -sweep.width.toFloat() - dp(100).toFloat()
-        sweep.animate()
-            .translationX(sweep.width.toFloat() + dp(100).toFloat())
-            .alpha(0.5f)
-            .setDuration(2500)
+        sweep.alpha = 0f; sweep.translationX = -sweep.width.toFloat() - dp(100).toFloat()
+        sweep.animate().translationX(sweep.width.toFloat() + dp(100).toFloat()).alpha(0.5f).setDuration(2500)
             .setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
-            .withEndAction {
-                sweep.animate().alpha(0f).setDuration(800).start()
-            }
-            .start()
+            .withEndAction { sweep.animate().alpha(0f).setDuration(800).start() }.start()
     }
 
     private fun dp(value: Int): Int = Math.round(value * resources.displayMetrics.density)
 
     private fun clampOverlayWidth(value: Int): Int {
-        val config = resources.configuration.orientation
         val screenW = resources.displayMetrics.widthPixels
-        val landscape = config == Configuration.ORIENTATION_LANDSCAPE
-        val max = if (landscape)
+        val max = if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
             Math.max(dp(280), (screenW * 0.36f).toInt())
         else Math.max(dp(280), Math.min(dp(440), screenW - dp(24)))
         return Math.max(dp(240), Math.min(max, value))
@@ -1271,7 +1028,6 @@ class FloatingTimerService : Service() {
 
     private fun clampOverlayHeight(value: Int): Int {
         val screenH = resources.displayMetrics.heightPixels
-        val max = Math.max(dp(240), (screenH * 0.70f).toInt())
-        return Math.max(dp(200), Math.min(max, value))
+        return Math.max(dp(200), Math.min(Math.max(dp(240), (screenH * 0.70f).toInt()), value))
     }
 }
