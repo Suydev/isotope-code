@@ -96,6 +96,7 @@ class FloatingTimerService : Service() {
     private var state = TimerState()
     private var foregroundStarted = false
     private var lastSeq = -1L
+    private var manualStart = false
     private var dragging = false
     private var resizing = false
     private var touchStartX = 0f
@@ -116,8 +117,8 @@ class FloatingTimerService : Service() {
                 if (!ok) {
                     // Server unreachable — keep last known state, show stale indicator
                 }
-                // Auto-stop when timer becomes inactive
-                if (!state.isActive() && foregroundStarted) {
+                // Auto-stop when timer becomes inactive (only for auto-started overlays)
+                if (!state.isActive() && foregroundStarted && !manualStart) {
                     handler.postDelayed({ stopSelf() }, 2000)
                 }
             }
@@ -147,6 +148,8 @@ class FloatingTimerService : Service() {
         if (action == "STOP") { stopSelf(); return START_NOT_STICKY }
 
         if (!hasOverlayPermission()) { stopSelf(); return START_NOT_STICKY }
+
+        manualStart = intent?.getBooleanExtra("MANUAL_START", false) ?: false
 
         ensureForeground()
         ensureOverlay()

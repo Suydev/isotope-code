@@ -270,11 +270,30 @@ class PipActivity : Activity() {
 
     private fun startOverlay() {
         if (!lastCheckedPermission) {
-            Toast.makeText(this, "Grant overlay permission first", Toast.LENGTH_SHORT).show()
-            requestOverlayPermission()
+            AlertDialog.Builder(this)
+                .setTitle("Permission Required")
+                .setMessage("Display over other apps permission is needed for the timer overlay.")
+                .setPositiveButton("Grant") { _, _ -> requestOverlayPermission() }
+                .setNegativeButton("Cancel", null)
+                .show()
             return
         }
-        val intent = Intent(this, FloatingTimerService::class.java)
+        if (!serverOk) {
+            AlertDialog.Builder(this)
+                .setTitle("Server Unreachable")
+                .setMessage("Cannot reach the server at ${getServerUrl()}. The overlay will show stale data or won't work.")
+                .setPositiveButton("Start Anyway") { _, _ -> launchOverlay(true) }
+                .setNegativeButton("Cancel", null)
+                .show()
+            return
+        }
+        launchOverlay(true)
+    }
+
+    private fun launchOverlay(manual: Boolean) {
+        val intent = Intent(this, FloatingTimerService::class.java).apply {
+            putExtra("MANUAL_START", manual)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
         } else {
