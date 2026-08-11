@@ -11,10 +11,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Color
-import android.graphics.RenderEffect
-import android.graphics.RenderNode
-import android.graphics.RuntimeShader
-import android.graphics.Shader
 import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -131,15 +127,7 @@ class FloatingTimerService : Service() {
 
     private val tick = object : Runnable {
         override fun run() {
-        // Start light sweep animation for Apple theme
-        if (isApple) {
-            handler.postDelayed({ startLightSweep() }, 300)
-        } else {
-            glassLightSweep?.animate()?.cancel()
-            glassLightSweep?.alpha = 0f
-        }
-
-        renderDynamicFields()
+            renderDynamicFields()
             handler.postDelayed(this, TICK_MS)
         }
     }
@@ -669,6 +657,14 @@ class FloatingTimerService : Service() {
                     })
                 }
             }
+        }
+
+        // Start light sweep animation for Apple theme
+        if (isApple) {
+            handler.postDelayed({ startLightSweep() }, 300)
+        } else {
+            glassLightSweep?.animate()?.cancel()
+            glassLightSweep?.alpha = 0f
         }
 
         renderDynamicFields()
