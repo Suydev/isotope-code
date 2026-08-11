@@ -448,12 +448,9 @@ class FloatingTimerService : Service() {
     private fun renderGlassTheme(card: LinearLayout, isBreak: Boolean) {
         // iOS liquid glass: frosted translucent white with subtle depth
         card.background = GradientDrawable().apply {
-            colors = intArrayOf(
-                Color.argb(120, 255, 255, 255),  // frosted white top
-                Color.argb(90, 240, 240, 245))   // slightly denser bottom
+            setColor(Color.argb(110, 248, 248, 252))
             cornerRadius = dp(28).toFloat()
-            setStroke(dp(1), Color.argb(60, 255, 255, 255))
-            gradientType = GradientDrawable.LINEAR_GRADIENT_TO_BOTTOM
+            setStroke(dp(1), Color.argb(50, 255, 255, 255))
         }
 
         // Progress strip — vivid brand color on glass
