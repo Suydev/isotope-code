@@ -354,7 +354,6 @@ class FloatingTimerService : Service() {
             includeFontPadding = false
         }
         countRow.addView(attemptedText)
-        countRow.addView(targetValueText)
         leftCol.addView(subjectLabel)
         leftCol.addView(countRow)
         attemptRow.addView(leftCol, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
