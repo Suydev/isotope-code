@@ -286,10 +286,13 @@ class FloatingTimerService : Service() {
 
         expandButton = makeIconButton("\u2197") {
             PipClient.postAction(this@FloatingTimerService, "expand", -1)
-            val intent = Intent(this, PipActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            val intent = Intent(this, PipActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                putExtra("FROM_OVERLAY", true)
+            }
             startActivity(intent)
-            stopSelf()
         }
         closeButton = makeIconButton("\u00d7") {
             PipClient.postAction(this@FloatingTimerService, "close", -1)
@@ -494,6 +497,10 @@ class FloatingTimerService : Service() {
     private fun renderAll() {
         val card = cardView ?: return
         val isBreak = state.timerState == "break" || state.activePhase == "break"
+
+        // Read latest theme from prefs (in case settings changed it)
+        currentTheme = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getString(PREF_THEME, THEME_DARK) ?: THEME_DARK
 
         when (currentTheme) {
             THEME_APPLE -> renderAppleGlass(card, isBreak)

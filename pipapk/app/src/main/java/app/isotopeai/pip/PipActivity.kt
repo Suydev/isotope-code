@@ -253,6 +253,12 @@ class PipActivity : Activity() {
                 setOnClickListener {
                     getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                         .putString("overlay_theme", value).apply()
+                    // Apply to running overlay service immediately
+                    val svcIntent = Intent(this@PipActivity, FloatingTimerService::class.java).apply {
+                        action = "SET_THEME"
+                        putExtra("THEME_VALUE", value)
+                    }
+                    try { startService(svcIntent) } catch (ignored: Exception) {}
                     Toast.makeText(this@PipActivity, "Theme: $label", Toast.LENGTH_SHORT).show()
                     // Refresh all three buttons
                     (parent as? LinearLayout)?.let { row ->
