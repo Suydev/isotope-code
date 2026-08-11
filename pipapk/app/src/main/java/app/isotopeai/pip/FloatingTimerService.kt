@@ -84,6 +84,7 @@ class FloatingTimerService : Service() {
     private var glassCornerBL: View? = null
     private var glassCornerBR: View? = null
     private var glassLightSweep: View? = null
+    private var subjectLabel: TextView? = null
     private var settingsRow: LinearLayout? = null
 
     private var state = TimerState()
@@ -319,7 +320,7 @@ class FloatingTimerService : Service() {
             orientation = LinearLayout.HORIZONTAL
         }
         // Subject label: font-size 12.48px, opacity 0.66, weight 700
-        val subjectLabel = TextView(this).apply {
+        subjectLabel = TextView(this).apply {
             textSize = 12f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             includeFontPadding = false
@@ -479,6 +480,20 @@ class FloatingTimerService : Service() {
         settingsRow!!.addView(sizeSmall, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
         settingsRow!!.addView(sizeMed, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
         settingsRow!!.addView(sizeLg, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
+
+        // Close button — opens PipActivity and stops overlay
+        closeButton = Button(this).apply {
+            text = "\u2715"; isAllCaps = false; textSize = 12f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(8), dp(6), dp(8), dp(6))
+            setOnClickListener {
+                stopSelf()
+                startActivity(Intent(this@FloatingTimerService, PipActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+            }
+        }
+        settingsRow!!.addView(closeButton, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
 
         // Assemble content
         // PC PiP gap: 14px between elements
@@ -668,6 +683,9 @@ class FloatingTimerService : Service() {
 
         focusTypeText?.visibility = View.GONE
 
+        // Subject label — PC PiP: opacity 0.66, weight 700
+        subjectLabel?.setTextColor(Color.argb(168, 255, 255, 255))
+
         // PC PiP scoring buttons: solid brand colors
         correctButton?.background = GradientDrawable().apply {
             setColor(Color.parseColor("#059669"))
@@ -719,6 +737,13 @@ class FloatingTimerService : Service() {
         }
         pauseResumeButton?.setTextColor(Color.WHITE)
 
+        closeButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(17, 255, 255, 255))
+            cornerRadius = dp(999).toFloat()
+            setStroke(dp(1), Color.argb(40, 255, 255, 255))
+        }
+        closeButton?.setTextColor(Color.WHITE)
+
         // Subject label
         (attemptedText?.parent as? LinearLayout)?.let { parent ->
             for (i in 0 until parent.childCount) {
@@ -765,6 +790,8 @@ class FloatingTimerService : Service() {
 
         focusTypeText?.visibility = View.GONE
 
+        subjectLabel?.setTextColor(Color.argb(168, 255, 255, 255))
+
         correctButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#059669")); cornerRadius = dp(14).toFloat() }
         correctButton?.setTextColor(Color.WHITE)
         incorrectButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#e11d48")); cornerRadius = dp(14).toFloat() }
@@ -782,6 +809,9 @@ class FloatingTimerService : Service() {
 
         pauseResumeButton?.background = GradientDrawable().apply { setColor(Color.argb(17, 255, 255, 255)); cornerRadius = dp(14).toFloat(); setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
         pauseResumeButton?.setTextColor(Color.WHITE)
+
+        closeButton?.background = GradientDrawable().apply { setColor(Color.argb(17, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
+        closeButton?.setTextColor(Color.WHITE)
     }
 
     // ═══════════════════════════════════════════════════════
@@ -830,6 +860,9 @@ class FloatingTimerService : Service() {
 
         focusTypeText?.visibility = View.GONE
 
+        // Subject label — Apple theme: dark text on light bg
+        subjectLabel?.setTextColor(Color.argb(168, 12, 12, 18))
+
         correctButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#059669")); cornerRadius = dp(14).toFloat() }
         correctButton?.setTextColor(Color.WHITE)
         incorrectButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#e11d48")); cornerRadius = dp(14).toFloat() }
@@ -852,6 +885,13 @@ class FloatingTimerService : Service() {
             setStroke(dp(1), Color.argb(40, 24, 24, 27))
         }
         pauseResumeButton?.setTextColor(Color.parseColor("#18181b"))
+
+        closeButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(204, 255, 255, 255))
+            cornerRadius = dp(999).toFloat()
+            setStroke(dp(1), Color.argb(40, 24, 24, 27))
+        }
+        closeButton?.setTextColor(Color.parseColor("#18181b"))
 
         startLightSweep()
     }
@@ -893,6 +933,7 @@ class FloatingTimerService : Service() {
         }
 
         questionSection?.visibility = if (state.showQuestionControls) View.VISIBLE else View.GONE
+        subjectLabel?.text = "${state.focusTypeIcon} ${state.focusTypeLabel}"
         attemptedText?.text = state.questionsAttempted.toString() +
             if (state.targetQuestions > 0) " / ${state.targetQuestions}" else ""
         targetValueText?.text = "  Target ${state.targetQuestions}  "
@@ -908,6 +949,20 @@ class FloatingTimerService : Service() {
             else -> 0f
         }
         progressFill?.post { progressFill?.scaleX = ratio }
+
+        // Pulse animation on status dot when running (matches PC PiP CSS pulse)
+        statusDot?.animate()?.cancel()
+        if (state.timerState == "running") {
+            statusDot?.animate()?.alpha(0.5f)?.setDuration(1000)
+                ?.setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
+                ?.withEndAction {
+                    statusDot?.animate()?.alpha(1f)?.setDuration(1000)
+                        ?.setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
+                        ?.withEndAction { /* repeat handled by next tick */ }.start()
+                }.start()
+        } else {
+            statusDot?.alpha = 1f
+        }
 
         scaleButtonsToOverlay()
     }
