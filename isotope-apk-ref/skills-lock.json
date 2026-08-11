@@ -1,6 +1,12 @@
- {
+{
   "version": 1,
   "skills": {
+    "android-kotlin": {
+      "source": "alinaqi/claude-bootstrap",
+      "sourceType": "github",
+      "skillPath": "skills/android-kotlin/SKILL.md",
+      "computedHash": "0bb451490ccb9e02daed97d9cd2e84071a874ba46ed5ecf5a491c2fa27f0828f"
+    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",

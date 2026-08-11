@@ -5,14 +5,12 @@
 
 ---
 
-## 0. LATEST STATE (2026-08-10, night — pipapk rebuilt to pipapk.md Option A; CI pending)
+## 0. LATEST STATE (2026-08-10 18:45 — pipapk Option A rebuild; CI pending)
 
-- **User: "see planning file of apk — you have overdone" → the plan is `pipapk.md` in the repo root
-  (RESEARCH PLAN, Option A RECOMMENDED):** native PiP companion, **NO WebView at all** vs my
-  build; poll `GET /api/pip/state` every **750ms**; render card natively; POST actions to
-  `/api/pip/action`; enter system PiP (aspect 340:390) automatically on active state;
-  "server offline" badge + last-known state; overlay service = bonus mode. My prior build
-  (WebView /focus shell + SSE subscription + 1s poll + 250ms) was Option B/over-engineered → rebuilt.
+- **User directive (late night):** "see planning file of apk — you have overdone" → the plan is `pipapk.md` in the repo root (Option A RECOMMENDED): native PiP companion, NO WebView; 750ms poll of `GET /api/pip/state`; native card render; POST actions to `/api/pip/action`; auto system PiP 340:390; offline badge.
+- **Fix committed (0b3f2c9):** Added missing `targetEditorRow: LinearLayout?` field declaration in `FloatingTimerService.kt:83` to resolve compile error `Unresolved reference: targetEditorRow`.
+- **ADBs in rotation (update on connect):** Primary: 127.0.0.1:34111 (sleepy); Secondary: 10.171.170.148:45875 (just updated).
+- **Pending:** Trigger CI to verify build 0b3f2c9 green → download APK → install on 10.171.170.148:45875.
 - **Rebuilt (uncommitted, in progress of CI):**
   - `TimerState.kt` (new): shared snapshot parser (keys = PIP_BRIDGE_JS relay 1:1), moved out of service.
   - `PipClient.kt` (new): zero-dep HTTP client — `fetchState(ui){state,ok,seq}` + `postAction(type,value)`.
@@ -42,7 +40,7 @@
 
 ---
 
-## 2. KEY FINDING — User wants the REAL UI (2026-08-10)
+## 1. Products & Purpose
 
 - User rejected the custom-drawn Kotlin card + 10ms polling mirror ("video streaming inside an app", "dumb thing", "bad ui").
 - User directive: **"i want it like isotope-apk"** → the APK must show the actual isotope web UI, not a bespoke mirror card.

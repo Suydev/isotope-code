@@ -27,29 +27,22 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 
-/**
- * pipapk main activity — settings + overlay launcher.
- *
- * From here the user can:
- *   - Check/enable overlay permission
- *   - Start the floating timer overlay manually
- *   - Configure server URL (default localhost)
- *   - See connection status
- *
- * The overlay auto-starts when the server detects an active timer.
- * The overlay auto-stops when the timer becomes inactive.
- */
 class PipActivity : Activity() {
 
     companion object {
         private const val PREFS_NAME = "pipapk_settings"
         private const val KEY_SERVER_URL = "server_url"
+        private const val KEY_AUTO_START = "auto_start"
         private const val DEFAULT_SERVER_URL = "http://127.0.0.1:3000"
+        private const val AUTO_POLL_MS = 5000L
     }
 
     private val ui = Handler(Looper.getMainLooper())
     private var serverOk = false
     private var lastCheckedPermission = false
+    private var autoStartEnabled = true
+    private var overlayRunning = false
+    private var lastActiveSeen = false
 
     private lateinit var statusDot: TextView
     private lateinit var statusText: TextView
@@ -57,13 +50,40 @@ class PipActivity : Activity() {
     private lateinit var permissionText: TextView
     private lateinit var overlayButton: Button
     private lateinit var permissionButton: Button
+    private lateinit var autoStartToggle: Button
+    private lateinit var urlEditText: EditText
 
-    // ───────────────────────── Lifecycle ─────────────────────────────────────
+    private val autoStartPoll = object : Runnable {
+        override fun run() {
+            if (!autoStartEnabled || !serverOk || !lastCheckedPermission) {
+                ui.postDelayed(this, AUTO_POLL_MS)
+                return
+            }
+            Thread {
+                val s = fetchTimerState()
+                val isActive = s?.isActive() == true
+                ui.post {
+                    if (isActive && !lastActiveSeen && !overlayRunning) {
+                        launchOverlay(false)
+                        overlayRunning = true
+                    }
+                    if (!isActive) {
+                        overlayRunning = false
+                    }
+                    lastActiveSeen = isActive
+                }
+            }.start()
+            ui.postDelayed(this, AUTO_POLL_MS)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        autoStartEnabled = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getBoolean(KEY_AUTO_START, true)
         setContentView(buildUi())
         checkStatus()
+        ui.postDelayed(autoStartPoll, AUTO_POLL_MS)
     }
 
     override fun onResume() {
@@ -71,7 +91,10 @@ class PipActivity : Activity() {
         checkStatus()
     }
 
-    // ───────────────────────── UI construction ───────────────────────────────
+    override fun onDestroy() {
+        ui.removeCallbacks(autoStartPoll)
+        super.onDestroy()
+    }
 
     private fun buildUi(): View {
         val root = LinearLayout(this).apply {
@@ -80,7 +103,6 @@ class PipActivity : Activity() {
             setBackgroundColor(Color.rgb(9, 9, 11))
         }
 
-        // ── Header ───────────────────────────────────────────────────────────
         val header = TextView(this).apply {
             text = "pipapk"
             textSize = 20f
@@ -103,7 +125,6 @@ class PipActivity : Activity() {
             bottomMargin = dp(24)
         })
 
-        // ── Connection status card ───────────────────────────────────────────
         val statusCard = makeCard()
         val statusRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -128,7 +149,6 @@ class PipActivity : Activity() {
             bottomMargin = dp(12)
         })
 
-        // ── Permission status card ───────────────────────────────────────────
         val permCard = makeCard()
         val permRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -153,7 +173,6 @@ class PipActivity : Activity() {
             bottomMargin = dp(12)
         })
 
-        // ── Grant permission button ──────────────────────────────────────────
         permissionButton = makeButton("Grant Overlay Permission").apply {
             setOnClickListener { requestOverlayPermission() }
         }
@@ -162,7 +181,6 @@ class PipActivity : Activity() {
             bottomMargin = dp(12)
         })
 
-        // ── Start overlay button ─────────────────────────────────────────────
         overlayButton = makeButton("Start Overlay").apply {
             setOnClickListener { startOverlay() }
         }
@@ -171,7 +189,19 @@ class PipActivity : Activity() {
             bottomMargin = dp(12)
         })
 
-        // ── Server URL ───────────────────────────────────────────────────────
+        autoStartToggle = makeButton(if (autoStartEnabled) "Auto-Start: ON" else "Auto-Start: OFF").apply {
+            setOnClickListener {
+                autoStartEnabled = !autoStartEnabled
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                    .putBoolean(KEY_AUTO_START, autoStartEnabled).apply()
+                text = if (autoStartEnabled) "Auto-Start: ON" else "Auto-Start: OFF"
+            }
+        }
+        root.addView(autoStartToggle, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(48)).apply {
+            bottomMargin = dp(16)
+        })
+
         val urlLabel = TextView(this).apply {
             text = "Server URL"
             textSize = 12f
@@ -181,29 +211,46 @@ class PipActivity : Activity() {
         }
         root.addView(urlLabel, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(16)
+            topMargin = dp(8)
             bottomMargin = dp(8)
         })
 
-        val urlCard = makeCard()
-        val urlText = TextView(this).apply {
-            text = getServerUrl()
+        urlEditText = EditText(this).apply {
+            setText(getServerUrl())
             textSize = 14f
             typeface = Typeface.MONOSPACE
-            setTextColor(Color.rgb(161, 161, 170))
+            setTextColor(Color.rgb(200, 200, 210))
+            setBackgroundColor(Color.rgb(24, 24, 27))
             setPadding(dp(16), dp(12), dp(16), dp(12))
+            setSingleLine(true)
+            inputType = InputType.TYPE_TEXT_VARIATION_URI
         }
-        urlCard.addView(urlText)
-        root.addView(urlCard, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+        root.addView(urlEditText, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(48)).apply {
+            bottomMargin = dp(8)
+        })
+
+        val saveUrlBtn = makeButton("Save URL").apply {
+            setOnClickListener {
+                val newUrl = urlEditText.text.toString().trim().trimEnd('/')
+                if (newUrl.isNotBlank()) {
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                        .putString(KEY_SERVER_URL, newUrl).apply()
+                    Toast.makeText(this@PipActivity, "URL saved: $newUrl", Toast.LENGTH_SHORT).show()
+                    checkServer()
+                }
+            }
+        }
+        root.addView(saveUrlBtn, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(48)).apply {
             bottomMargin = dp(16)
         })
 
-        // ── Info text ────────────────────────────────────────────────────────
         val info = TextView(this).apply {
-            text = "The overlay auto-starts when the server detects an active timer.\n" +
+            text = "Auto-start: overlay launches when server detects an active timer.\n" +
                    "Press 'Start Overlay' to launch manually.\n" +
-                   "Overlay requires 'Display over other apps' permission."
+                   "Overlay requires 'Display over other apps' permission.\n" +
+                   "Theme: tap the snowflake icon in the overlay to toggle glass mode."
             textSize = 12f
             setTextColor(Color.rgb(113, 113, 122))
             setLineSpacing(dp(4).toFloat(), 1f)
@@ -216,8 +263,6 @@ class PipActivity : Activity() {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
     }
-
-    // ───────────────────────── Status checks ─────────────────────────────────
 
     private fun checkStatus() {
         checkServer()
@@ -256,8 +301,6 @@ class PipActivity : Activity() {
         permissionButton.visibility = if (has) View.GONE else View.VISIBLE
         overlayButton.alpha = if (has) 1f else 0.5f
     }
-
-    // ───────────────────────── Actions ───────────────────────────────────────
 
     private fun requestOverlayPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -299,10 +342,23 @@ class PipActivity : Activity() {
         } else {
             startService(intent)
         }
+        overlayRunning = true
         Toast.makeText(this, "Overlay started", Toast.LENGTH_SHORT).show()
     }
 
-    // ───────────────────────── Helpers ───────────────────────────────────────
+    private fun fetchTimerState(): TimerState? {
+        return try {
+            val url = PipClient.stateUrl(this)
+            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 2000
+            conn.readTimeout = 2000
+            val json = conn.inputStream.bufferedReader().use { it.readText() }
+            conn.disconnect()
+            TimerState.fromJson(json)
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     private fun getServerUrl(): String {
         return getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
