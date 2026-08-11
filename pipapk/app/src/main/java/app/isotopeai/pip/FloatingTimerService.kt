@@ -43,6 +43,7 @@ class FloatingTimerService : Service() {
         private const val PREF_THEME = "overlay_theme"
         private const val THEME_DARK = "dark"
         private const val THEME_GLASS = "glass"
+        private const val THEME_APPLE = "apple"
         private const val POLL_MS = 750L
         private const val TICK_MS = 250L
     }
@@ -80,6 +81,10 @@ class FloatingTimerService : Service() {
     private var undoButton: Button? = null
     private var targetButton: Button? = null
     private var themeButton: Button? = null
+    private var glassEdgeTop: View? = null
+    private var glassEdgeShine: View? = null
+    private var settingsRow: LinearLayout? = null
+    private var settingsExpanded = false
 
     private var state = TimerState()
     private var foregroundStarted = false
@@ -113,9 +118,7 @@ class FloatingTimerService : Service() {
 
     private val tick = object : Runnable {
         override fun run() {
-            if (state.isActive()) {
-                renderDynamicFields()
-            }
+            renderDynamicFields()
             handler.postDelayed(this, TICK_MS)
         }
     }
@@ -132,7 +135,18 @@ class FloatingTimerService : Service() {
         val action = intent?.action
         if (action == "STOP") { stopSelf(); return START_NOT_STICKY }
         if (action == "TOGGLE_THEME") {
-            currentTheme = if (currentTheme == THEME_GLASS) THEME_DARK else THEME_GLASS
+            currentTheme = when (currentTheme) {
+                THEME_DARK -> THEME_GLASS
+                THEME_GLASS -> THEME_APPLE
+                else -> THEME_DARK
+            }
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                .putString(PREF_THEME, currentTheme).apply()
+            renderAll()
+            return START_STICKY
+        }
+        if (action == "SET_THEME") {
+            currentTheme = intent.getStringExtra("THEME_VALUE") ?: THEME_DARK
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                 .putString(PREF_THEME, currentTheme).apply()
             renderAll()
@@ -396,18 +410,74 @@ class FloatingTimerService : Service() {
             })
         questionSection!!.addView(undoButton, undoParams)
 
+        // In-overlay customization row (always visible)
+        settingsRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        val themeLabel = when (currentTheme) {
+            THEME_APPLE -> "\u2734 Apple"
+            THEME_GLASS -> "\u2601 Glass"
+            else -> "\u263E Dark"
+        }
+        themeButton = makePillButton(themeLabel).apply {
+            textSize = 11f
+            setOnClickListener {
+                val intent = Intent(this@FloatingTimerService, FloatingTimerService::class.java)
+                intent.action = "TOGGLE_THEME"
+                startService(intent)
+            }
+        }
+        val sizeSmallBtn = makePillButton("S").apply {
+            textSize = 10f
+            setOnClickListener { resizeOverlay(dp(240), dp(280)) }
+        }
+        val sizeMedBtn = makePillButton("M").apply {
+            textSize = 10f
+            setOnClickListener { resizeOverlay(dp(300), dp(340)) }
+        }
+        val sizeLgBtn = makePillButton("L").apply {
+            textSize = 10f
+            setOnClickListener { resizeOverlay(dp(400), dp(440)) }
+        }
+        settingsRow!!.addView(themeButton, LinearLayout.LayoutParams(0, dp(28), 1f))
+        settingsRow!!.addView(sizeSmallBtn, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
+        settingsRow!!.addView(sizeMedBtn, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
+        settingsRow!!.addView(sizeLgBtn, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
+
         contentView!!.addView(header)
         contentView!!.addView(focusTypeText, chipParams)
         contentView!!.addView(timerText, timerParams)
         contentView!!.addView(statusRow)
         contentView!!.addView(questionSection, qsParams)
-        contentView!!.addView(themeButton, themeParams)
+        contentView!!.addView(settingsRow, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(28)).apply { topMargin = dp(6) })
 
         cardView!!.addView(contentView,
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT))
 
+        // Apple Liquid Glass edge highlights — layered on top of card
+        glassEdgeTop = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, dp(3)).apply {
+                gravity = Gravity.TOP
+            }
+            visibility = View.GONE
+        }
+        glassEdgeShine = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, dp(40)).apply {
+                gravity = Gravity.TOP
+            }
+            visibility = View.GONE
+        }
+
         root.addView(cardView,
             FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+
+        // Edge layers sit ON TOP of card in the FrameLayout
+        root.addView(glassEdgeTop)
+        root.addView(glassEdgeShine)
 
         // Resize handle
         val resizeHandle = makeText(16, true).apply {
@@ -425,11 +495,16 @@ class FloatingTimerService : Service() {
         val card = cardView ?: return
         val isBreak = state.timerState == "break" || state.activePhase == "break"
 
-        if (isGlassTheme()) {
-            renderGlassTheme(card, isBreak)
-        } else {
-            renderDarkTheme(card, isBreak)
+        when (currentTheme) {
+            THEME_APPLE -> renderAppleGlass(card, isBreak)
+            THEME_GLASS -> renderGlassTheme(card, isBreak)
+            else -> renderDarkTheme(card, isBreak)
         }
+
+        // Edge highlights only visible in apple theme
+        val isApple = currentTheme == THEME_APPLE
+        glassEdgeTop?.visibility = if (isApple) View.VISIBLE else View.GONE
+        glassEdgeShine?.visibility = if (isApple) View.VISIBLE else View.GONE
 
         // Resize handle adapts to theme
         val rootFrame = rootView as? FrameLayout
@@ -437,7 +512,11 @@ class FloatingTimerService : Service() {
             for (i in 0 until it.childCount) {
                 val child = it.getChildAt(i)
                 if (child is TextView && child.text == "\u25e2") {
-                    child.setTextColor(if (isGlassTheme()) Color.argb(60, 0, 0, 0) else Color.argb(60, 255, 255, 255))
+                    child.setTextColor(when (currentTheme) {
+                        THEME_APPLE -> Color.argb(80, 0, 0, 0)
+                        THEME_GLASS -> Color.argb(60, 255, 255, 255)
+                        else -> Color.argb(60, 255, 255, 255)
+                    })
                 }
             }
         }
@@ -446,39 +525,61 @@ class FloatingTimerService : Service() {
     }
 
     private fun renderGlassTheme(card: LinearLayout, isBreak: Boolean) {
-        // iOS liquid glass: frosted translucent white with subtle depth
+        // ── Apple Liquid Glass: multi-layer frosted card ──
+        // Layer 1: main card body — semi-transparent milky white
         card.background = GradientDrawable().apply {
-            setColor(Color.argb(110, 248, 248, 252))
+            setColor(Color.argb(130, 245, 245, 250))
             cornerRadius = dp(28).toFloat()
-            setStroke(dp(1), Color.argb(50, 255, 255, 255))
         }
+        card.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
 
-        // Progress strip — vivid brand color on glass
-        val stripColor = if (isBreak) SKY_400 else BRAND_500
-        progressFill?.background = GradientDrawable().apply {
-            setColor(stripColor)
-            cornerRadius = dp(2).toFloat()
-        }
-
-        progressContainer?.background = GradientDrawable().apply {
-            setColor(Color.argb(25, 139, 92, 246))
+        // Layer 2: top edge highlight — bright white bevel (simulates light refraction)
+        glassEdgeTop?.visibility = View.VISIBLE
+        glassEdgeTop?.background = GradientDrawable().apply {
+            colors = intArrayOf(
+                Color.argb(120, 255, 255, 255),  // bright center
+                Color.argb(0, 255, 255, 255))     // fade out
             cornerRadii = floatArrayOf(
                 dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(),
                 0f, 0f, 0f, 0f)
         }
 
-        // Focus chip — tinted glass pill
-        focusTypeText?.background = GradientDrawable().apply {
-            setColor(Color.argb(40, 139, 92, 246))
-            cornerRadius = dp(999).toFloat()
-            setStroke(dp(1), Color.argb(50, 139, 92, 246))
+        // Layer 3: inner shine — subtle white glow from top
+        glassEdgeShine?.visibility = View.VISIBLE
+        glassEdgeShine?.background = GradientDrawable().apply {
+            colors = intArrayOf(
+                Color.argb(50, 255, 255, 255),
+                Color.argb(0, 255, 255, 255))
+            cornerRadii = floatArrayOf(
+                dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(),
+                0f, 0f, 0f, 0f)
         }
-        focusTypeText?.setTextColor(Color.rgb(109, 40, 217))  // deep violet text
 
-        // Text colors — dark on frosted glass (iOS style)
-        val textPrimary = Color.rgb(20, 20, 25)    // near-black for timer
-        val textSecondary = Color.rgb(80, 80, 95)  // muted for labels
-        val textTertiary = Color.rgb(120, 120, 140) // very muted
+        // Progress strip
+        val stripColor = if (isBreak) SKY_400 else BRAND_500
+        progressFill?.background = GradientDrawable().apply {
+            setColor(stripColor)
+            cornerRadius = dp(2).toFloat()
+        }
+        progressContainer?.background = GradientDrawable().apply {
+            setColor(Color.argb(20, 139, 92, 246))
+            cornerRadii = floatArrayOf(
+                dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(),
+                0f, 0f, 0f, 0f)
+        }
+
+        // Focus chip — frosted pill with tint
+        focusTypeText?.background = GradientDrawable().apply {
+            setColor(Color.argb(50, 139, 92, 246))
+            cornerRadius = dp(999).toFloat()
+            setStroke(dp(1), Color.argb(60, 139, 92, 246))
+        }
+        focusTypeText?.setTextColor(Color.rgb(90, 40, 200))
+
+        // Text — dark on light frosted glass
+        val textPrimary = Color.rgb(15, 15, 20)
+        val textSecondary = Color.rgb(70, 70, 85)
+        val textTertiary = Color.rgb(110, 110, 130)
 
         headingText?.setTextColor(textSecondary)
         timerText?.setTextColor(textPrimary)
@@ -486,33 +587,119 @@ class FloatingTimerService : Service() {
         attemptedText?.setTextColor(textPrimary)
         targetValueText?.setTextColor(textTertiary)
 
-        // Expand button — frosted glass tinted
+        // Expand button — frosted tinted glass
         expandButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(35, 139, 92, 246))
+            setColor(Color.argb(40, 139, 92, 246))
             cornerRadius = dp(12).toFloat()
             setStroke(dp(1), Color.argb(30, 139, 92, 246))
         }
-        expandButton?.setTextColor(Color.rgb(109, 40, 217))  // violet text
+        expandButton?.setTextColor(Color.rgb(90, 40, 200))
 
-        // Close button — subtle glass
+        // Close button
         closeButton?.background = GradientDrawable().apply {
             setColor(Color.argb(25, 0, 0, 0))
             cornerRadius = dp(12).toFloat()
-            setStroke(dp(1), Color.argb(20, 0, 0, 0))
         }
         closeButton?.setTextColor(textSecondary)
 
-        // Result buttons — glass tints with COLORED text (not white!)
-        styleButtonGlass(correctButton, Color.argb(45, 5, 150, 105), Color.rgb(2, 120, 85), Color.argb(30, 5, 150, 105))
-        styleButtonGlass(incorrectButton, Color.argb(45, 225, 29, 72), Color.rgb(190, 20, 60), Color.argb(30, 225, 29, 72))
-        styleButtonGlass(skippedButton, Color.argb(45, 217, 119, 6), Color.rgb(180, 95, 0), Color.argb(30, 217, 119, 6))
+        // Result buttons — colored glass tint, colored text (NOT white)
+        styleButtonGlass(correctButton, Color.argb(55, 5, 150, 105), Color.rgb(0, 110, 75), Color.argb(35, 5, 150, 105))
+        styleButtonGlass(incorrectButton, Color.argb(55, 225, 29, 72), Color.rgb(180, 15, 55), Color.argb(35, 225, 29, 72))
+        styleButtonGlass(skippedButton, Color.argb(55, 217, 119, 6), Color.rgb(170, 85, 0), Color.argb(35, 217, 119, 6))
 
-        // Target / undo — frosted pills
-        styleButtonGlass(targetButton, Color.argb(25, 0, 0, 0), textSecondary, Color.argb(25, 0, 0, 0))
-        styleButtonGlass(undoButton, Color.TRANSPARENT, textTertiary, Color.argb(25, 0, 0, 0))
+        // Target / undo pills
+        styleButtonGlass(targetButton, Color.argb(30, 0, 0, 0), textSecondary, Color.argb(25, 0, 0, 0))
+        styleButtonGlass(undoButton, Color.TRANSPARENT, textTertiary, Color.argb(20, 0, 0, 0))
 
-        // Theme toggle — glass pill
-        styleButtonGlass(themeButton, Color.argb(20, 139, 92, 246), Color.rgb(109, 40, 217), Color.argb(25, 139, 92, 246))
+        // Settings row buttons — frosted glass pills
+        styleButtonGlass(themeButton, Color.argb(35, 139, 92, 246), Color.rgb(90, 40, 200), Color.argb(30, 139, 92, 246))
+    }
+
+    private fun renderAppleGlass(card: LinearLayout, isBreak: Boolean) {
+        // ── Apple Liquid Glass: milky translucent body + edge highlights ──
+
+        // Card body — semi-transparent milky white
+        card.background = GradientDrawable().apply {
+            setColor(Color.argb(130, 240, 240, 248))
+            cornerRadius = dp(28).toFloat()
+        }
+
+        // Edge highlight layers (set in buildOverlayView, visibility toggled in renderAll)
+        glassEdgeTop?.background = GradientDrawable().apply {
+            colors = intArrayOf(
+                Color.argb(110, 255, 255, 255),
+                Color.argb(0, 255, 255, 255))
+            cornerRadii = floatArrayOf(
+                dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(),
+                0f, 0f, 0f, 0f)
+        }
+        glassEdgeShine?.background = GradientDrawable().apply {
+            colors = intArrayOf(
+                Color.argb(40, 255, 255, 255),
+                Color.argb(0, 255, 255, 255))
+            cornerRadii = floatArrayOf(
+                dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(),
+                0f, 0f, 0f, 0f)
+        }
+
+        // Progress strip
+        val stripColor = if (isBreak) SKY_400 else BRAND_500
+        progressFill?.background = GradientDrawable().apply {
+            setColor(stripColor)
+            cornerRadius = dp(2).toFloat()
+        }
+        progressContainer?.background = GradientDrawable().apply {
+            setColor(Color.argb(18, 139, 92, 246))
+            cornerRadii = floatArrayOf(
+                dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(),
+                0f, 0f, 0f, 0f)
+        }
+
+        // Focus chip — frosted pill with deep violet tint
+        focusTypeText?.background = GradientDrawable().apply {
+            setColor(Color.argb(55, 139, 92, 246))
+            cornerRadius = dp(999).toFloat()
+            setStroke(dp(1), Color.argb(60, 139, 92, 246))
+        }
+        focusTypeText?.setTextColor(Color.rgb(80, 30, 190))
+
+        // Text — dark on light frosted glass (Apple HIG style)
+        val textPrimary = Color.rgb(12, 12, 18)
+        val textSecondary = Color.rgb(65, 65, 80)
+        val textTertiary = Color.rgb(105, 105, 125)
+
+        headingText?.setTextColor(textSecondary)
+        timerText?.setTextColor(textPrimary)
+        statusText?.setTextColor(textSecondary)
+        attemptedText?.setTextColor(textPrimary)
+        targetValueText?.setTextColor(textTertiary)
+
+        // Expand button — frosted violet
+        expandButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(40, 139, 92, 246))
+            cornerRadius = dp(12).toFloat()
+            setStroke(dp(1), Color.argb(30, 139, 92, 246))
+        }
+        expandButton?.setTextColor(Color.rgb(80, 30, 190))
+
+        // Close button
+        closeButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(20, 0, 0, 0))
+            cornerRadius = dp(12).toFloat()
+        }
+        closeButton?.setTextColor(textSecondary)
+
+        // Result buttons — colored glass tint, colored text (NOT white)
+        styleButtonGlass(correctButton, Color.argb(60, 5, 150, 105), Color.rgb(0, 100, 70), Color.argb(40, 5, 150, 105))
+        styleButtonGlass(incorrectButton, Color.argb(60, 225, 29, 72), Color.rgb(170, 10, 50), Color.argb(40, 225, 29, 72))
+        styleButtonGlass(skippedButton, Color.argb(60, 217, 119, 6), Color.rgb(160, 80, 0), Color.argb(40, 217, 119, 6))
+
+        // Target / undo
+        styleButtonGlass(targetButton, Color.argb(30, 0, 0, 0), textSecondary, Color.argb(25, 0, 0, 0))
+        styleButtonGlass(undoButton, Color.TRANSPARENT, textTertiary, Color.argb(20, 0, 0, 0))
+
+        // Settings row — frosted pills
+        styleButtonGlass(themeButton, Color.argb(40, 139, 92, 246), Color.rgb(80, 30, 190), Color.argb(35, 139, 92, 246))
     }
 
     private fun renderDarkTheme(card: LinearLayout, isBreak: Boolean) {
@@ -566,6 +753,9 @@ class FloatingTimerService : Service() {
         styleButton(incorrectButton, ROSE_600, Color.WHITE, Color.TRANSPARENT)
         styleButton(skippedButton, AMBER_600, Color.WHITE, Color.TRANSPARENT)
         styleButton(undoButton, Color.TRANSPARENT, mutedColor, targetBorder)
+
+        // Settings row
+        styleButton(themeButton, Color.argb(30, 139, 92, 246), BRAND_500, Color.argb(30, 139, 92, 246))
     }
 
     private fun renderDynamicFields() {
@@ -738,6 +928,7 @@ class FloatingTimerService : Service() {
                 lp.width = clampOverlayWidth(resizeStartWidth + Math.round(event.rawX - touchStartX))
                 lp.height = clampOverlayHeight(resizeStartHeight + Math.round(event.rawY - touchStartY))
                 try { wm.updateViewLayout(rootView, lp) } catch (ignored: Exception) {}
+                scaleButtonsToOverlay()
                 return true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -746,6 +937,7 @@ class FloatingTimerService : Service() {
                         .putInt(PREF_WIDTH, lp.width)
                         .putInt(PREF_HEIGHT, lp.height)
                         .apply()
+                    scaleButtonsToOverlay()
                 }
                 resizing = false
                 return true
@@ -792,6 +984,19 @@ class FloatingTimerService : Service() {
         state.targetQuestions = Math.max(0, Math.min(9999, value))
         PipClient.postAction(this, "setTarget", state.targetQuestions)
         renderDynamicFields()
+    }
+
+    private fun resizeOverlay(w: Int, h: Int) {
+        val lp = layoutParams ?: return
+        val wm = windowManager ?: return
+        lp.width = clampOverlayWidth(w)
+        lp.height = clampOverlayHeight(h)
+        try { wm.updateViewLayout(rootView, lp) } catch (ignored: Exception) {}
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+            .putInt(PREF_WIDTH, lp.width)
+            .putInt(PREF_HEIGHT, lp.height)
+            .apply()
+        scaleButtonsToOverlay()
     }
 
     private fun makeText(sp: Int, bold: Boolean) = TextView(this).apply {
