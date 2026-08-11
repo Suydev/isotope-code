@@ -409,10 +409,10 @@ class FloatingTimerService : Service() {
         root.addView(cardView,
             FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
+        // Resize handle
         val resizeHandle = makeText(16, true).apply {
             text = "\u25e2"
             gravity = Gravity.CENTER
-            setTextColor(Color.argb(60, 255, 255, 255))
             setOnTouchListener { v, event -> handleResizeTouch(v, event) }
         }
         root.addView(resizeHandle,
@@ -430,61 +430,92 @@ class FloatingTimerService : Service() {
         } else {
             renderDarkTheme(card, isBreak)
         }
+
+        // Resize handle adapts to theme
+        val rootFrame = rootView as? FrameLayout
+        rootFrame?.let {
+            for (i in 0 until it.childCount) {
+                val child = it.getChildAt(i)
+                if (child is TextView && child.text == "\u25e2") {
+                    child.setTextColor(if (isGlassTheme()) Color.argb(60, 0, 0, 0) else Color.argb(60, 255, 255, 255))
+                }
+            }
+        }
+
         renderDynamicFields()
     }
 
     private fun renderGlassTheme(card: LinearLayout, isBreak: Boolean) {
+        // iOS liquid glass: frosted translucent white with subtle depth
         card.background = GradientDrawable().apply {
-            setColor(Color.argb(45, 18, 18, 24))
-            cornerRadius = dp(24).toFloat()
-            setStroke(dp(1), Color.argb(40, 255, 255, 255))
+            colors = intArrayOf(
+                Color.argb(120, 255, 255, 255),  // frosted white top
+                Color.argb(90, 240, 240, 245))   // slightly denser bottom
+            cornerRadius = dp(28).toFloat()
+            setStroke(dp(1), Color.argb(60, 255, 255, 255))
+            gradientType = GradientDrawable.LINEAR_GRADIENT_TO_BOTTOM
         }
 
+        // Progress strip — vivid brand color on glass
         val stripColor = if (isBreak) SKY_400 else BRAND_500
-        progressFill?.background = GradientDrawable().apply { setColor(stripColor) }
+        progressFill?.background = GradientDrawable().apply {
+            setColor(stripColor)
+            cornerRadius = dp(2).toFloat()
+        }
 
         progressContainer?.background = GradientDrawable().apply {
-            setColor(Color.argb(15, 139, 92, 246))
+            setColor(Color.argb(25, 139, 92, 246))
             cornerRadii = floatArrayOf(
-                dp(24).toFloat(), dp(24).toFloat(), dp(24).toFloat(), dp(24).toFloat(),
+                dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(),
                 0f, 0f, 0f, 0f)
         }
 
+        // Focus chip — tinted glass pill
         focusTypeText?.background = GradientDrawable().apply {
-            setColor(Color.argb(25, 139, 92, 246))
+            setColor(Color.argb(40, 139, 92, 246))
             cornerRadius = dp(999).toFloat()
-            setStroke(dp(1), Color.argb(40, 139, 92, 246))
+            setStroke(dp(1), Color.argb(50, 139, 92, 246))
         }
-        focusTypeText?.setTextColor(Color.rgb(196, 181, 253))
+        focusTypeText?.setTextColor(Color.rgb(109, 40, 217))  // deep violet text
 
-        val textWhite = Color.argb(220, 255, 255, 255)
-        val textMuted = Color.argb(150, 200, 200, 210)
+        // Text colors — dark on frosted glass (iOS style)
+        val textPrimary = Color.rgb(20, 20, 25)    // near-black for timer
+        val textSecondary = Color.rgb(80, 80, 95)  // muted for labels
+        val textTertiary = Color.rgb(120, 120, 140) // very muted
 
-        headingText?.setTextColor(textMuted)
-        timerText?.setTextColor(textWhite)
-        statusText?.setTextColor(textMuted)
-        attemptedText?.setTextColor(textWhite)
-        targetValueText?.setTextColor(textMuted)
+        headingText?.setTextColor(textSecondary)
+        timerText?.setTextColor(textPrimary)
+        statusText?.setTextColor(textSecondary)
+        attemptedText?.setTextColor(textPrimary)
+        targetValueText?.setTextColor(textTertiary)
 
+        // Expand button — frosted glass tinted
         expandButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(25, 139, 92, 246))
-            cornerRadius = dp(10).toFloat()
+            setColor(Color.argb(35, 139, 92, 246))
+            cornerRadius = dp(12).toFloat()
+            setStroke(dp(1), Color.argb(30, 139, 92, 246))
         }
-        expandButton?.setTextColor(BRAND_500)
+        expandButton?.setTextColor(Color.rgb(109, 40, 217))  // violet text
 
+        // Close button — subtle glass
         closeButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(15, 255, 255, 255))
-            cornerRadius = dp(10).toFloat()
+            setColor(Color.argb(25, 0, 0, 0))
+            cornerRadius = dp(12).toFloat()
+            setStroke(dp(1), Color.argb(20, 0, 0, 0))
         }
-        closeButton?.setTextColor(textMuted)
+        closeButton?.setTextColor(textSecondary)
 
-        val pillBg = Color.argb(20, 255, 255, 255)
-        val pillBorder = Color.argb(35, 255, 255, 255)
-        styleButton(targetButton, pillBg, textWhite, pillBorder)
-        styleButton(correctButton, EMERALD_600, Color.WHITE, Color.TRANSPARENT)
-        styleButton(incorrectButton, ROSE_600, Color.WHITE, Color.TRANSPARENT)
-        styleButton(skippedButton, AMBER_600, Color.WHITE, Color.TRANSPARENT)
-        styleButton(undoButton, Color.TRANSPARENT, textMuted, pillBorder)
+        // Result buttons — glass tints with COLORED text (not white!)
+        styleButtonGlass(correctButton, Color.argb(45, 5, 150, 105), Color.rgb(2, 120, 85), Color.argb(30, 5, 150, 105))
+        styleButtonGlass(incorrectButton, Color.argb(45, 225, 29, 72), Color.rgb(190, 20, 60), Color.argb(30, 225, 29, 72))
+        styleButtonGlass(skippedButton, Color.argb(45, 217, 119, 6), Color.rgb(180, 95, 0), Color.argb(30, 217, 119, 6))
+
+        // Target / undo — frosted pills
+        styleButtonGlass(targetButton, Color.argb(25, 0, 0, 0), textSecondary, Color.argb(25, 0, 0, 0))
+        styleButtonGlass(undoButton, Color.TRANSPARENT, textTertiary, Color.argb(25, 0, 0, 0))
+
+        // Theme toggle — glass pill
+        styleButtonGlass(themeButton, Color.argb(20, 139, 92, 246), Color.rgb(109, 40, 217), Color.argb(25, 139, 92, 246))
     }
 
     private fun renderDarkTheme(card: LinearLayout, isBreak: Boolean) {
@@ -754,6 +785,16 @@ class FloatingTimerService : Service() {
         button.background = GradientDrawable().apply {
             setColor(bgColor)
             cornerRadius = dp(16).toFloat()
+            if (strokeColor != Color.TRANSPARENT) setStroke(dp(1), strokeColor)
+        }
+        button.setTextColor(textColor)
+    }
+
+    private fun styleButtonGlass(button: Button?, bgColor: Int, textColor: Int, strokeColor: Int) {
+        button ?: return
+        button.background = GradientDrawable().apply {
+            setColor(bgColor)
+            cornerRadius = dp(14).toFloat()
             if (strokeColor != Color.TRANSPARENT) setStroke(dp(1), strokeColor)
         }
         button.setTextColor(textColor)
