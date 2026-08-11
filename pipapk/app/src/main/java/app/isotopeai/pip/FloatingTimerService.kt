@@ -48,7 +48,7 @@ class FloatingTimerService : Service() {
         private const val THEME_GLASS = "glass"
         private const val THEME_APPLE = "apple"
         private const val POLL_MS = 750L
-        private const val TICK_MS = 250L
+        private const val TICK_MS = 40L
         private const val CORNER_RADIUS_DP = 20
     }
 
@@ -77,6 +77,7 @@ class FloatingTimerService : Service() {
     private var targetValueText: TextView? = null
     private var expandButton: Button? = null
     private var closeButton: Button? = null
+    private var pauseResumeButton: Button? = null
     private var correctButton: Button? = null
     private var incorrectButton: Button? = null
     private var skippedButton: Button? = null
@@ -349,6 +350,24 @@ class FloatingTimerService : Service() {
         statusRow.addView(statusDot)
         statusRow.addView(statusText)
 
+        // Pause/Resume button (large, centered — like browser PiP)
+        pauseResumeButton = Button(this).apply {
+            text = "\u23f8"
+            isAllCaps = false
+            textSize = 22f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(dp(20), dp(6), dp(20), dp(6))
+            setOnClickListener {
+                PipClient.postAction(this@FloatingTimerService, "togglePause", -1)
+            }
+        }
+        val pauseParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, dp(48)).apply {
+            gravity = Gravity.CENTER_HORIZONTAL
+            topMargin = dp(8)
+            bottomMargin = dp(4)
+        }
+
         // Question section
         questionSection = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val qsParams = LinearLayout.LayoutParams(
@@ -476,6 +495,7 @@ class FloatingTimerService : Service() {
         contentView!!.addView(focusTypeText, chipParams)
         contentView!!.addView(timerText, timerParams)
         contentView!!.addView(statusRow)
+        contentView!!.addView(pauseResumeButton, pauseParams)
         contentView!!.addView(questionSection, qsParams)
         contentView!!.addView(settingsRow, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, dp(28)).apply { topMargin = dp(10) })
@@ -673,6 +693,14 @@ class FloatingTimerService : Service() {
         }
         closeButton?.setTextColor(textMuted)
 
+        // Pause button
+        pauseResumeButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(25, 255, 255, 255))
+            cornerRadius = dp(16).toFloat()
+            setStroke(dp(1), Color.argb(30, 255, 255, 255))
+        }
+        pauseResumeButton?.setTextColor(Color.WHITE)
+
         // Result buttons — solid brand colors (browser PiP style)
         styleSolidButton(correctButton, EMERALD_600, Color.WHITE)
         styleSolidButton(incorrectButton, ROSE_600, Color.WHITE)
@@ -737,6 +765,14 @@ class FloatingTimerService : Service() {
             cornerRadius = dp(12).toFloat()
         }
         closeButton?.setTextColor(textMuted)
+
+        // Pause button — frosted glass
+        pauseResumeButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(20, 255, 255, 255))
+            cornerRadius = dp(16).toFloat()
+            setStroke(dp(1), Color.argb(25, 255, 255, 255))
+        }
+        pauseResumeButton?.setTextColor(Color.WHITE)
 
         // Result buttons — colored glass tint
         styleGlassButton(correctButton, Color.argb(35, 16, 185, 129), Color.rgb(110, 231, 183))
@@ -860,6 +896,14 @@ class FloatingTimerService : Service() {
         }
         closeButton?.setTextColor(textSecondary)
 
+        // Pause button — frosted dark glass
+        pauseResumeButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(18, 0, 0, 0))
+            cornerRadius = dp(16).toFloat()
+            setStroke(dp(1), Color.argb(20, 0, 0, 0))
+        }
+        pauseResumeButton?.setTextColor(textPrimary)
+
         // Result buttons — colored glass, dark colored text
         styleGlassButton(correctButton, Color.argb(50, 5, 150, 105), Color.rgb(0, 100, 70))
         styleGlassButton(incorrectButton, Color.argb(50, 225, 29, 72), Color.rgb(170, 10, 50))
@@ -903,6 +947,10 @@ class FloatingTimerService : Service() {
         statusDot?.text = "\u25cf "
         statusDot?.setTextColor(state.statusColor())
         statusText?.text = state.statusLabel()
+
+        // Pause/Resume icon
+        val isRunning = state.timerState == "running"
+        pauseResumeButton?.text = if (isRunning) "\u23f8" else "\u25b6"
 
         focusTypeText?.text = "${state.focusTypeIcon}  ${state.focusTypeLabel}"
 
@@ -986,6 +1034,14 @@ class FloatingTimerService : Service() {
                 it.layoutParams = params
                 it.textSize = Math.max(12f, 16f * scale)
             }
+        }
+
+        // Pause button scale
+        pauseResumeButton?.let {
+            val params = it.layoutParams as? LinearLayout.LayoutParams
+            params?.height = Math.max(dp(36), (dp(48) * scale).toInt())
+            it.layoutParams = params
+            it.textSize = Math.max(16f, 22f * scale)
         }
 
         val pad = Math.max(dp(12), (20 * scale).toInt())
