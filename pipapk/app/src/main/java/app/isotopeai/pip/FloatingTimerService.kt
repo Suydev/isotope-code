@@ -85,6 +85,7 @@ class FloatingTimerService : Service() {
     private var glassCornerBR: View? = null
     private var glassLightSweep: View? = null
     private var subjectLabel: TextView? = null
+    private var separatorView: View? = null
     private var settingsRow: LinearLayout? = null
 
     private var state = TimerState()
@@ -306,12 +307,13 @@ class FloatingTimerService : Service() {
         questionSection = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 
         // Separator: 1px solid rgba(255,255,255,0.12), padding-top 14px
-        val separator = View(this).apply {
+        separatorView = View(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).apply {
                 topMargin = dp(14)
                 bottomMargin = dp(14)
             }
+            setBackgroundColor(Color.argb(30, 255, 255, 255))
         }
 
         // [5a] Subject + Target row
@@ -428,7 +430,7 @@ class FloatingTimerService : Service() {
         }
 
         // Assemble question section
-        questionSection!!.addView(separator)
+        questionSection!!.addView(separatorView)
         questionSection!!.addView(attemptRow)
         questionSection!!.addView(targetEditorRow)
         questionSection!!.addView(resultRow, LinearLayout.LayoutParams(
@@ -686,6 +688,9 @@ class FloatingTimerService : Service() {
         // Subject label — PC PiP: opacity 0.66, weight 700
         subjectLabel?.setTextColor(Color.argb(168, 255, 255, 255))
 
+        // Separator — PC PiP: rgba(255,255,255,0.12)
+        separatorView?.setBackgroundColor(Color.argb(30, 255, 255, 255))
+
         // PC PiP scoring buttons: solid brand colors
         correctButton?.background = GradientDrawable().apply {
             setColor(Color.parseColor("#059669"))
@@ -792,6 +797,8 @@ class FloatingTimerService : Service() {
 
         subjectLabel?.setTextColor(Color.argb(168, 255, 255, 255))
 
+        separatorView?.setBackgroundColor(Color.argb(30, 255, 255, 255))
+
         correctButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#059669")); cornerRadius = dp(14).toFloat() }
         correctButton?.setTextColor(Color.WHITE)
         incorrectButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#e11d48")); cornerRadius = dp(14).toFloat() }
@@ -862,6 +869,9 @@ class FloatingTimerService : Service() {
 
         // Subject label — Apple theme: dark text on light bg
         subjectLabel?.setTextColor(Color.argb(168, 12, 12, 18))
+
+        // Separator — dark on light bg for Apple theme
+        separatorView?.setBackgroundColor(Color.argb(20, 12, 12, 18))
 
         correctButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#059669")); cornerRadius = dp(14).toFloat() }
         correctButton?.setTextColor(Color.WHITE)
