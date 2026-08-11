@@ -11,6 +11,10 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.RenderEffect
+import android.graphics.RenderNode
+import android.graphics.RuntimeShader
+import android.graphics.Shader
 import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -82,7 +86,16 @@ class FloatingTimerService : Service() {
     private var targetButton: Button? = null
     private var themeButton: Button? = null
     private var glassEdgeTop: View? = null
+    private var glassEdgeBottom: View? = null
+    private var glassEdgeLeft: View? = null
+    private var glassEdgeRight: View? = null
     private var glassEdgeShine: View? = null
+    private var glassCornerTL: View? = null
+    private var glassCornerTR: View? = null
+    private var glassCornerBL: View? = null
+    private var glassCornerBR: View? = null
+    private var glassLightSweep: View? = null
+    private var blurBackdrop: View? = null
     private var settingsRow: LinearLayout? = null
     private var settingsExpanded = false
 
@@ -118,7 +131,15 @@ class FloatingTimerService : Service() {
 
     private val tick = object : Runnable {
         override fun run() {
-            renderDynamicFields()
+        // Start light sweep animation for Apple theme
+        if (isApple) {
+            handler.postDelayed({ startLightSweep() }, 300)
+        } else {
+            glassLightSweep?.animate()?.cancel()
+            glassLightSweep?.alpha = 0f
+        }
+
+        renderDynamicFields()
             handler.postDelayed(this, TICK_MS)
         }
     }
@@ -228,6 +249,12 @@ class FloatingTimerService : Service() {
                 or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                 or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT)
+        // API 31+ window blur behind — real frosted glass
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            layoutParams!!.flags = layoutParams!!.flags or
+                WindowManager.LayoutParams.FLAG_BLUR_BEHIND
+            layoutParams!!.setBlurBehindRadius(30)
+        }
         layoutParams!!.gravity = Gravity.TOP or Gravity.START
         layoutParams!!.x = prefs.getInt(PREF_X, dp(18))
         layoutParams!!.y = prefs.getInt(PREF_Y, dp(72))
@@ -458,28 +485,109 @@ class FloatingTimerService : Service() {
         cardView!!.addView(contentView,
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT))
 
-        // Apple Liquid Glass edge highlights — layered on top of card
+        // Apple Liquid Glass edge highlights — ALL 4 edges + corners
+        val edgeThickness = dp(4)
+        val cornerSize = dp(28)
+
+        // Top edge — bright white gradient downward
         glassEdgeTop = View(this).apply {
             layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, dp(3)).apply {
+                FrameLayout.LayoutParams.MATCH_PARENT, edgeThickness).apply {
                 gravity = Gravity.TOP
             }
             visibility = View.GONE
         }
+        // Bottom edge — subtle shadow gradient upward
+        glassEdgeBottom = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, edgeThickness).apply {
+                gravity = Gravity.BOTTOM
+            }
+            visibility = View.GONE
+        }
+        // Left edge — subtle gradient rightward (full height, corners handled by corner views)
+        glassEdgeLeft = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                dp(3), FrameLayout.LayoutParams.MATCH_PARENT).apply {
+                gravity = Gravity.START
+                topMargin = dp(24)
+                bottomMargin = dp(24)
+            }
+            visibility = View.GONE
+        }
+        // Right edge — subtle gradient leftward (full height, corners handled by corner views)
+        glassEdgeRight = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                dp(3), FrameLayout.LayoutParams.MATCH_PARENT).apply {
+                gravity = Gravity.END
+                topMargin = dp(24)
+                bottomMargin = dp(24)
+            }
+            visibility = View.GONE
+        }
+        // Inner glow — larger soft glow from top
         glassEdgeShine = View(this).apply {
             layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, dp(40)).apply {
+                FrameLayout.LayoutParams.MATCH_PARENT, dp(50)).apply {
                 gravity = Gravity.TOP
+            }
+            visibility = View.GONE
+        }
+        // Corner glows — rounded highlights at each corner
+        glassCornerTL = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply {
+                gravity = Gravity.TOP or Gravity.START
+            }
+            visibility = View.GONE
+        }
+        glassCornerTR = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply {
+                gravity = Gravity.TOP or Gravity.END
+            }
+            visibility = View.GONE
+        }
+        glassCornerBL = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply {
+                gravity = Gravity.BOTTOM or Gravity.START
+            }
+            visibility = View.GONE
+        }
+        glassCornerBR = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply {
+                gravity = Gravity.BOTTOM or Gravity.END
             }
             visibility = View.GONE
         }
 
+        // Blur backdrop — sits BEHIND card, blurred on API 31+
+        blurBackdrop = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+            setBackgroundColor(Color.TRANSPARENT)
+            visibility = View.GONE
+        }
+
+        // Light sweep — animated diagonal highlight across glass
+        glassLightSweep = View(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+            visibility = View.GONE
+        }
+
+        root.addView(blurBackdrop)
         root.addView(cardView,
             FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
         // Edge layers sit ON TOP of card in the FrameLayout
         root.addView(glassEdgeTop)
+        root.addView(glassEdgeBottom)
+        root.addView(glassEdgeLeft)
+        root.addView(glassEdgeRight)
         root.addView(glassEdgeShine)
+        root.addView(glassCornerTL)
+        root.addView(glassCornerTR)
+        root.addView(glassCornerBL)
+        root.addView(glassCornerBR)
 
         // Resize handle
         val resizeHandle = makeText(16, true).apply {
@@ -507,11 +615,39 @@ class FloatingTimerService : Service() {
             else -> renderDarkTheme(card, isBreak)
         }
 
-        // Edge highlights — both glass themes, Apple gets brighter + inner glow
+        // Edge highlights — Apple gets full 4-edge rim + inner glow + light sweep
         val isGlass = currentTheme == THEME_GLASS
         val isApple = currentTheme == THEME_APPLE
-        glassEdgeTop?.visibility = if (isGlass || isApple) View.VISIBLE else View.GONE
-        glassEdgeShine?.visibility = if (isApple) View.VISIBLE else View.GONE
+        val isDark = currentTheme == THEME_DARK
+
+        // Hide all edges by default
+        glassEdgeTop?.visibility = View.GONE
+        glassEdgeBottom?.visibility = View.GONE
+        glassEdgeLeft?.visibility = View.GONE
+        glassEdgeRight?.visibility = View.GONE
+        glassEdgeShine?.visibility = View.GONE
+        glassCornerTL?.visibility = View.GONE
+        glassCornerTR?.visibility = View.GONE
+        glassCornerBL?.visibility = View.GONE
+        glassCornerBR?.visibility = View.GONE
+        glassLightSweep?.visibility = View.GONE
+
+        if (isApple) {
+            // Full 4-edge glass rim
+            glassEdgeTop?.visibility = View.VISIBLE
+            glassEdgeBottom?.visibility = View.VISIBLE
+            glassEdgeLeft?.visibility = View.VISIBLE
+            glassEdgeRight?.visibility = View.VISIBLE
+            glassEdgeShine?.visibility = View.VISIBLE
+            glassCornerTL?.visibility = View.VISIBLE
+            glassCornerTR?.visibility = View.VISIBLE
+            glassCornerBL?.visibility = View.VISIBLE
+            glassCornerBR?.visibility = View.VISIBLE
+            glassLightSweep?.visibility = View.VISIBLE
+        } else if (isGlass) {
+            // Subtle top edge for dark glass
+            glassEdgeTop?.visibility = View.VISIBLE
+        }
 
         // Drop shadow for glass themes (lifts glass off background)
         card.elevation = when {
@@ -540,17 +676,17 @@ class FloatingTimerService : Service() {
 
     private fun renderGlassTheme(card: LinearLayout, isBreak: Boolean) {
         // ── Dark Frosted Glass (glassmorphism) ──
-        // rgba(17,25,40,0.55) = argb(140, 17, 25, 40)
+        // CSS: rgba(17,25,40,0.75), border rgba(255,255,255,0.10), shadow 0 8px 32px rgba(0,0,0,0.5)
         card.background = GradientDrawable().apply {
-            setColor(Color.argb(140, 17, 25, 40))
+            setColor(Color.argb(190, 17, 25, 40))
             cornerRadius = dp(20).toFloat()
-            setStroke(dp(1), Color.argb(30, 255, 255, 255))
+            setStroke(dp(1), Color.argb(25, 255, 255, 255))
         }
 
-        // Subtle edge highlight — 1px light border effect
+        // Top edge — subtle specular (inset 0 1px 0 rgba(255,255,255,0.06))
         glassEdgeTop?.background = GradientDrawable().apply {
             colors = intArrayOf(
-                Color.argb(25, 255, 255, 255),
+                Color.argb(15, 255, 255, 255),
                 Color.argb(0, 255, 255, 255))
             cornerRadii = floatArrayOf(
                 dp(20).toFloat(), dp(20).toFloat(), dp(20).toFloat(), dp(20).toFloat(),
@@ -618,33 +754,94 @@ class FloatingTimerService : Service() {
     }
 
     private fun renderAppleGlass(card: LinearLayout, isBreak: Boolean) {
-        // ── Apple Liquid Glass (iOS 26 style) ──
+        // ── Apple Liquid Glass (iOS 26 style) — full 4-edge glass ──
 
-        // Card body — milky translucent white
+        // Card body — milky translucent white (CSS: rgba(255,255,255,0.10) with blur)
         card.background = GradientDrawable().apply {
-            setColor(Color.argb(120, 240, 240, 248))
+            setColor(Color.argb(30, 255, 255, 255))
             cornerRadius = dp(28).toFloat()
-            setStroke(dp(1), Color.argb(40, 255, 255, 255))
+            setStroke(dp(1), Color.argb(45, 255, 255, 255))
         }
 
-        // Edge highlight — bright white specular bevel (top)
+        // TOP edge — bright specular highlight (inset 0 1px 0 rgba(255,255,255,0.55))
         glassEdgeTop?.background = GradientDrawable().apply {
             colors = intArrayOf(
-                Color.argb(100, 255, 255, 255),
+                Color.argb(140, 255, 255, 255),
                 Color.argb(0, 255, 255, 255))
             cornerRadii = floatArrayOf(
                 dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(),
                 0f, 0f, 0f, 0f)
         }
 
-        // Inner glow — soft light passing through glass (top inner area)
+        // BOTTOM edge — subtle shadow/reflection (inset 0 -1px 0 rgba(255,255,255,0.30))
+        glassEdgeBottom?.background = GradientDrawable().apply {
+            colors = intArrayOf(
+                Color.argb(0, 255, 255, 255),
+                Color.argb(75, 255, 255, 255))
+            cornerRadii = floatArrayOf(
+                0f, 0f, 0f, 0f,
+                dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat())
+        }
+
+        // LEFT edge (inset 1px 0 0 rgba(255,255,255,0.20))
+        glassEdgeLeft?.background = GradientDrawable().apply {
+            colors = intArrayOf(
+                Color.argb(50, 255, 255, 255),
+                Color.argb(0, 255, 255, 255))
+            orientation = GradientDrawable.Orientation.LEFT_RIGHT
+            cornerRadii = floatArrayOf(
+                dp(28).toFloat(), 0f, 0f, dp(28).toFloat(),
+                dp(28).toFloat(), 0f, 0f, dp(28).toFloat())
+        }
+
+        // RIGHT edge (inset -1px 0 0 rgba(255,255,255,0.20))
+        glassEdgeRight?.background = GradientDrawable().apply {
+            colors = intArrayOf(
+                Color.argb(0, 255, 255, 255),
+                Color.argb(50, 255, 255, 255))
+            orientation = GradientDrawable.Orientation.LEFT_RIGHT
+            cornerRadii = floatArrayOf(
+                0f, dp(28).toFloat(), dp(28).toFloat(), 0f,
+                0f, dp(28).toFloat(), dp(28).toFloat(), 0f)
+        }
+
+        // Inner glow — soft light from top (ambient highlight)
         glassEdgeShine?.background = GradientDrawable().apply {
             colors = intArrayOf(
-                Color.argb(40, 255, 255, 255),
+                Color.argb(35, 255, 255, 255),
                 Color.argb(0, 255, 255, 255))
             cornerRadii = floatArrayOf(
                 dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(), dp(28).toFloat(),
                 0f, 0f, 0f, 0f)
+        }
+
+        // Corner glows — radial highlights at rounded corners
+        val cornerGlow = GradientDrawable().apply {
+            colors = intArrayOf(
+                Color.argb(60, 255, 255, 255),
+                Color.argb(0, 255, 255, 255))
+            shape = GradientDrawable.OVAL
+        }
+        glassCornerTL?.background = cornerGlow
+        glassCornerTR?.background = cornerGlow
+        glassCornerBL?.background = GradientDrawable().apply {
+            colors = intArrayOf(
+                Color.argb(25, 255, 255, 255),
+                Color.argb(0, 255, 255, 255))
+            shape = GradientDrawable.OVAL
+        }
+        glassCornerBR?.background = glassCornerBL?.background
+
+        // Light sweep — diagonal sheen (linear-gradient 135deg)
+        glassLightSweep?.background = GradientDrawable().apply {
+            colors = intArrayOf(
+                Color.argb(50, 255, 255, 255),
+                Color.argb(15, 255, 255, 255),
+                Color.argb(0, 255, 255, 255),
+                Color.argb(0, 255, 255, 255))
+            gradientType = GradientDrawable.LINEAR_GRADIENT
+            orientation = GradientDrawable.Orientation.TL_BR
+            cornerRadius = dp(28).toFloat()
         }
 
         // Progress strip
@@ -705,6 +902,9 @@ class FloatingTimerService : Service() {
 
         // Settings row — frosted pills
         styleButtonGlass(themeButton, Color.argb(40, 139, 92, 246), Color.rgb(80, 30, 190), Color.argb(30, 139, 92, 246))
+
+        // Start light sweep animation
+        startLightSweep()
     }
 
     private fun renderDarkTheme(card: LinearLayout, isBreak: Boolean) {
@@ -1068,6 +1268,24 @@ class FloatingTimerService : Service() {
         if (days > 0) return "${days}d $hours:${two(minutes)}:${two(secs)}"
         if (hours > 0) return "$hours:${two(minutes)}:${two(secs)}"
         return "$minutes:${two(secs)}"
+    }
+
+    private fun startLightSweep() {
+        val sweep = glassLightSweep ?: return
+        sweep.alpha = 0f
+        sweep.translationX = -sweep.width.toFloat() - dp(100).toFloat()
+        sweep.animate()
+            .translationX(sweep.width.toFloat() + dp(100).toFloat())
+            .alpha(0.6f)
+            .setDuration(2500)
+            .setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
+            .withEndAction {
+                sweep.animate()
+                    .alpha(0f)
+                    .setDuration(800)
+                    .start()
+            }
+            .start()
     }
 
     private fun dp(value: Int): Int = Math.round(value * resources.displayMetrics.density)
