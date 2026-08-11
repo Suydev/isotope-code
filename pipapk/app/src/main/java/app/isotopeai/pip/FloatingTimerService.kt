@@ -718,8 +718,6 @@ class FloatingTimerService : Service() {
             setStroke(dp(1), Color.argb(40, 255, 255, 255))
         }
         pauseResumeButton?.setTextColor(Color.WHITE)
-    }
-        themeButton?.setTextColor(Color.WHITE)
 
         // Subject label
         (attemptedText?.parent as? LinearLayout)?.let { parent ->
