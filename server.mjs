@@ -4243,9 +4243,9 @@ window.documentPictureInPicture={
 })();`;
 
 const URL_PATCHES = [
-  ['const S = sn(v);', 'const S = /^(blob:|data:)/i.test(v)?v:sn(v);'],
-  ['const v = prompt("Enter the URL of the image you want to use as background:");',
-   'const v = (window.__isoBgP||prompt)("Enter the URL of the image you want to use as background:");'],
+  ['const S=pn(p);', 'const S=/^(blob:|data:)/i.test(p)?p:pn(p);'],
+  ['const p=prompt("Enter the URL of the image you want to use as background:");',
+   'const p=(window.__isoBgP||prompt)("Enter the URL of the image you want to use as background:");'],
   ['alert("Please enter a valid image URL starting with http:// or https://")',
    '(window.__isoBgInvalid||function(m){alert(m)})("Please enter a valid image URL starting with http:// or https://")'],
 ];
