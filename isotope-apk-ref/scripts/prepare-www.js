@@ -324,7 +324,7 @@ if (fs.existsSync(restoreLaunchPath)) {
       '    ? cloudSnapshot.onboarding.completed === true',
       '    : snapshot.onboarding && snapshot.onboarding.completed === true;',
       '  if (onboarded) writeLocalOnboardingComplete();',
-      '  else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);',
+      "  else { try { localStorage.removeItem(ZUSTAND_ONBOARDING_KEY); } catch (_) {} }",
       ''
     ].join('\n'),
     [
@@ -332,7 +332,7 @@ if (fs.existsSync(restoreLaunchPath)) {
       '    ? cloudSnapshot.onboarding.completed === true',
       '    : (typeof completed === \'boolean\' ? completed : undefined);',
       '  if (onboarded === true) writeLocalOnboardingComplete();',
-      '  else if (onboarded === false) localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);',
+      "  else if (onboarded === false) { try { localStorage.removeItem(ZUSTAND_ONBOARDING_KEY); } catch (_) {} }",
       ''
     ].join('\n'),
     'restore-and-launch unknown onboarding preservation'
