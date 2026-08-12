@@ -42,7 +42,7 @@ class FloatingTimerService : Service() {
         private const val PREF_Y = "overlay_y"
         private const val PREF_WIDTH = "overlay_width"
         private const val PREF_HEIGHT = "overlay_height"
-    private const val PREF_OPACITY = "overlay_opacity"
+        private const val PREF_OPACITY = "overlay_opacity"
         private const val TICK_MS = 40L
     }
 
@@ -54,7 +54,6 @@ class FloatingTimerService : Service() {
     private var cardView: LinearLayout? = null
     private var contentView: LinearLayout? = null
     private var questionSection: LinearLayout? = null
-    private var targetEditorRow: LinearLayout? = null
     private var headingText: TextView? = null
     private var timerText: TextView? = null
     private var statusDot: View? = null
@@ -91,6 +90,7 @@ class FloatingTimerService : Service() {
     private var resizeStartHeight = 0
     private var consecutiveFailures = 0
     private var pulseAnimator: ObjectAnimator? = null
+    private var wasRunning = false
 
     private fun typefaceWeight(base: Int, weight: Int): Typeface {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -121,13 +121,14 @@ class FloatingTimerService : Service() {
                 if (!state.isActive() && foregroundStarted && !manualStart) {
                     handler.postDelayed({ stopSelf() }, 2000)
                 }
+                // Schedule next poll with correct delay
+                val delay = if (!lastPollOk) {
+                    Math.min(8000L, 1000L * (1 shl consecutiveFailures))
+                } else {
+                    pollInterval()
+                }
+                handler.postDelayed(this, delay)
             }
-            val delay = if (!lastPollOk) {
-                Math.min(8000L, 1000L * (1 shl consecutiveFailures))
-            } else {
-                pollInterval()
-            }
-            handler.postDelayed(this, delay)
         }
     }
 
@@ -180,8 +181,13 @@ class FloatingTimerService : Service() {
 
     private fun ensureForeground() {
         if (foregroundStarted) return
-        startForeground(NOTIFICATION_ID, buildNotification())
-        foregroundStarted = true
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+            foregroundStarted = true
+        } catch (e: SecurityException) {
+            // POST_NOTIFICATIONS permission not granted on Android 13+
+            stopSelf()
+        }
     }
 
     private fun buildNotification(): Notification {
@@ -368,34 +374,6 @@ class FloatingTimerService : Service() {
         attemptRow.addView(leftCol, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         attemptRow.addView(targetButton)
 
-        // Target editor row
-        targetEditorRow = LinearLayout(this).apply {
-            gravity = Gravity.CENTER
-            orientation = LinearLayout.HORIZONTAL
-        }
-        val minus = Button(this).apply {
-            text = "-5"; isAllCaps = false; textSize = 12f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setPadding(dp(10), dp(8), dp(10), dp(8))
-            setOnClickListener { updateTargetBy(-5) }
-        }
-        val plus = Button(this).apply {
-            text = "+5"; isAllCaps = false; textSize = 12f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setPadding(dp(10), dp(8), dp(10), dp(8))
-            setOnClickListener { updateTargetBy(5) }
-        }
-        val zero = Button(this).apply {
-            text = "0"; isAllCaps = false; textSize = 12f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setPadding(dp(10), dp(8), dp(10), dp(8))
-            setOnClickListener { setTarget(0) }
-        }
-        targetEditorRow!!.addView(minus)
-        targetEditorRow!!.addView(plus)
-        targetEditorRow!!.addView(zero)
-        targetEditorRow!!.visibility = View.GONE
-
         // [5b] Scoring grid: 3-column, gap 8px
         // PC PiP: border-radius 14px, padding 10px 12px, font-size 0.78rem (12.5px), weight 800, min-width 72px
         val resultRow = LinearLayout(this).apply {
@@ -440,7 +418,6 @@ class FloatingTimerService : Service() {
         // Assemble question section
         questionSection!!.addView(separatorView)
         questionSection!!.addView(attemptRow)
-        questionSection!!.addView(targetEditorRow)
         questionSection!!.addView(resultRow, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(10)
@@ -607,6 +584,7 @@ class FloatingTimerService : Service() {
         // Always render PC PiP dark solid — no glass themes
         renderDarkSolid(card, isBreak)
         card.elevation = dp(4).toFloat()
+        scaleButtonsToOverlay()
         val rootFrame = rootView as? FrameLayout
         rootFrame?.let {
             for (i in 0 until it.childCount) {
@@ -705,16 +683,6 @@ class FloatingTimerService : Service() {
             cornerRadius = dp(10).toFloat()
             setStroke(dp(1), Color.argb(40, 255, 255, 255))
         }
-
-        // Subject label
-        (attemptedText?.parent as? LinearLayout)?.let { parent ->
-            for (i in 0 until parent.childCount) {
-                val child = parent.getChildAt(i)
-                if (child != attemptedText && child is TextView && child != targetValueText) {
-                    // This is the subject label — set its color
-                }
-            }
-        }
     }
 
     private fun renderDynamicFields() {
@@ -754,9 +722,10 @@ class FloatingTimerService : Service() {
         undoButton?.alpha = if (state.undoAvailable) 1f else 0.45f
 
         // Pulse animation on status dot when running (matches PC PiP CSS: 2s cubic-bezier(0.4, 0, 0.6, 1) infinite)
-        pulseAnimator?.cancel()
-        statusDot?.animate()?.cancel()
-        if (state.timerState == "running") {
+        val isRunning = state.timerState == "running"
+        if (isRunning && !wasRunning) {
+            // Start pulse only on transition to running
+            pulseAnimator?.cancel()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 val animator = ObjectAnimator.ofFloat(statusDot, "alpha", 1f, 0.5f, 1f)
                 animator.duration = 2000
@@ -773,11 +742,15 @@ class FloatingTimerService : Service() {
                             ?.start()
                     }?.start()
             }
-        } else {
+        } else if (!isRunning && wasRunning) {
+            // Stop pulse on transition away from running
+            pulseAnimator?.cancel()
+            statusDot?.animate()?.cancel()
             statusDot?.alpha = 1f
         }
+        wasRunning = isRunning
 
-        scaleButtonsToOverlay()
+        // Note: scaleButtonsToOverlay() is called only on resize, not every tick
     }
 
     private fun scaleButtonsToOverlay() {
@@ -869,8 +842,6 @@ class FloatingTimerService : Service() {
         return false
     }
 
-    private fun updateTargetBy(delta: Int) { setTarget(Math.max(0, Math.min(9999, state.targetQuestions + delta))) }
-
     private fun showTargetDialog() {
         val input = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER; isSingleLine = true
@@ -883,7 +854,7 @@ class FloatingTimerService : Service() {
             .create()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && dialog.window != null) dialog.window!!.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
         dialog.setOnShowListener { if (dialog.window != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) dialog.window!!.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY); input.requestFocus() }
-        try { dialog.show() } catch (ignored: Exception) { updateTargetBy(5) }
+        try { dialog.show() } catch (ignored: Exception) { setTarget(0) }
     }
 
     private fun setTarget(value: Int) { state = state.copy(targetQuestions = Math.max(0, Math.min(9999, value))); PipClient.postAction(this, "setTarget", state.targetQuestions); renderDynamicFields() }
