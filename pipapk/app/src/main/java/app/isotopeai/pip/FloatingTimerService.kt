@@ -120,11 +120,9 @@ class FloatingTimerService : Service() {
                     renderDynamicFields()
                 }
                 if (!state.isActive() && foregroundStarted && !manualStart) {
-                    if (stopRunnable == null) {
-                        stopRunnable = Runnable { stopRunnable = null; stopSelf() }
-                    }
-                    handler.removeCallbacks(stopRunnable)
-                    handler.postDelayed(stopRunnable, 2000)
+                    val sr = stopRunnable ?: Runnable { stopRunnable = null; stopSelf() }.also { stopRunnable = it }
+                    handler.removeCallbacks(sr)
+                    handler.postDelayed(sr, 2000)
                 } else {
                     stopRunnable?.let { handler.removeCallbacks(it) }
                     stopRunnable = null
