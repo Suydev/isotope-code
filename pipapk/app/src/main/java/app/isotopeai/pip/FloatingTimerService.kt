@@ -90,6 +90,8 @@ class FloatingTimerService : Service() {
     private var consecutiveFailures = 0
     private var pulseAnimator: ObjectAnimator? = null
     private var wasRunning = false
+    private var stopRunnable: Runnable? = null
+    private var resizeHandle: TextView? = null
 
     private fun typefaceWeight(base: Int, weight: Int): Typeface {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -118,7 +120,14 @@ class FloatingTimerService : Service() {
                     renderDynamicFields()
                 }
                 if (!state.isActive() && foregroundStarted && !manualStart) {
-                    handler.postDelayed({ stopSelf() }, 2000)
+                    if (stopRunnable == null) {
+                        stopRunnable = Runnable { stopRunnable = null; stopSelf() }
+                    }
+                    handler.removeCallbacks(stopRunnable)
+                    handler.postDelayed(stopRunnable, 2000)
+                } else {
+                    stopRunnable?.let { handler.removeCallbacks(it) }
+                    stopRunnable = null
                 }
                 // Schedule next poll with correct delay
                 val delay = if (!lastPollOk) {
@@ -253,6 +262,7 @@ class FloatingTimerService : Service() {
 
         cardView = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            elevation = dp(4).toFloat()
             setOnTouchListener { v, event -> handleDragTouch(v, event) }
         }
 
@@ -595,7 +605,7 @@ class FloatingTimerService : Service() {
         root.addView(cardView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
         // Resize handle
-        val resizeHandle = TextView(this).apply {
+        resizeHandle = TextView(this).apply {
             text = "\u25e2"; textSize = 14f; typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
             setOnTouchListener { v, event -> handleResizeTouch(v, event) }
@@ -619,17 +629,8 @@ class FloatingTimerService : Service() {
 
         // Always render PC PiP dark solid — no glass themes
         renderDarkSolid(card, isBreak)
-        card.elevation = dp(4).toFloat()
         scaleButtonsToOverlay()
-        val rootFrame = rootView as? FrameLayout
-        rootFrame?.let {
-            for (i in 0 until it.childCount) {
-                val child = it.getChildAt(i)
-                if (child is TextView && child.text == "\u25e2") {
-                    child.setTextColor(Color.argb(50, 255, 255, 255))
-                }
-            }
-        }
+        resizeHandle?.setTextColor(Color.argb(50, 255, 255, 255))
 
         renderDynamicFields()
     }
@@ -768,7 +769,9 @@ class FloatingTimerService : Service() {
         subjectLabel?.text = "${state.focusTypeIcon} ${state.focusTypeLabel}"
         attemptedText?.text = state.questionsAttempted.toString()
         countTargetText?.text = if (state.targetQuestions > 0) " / ${state.targetQuestions}" else ""
-        targetValueText?.text = "${state.targetQuestions}"
+        if (targetEditorRow?.visibility == View.VISIBLE) {
+            targetValueText?.text = "${state.targetQuestions}"
+        }
         correctButton?.text = "\u2713  ${state.questionsCorrect}"
         incorrectButton?.text = "\u2715  ${state.questionsIncorrect}"
         skippedButton?.text = "Skip  ${state.questionsSkipped}"
@@ -838,6 +841,17 @@ class FloatingTimerService : Service() {
             }
         }
 
+        // Target editor buttons (-5/+5/0) scale with overlay
+        targetEditorRow?.let { row ->
+            for (i in 0 until row.childCount) {
+                val child = row.getChildAt(i)
+                if (child is Button) {
+                    (child.layoutParams as? LinearLayout.LayoutParams)?.let { p -> p.height = pillH; child.layoutParams = p }
+                    child.textSize = Math.max(9f, 12f * scale)
+                }
+            }
+        }
+
         val pad = Math.max(dp(12), (20 * scale).toInt())
         contentView?.setPadding(pad, pad, pad, pad)
     }
@@ -896,7 +910,11 @@ class FloatingTimerService : Service() {
         return false
     }
 
-    private fun setTarget(value: Int) { state = state.copy(targetQuestions = Math.max(0, Math.min(9999, value))); PipClient.postAction(this, "setTarget", state.targetQuestions); renderDynamicFields() }
+    private fun setTarget(value: Int) {
+        state = state.copy(targetQuestions = Math.max(0, Math.min(9999, value)))
+        PipClient.postAction(this, "setTarget", state.targetQuestions)
+        renderDynamicFields()
+    }
 
     private fun toggleTargetEditor() {
         val row = targetEditorRow ?: return
