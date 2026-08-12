@@ -286,7 +286,7 @@ class FloatingTimerService : Service() {
         // PC: font-size 3.1rem (49.6px), weight 800, letter-spacing -0.025em
         timerText = TextView(this).apply {
             textSize = 50f
-            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             letterSpacing = -0.025f
             includeFontPadding = false
         }
@@ -1013,7 +1013,9 @@ class FloatingTimerService : Service() {
             else -> "\u25b6"
         }
 
-        questionSection?.visibility = if (state.showQuestionControls) View.VISIBLE else View.GONE
+        val showQuestions = state.showQuestionControls ||
+            state.questionsAttempted > 0 || state.targetQuestions > 0 || state.undoAvailable
+        questionSection?.visibility = if (showQuestions) View.VISIBLE else View.GONE
         subjectLabel?.text = "${state.focusTypeIcon} ${state.focusTypeLabel}"
         attemptedText?.text = state.questionsAttempted.toString() +
             if (state.targetQuestions > 0) " / ${state.targetQuestions}" else ""
