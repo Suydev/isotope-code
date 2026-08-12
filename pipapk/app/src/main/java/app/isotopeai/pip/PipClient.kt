@@ -20,6 +20,8 @@ object PipClient {
     private const val DEFAULT_SERVER_URL = "http://127.0.0.1:3000"
 
     private val io = Executors.newSingleThreadExecutor()
+    private var lastCachedState: TimerState? = null
+    private var lastCachedSeq: Long = -1L
 
     private fun baseUrl(ctx: Context?): String {
         val url = ctx?.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -32,23 +34,38 @@ object PipClient {
     fun healthUrl(ctx: Context?): String = "${baseUrl(ctx)}/api/health"
 
     /**
-     * Fetch the latest snapshot. [onResult] runs on the main [ui] thread.
-     * [ok] is false when the server is unreachable (caller keeps last state +
-     * shows an offline badge — pipapk.md §10.6).
+     * Fetch the latest snapshot with retry and caching.
+     * Retries once after 500ms on failure. Caches last successful state.
+     * [onResult] runs on the main [ui] thread.
      */
     fun fetchState(ctx: Context?, ui: Handler, onResult: (state: TimerState, ok: Boolean, seq: Long) -> Unit) {
         io.execute {
-            try {
-                val conn = URL(stateUrl(ctx)).openConnection() as HttpURLConnection
-                conn.connectTimeout = 3000
-                conn.readTimeout = 3000
-                val json = conn.inputStream.bufferedReader().use { it.readText() }
-                conn.disconnect()
-                val obj = JSONObject(json)
-                ui.post { onResult(TimerState.fromJson(obj.toString()), true, obj.optLong("seq", -1)) }
-            } catch (ignored: Exception) {
-                ui.post { onResult(TimerState.fromJson(null), false, -1) }
+            var success = false
+            var result: TimerState = lastCachedState ?: TimerState()
+            var resultSeq: Long = lastCachedSeq
+
+            for (attempt in 0..1) {
+                try {
+                    val conn = URL(stateUrl(ctx)).openConnection() as HttpURLConnection
+                    conn.connectTimeout = 3000
+                    conn.readTimeout = 3000
+                    val json = conn.inputStream.bufferedReader().use { it.readText() }
+                    conn.disconnect()
+                    val obj = JSONObject(json)
+                    result = TimerState.fromJson(obj.toString())
+                    resultSeq = obj.optLong("seq", -1)
+                    lastCachedState = result
+                    lastCachedSeq = resultSeq
+                    success = true
+                    break
+                } catch (ignored: Exception) {
+                    if (attempt == 0) {
+                        try { Thread.sleep(500) } catch (ignored2: Exception) {}
+                    }
+                }
             }
+
+            ui.post { onResult(result, success, resultSeq) }
         }
     }
 

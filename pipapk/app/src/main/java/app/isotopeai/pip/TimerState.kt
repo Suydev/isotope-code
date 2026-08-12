@@ -3,31 +3,28 @@ package app.isotopeai.pip
 import android.graphics.Color
 import org.json.JSONObject
 
-/**
- * Focus-timer snapshot parsed from GET /api/pip/state.
- * Keys match the PIP_BRIDGE_JS relay payload 1:1 (see memory.md §4).
- */
-class TimerState {
-    var mode = "pomodoro"
-    var timerState = "idle"
-    var activePhase = ""
-    var completionAtMs = 0L
-    var updatedAtMs = 0L
-    var displayedSeconds = 0
-    var totalSeconds = 0
-    var pomodoroCycle = 1
-    var pomodoroSessionsUntilLongBreak = 4
-    var focusTypeLabel = "Focus"
-    var focusTypeIcon = "\ud83d\udccc"
-    var showQuestionControls = false
-    var questionsAttempted = 0
-    var questionsCorrect = 0
-    var questionsIncorrect = 0
-    var questionsSkipped = 0
-    var targetQuestions = 0
-    var undoAvailable = false
-    var theme = "dark"
-
+data class TimerState(
+    val mode: String = "pomodoro",
+    val timerState: String = "idle",
+    val activePhase: String = "",
+    val completionAtMs: Long = 0L,
+    val updatedAtMs: Long = 0L,
+    val displayedSeconds: Int = 0,
+    val totalSeconds: Int = 0,
+    val pomodoroCycle: Int = 1,
+    val pomodoroSessionsUntilLongBreak: Int = 4,
+    val focusTypeLabel: String = "Focus",
+    val focusTypeIcon: String = "\ud83d\udccc",
+    val showQuestionControls: Boolean = false,
+    val questionsAttempted: Int = 0,
+    val questionsCorrect: Int = 0,
+    val questionsIncorrect: Int = 0,
+    val questionsSkipped: Int = 0,
+    val targetQuestions: Int = 0,
+    val undoAvailable: Boolean = false,
+    val theme: String = "dark",
+    val pipConnected: Boolean = false
+) {
     fun isActive(): Boolean {
         if (timerState != "running" && timerState != "paused" && timerState != "break") return false
         return mode == "stopwatch" || displaySecondsNow() > 0 || timerState == "paused"
@@ -50,41 +47,41 @@ class TimerState {
     }
 
     fun statusColor(): Int = when {
-        timerState == "running" -> Color.rgb(16, 185, 129)   // emerald-500
-        timerState == "paused" -> Color.rgb(245, 158, 11)    // amber-500
-        timerState == "break" || activePhase == "break" -> Color.rgb(56, 189, 248) // sky-400
-        else -> Color.rgb(113, 113, 122)                     // zinc-500
+        timerState == "running" -> Color.rgb(16, 185, 129)
+        timerState == "paused" -> Color.rgb(245, 158, 11)
+        timerState == "break" || activePhase == "break" -> Color.rgb(56, 189, 248)
+        else -> Color.rgb(113, 113, 122)
     }
 
     companion object {
         fun fromJson(json: String?): TimerState {
-            val s = TimerState()
-            if (json.isNullOrBlank()) return s
+            if (json.isNullOrBlank()) return TimerState()
             return try {
                 val o = JSONObject(json)
-                s.mode = if (o.optString("mode") == "stopwatch") "stopwatch" else "pomodoro"
-                val raw = o.optString("timerState", "idle")
-                s.timerState = if (isTimerState(raw)) raw else "idle"
-                s.activePhase = o.optString("activePhase", "")
-                s.completionAtMs = Math.max(0, o.optLong("completionAtMs", 0))
-                s.updatedAtMs = Math.max(0, o.optLong("updatedAtMs", System.currentTimeMillis()))
-                s.displayedSeconds = clamp(o.optInt("displayedSeconds", 0), 0, 365 * 24 * 3600)
-                s.totalSeconds = clamp(o.optInt("totalSeconds", s.displayedSeconds), 0, 365 * 24 * 3600)
-                s.pomodoroCycle = clamp(o.optInt("pomodoroCycle", 1), 1, 999)
-                s.pomodoroSessionsUntilLongBreak = clamp(o.optInt("pomodoroSessionsUntilLongBreak", 4), 1, 99)
-                s.focusTypeLabel = cleanText(o.optString("focusTypeLabel", "Focus"), 48, "Focus")
-                s.focusTypeIcon = cleanText(o.optString("focusTypeIcon", "\ud83d\udccc"), 8, "\ud83d\udccc")
-                s.showQuestionControls = o.optBoolean("showQuestionControls", false)
-                s.questionsAttempted = clamp(o.optInt("questionsAttempted", 0), 0, 999999)
-                s.questionsCorrect = clamp(o.optInt("questionsCorrect", 0), 0, 999999)
-                s.questionsIncorrect = clamp(o.optInt("questionsIncorrect", 0), 0, 999999)
-                s.questionsSkipped = clamp(o.optInt("questionsSkipped", 0), 0, 999999)
-                s.targetQuestions = clamp(o.optInt("targetQuestions", 0), 0, 9999)
-                s.undoAvailable = o.optBoolean("undoAvailable", false)
-                s.theme = if (o.optString("theme") == "light") "light" else "dark"
-                s
+                TimerState(
+                    mode = if (o.optString("mode") == "stopwatch") "stopwatch" else "pomodoro",
+                    timerState = if (isTimerState(o.optString("timerState", "idle"))) o.optString("timerState", "idle") else "idle",
+                    activePhase = o.optString("activePhase", ""),
+                    completionAtMs = Math.max(0, o.optLong("completionAtMs", 0)),
+                    updatedAtMs = Math.max(0, o.optLong("updatedAtMs", System.currentTimeMillis())),
+                    displayedSeconds = clamp(o.optInt("displayedSeconds", 0), 0, 365 * 24 * 3600),
+                    totalSeconds = clamp(o.optInt("totalSeconds", 0), 0, 365 * 24 * 3600),
+                    pomodoroCycle = clamp(o.optInt("pomodoroCycle", 1), 1, 999),
+                    pomodoroSessionsUntilLongBreak = clamp(o.optInt("pomodoroSessionsUntilLongBreak", 4), 1, 99),
+                    focusTypeLabel = cleanText(o.optString("focusTypeLabel", "Focus"), 48, "Focus"),
+                    focusTypeIcon = cleanText(o.optString("focusTypeIcon", "\ud83d\udccc"), 8, "\ud83d\udccc"),
+                    showQuestionControls = o.optBoolean("showQuestionControls", false),
+                    questionsAttempted = clamp(o.optInt("questionsAttempted", 0), 0, 999999),
+                    questionsCorrect = clamp(o.optInt("questionsCorrect", 0), 0, 999999),
+                    questionsIncorrect = clamp(o.optInt("questionsIncorrect", 0), 0, 999999),
+                    questionsSkipped = clamp(o.optInt("questionsSkipped", 0), 0, 999999),
+                    targetQuestions = clamp(o.optInt("targetQuestions", 0), 0, 9999),
+                    undoAvailable = o.optBoolean("undoAvailable", false),
+                    theme = if (o.optString("theme") == "light") "light" else "dark",
+                    pipConnected = o.optBoolean("pipConnected", false)
+                )
             } catch (ignored: Exception) {
-                s
+                TimerState()
             }
         }
 

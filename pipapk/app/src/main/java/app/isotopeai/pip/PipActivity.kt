@@ -82,6 +82,11 @@ class PipActivity : Activity() {
         autoStartEnabled = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             .getBoolean(KEY_AUTO_START, true)
         setContentView(buildUi())
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
+            }
+        }
         checkStatus()
         ui.postDelayed(autoStartPoll, AUTO_POLL_MS)
     }

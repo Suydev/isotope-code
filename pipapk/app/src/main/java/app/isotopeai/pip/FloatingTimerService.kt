@@ -1,5 +1,6 @@
 package app.isotopeai.pip
 
+import android.animation.ObjectAnimator
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,7 +9,6 @@ import android.app.Service
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -24,6 +24,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.animation.PathInterpolator
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -41,15 +42,11 @@ class FloatingTimerService : Service() {
         private const val PREF_Y = "overlay_y"
         private const val PREF_WIDTH = "overlay_width"
         private const val PREF_HEIGHT = "overlay_height"
-        private const val PREF_THEME = "overlay_theme"
     private const val PREF_OPACITY = "overlay_opacity"
-        private const val THEME_DARK = "dark"
-        private const val THEME_GLASS = "glass"
-        private const val THEME_APPLE = "apple"
-        private const val POLL_MS = 750L
         private const val TICK_MS = 40L
     }
 
+    private val prefs by lazy { getSharedPreferences(PREFS_NAME, MODE_PRIVATE) }
     private val handler = Handler(Looper.getMainLooper())
     private var windowManager: WindowManager? = null
     private var layoutParams: WindowManager.LayoutParams? = null
@@ -58,46 +55,32 @@ class FloatingTimerService : Service() {
     private var contentView: LinearLayout? = null
     private var questionSection: LinearLayout? = null
     private var targetEditorRow: LinearLayout? = null
-    private var progressFill: View? = null
-    private var progressContainer: FrameLayout? = null
     private var headingText: TextView? = null
     private var timerText: TextView? = null
     private var statusDot: View? = null
     private var statusText: TextView? = null
-    private var focusTypeText: TextView? = null
     private var attemptedText: TextView? = null
     private var targetValueText: TextView? = null
-    private var expandButton: Button? = null
     private var closeButton: Button? = null
     private var settingsPanel: LinearLayout? = null
     private var opacitySeekBar: SeekBar? = null
     private var opacityValueLabel: TextView? = null
     private var bgOpacity = 100
-    private var pauseResumeButton: Button? = null
     private var correctButton: Button? = null
     private var incorrectButton: Button? = null
     private var skippedButton: Button? = null
     private var undoButton: Button? = null
     private var targetButton: Button? = null
-    private var themeButton: Button? = null
-    private var glassEdgeTop: View? = null
-    private var glassEdgeBottom: View? = null
-    private var glassEdgeLeft: View? = null
-    private var glassEdgeRight: View? = null
-    private var glassInnerGlow: View? = null
-    private var glassCornerTL: View? = null
-    private var glassCornerTR: View? = null
-    private var glassCornerBL: View? = null
-    private var glassCornerBR: View? = null
-    private var glassLightSweep: View? = null
     private var subjectLabel: TextView? = null
     private var separatorView: View? = null
     private var settingsRow: LinearLayout? = null
+    private var connectionIndicator: View? = null
 
     private var state = TimerState()
     private var foregroundStarted = false
     private var manualStart = false
     private var lastSeq = -1L
+    private var lastPollOk = true
     private var dragging = false
     private var resizing = false
     private var touchStartX = 0f
@@ -106,26 +89,51 @@ class FloatingTimerService : Service() {
     private var windowStartY = 0
     private var resizeStartWidth = 0
     private var resizeStartHeight = 0
-    private var currentTheme = THEME_DARK
+    private var consecutiveFailures = 0
+    private var pulseAnimator: ObjectAnimator? = null
+
+    private fun typefaceWeight(base: Int, weight: Int): Typeface {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Typeface.create(Typeface.DEFAULT, weight)
+        } else {
+            Typeface.create(Typeface.DEFAULT, base)
+        }
+    }
+
+    private fun pollInterval(): Long = when {
+        state.timerState == "running" -> 1000L
+        else -> 3000L
+    }
 
     private val poll = object : Runnable {
         override fun run() {
             PipClient.fetchState(this@FloatingTimerService, handler) { s, ok, seq ->
+                lastPollOk = ok
                 if (ok && seq != lastSeq) {
                     lastSeq = seq
                     state = s
+                    consecutiveFailures = 0
                     renderAll()
+                } else if (!ok) {
+                    consecutiveFailures++
+                    renderDynamicFields()
                 }
                 if (!state.isActive() && foregroundStarted && !manualStart) {
                     handler.postDelayed({ stopSelf() }, 2000)
                 }
             }
-            handler.postDelayed(this, POLL_MS)
+            val delay = if (!lastPollOk) {
+                Math.min(8000L, 1000L * (1 shl consecutiveFailures))
+            } else {
+                pollInterval()
+            }
+            handler.postDelayed(this, delay)
         }
     }
 
     private val tick = object : Runnable {
         override fun run() {
+            if (!state.isActive()) { handler.postDelayed(this, 1000L); return }
             renderDynamicFields()
             handler.postDelayed(this, TICK_MS)
         }
@@ -135,33 +143,12 @@ class FloatingTimerService : Service() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         createNotificationChannel()
-        currentTheme = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .getString(PREF_THEME, THEME_DARK) ?: THEME_DARK
-        bgOpacity = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .getInt(PREF_OPACITY, 100)
+        bgOpacity = prefs.getInt(PREF_OPACITY, 100)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action
         if (action == "STOP") { stopSelf(); return START_NOT_STICKY }
-        if (action == "TOGGLE_THEME") {
-            currentTheme = when (currentTheme) {
-                THEME_DARK -> THEME_GLASS
-                THEME_GLASS -> THEME_APPLE
-                else -> THEME_DARK
-            }
-            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                .putString(PREF_THEME, currentTheme).apply()
-            renderAll()
-            return START_STICKY
-        }
-        if (action == "SET_THEME") {
-            currentTheme = intent.getStringExtra("THEME_VALUE") ?: THEME_DARK
-            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                .putString(PREF_THEME, currentTheme).apply()
-            renderAll()
-            return START_STICKY
-        }
 
         if (!hasOverlayPermission()) { stopSelf(); return START_NOT_STICKY }
 
@@ -180,6 +167,7 @@ class FloatingTimerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        pulseAnimator?.cancel()
         handler.removeCallbacksAndMessages(null)
         removeOverlay()
         foregroundStarted = false
@@ -227,7 +215,6 @@ class FloatingTimerService : Service() {
     private fun ensureOverlay() {
         if (rootView != null) return
         buildOverlayView()
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         layoutParams = WindowManager.LayoutParams(
             clampOverlayWidth(prefs.getInt(PREF_WIDTH, dp(340))),
             clampOverlayHeight(prefs.getInt(PREF_HEIGHT, dp(390))),
@@ -261,13 +248,11 @@ class FloatingTimerService : Service() {
 
         cardView = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
             setOnTouchListener { v, event -> handleDragTouch(v, event) }
         }
 
         contentView = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
             // PC PiP: padding 20px
             setPadding(dp(20), dp(20), dp(20), dp(20))
         }
@@ -278,7 +263,7 @@ class FloatingTimerService : Service() {
             textSize = 14f
             letterSpacing = 0.05f
             isAllCaps = true
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            typeface = typefaceWeight(Typeface.NORMAL, 600)
             includeFontPadding = false
         }
 
@@ -286,7 +271,7 @@ class FloatingTimerService : Service() {
         // PC: font-size 3.1rem (49.6px), weight 800, letter-spacing -0.025em
         timerText = TextView(this).apply {
             textSize = 50f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            typeface = typefaceWeight(Typeface.BOLD, 800)
             letterSpacing = -0.025f
             includeFontPadding = false
         }
@@ -305,11 +290,22 @@ class FloatingTimerService : Service() {
         }
         statusText = TextView(this).apply {
             textSize = 14f
-            typeface = Typeface.DEFAULT
+            typeface = typefaceWeight(Typeface.NORMAL, 500)
             includeFontPadding = false
+        }
+        connectionIndicator = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(6), dp(6)).apply {
+                marginStart = dp(8)
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#ef4444"))
+            }
+            visibility = View.GONE
         }
         statusRow.addView(statusDot)
         statusRow.addView(statusText)
+        statusRow.addView(connectionIndicator)
 
         // ── [4] Separator + [5] Question Tracking ──
         questionSection = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -321,7 +317,7 @@ class FloatingTimerService : Service() {
                 topMargin = dp(14)
                 bottomMargin = dp(14)
             }
-            setBackgroundColor(Color.argb(30, 255, 255, 255))
+            setBackgroundColor(Color.argb(31, 255, 255, 255))
         }
 
         // [5a] Subject + Target row
@@ -338,7 +334,7 @@ class FloatingTimerService : Service() {
         // Question count: font-size 24.8px, weight 900
         attemptedText = TextView(this).apply {
             textSize = 25f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            typeface = typefaceWeight(Typeface.BOLD, 900)
             includeFontPadding = false
         }
         // Target button: PC PiP — pill, border 1px solid rgba(255,255,255,0.16), bg rgba(255,255,255,0.07), font-size 0.72rem (11.5px), weight 800
@@ -346,7 +342,7 @@ class FloatingTimerService : Service() {
             text = "Target"
             isAllCaps = false
             textSize = 11.5f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            typeface = typefaceWeight(Typeface.BOLD, 800)
             setPadding(dp(10), dp(8), dp(10), dp(8))
             setOnClickListener { showTargetDialog() }
         }
@@ -360,11 +356,13 @@ class FloatingTimerService : Service() {
             gravity = Gravity.CENTER_VERTICAL
         }
         targetValueText = TextView(this).apply {
-            textSize = 14f
-            typeface = Typeface.DEFAULT
+            textSize = 14.4f
+            typeface = typefaceWeight(Typeface.NORMAL, 500)
             includeFontPadding = false
+            alpha = 0.55f
         }
         countRow.addView(attemptedText)
+        countRow.addView(targetValueText)
         leftCol.addView(subjectLabel)
         leftCol.addView(countRow)
         attemptRow.addView(leftCol, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
@@ -394,7 +392,6 @@ class FloatingTimerService : Service() {
             setOnClickListener { setTarget(0) }
         }
         targetEditorRow!!.addView(minus)
-        targetEditorRow!!.addView(targetValueText)
         targetEditorRow!!.addView(plus)
         targetEditorRow!!.addView(zero)
         targetEditorRow!!.visibility = View.GONE
@@ -428,14 +425,14 @@ class FloatingTimerService : Service() {
         }
         val btnH = dp(40)
         val gap = dp(8)
-        resultRow.addView(correctButton, LinearLayout.LayoutParams(0, btnH, 1f).apply { setMargins(0, 0, gap, 0) })
-        resultRow.addView(incorrectButton, LinearLayout.LayoutParams(0, btnH, 1f).apply { setMargins(0, 0, gap, 0) })
-        resultRow.addView(skippedButton, LinearLayout.LayoutParams(0, btnH, 1f))
+        resultRow.addView(correctButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, btnH).apply { setMargins(0, 0, gap, 0) })
+        resultRow.addView(incorrectButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, btnH).apply { setMargins(0, 0, gap, 0) })
+        resultRow.addView(skippedButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, btnH))
 
         // [5c] Undo: PC PiP — border 1px solid rgba(255,255,255,0.14), transparent bg, text rgba(255,255,255,0.72), border-radius 999px, padding 8px 10px, font-size 0.72rem (11.5px), weight 800
         undoButton = Button(this).apply {
             text = "Undo last"; isAllCaps = false; textSize = 11.5f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            typeface = typefaceWeight(Typeface.BOLD, 800)
             setPadding(dp(10), dp(8), dp(10), dp(8))
             setOnClickListener { PipClient.postAction(this@FloatingTimerService, "undo", -1) }
         }
@@ -446,30 +443,15 @@ class FloatingTimerService : Service() {
         questionSection!!.addView(targetEditorRow)
         questionSection!!.addView(resultRow, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(8)
+            topMargin = dp(10)
         })
         questionSection!!.addView(undoButton, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, dp(36)).apply { topMargin = dp(8) })
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(36)).apply { topMargin = dp(10) })
 
         // Settings row
         settingsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-        }
-        val themeLabel = when (currentTheme) {
-            THEME_APPLE -> "\u2734 Apple"
-            THEME_GLASS -> "\u2601 Glass"
-            else -> "\u263E Dark"
-        }
-        themeButton = Button(this).apply {
-            text = themeLabel; isAllCaps = false; textSize = 11f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setPadding(dp(10), dp(6), dp(10), dp(6))
-            setOnClickListener {
-                val intent = Intent(this@FloatingTimerService, FloatingTimerService::class.java)
-                intent.action = "TOGGLE_THEME"
-                startService(intent)
-            }
         }
         val sizeSmall = Button(this).apply {
             text = "S"; isAllCaps = false; textSize = 10f
@@ -489,8 +471,7 @@ class FloatingTimerService : Service() {
             setPadding(dp(8), dp(6), dp(8), dp(6))
             setOnClickListener { resizeOverlay(dp(420), dp(480)) }
         }
-        settingsRow!!.addView(themeButton, LinearLayout.LayoutParams(0, dp(28), 1f))
-        settingsRow!!.addView(sizeSmall, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
+        settingsRow!!.addView(sizeSmall, LinearLayout.LayoutParams(0, dp(28), 1f))
         settingsRow!!.addView(sizeMed, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
         settingsRow!!.addView(sizeLg, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
 
@@ -531,8 +512,7 @@ class FloatingTimerService : Service() {
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     bgOpacity = progress
-                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                        .putInt(PREF_OPACITY, progress).apply()
+                    prefs.edit().putInt(PREF_OPACITY, progress).apply()
                     applyOpacity()
                     opacityValueLabel?.text = "$progress%"
                 }
@@ -571,10 +551,6 @@ class FloatingTimerService : Service() {
 
         // Assemble content
         // PC PiP gap: 14px between elements
-        val gapParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(14)
-        }
         contentView!!.addView(headingText, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(0)
@@ -587,25 +563,6 @@ class FloatingTimerService : Service() {
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(14)
         })
-
-        // Pause/Resume button — PC PiP scoring button style
-        pauseResumeButton = Button(this).apply {
-            text = "\u23f8"
-            isAllCaps = false
-            textSize = 16f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            setPadding(dp(16), dp(10), dp(16), dp(10))
-            minimumWidth = dp(72)
-            setOnClickListener {
-                PipClient.postAction(this@FloatingTimerService, "togglePause", -1)
-            }
-        }
-        contentView!!.addView(pauseResumeButton, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, dp(44)).apply {
-            topMargin = dp(14)
-            gravity = Gravity.CENTER_HORIZONTAL
-        })
-
         contentView!!.addView(questionSection, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(14)
@@ -622,49 +579,7 @@ class FloatingTimerService : Service() {
         cardView!!.addView(contentView, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT))
 
-        // ── Liquid Glass edge highlights (for Apple theme) ──
-        val edgeThickness = dp(3)
-        val cornerSize = dp(24)
-        glassEdgeTop = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, edgeThickness).apply { gravity = Gravity.TOP }
-            visibility = View.GONE
-        }
-        glassEdgeBottom = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, edgeThickness).apply { gravity = Gravity.BOTTOM }
-            visibility = View.GONE
-        }
-        glassEdgeLeft = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(edgeThickness, FrameLayout.LayoutParams.MATCH_PARENT).apply {
-                gravity = Gravity.START; topMargin = dp(20); bottomMargin = dp(20)
-            }
-            visibility = View.GONE
-        }
-        glassEdgeRight = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(edgeThickness, FrameLayout.LayoutParams.MATCH_PARENT).apply {
-                gravity = Gravity.END; topMargin = dp(20); bottomMargin = dp(20)
-            }
-            visibility = View.GONE
-        }
-        glassInnerGlow = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(40)).apply { gravity = Gravity.TOP }
-            visibility = View.GONE
-        }
-        glassCornerTL = View(this).apply { layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply { gravity = Gravity.TOP or Gravity.START }; visibility = View.GONE }
-        glassCornerTR = View(this).apply { layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply { gravity = Gravity.TOP or Gravity.END }; visibility = View.GONE }
-        glassCornerBL = View(this).apply { layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply { gravity = Gravity.BOTTOM or Gravity.START }; visibility = View.GONE }
-        glassCornerBR = View(this).apply { layoutParams = FrameLayout.LayoutParams(cornerSize, cornerSize).apply { gravity = Gravity.BOTTOM or Gravity.END }; visibility = View.GONE }
-        glassLightSweep = View(this).apply {
-            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
-            visibility = View.GONE
-        }
-
         root.addView(cardView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
-        root.addView(glassEdgeTop); root.addView(glassEdgeBottom)
-        root.addView(glassEdgeLeft); root.addView(glassEdgeRight)
-        root.addView(glassInnerGlow)
-        root.addView(glassCornerTL); root.addView(glassCornerTR)
-        root.addView(glassCornerBL); root.addView(glassCornerBR)
-        root.addView(glassLightSweep)
 
         // Resize handle
         val resizeHandle = TextView(this).apply {
@@ -690,7 +605,6 @@ class FloatingTimerService : Service() {
         val isBreak = state.timerState == "break" || state.activePhase == "break"
 
         // Always render PC PiP dark solid — no glass themes
-        hideGlassEffects()
         renderDarkSolid(card, isBreak)
         card.elevation = dp(4).toFloat()
         val rootFrame = rootView as? FrameLayout
@@ -703,9 +617,6 @@ class FloatingTimerService : Service() {
             }
         }
 
-        glassLightSweep?.animate()?.cancel()
-        glassLightSweep?.alpha = 0f
-
         renderDynamicFields()
     }
 
@@ -717,14 +628,6 @@ class FloatingTimerService : Service() {
         card.background = GradientDrawable().apply {
             setColor(Color.argb(bgOpacity * 255 / 100, 0, 0, 0))
             cornerRadius = dp(20).toFloat()
-        }
-
-        // Progress strip
-        progressFill?.background = GradientDrawable().apply {
-            setColor(if (isBreak) Color.rgb(59, 130, 246) else Color.rgb(139, 92, 246))
-        }
-        progressContainer?.background = GradientDrawable().apply {
-            setColor(Color.argb(15, 139, 92, 246))
         }
 
         // PC PiP mode label: opacity 0.7
@@ -748,13 +651,11 @@ class FloatingTimerService : Service() {
             setColor(dotColor)
         }
 
-        focusTypeText?.visibility = View.GONE
-
         // Subject label — PC PiP: opacity 0.66, weight 700
         subjectLabel?.setTextColor(Color.argb(168, 255, 255, 255))
 
         // Separator — PC PiP: rgba(255,255,255,0.12)
-        separatorView?.setBackgroundColor(Color.argb(30, 255, 255, 255))
+        separatorView?.setBackgroundColor(Color.argb(31, 255, 255, 255))
 
         // PC PiP scoring buttons: solid brand colors
         correctButton?.background = GradientDrawable().apply {
@@ -791,21 +692,6 @@ class FloatingTimerService : Service() {
         }
         undoButton?.setTextColor(Color.argb(183, 255, 255, 255))
 
-        // Settings
-        themeButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(17, 255, 255, 255))
-            cornerRadius = dp(999).toFloat()
-            setStroke(dp(1), Color.argb(40, 255, 255, 255))
-        }
-        themeButton?.setTextColor(Color.WHITE)
-
-        // Pause button — PC PiP scoring style
-        pauseResumeButton?.background = GradientDrawable().apply {
-            setColor(Color.parseColor("#6b7280"))
-            cornerRadius = dp(14).toFloat()
-        }
-        pauseResumeButton?.setTextColor(Color.WHITE)
-
         closeButton?.background = GradientDrawable().apply {
             setColor(Color.argb(17, 255, 255, 255))
             cornerRadius = dp(999).toFloat()
@@ -831,161 +717,6 @@ class FloatingTimerService : Service() {
         }
     }
 
-    // ═══════════════════════════════════════════════════════
-    //  DARK GLASS — dark frosted glassmorphism
-    // ═══════════════════════════════════════════════════════
-    private fun renderDarkGlass(card: LinearLayout, isBreak: Boolean) {
-        card.background = GradientDrawable().apply {
-            setColor(Color.argb(180, 17, 25, 40))
-            cornerRadius = dp(20).toFloat()
-            setStroke(dp(1), Color.argb(30, 255, 255, 255))
-        }
-
-        glassEdgeTop?.visibility = View.VISIBLE
-        glassEdgeTop?.background = GradientDrawable().apply {
-            colors = intArrayOf(Color.argb(20, 255, 255, 255), Color.argb(0, 255, 255, 255))
-            cornerRadii = floatArrayOf(dp(20).toFloat(), dp(20).toFloat(), dp(20).toFloat(), dp(20).toFloat(), 0f, 0f, 0f, 0f)
-        }
-
-        progressFill?.background = GradientDrawable().apply {
-            setColor(if (isBreak) Color.rgb(59, 130, 246) else Color.rgb(139, 92, 246))
-        }
-        progressContainer?.background = GradientDrawable().apply { setColor(Color.argb(15, 139, 92, 246)) }
-
-        headingText?.setTextColor(Color.argb(178, 255, 255, 255))
-        timerText?.setTextColor(Color.WHITE)
-        statusText?.setTextColor(Color.argb(204, 255, 255, 255))
-
-        val dotColor = when {
-            state.timerState == "running" -> Color.parseColor("#22c55e")
-            state.timerState == "paused" -> Color.parseColor("#f59e0b")
-            state.timerState == "break" || state.activePhase == "break" -> Color.parseColor("#3b82f6")
-            else -> Color.parseColor("#6b7280")
-        }
-        statusDot?.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(dotColor) }
-
-        focusTypeText?.visibility = View.GONE
-
-        subjectLabel?.setTextColor(Color.argb(168, 255, 255, 255))
-
-        separatorView?.setBackgroundColor(Color.argb(30, 255, 255, 255))
-
-        correctButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#059669")); cornerRadius = dp(14).toFloat() }
-        correctButton?.setTextColor(Color.WHITE)
-        incorrectButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#e11d48")); cornerRadius = dp(14).toFloat() }
-        incorrectButton?.setTextColor(Color.WHITE)
-        skippedButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#d97706")); cornerRadius = dp(14).toFloat() }
-        skippedButton?.setTextColor(Color.WHITE)
-
-        targetButton?.background = GradientDrawable().apply { setColor(Color.argb(17, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
-        targetButton?.setTextColor(Color.WHITE)
-        undoButton?.background = GradientDrawable().apply { setColor(Color.TRANSPARENT); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(35, 255, 255, 255)) }
-        undoButton?.setTextColor(Color.argb(183, 255, 255, 255))
-
-        themeButton?.background = GradientDrawable().apply { setColor(Color.argb(17, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
-        themeButton?.setTextColor(Color.WHITE)
-
-        pauseResumeButton?.background = GradientDrawable().apply { setColor(Color.argb(17, 255, 255, 255)); cornerRadius = dp(14).toFloat(); setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
-        pauseResumeButton?.setTextColor(Color.WHITE)
-
-        closeButton?.background = GradientDrawable().apply { setColor(Color.argb(17, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
-        closeButton?.setTextColor(Color.WHITE)
-    }
-
-    // ═══════════════════════════════════════════════════════
-    //  APPLE LIQUID — milky translucent + 4-edge glass rim
-    // ═══════════════════════════════════════════════════════
-    private fun renderAppleLiquid(card: LinearLayout, isBreak: Boolean) {
-        val cr = dp(20).toFloat()
-        card.background = GradientDrawable().apply { setColor(Color.argb(30, 255, 255, 255)); cornerRadius = cr; setStroke(dp(1), Color.argb(40, 255, 255, 255)) }
-
-        glassEdgeTop?.visibility = View.VISIBLE
-        glassEdgeTop?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(130, 255, 255, 255), Color.argb(0, 255, 255, 255)); cornerRadii = floatArrayOf(cr, cr, cr, cr, 0f, 0f, 0f, 0f) }
-        glassEdgeBottom?.visibility = View.VISIBLE
-        glassEdgeBottom?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(0, 255, 255, 255), Color.argb(65, 255, 255, 255)); cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, cr, cr, cr, cr) }
-        glassEdgeLeft?.visibility = View.VISIBLE
-        glassEdgeLeft?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(45, 255, 255, 255), Color.argb(0, 255, 255, 255)); orientation = GradientDrawable.Orientation.LEFT_RIGHT }
-        glassEdgeRight?.visibility = View.VISIBLE
-        glassEdgeRight?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(0, 255, 255, 255), Color.argb(45, 255, 255, 255)); orientation = GradientDrawable.Orientation.LEFT_RIGHT }
-        glassInnerGlow?.visibility = View.VISIBLE
-        glassInnerGlow?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(30, 255, 255, 255), Color.argb(0, 255, 255, 255)); cornerRadii = floatArrayOf(cr, cr, cr, cr, 0f, 0f, 0f, 0f) }
-        val cg = GradientDrawable().apply { colors = intArrayOf(Color.argb(50, 255, 255, 255), Color.argb(0, 255, 255, 255)); shape = GradientDrawable.OVAL }
-        glassCornerTL?.visibility = View.VISIBLE; glassCornerTL?.background = cg
-        glassCornerTR?.visibility = View.VISIBLE; glassCornerTR?.background = cg
-        val cgb = GradientDrawable().apply { colors = intArrayOf(Color.argb(20, 255, 255, 255), Color.argb(0, 255, 255, 255)); shape = GradientDrawable.OVAL }
-        glassCornerBL?.visibility = View.VISIBLE; glassCornerBL?.background = cgb
-        glassCornerBR?.visibility = View.VISIBLE; glassCornerBR?.background = cgb
-        glassLightSweep?.visibility = View.VISIBLE
-        glassLightSweep?.background = GradientDrawable().apply { colors = intArrayOf(Color.argb(45, 255, 255, 255), Color.argb(12, 255, 255, 255), Color.argb(0, 255, 255, 255), Color.argb(0, 255, 255, 255)); gradientType = GradientDrawable.LINEAR_GRADIENT; orientation = GradientDrawable.Orientation.TL_BR; cornerRadius = cr }
-
-        progressFill?.background = GradientDrawable().apply { setColor(if (isBreak) Color.rgb(59, 130, 246) else Color.rgb(139, 92, 246)); cornerRadius = dp(2).toFloat() }
-        progressContainer?.background = GradientDrawable().apply { setColor(Color.argb(12, 139, 92, 246)) }
-
-        val textPrimary = Color.rgb(12, 12, 18)
-        val textSecondary = Color.rgb(65, 65, 80)
-
-        headingText?.setTextColor(textSecondary)
-        timerText?.setTextColor(textPrimary)
-        statusText?.setTextColor(textSecondary)
-
-        val dotColor = when {
-            state.timerState == "running" -> Color.parseColor("#16a34a")
-            state.timerState == "paused" -> Color.parseColor("#d97706")
-            state.timerState == "break" || state.activePhase == "break" -> Color.parseColor("#2563eb")
-            else -> Color.parseColor("#6b7280")
-        }
-        statusDot?.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(dotColor) }
-
-        focusTypeText?.visibility = View.GONE
-
-        // Subject label — Apple theme: dark text on light bg
-        subjectLabel?.setTextColor(Color.argb(168, 12, 12, 18))
-
-        // Separator — dark on light bg for Apple theme
-        separatorView?.setBackgroundColor(Color.argb(20, 12, 12, 18))
-
-        correctButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#059669")); cornerRadius = dp(14).toFloat() }
-        correctButton?.setTextColor(Color.WHITE)
-        incorrectButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#e11d48")); cornerRadius = dp(14).toFloat() }
-        incorrectButton?.setTextColor(Color.WHITE)
-        skippedButton?.background = GradientDrawable().apply { setColor(Color.parseColor("#d97706")); cornerRadius = dp(14).toFloat() }
-        skippedButton?.setTextColor(Color.WHITE)
-
-        targetButton?.background = GradientDrawable().apply { setColor(Color.argb(204, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 24, 24, 27)) }
-        targetButton?.setTextColor(Color.parseColor("#18181b"))
-        undoButton?.background = GradientDrawable().apply { setColor(Color.TRANSPARENT); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(35, 24, 24, 27)) }
-        undoButton?.setTextColor(Color.argb(183, 24, 24, 27))
-
-        themeButton?.background = GradientDrawable().apply { setColor(Color.argb(204, 255, 255, 255)); cornerRadius = dp(999).toFloat(); setStroke(dp(1), Color.argb(40, 24, 24, 27)) }
-        themeButton?.setTextColor(Color.parseColor("#18181b"))
-
-        // Pause button - glass tinted with dark text
-        pauseResumeButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(204, 255, 255, 255))
-            cornerRadius = dp(14).toFloat()
-            setStroke(dp(1), Color.argb(40, 24, 24, 27))
-        }
-        pauseResumeButton?.setTextColor(Color.parseColor("#18181b"))
-
-        closeButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(204, 255, 255, 255))
-            cornerRadius = dp(999).toFloat()
-            setStroke(dp(1), Color.argb(40, 24, 24, 27))
-        }
-        closeButton?.setTextColor(Color.parseColor("#18181b"))
-
-        startLightSweep()
-    }
-
-    private fun hideGlassEffects() {
-        glassEdgeTop?.visibility = View.GONE; glassEdgeBottom?.visibility = View.GONE
-        glassEdgeLeft?.visibility = View.GONE; glassEdgeRight?.visibility = View.GONE
-        glassInnerGlow?.visibility = View.GONE
-        glassCornerTL?.visibility = View.GONE; glassCornerTR?.visibility = View.GONE
-        glassCornerBL?.visibility = View.GONE; glassCornerBR?.visibility = View.GONE
-        glassLightSweep?.visibility = View.GONE
-    }
-
     private fun renderDynamicFields() {
         val timer = timerText ?: return
         val seconds = state.displaySecondsNow()
@@ -1001,50 +732,47 @@ class FloatingTimerService : Service() {
         headingText?.text = heading
 
         statusText?.text = when {
+            !lastPollOk && !state.isActive() -> "Server offline"
             state.timerState == "running" -> "Focusing..."
             state.timerState == "paused" -> "Paused"
             state.timerState == "break" || state.activePhase == "break" -> "Break"
             else -> "Idle"
         }
 
-        // Pause/Resume button icon
-        pauseResumeButton?.text = when {
-            state.timerState == "running" -> "\u23f8"
-            else -> "\u25b6"
-        }
+        connectionIndicator?.visibility = if (lastPollOk) View.GONE else View.VISIBLE
 
         val showQuestions = state.showQuestionControls ||
             state.questionsAttempted > 0 || state.targetQuestions > 0 || state.undoAvailable
         questionSection?.visibility = if (showQuestions) View.VISIBLE else View.GONE
         subjectLabel?.text = "${state.focusTypeIcon} ${state.focusTypeLabel}"
-        attemptedText?.text = state.questionsAttempted.toString() +
-            if (state.targetQuestions > 0) " / ${state.targetQuestions}" else ""
-        targetValueText?.text = "  Target ${state.targetQuestions}  "
+        attemptedText?.text = state.questionsAttempted.toString()
+        targetValueText?.text = if (state.targetQuestions > 0) " / ${state.targetQuestions}" else ""
         correctButton?.text = "\u2713  ${state.questionsCorrect}"
         incorrectButton?.text = "\u2715  ${state.questionsIncorrect}"
         skippedButton?.text = "Skip  ${state.questionsSkipped}"
         undoButton?.isEnabled = state.undoAvailable
         undoButton?.alpha = if (state.undoAvailable) 1f else 0.45f
 
-        val ratio = when {
-            state.mode == "stopwatch" -> Math.min(1f, (seconds % (25 * 60)).toFloat() / (25 * 60))
-            state.totalSeconds > 0 -> Math.max(0f, Math.min(1f, seconds.toFloat() / state.totalSeconds))
-            else -> 0f
-        }
-        progressFill?.post { progressFill?.scaleX = ratio }
-
-        // Pulse animation on status dot when running (matches PC PiP CSS pulse)
+        // Pulse animation on status dot when running (matches PC PiP CSS: 2s cubic-bezier(0.4, 0, 0.6, 1) infinite)
+        pulseAnimator?.cancel()
         statusDot?.animate()?.cancel()
         if (state.timerState == "running") {
-            statusDot?.animate()?.alpha(0.5f)?.setDuration(1000)
-                ?.setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
-                ?.withEndAction {
-                    statusDot?.animate()?.alpha(1f)?.setDuration(1000)
-                        ?.setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
-                        ?.withEndAction { /* repeat handled by next tick */ }
-                        ?.start()
-                }
-                ?.start()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                val animator = ObjectAnimator.ofFloat(statusDot, "alpha", 1f, 0.5f, 1f)
+                animator.duration = 2000
+                animator.repeatCount = ObjectAnimator.INFINITE
+                animator.interpolator = PathInterpolator(0.4f, 0f, 0.6f, 1f)
+                animator.start()
+                pulseAnimator = animator
+            } else {
+                statusDot?.animate()?.alpha(0.5f)?.setDuration(1000)
+                    ?.setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
+                    ?.withEndAction {
+                        statusDot?.animate()?.alpha(1f)?.setDuration(1000)
+                            ?.setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
+                            ?.start()
+                    }?.start()
+            }
         } else {
             statusDot?.alpha = 1f
         }
@@ -1069,14 +797,14 @@ class FloatingTimerService : Service() {
         val btnTextSize = Math.max(9f, 12f * scale)
         listOf(correctButton, incorrectButton, skippedButton).forEach { btn ->
             btn?.let {
-                (it.layoutParams as? LinearLayout.LayoutParams)?.let { p -> p.height = btnH; p.weight = 1f; it.layoutParams = p }
+                (it.layoutParams as? LinearLayout.LayoutParams)?.let { p -> p.height = btnH; it.layoutParams = p }
                 it.textSize = btnTextSize
                 (it.background as? GradientDrawable)?.cornerRadius = dp(14).toFloat()
             }
         }
 
         val pillH = Math.max(dp(28), (dp(36) * scale).toInt())
-        listOf(targetButton, undoButton, themeButton).forEach { btn ->
+        listOf(targetButton, undoButton).forEach { btn ->
             btn?.let {
                 (it.layoutParams as? LinearLayout.LayoutParams)?.let { p -> p.height = pillH; it.layoutParams = p }
                 it.textSize = Math.max(9f, 12f * scale)
@@ -1098,14 +826,18 @@ class FloatingTimerService : Service() {
             MotionEvent.ACTION_MOVE -> {
                 val dx = Math.round(event.rawX - touchStartX); val dy = Math.round(event.rawY - touchStartY)
                 if (Math.abs(dx) > dp(3) || Math.abs(dy) > dp(3)) {
-                    dragging = true; lp.x = windowStartX + dx; lp.y = Math.max(0, windowStartY + dy)
+                    dragging = true
+                    val screenW = resources.displayMetrics.widthPixels
+                    val screenH = resources.displayMetrics.heightPixels
+                    lp.x = Math.max(0, Math.min(screenW - lp.width, windowStartX + dx))
+                    lp.y = Math.max(0, Math.min(screenH - lp.height, windowStartY + dy))
                     try { wm.updateViewLayout(rootView, lp) } catch (ignored: Exception) {}
                 }
                 return true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                if (dragging) getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putInt(PREF_X, lp.x).putInt(PREF_Y, lp.y).apply()
-                dragging = false; return false
+                if (dragging) prefs.edit().putInt(PREF_X, lp.x).putInt(PREF_Y, lp.y).apply()
+                dragging = false; return true
             }
         }
         return false
@@ -1128,7 +860,7 @@ class FloatingTimerService : Service() {
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (resizing) {
-                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putInt(PREF_WIDTH, lp.width).putInt(PREF_HEIGHT, lp.height).apply()
+                    prefs.edit().putInt(PREF_WIDTH, lp.width).putInt(PREF_HEIGHT, lp.height).apply()
                     scaleButtonsToOverlay()
                 }
                 resizing = false; return true
@@ -1154,13 +886,13 @@ class FloatingTimerService : Service() {
         try { dialog.show() } catch (ignored: Exception) { updateTargetBy(5) }
     }
 
-    private fun setTarget(value: Int) { state.targetQuestions = Math.max(0, Math.min(9999, value)); PipClient.postAction(this, "setTarget", state.targetQuestions); renderDynamicFields() }
+    private fun setTarget(value: Int) { state = state.copy(targetQuestions = Math.max(0, Math.min(9999, value))); PipClient.postAction(this, "setTarget", state.targetQuestions); renderDynamicFields() }
 
     private fun resizeOverlay(w: Int, h: Int) {
         val lp = layoutParams ?: return; val wm = windowManager ?: return
         lp.width = clampOverlayWidth(w); lp.height = clampOverlayHeight(h)
         try { wm.updateViewLayout(rootView, lp) } catch (ignored: Exception) {}
-        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putInt(PREF_WIDTH, lp.width).putInt(PREF_HEIGHT, lp.height).apply()
+        prefs.edit().putInt(PREF_WIDTH, lp.width).putInt(PREF_HEIGHT, lp.height).apply()
         scaleButtonsToOverlay()
     }
 
@@ -1170,14 +902,6 @@ class FloatingTimerService : Service() {
         if (d > 0) return "${d}d $h:${two(m)}:${two(sec)}"
         if (h > 0) return "$h:${two(m)}:${two(sec)}"
         return "$m:${two(sec)}"
-    }
-
-    private fun startLightSweep() {
-        val sweep = glassLightSweep ?: return
-        sweep.alpha = 0f; sweep.translationX = -sweep.width.toFloat() - dp(100).toFloat()
-        sweep.animate().translationX(sweep.width.toFloat() + dp(100).toFloat()).alpha(0.5f).setDuration(2500)
-            .setInterpolator(android.view.animation.AccelerateDecelerateInterpolator())
-            .withEndAction { sweep.animate().alpha(0f).setDuration(800).start() }.start()
     }
 
     private fun dp(value: Int): Int = Math.round(value * resources.displayMetrics.density)
