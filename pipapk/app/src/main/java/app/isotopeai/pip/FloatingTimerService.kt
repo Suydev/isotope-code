@@ -6,7 +6,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
@@ -19,14 +18,12 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
-import android.text.InputType
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.PathInterpolator
 import android.widget.Button
-import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -54,12 +51,14 @@ class FloatingTimerService : Service() {
     private var cardView: LinearLayout? = null
     private var contentView: LinearLayout? = null
     private var questionSection: LinearLayout? = null
+    private var targetEditorRow: LinearLayout? = null
     private var headingText: TextView? = null
     private var timerText: TextView? = null
     private var statusDot: View? = null
     private var statusText: TextView? = null
     private var attemptedText: TextView? = null
     private var targetValueText: TextView? = null
+    private var countTargetText: TextView? = null
     private var closeButton: Button? = null
     private var settingsPanel: LinearLayout? = null
     private var opacitySeekBar: SeekBar? = null
@@ -350,8 +349,44 @@ class FloatingTimerService : Service() {
             textSize = 11.5f
             typeface = typefaceWeight(Typeface.BOLD, 800)
             setPadding(dp(10), dp(8), dp(10), dp(8))
-            setOnClickListener { showTargetDialog() }
+            setOnClickListener { toggleTargetEditor() }
         }
+
+        // Inline target editor row: -5, value, +5, 0 — toggled by Target button
+        targetEditorRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        val minusBtn = Button(this).apply {
+            text = "-5"; isAllCaps = false; textSize = 12f
+            typeface = typefaceWeight(Typeface.BOLD, 800)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            setOnClickListener { setTarget(Math.max(0, state.targetQuestions - 5)) }
+        }
+        val plusBtn = Button(this).apply {
+            text = "+5"; isAllCaps = false; textSize = 12f
+            typeface = typefaceWeight(Typeface.BOLD, 800)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            setOnClickListener { setTarget(Math.min(9999, state.targetQuestions + 5)) }
+        }
+        val zeroBtn = Button(this).apply {
+            text = "0"; isAllCaps = false; textSize = 12f
+            typeface = typefaceWeight(Typeface.BOLD, 800)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            setOnClickListener { setTarget(0) }
+        }
+        targetValueText = TextView(this).apply {
+            textSize = 14.4f
+            typeface = typefaceWeight(Typeface.NORMAL, 500)
+            includeFontPadding = false
+            alpha = 0.55f
+            setPadding(dp(8), 0, dp(8), 0)
+        }
+        targetEditorRow!!.addView(minusBtn)
+        targetEditorRow!!.addView(targetValueText)
+        targetEditorRow!!.addView(plusBtn)
+        targetEditorRow!!.addView(zeroBtn)
+        targetEditorRow!!.visibility = View.GONE
 
         // Build attempt row cleanly: leftCol (subjectLabel + countRow) + targetButton
         val leftCol = LinearLayout(this).apply {
@@ -361,14 +396,14 @@ class FloatingTimerService : Service() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        targetValueText = TextView(this).apply {
+        countTargetText = TextView(this).apply {
             textSize = 14.4f
             typeface = typefaceWeight(Typeface.NORMAL, 500)
             includeFontPadding = false
             alpha = 0.55f
         }
         countRow.addView(attemptedText)
-        countRow.addView(targetValueText)
+        countRow.addView(countTargetText)
         leftCol.addView(subjectLabel)
         leftCol.addView(countRow)
         attemptRow.addView(leftCol, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
@@ -418,6 +453,7 @@ class FloatingTimerService : Service() {
         // Assemble question section
         questionSection!!.addView(separatorView)
         questionSection!!.addView(attemptRow)
+        questionSection!!.addView(targetEditorRow)
         questionSection!!.addView(resultRow, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(10)
@@ -670,6 +706,23 @@ class FloatingTimerService : Service() {
         }
         undoButton?.setTextColor(Color.argb(183, 255, 255, 255))
 
+        // Target editor row buttons — PC PiP scoring style
+        targetEditorRow?.let { row ->
+            for (i in 0 until row.childCount) {
+                val child = row.getChildAt(i)
+                if (child is Button) {
+                    child.background = GradientDrawable().apply {
+                        setColor(Color.argb(17, 255, 255, 255))
+                        cornerRadius = dp(999).toFloat()
+                        setStroke(dp(1), Color.argb(40, 255, 255, 255))
+                    }
+                    child.setTextColor(Color.WHITE)
+                }
+            }
+        }
+        targetValueText?.setTextColor(Color.WHITE)
+        countTargetText?.setTextColor(Color.WHITE)
+
         closeButton?.background = GradientDrawable().apply {
             setColor(Color.argb(17, 255, 255, 255))
             cornerRadius = dp(999).toFloat()
@@ -714,7 +767,8 @@ class FloatingTimerService : Service() {
         questionSection?.visibility = if (showQuestions) View.VISIBLE else View.GONE
         subjectLabel?.text = "${state.focusTypeIcon} ${state.focusTypeLabel}"
         attemptedText?.text = state.questionsAttempted.toString()
-        targetValueText?.text = if (state.targetQuestions > 0) " / ${state.targetQuestions}" else ""
+        countTargetText?.text = if (state.targetQuestions > 0) " / ${state.targetQuestions}" else ""
+        targetValueText?.text = "${state.targetQuestions}"
         correctButton?.text = "\u2713  ${state.questionsCorrect}"
         incorrectButton?.text = "\u2715  ${state.questionsIncorrect}"
         skippedButton?.text = "Skip  ${state.questionsSkipped}"
@@ -842,22 +896,17 @@ class FloatingTimerService : Service() {
         return false
     }
 
-    private fun showTargetDialog() {
-        val input = EditText(this).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER; isSingleLine = true
-            setText(if (state.targetQuestions > 0) state.targetQuestions.toString() else "")
-            setSelectAllOnFocus(true); setPadding(dp(20), dp(12), dp(20), dp(12))
-        }
-        val dialog = AlertDialog.Builder(this).setTitle("Set target questions").setView(input)
-            .setNegativeButton("Cancel", null)
-            .setPositiveButton("Set") { _, _ -> var v = 0; try { v = input.text.toString().trim().toInt() } catch (ignored: Exception) {}; setTarget(Math.max(0, Math.min(9999, v))) }
-            .create()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && dialog.window != null) dialog.window!!.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
-        dialog.setOnShowListener { if (dialog.window != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) dialog.window!!.setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY); input.requestFocus() }
-        try { dialog.show() } catch (ignored: Exception) { setTarget(0) }
-    }
-
     private fun setTarget(value: Int) { state = state.copy(targetQuestions = Math.max(0, Math.min(9999, value))); PipClient.postAction(this, "setTarget", state.targetQuestions); renderDynamicFields() }
+
+    private fun toggleTargetEditor() {
+        val row = targetEditorRow ?: return
+        if (row.visibility == View.VISIBLE) {
+            row.visibility = View.GONE
+        } else {
+            row.visibility = View.VISIBLE
+            targetValueText?.text = "${state.targetQuestions}"
+        }
+    }
 
     private fun resizeOverlay(w: Int, h: Int) {
         val lp = layoutParams ?: return; val wm = windowManager ?: return
