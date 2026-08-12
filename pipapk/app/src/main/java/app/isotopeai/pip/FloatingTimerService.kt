@@ -333,11 +333,11 @@ class FloatingTimerService : Service() {
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             includeFontPadding = false
         }
-        // Target button: pill, border rgba(255,255,255,0.16), bg rgba(255,255,255,0.07)
+        // Target button: PC PiP — pill, border 1px solid rgba(255,255,255,0.16), bg rgba(255,255,255,0.07), font-size 0.72rem (11.5px), weight 800
         targetButton = Button(this).apply {
             text = "Target"
             isAllCaps = false
-            textSize = 12f
+            textSize = 11.5f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             setPadding(dp(10), dp(8), dp(10), dp(8))
             setOnClickListener { showTargetDialog() }
@@ -392,27 +392,30 @@ class FloatingTimerService : Service() {
         targetEditorRow!!.visibility = View.GONE
 
         // [5b] Scoring grid: 3-column, gap 8px
-        // PC: border-radius 14px, padding 10px 12px, font-size 12.48px, weight 800
+        // PC PiP: border-radius 14px, padding 10px 12px, font-size 0.78rem (12.5px), weight 800, min-width 72px
         val resultRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
         correctButton = Button(this).apply {
-            text = "\u2713"; isAllCaps = false; textSize = 12f
+            text = "\u2713"; isAllCaps = false; textSize = 12.5f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             setPadding(dp(12), dp(10), dp(12), dp(10))
+            minimumWidth = dp(72)
             setOnClickListener { PipClient.postAction(this@FloatingTimerService, "correct", -1) }
         }
         incorrectButton = Button(this).apply {
-            text = "\u2715"; isAllCaps = false; textSize = 12f
+            text = "\u2715"; isAllCaps = false; textSize = 12.5f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             setPadding(dp(12), dp(10), dp(12), dp(10))
+            minimumWidth = dp(72)
             setOnClickListener { PipClient.postAction(this@FloatingTimerService, "incorrect", -1) }
         }
         skippedButton = Button(this).apply {
-            text = "Skip"; isAllCaps = false; textSize = 12f
+            text = "Skip"; isAllCaps = false; textSize = 12.5f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             setPadding(dp(12), dp(10), dp(12), dp(10))
+            minimumWidth = dp(72)
             setOnClickListener { PipClient.postAction(this@FloatingTimerService, "skipped", -1) }
         }
         val btnH = dp(40)
@@ -421,9 +424,9 @@ class FloatingTimerService : Service() {
         resultRow.addView(incorrectButton, LinearLayout.LayoutParams(0, btnH, 1f).apply { setMargins(0, 0, gap, 0) })
         resultRow.addView(skippedButton, LinearLayout.LayoutParams(0, btnH, 1f))
 
-        // [5c] Undo: pill, border rgba(255,255,255,0.14), text rgba(255,255,255,0.72)
+        // [5c] Undo: PC PiP — border 1px solid rgba(255,255,255,0.14), transparent bg, text rgba(255,255,255,0.72), border-radius 999px, padding 8px 10px, font-size 0.72rem (11.5px), weight 800
         undoButton = Button(this).apply {
-            text = "Undo last"; isAllCaps = false; textSize = 12f
+            text = "Undo last"; isAllCaps = false; textSize = 11.5f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             setPadding(dp(10), dp(8), dp(10), dp(8))
             setOnClickListener { PipClient.postAction(this@FloatingTimerService, "undo", -1) }
@@ -516,13 +519,14 @@ class FloatingTimerService : Service() {
             topMargin = dp(14)
         })
 
-        // Pause/Resume button
+        // Pause/Resume button — PC PiP scoring button style
         pauseResumeButton = Button(this).apply {
             text = "\u23f8"
             isAllCaps = false
-            textSize = 20f
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(dp(24), dp(8), dp(24), dp(8))
+            textSize = 16f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(16), dp(10), dp(16), dp(10))
+            minimumWidth = dp(72)
             setOnClickListener {
                 PipClient.postAction(this@FloatingTimerService, "togglePause", -1)
             }
@@ -604,42 +608,23 @@ class FloatingTimerService : Service() {
         val card = cardView ?: return
         val isBreak = state.timerState == "break" || state.activePhase == "break"
 
-        currentTheme = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .getString(PREF_THEME, THEME_DARK) ?: THEME_DARK
-
+        // Always render PC PiP dark solid — no glass themes
         hideGlassEffects()
-
-        when (currentTheme) {
-            THEME_APPLE -> renderAppleLiquid(card, isBreak)
-            THEME_GLASS -> renderDarkGlass(card, isBreak)
-            else -> renderDarkSolid(card, isBreak)
-        }
-
-        card.elevation = when (currentTheme) {
-            THEME_APPLE -> dp(12).toFloat()
-            THEME_GLASS -> dp(8).toFloat()
-            else -> dp(4).toFloat()
-        }
+        renderDarkSolid(card, isBreak)
+        card.elevation = dp(4).toFloat()
 
         val rootFrame = rootView as? FrameLayout
         rootFrame?.let {
             for (i in 0 until it.childCount) {
                 val child = it.getChildAt(i)
                 if (child is TextView && child.text == "\u25e2") {
-                    child.setTextColor(when (currentTheme) {
-                        THEME_APPLE -> Color.argb(70, 0, 0, 0)
-                        else -> Color.argb(50, 255, 255, 255)
-                    })
+                    child.setTextColor(Color.argb(50, 255, 255, 255))
                 }
             }
         }
 
-        if (currentTheme == THEME_APPLE) {
-            handler.postDelayed({ startLightSweep() }, 300)
-        } else {
-            glassLightSweep?.animate()?.cancel()
-            glassLightSweep?.alpha = 0f
-        }
+        glassLightSweep?.animate()?.cancel()
+        glassLightSweep?.alpha = 0f
 
         renderDynamicFields()
     }
@@ -734,11 +719,10 @@ class FloatingTimerService : Service() {
         }
         themeButton?.setTextColor(Color.WHITE)
 
-        // Pause button
+        // Pause button — PC PiP scoring style
         pauseResumeButton?.background = GradientDrawable().apply {
-            setColor(Color.argb(17, 255, 255, 255))
+            setColor(Color.parseColor("#6b7280"))
             cornerRadius = dp(14).toFloat()
-            setStroke(dp(1), Color.argb(40, 255, 255, 255))
         }
         pauseResumeButton?.setTextColor(Color.WHITE)
 
