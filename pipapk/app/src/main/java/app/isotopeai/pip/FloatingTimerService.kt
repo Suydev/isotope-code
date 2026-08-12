@@ -28,6 +28,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
 
 class FloatingTimerService : Service() {
@@ -41,6 +42,7 @@ class FloatingTimerService : Service() {
         private const val PREF_WIDTH = "overlay_width"
         private const val PREF_HEIGHT = "overlay_height"
         private const val PREF_THEME = "overlay_theme"
+    private const val PREF_OPACITY = "overlay_opacity"
         private const val THEME_DARK = "dark"
         private const val THEME_GLASS = "glass"
         private const val THEME_APPLE = "apple"
@@ -67,6 +69,10 @@ class FloatingTimerService : Service() {
     private var targetValueText: TextView? = null
     private var expandButton: Button? = null
     private var closeButton: Button? = null
+    private var settingsPanel: LinearLayout? = null
+    private var opacitySeekBar: SeekBar? = null
+    private var opacityValueLabel: TextView? = null
+    private var bgOpacity = 100
     private var pauseResumeButton: Button? = null
     private var correctButton: Button? = null
     private var incorrectButton: Button? = null
@@ -131,6 +137,8 @@ class FloatingTimerService : Service() {
         createNotificationChannel()
         currentTheme = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             .getString(PREF_THEME, THEME_DARK) ?: THEME_DARK
+        bgOpacity = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getInt(PREF_OPACITY, 100)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -500,6 +508,67 @@ class FloatingTimerService : Service() {
         }
         settingsRow!!.addView(closeButton, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
 
+        // Settings panel (hidden by default) — opacity slider
+        settingsPanel = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+        }
+        val opacityLabel = TextView(this).apply {
+            text = "Opacity"
+            textSize = 11f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setTextColor(Color.argb(180, 255, 255, 255))
+        }
+        opacitySeekBar = SeekBar(this).apply {
+            max = 100
+            progress = bgOpacity
+            layoutParams = LinearLayout.LayoutParams(0, dp(32), 1f).apply {
+                marginStart = dp(8)
+                marginEnd = dp(8)
+            }
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    bgOpacity = progress
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                        .putInt(PREF_OPACITY, progress).apply()
+                    applyOpacity()
+                    opacityValueLabel?.text = "$progress%"
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+        opacityValueLabel = TextView(this).apply {
+            text = "$bgOpacity%"
+            textSize = 11f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setTextColor(Color.argb(180, 255, 255, 255))
+            layoutParams = LinearLayout.LayoutParams(dp(40), LinearLayout.LayoutParams.WRAP_CONTENT)
+            gravity = Gravity.CENTER
+        }
+        settingsPanel!!.addView(opacityLabel)
+        settingsPanel!!.addView(opacitySeekBar)
+        settingsPanel!!.addView(opacityValueLabel)
+
+        // Settings toggle button (gear icon)
+        val settingsToggle = Button(this).apply {
+            text = "\u2699"
+            isAllCaps = false
+            textSize = 14f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(8), dp(6), dp(8), dp(6))
+            setOnClickListener {
+                if (settingsPanel?.visibility == View.VISIBLE) {
+                    settingsPanel?.visibility = View.GONE
+                } else {
+                    settingsPanel?.visibility = View.VISIBLE
+                }
+            }
+        }
+        settingsRow!!.addView(settingsToggle, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
+
         // Assemble content
         // PC PiP gap: 14px between elements
         val gapParams = LinearLayout.LayoutParams(
@@ -544,6 +613,10 @@ class FloatingTimerService : Service() {
         contentView!!.addView(settingsRow, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, dp(28)).apply {
             topMargin = dp(14)
+        })
+        contentView!!.addView(settingsPanel, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(4)
         })
 
         cardView!!.addView(contentView, LinearLayout.LayoutParams(
@@ -604,6 +677,14 @@ class FloatingTimerService : Service() {
         rootView = root
     }
 
+    private fun applyOpacity() {
+        val card = cardView ?: return
+        val bg = card.background as? GradientDrawable ?: return
+        bg.setColor(Color.argb(bgOpacity * 255 / 100, 0, 0, 0))
+        card.background = bg
+        opacitySeekBar?.progress = bgOpacity
+    }
+
     private fun renderAll() {
         val card = cardView ?: return
         val isBreak = state.timerState == "break" || state.activePhase == "break"
@@ -612,7 +693,6 @@ class FloatingTimerService : Service() {
         hideGlassEffects()
         renderDarkSolid(card, isBreak)
         card.elevation = dp(4).toFloat()
-
         val rootFrame = rootView as? FrameLayout
         rootFrame?.let {
             for (i in 0 until it.childCount) {
@@ -633,9 +713,9 @@ class FloatingTimerService : Service() {
     //  DARK SOLID — matches PC PiP: bg #000000
     // ═══════════════════════════════════════════════════════
     private fun renderDarkSolid(card: LinearLayout, isBreak: Boolean) {
-        // PC PiP: background #000000
+        // PC PiP: background #000000 — opacity adjustable via settings bar
         card.background = GradientDrawable().apply {
-            setColor(Color.BLACK)
+            setColor(Color.argb(bgOpacity * 255 / 100, 0, 0, 0))
             cornerRadius = dp(20).toFloat()
         }
 
@@ -732,6 +812,13 @@ class FloatingTimerService : Service() {
             setStroke(dp(1), Color.argb(40, 255, 255, 255))
         }
         closeButton?.setTextColor(Color.WHITE)
+
+        // Settings panel bg
+        settingsPanel?.background = GradientDrawable().apply {
+            setColor(Color.argb(17, 255, 255, 255))
+            cornerRadius = dp(10).toFloat()
+            setStroke(dp(1), Color.argb(40, 255, 255, 255))
+        }
 
         // Subject label
         (attemptedText?.parent as? LinearLayout)?.let { parent ->
