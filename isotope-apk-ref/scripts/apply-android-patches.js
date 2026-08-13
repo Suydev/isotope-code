@@ -1328,6 +1328,22 @@ patchFile(focusBundle, [
     '(typeof requestPictureInPicture==="function"?requestPictureInPicture():Promise.reject("no-pip"))',
     false
   ],
+  // FocusPatch: blob/data URL support for background images (matches server.mjs URL_PATCHES)
+  [
+    'const S=pn(p);',
+    'const S=/^(blob:|data:)/i.test(p)?p:pn(p);',
+    false
+  ],
+  [
+    'const p=prompt("Enter the URL of the image you want to use as background:");',
+    'const p=(window.__isoBgP||prompt)("Enter the URL of the image you want to use as background:");',
+    false
+  ],
+  [
+    'alert("Please enter a valid image URL starting with http:// or https://")',
+    '(window.__isoBgInvalid||function(m){alert(m)})("Please enter a valid image URL starting with http:// or https://")',
+    false
+  ],
 ], 'Focus bundle Floating Timer');
 
 // ── 8b. Settings bundle — Android font-size control ─────────────────────────
