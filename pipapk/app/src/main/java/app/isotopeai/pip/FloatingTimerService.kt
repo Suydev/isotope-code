@@ -73,6 +73,9 @@ class FloatingTimerService : Service() {
     private var separatorView: View? = null
     private var settingsRow: LinearLayout? = null
     private var connectionIndicator: View? = null
+    private var headerRow: LinearLayout? = null
+    private var expandButton: Button? = null
+    private var headerCloseButton: Button? = null
 
     private var state = TimerState()
     private var foregroundStarted = false
@@ -570,8 +573,45 @@ class FloatingTimerService : Service() {
         }
         settingsRow!!.addView(settingsToggle, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
 
+        // ── [0] Header row: expand ↗ + close × (PC PiP header, isotope-apk parity) ──
+        // Reference: brand/10 bg, 10dp radius, ↗ opens app; button #13/#14 in pipapk.md.
+        headerRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        expandButton = Button(this).apply {
+            text = "\u2197"  // ↗
+            isAllCaps = false
+            textSize = 13f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(10), dp(6), dp(10), dp(6))
+            setOnClickListener {
+                startActivity(Intent(this@FloatingTimerService, PipActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                })
+            }
+        }
+        headerCloseButton = Button(this).apply {
+            text = "\u2715"  // ×
+            isAllCaps = false
+            textSize = 13f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(10), dp(6), dp(10), dp(6))
+            setOnClickListener { stopSelf() }
+        }
+        headerRow!!.addView(expandButton, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, dp(32)))
+        headerRow!!.addView(headerCloseButton, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, dp(32)).apply {
+            marginStart = dp(8)
+        })
+
         // Assemble content
         // PC PiP gap: 14px between elements
+        contentView!!.addView(headerRow, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(10)
+        })
         contentView!!.addView(headingText, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(0)
@@ -729,6 +769,19 @@ class FloatingTimerService : Service() {
         }
         closeButton?.setTextColor(Color.WHITE)
 
+        // Header buttons (expand ↗ / close ×): brand/10 bg, 10dp radius (elem #13/#14)
+        expandButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(25, 139, 92, 246))
+            cornerRadius = dp(10).toFloat()
+        }
+        expandButton?.setTextColor(Color.rgb(196, 181, 253))
+        headerCloseButton?.background = GradientDrawable().apply {
+            setColor(Color.argb(25, 255, 255, 255))
+            cornerRadius = dp(10).toFloat()
+            setStroke(dp(1), Color.argb(40, 255, 255, 255))
+        }
+        headerCloseButton?.setTextColor(Color.rgb(228, 228, 231))
+
         // Settings panel bg
         settingsPanel?.background = GradientDrawable().apply {
             setColor(Color.argb(17, 255, 255, 255))
@@ -836,6 +889,15 @@ class FloatingTimerService : Service() {
             btn?.let {
                 (it.layoutParams as? LinearLayout.LayoutParams)?.let { p -> p.height = pillH; it.layoutParams = p }
                 it.textSize = Math.max(9f, 12f * scale)
+            }
+        }
+
+        // Header buttons scale with overlay too
+        val headerH = Math.max(dp(28), (dp(32) * scale).toInt())
+        listOf(expandButton, headerCloseButton).forEach { btn ->
+            btn?.let {
+                (it.layoutParams as? LinearLayout.LayoutParams)?.let { p -> p.height = headerH; it.layoutParams = p }
+                it.textSize = Math.max(10f, 13f * scale)
             }
         }
 
