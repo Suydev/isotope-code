@@ -8,19 +8,42 @@ const CACHE_PREFIX = 'isotope-local';
 const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
 const RUNTIME_CACHE = CACHE_PREFIX + '-runtime-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
 
+// CRITICAL: Only files needed for first paint. Everything else loads on demand.
 const SHELL_URLS = [
   '/',
   '/index.html',
   '/offline.html',
   '/manifest.webmanifest',
-  '/favicon.svg',
-  '/logo-full.svg',
-  '/logo-icon.svg',
   '/icons/icon.svg',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/icons/maskable-icon-512x512.png',
   '/auth-bridge.js',
+  '/fonts/fonts.css',
+  '/assets/index-LkPKl--4.css',
+  '/assets/vendor-react-BWKHxYQy.js',
+  '/assets/index-D1Y5F8Lk.js',
+  '/assets/App-CQ9mV4wu.js',
+];
+
+// LAZY: Route-specific bundles cached on first navigation (not upfront)
+const LAZY_CACHE_URLS = [
+  '/assets/vendor-katex-ASjZcBK0.css',
+  '/assets/vendor-katex-BSXZKQS3.js',
+  '/assets/Dashboard-Dzf-IC_a.js',
+  '/assets/Focus-B4gLsWoP.js',
+  '/assets/Study-BXfkiHvM.js',
+  '/assets/Tasks-CZU6K32u.js',
+  '/assets/Community-CEnEgsrd.js',
+  '/assets/communityApi-Ccw5N_9O.js',
+  '/assets/vendor-router-C2sFoTjv.js',
+  '/assets/vendor-query-BnZPC5Kk.js',
+  '/assets/vendor-supabase-D_TSSuUW.js',
+  '/assets/useAuthStore-Aw1au7RF.js',
+  '/assets/useSyncStore-Di0wBMnH.js',
+  '/assets/Onboarding-C0svxOgT.js',
+  '/assets/Auth-D0Y8CB1f.js',
+  '/assets/community-BTpNdnFf.css',
   '/boot-recovery.js',
   '/restore-and-launch.js',
   '/sync/backup-normalizer.js',
@@ -29,25 +52,6 @@ const SHELL_URLS = [
   '/focus-bg-import.js',
   '/update-checker.js',
   '/pwa-local.js',
-'/assets/index-LkPKl--4.css',
-  '/assets/vendor-katex-ASjZcBK0.css',
-  '/assets/community-BTpNdnFf.css',
-  '/assets/index-D1Y5F8Lk.js',
-  '/assets/vendor-react-BWKHxYQy.js',
-  '/assets/vendor-router-C2sFoTjv.js',
-  '/assets/vendor-query-BnZPC5Kk.js',
-  '/assets/vendor-supabase-D_TSSuUW.js',
-  '/assets/App-CQ9mV4wu.js',
-  '/assets/Onboarding-C0svxOgT.js',
-  '/assets/Dashboard-Dzf-IC_a.js',
-  '/assets/Focus-B4gLsWoP.js',
-  '/assets/Study-BXfkiHvM.js',
-  '/assets/Tasks-CZU6K32u.js',
-  '/assets/Community-CEnEgsrd.js',
-  '/assets/communityApi-Ccw5N_9O.js',
-  '/assets/useAuthStore-Aw1au7RF.js',
-  '/assets/useSyncStore-Di0wBMnH.js',
-  '/fonts/fonts.css'
 ];
 
 const RUNTIME_GLUE_PATHS = new Set([
@@ -100,10 +104,9 @@ function isApiLike(url) {
 function isCacheableAsset(request, url) {
   if (request.method !== 'GET' || url.origin !== self.location.origin) return false;
   if (isApiLike(url)) return false;
-  return url.pathname.startsWith('/assets/') ||
-    url.pathname.startsWith('/icons/') ||
-    url.pathname.startsWith('/fonts/') ||
-    /\.(?:js|css|svg|png|jpg|jpeg|webp|woff2?|ttf|webmanifest)$/i.test(url.pathname);
+  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') ||
+      url.pathname.startsWith('/fonts/')) return true;
+  return /\.(?:js|css|svg|png|jpg|jpeg|webp|woff2?|ttf|webmanifest)$/i.test(url.pathname);
 }
 
 function isRuntimeGlue(url) {
@@ -116,9 +119,15 @@ async function cacheFirst(request) {
   const cache = await caches.open(RUNTIME_CACHE);
   const cached = await cache.match(request);
   if (cached) return cached;
-  const response = await fetch(request);
-  if (response && response.ok) cache.put(request, response.clone());
-  return response;
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) cache.put(request, response.clone());
+    return response;
+  } catch {}
+  return new Response('Offline', {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+  });
 }
 
 async function networkFirstStatic(request) {
@@ -137,7 +146,10 @@ async function networkFirstStatic(request) {
   } catch {}
   const cached = await cache.match(request);
   if (cached) return cached;
-  return fetch(request);
+  return new Response('Offline', {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+  });
 }
 
 async function networkFirstNavigation(request) {
@@ -149,18 +161,36 @@ async function networkFirstNavigation(request) {
       return response;
     }
   } catch {}
-  return (await shell.match('/index.html')) ||
-    (await shell.match('/offline.html')) ||
-    new Response('Isotope is offline and the app shell is not cached yet.', {
-      status: 503,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+  const cached = await shell.match('/index.html');
+  if (cached) {
+    return new Response(cached.body, {
+      status: cached.status,
+      statusText: cached.statusText,
+      headers: Object.fromEntries(
+        [...cached.headers].filter(([k]) => k.toLowerCase() !== 'content-encoding')
+      )
     });
+  }
+  const offline = await caches.match('/offline.html');
+  if (offline) return offline;
+  return new Response('Isotope is offline and the app shell is not cached yet.', {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+  });
 }
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
-    await cache.addAll(SHELL_URLS.map((url) => new Request(url, { cache: 'reload' })).filter(Boolean));
+    await Promise.allSettled(
+      SHELL_URLS.map(async (url) => {
+        try {
+          const req = new Request(url, { cache: 'reload' });
+          const resp = await fetch(req);
+          if (resp.ok) await cache.put(url, resp);
+        } catch (_) {}
+      })
+    );
     await self.skipWaiting();
   })());
 });
@@ -180,7 +210,6 @@ self.addEventListener('activate', (event) => {
       try {
         client.postMessage({ type: 'ISOTOPE_SW_READY', version: APP_VERSION, sha: APP_SHA });
       } catch (e) {
-        // Client may be detached or unreachable; silently continue
       }
     }
   })());
@@ -220,6 +249,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (isCacheableAsset(request, url)) {
+    event.respondWith(cacheFirst(request));
+    return;
+  }
+
+  if (LAZY_CACHE_URLS.includes(url.pathname)) {
     event.respondWith(cacheFirst(request));
   }
 });

@@ -154,9 +154,11 @@
       return;
     }
     state.browserOnline = true;
-    fetch('/api/version', { cache: 'no-store' })
-      .then(function (r) { state.serverOnline = !!(r && r.ok); })
-      .catch(function () { state.serverOnline = false; })
+    var controller = new AbortController();
+    var tid = setTimeout(function () { controller.abort(); }, 3000);
+    fetch('/api/version', { cache: 'no-store', signal: controller.signal })
+      .then(function (r) { clearTimeout(tid); state.serverOnline = !!(r && r.ok); })
+      .catch(function () { clearTimeout(tid); state.serverOnline = false; })
       .finally(function () {
         publishStatus();
         renderStatus();
@@ -166,9 +168,7 @@
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then(function (registration) {
-        if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-      })
+      .then(function () {})
       .catch(function () {});
 
     navigator.serviceWorker.addEventListener('message', function (event) {

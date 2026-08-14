@@ -242,7 +242,7 @@ async function refreshStoredSessionIfNeeded(session) {
   if (!session.refresh_token || !SUPA_URL || !SUPA_ANON) return null;
   try {
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 8000);
+    const tid = setTimeout(() => controller.abort(), 4000);
     const resp = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
       method: 'POST',
       headers: {
@@ -302,7 +302,7 @@ async function fetchProfileFromDB(session) {
   if (!SUPA_URL || !session || !session.user || !session.user.id) return null;
   try {
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 5000);
+    const tid = setTimeout(() => controller.abort(), 3000);
 
     const onboardingUrl = SUPA_URL
       + '/rest/v1/user_onboarding'
@@ -666,7 +666,7 @@ async function fetchBootstrapFromServer(session) {
   if (!session || !session.access_token) return null;
   try {
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 5000);
+    const tid = setTimeout(() => controller.abort(), 3000);
     const resp = await fetch('/__auth/bootstrap', {
       cache: 'no-store',
       headers: {
@@ -875,5 +875,7 @@ function preloadAssets() {
   }
 
   // Step 4: preload the app bundle
-  preloadAssets();
+  // preloadAssets() removed — the SW now caches route bundles on demand via
+  // networkFirstNavigation. Eagerly inserting <link rel=modulepreload> and a
+  // <script type=module> doubled first-paint JS for no benefit.
 })();

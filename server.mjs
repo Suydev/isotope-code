@@ -3362,6 +3362,13 @@ function injectScripts(html) {
   if (KEY_SCRIPT) out = out.replace('</head>', KEY_SCRIPT + '</head>');
   out = out.replace('</head>', USERNAME_AUTH_SCRIPT + '</head>');
   out = out.replace('</body>', DOCS_LINK_HTML + UPDATE_COMMAND_DIALOG_SCRIPT + buildUpdatePillScript() + '</body>');
+  if (SUPA_URL) {
+    try {
+      const supaOrigin = new URL(SUPA_URL).origin;
+      out = out.replace('<!--PRECONNECT_HINT-->', '<link rel="preconnect" href="' + supaOrigin + '" crossorigin>');
+    } catch (_) {}
+  }
+  out = out.replace('<!--PRECONNECT_HINT-->', '');
   return out;
 }
 function injectKeys(htmlBuffer) {

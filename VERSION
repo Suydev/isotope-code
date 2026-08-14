@@ -1,6 +1,6 @@
 {
-  "version": "3.3.9",
+  "version": "3.4.0",
   "sha": "3925a373a29bb33c16e4fdcb10b63399d2641bf8",
-  "message": "docs(screenshots): refresh UI screenshots (automated)",
-  "updated_at": "2026-08-09T17:43:03.250Z"
+  "message": "perf: lazy asset loading, offline cache fix, gzip HTML",
+  "updated_at": "2026-08-13T12:00:00.000Z"
 }

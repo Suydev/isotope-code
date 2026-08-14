@@ -11,12 +11,14 @@
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       <meta name="apple-mobile-web-app-title" content="IsotopeAI" />
       <meta name="mobile-web-app-capable" content="yes" />
+      <!--PRECONNECT_HINT-->
       <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
       <link href="/fonts/fonts.css" rel="stylesheet" />
       <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       <link rel="manifest" href="/manifest.webmanifest">
       <link rel="stylesheet" crossorigin href="/assets/index-LkPKl--4.css">
-      <link rel="stylesheet" crossorigin href="/assets/vendor-katex-ASjZcBK0.css">
+      <link rel="preload" href="/assets/vendor-katex-ASjZcBK0.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+      <noscript><link rel="stylesheet" href="/assets/vendor-katex-ASjZcBK0.css"></noscript>
       <!-- Runtime auth bridge: must load synchronously before React/Auth interaction -->
       <script src="/auth-bridge.js?v=5"></script>
       <style id="isotope-runtime-ui-fixes">
@@ -38,21 +40,21 @@
       <script src="/boot-recovery.js" defer></script>
       <!-- UX setup: skips redundant onboarding steps after login -->
       <script src="/ux-setup.js" defer></script>
-      <!-- Focus background import: gallery image + video picker in Focus tab -->
-      <script src="/focus-bg-import.js" defer></script>
       <!-- Sync safety: normalizes backup formats and restores local stores deterministically -->
       <script type="module" src="/sync/backup-normalizer.js"></script>
       <script type="module" src="/sync/local-data-adapter.js"></script>
       <!-- Restore & launch: clears stale data, routes to /onboarding or /dashboard -->
       <script type="module" src="/restore-and-launch.js"></script>
-      <!-- Update checker: polls GitHub when online, shows banner if new commit available -->
-      <script src="/update-checker.js" defer></script>
-      <!-- Local PWA support: registers service worker and shows honest offline/server status -->
-      <script src="/pwa-local.js" defer></script>
   </head>
 
   <body>
       <div id="root"></div>
+      <!-- Focus background import: gallery image + video picker in Focus tab -->
+      <script src="/focus-bg-import.js" defer></script>
+      <!-- Update checker: polls GitHub when online, shows banner if new commit available -->
+      <script src="/update-checker.js" defer></script>
+      <!-- Local PWA support: registers service worker and shows honest offline/server status -->
+      <script src="/pwa-local.js" defer></script>
   </body>
 
   </html>

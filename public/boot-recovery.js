@@ -51,6 +51,11 @@
             return Promise.all(
                 keys
                     .filter(function(key) { return String(key).indexOf('isotope') !== -1; })
+                    .filter(function(key) {
+                        var k = String(key);
+                        if (k.indexOf('-shell-') !== -1 || k.indexOf('-runtime-') !== -1) return false;
+                        return true;
+                    })
                     .map(function(key) { return caches.delete(key); }),
             );
         });

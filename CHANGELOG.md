@@ -5,6 +5,51 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.4.0] — 2026-08-13 — Performance: lazy asset loading, offline cache fix, gzip HTML
+
+### Fixed (offline cache — critical)
+
+- **Service worker never activated on first visit (root cause of offline not working)** — `cache.addAll()` is all-or-nothing: if any single URL in the 50+ precache list returned a 404 or network error, the entire install failed and the SW never activated. Replaced with `Promise.allSettled()` that caches each URL individually, tolerating individual failures.
+- **Offline crash: `fetch()` called in catch block when already offline** — `cacheFirst()` and `networkFirstStatic()` fell back to `fetch(request)` in their catch blocks, which would fail again when offline and throw an unhandled error. Now return a proper `503 Offline` response instead.
+- **`networkFirstNavigation` offline fallback chain unreliable** — Changed to use `caches.match('/offline.html')` (global cache lookup) instead of only checking `SHELL_CACHE` for the offline page.
+- **`boot-recovery.js` destroyed all offline data on any JS error** — `clearCachesAndReload()` called `caches.delete()` on every `isotope-*` cache, wiping the entire offline-capable version. Removed the cache-clearing from error recovery; now only reloads with a cache-busting param.
+- **`pwa-local.js` forced `SKIP_WAITING` on every page load** — Caused an immediate page reload on every visit. Now only sends `SKIP_WAITING` when a new worker is detected via `updatefound` event.
+
+### Performance (slow loading — critical)
+
+- **SW precached 50+ files (~3MB) on first paint** — Split `SHELL_URLS` into `SHELL_URLS` (14 critical files: index.html, core CSS/JS, icons) and `LAZY_CACHE_URLS` (24 route-specific bundles). Only critical shell is precached upfront; route bundles are cached on first navigation via `cacheFirst`.
+- **KaTeX CSS loaded eagerly on every page** — `vendor-katex-ASjZcBK0.css` was in `<head>` even though KaTeX is only needed on math pages. Removed from initial load; loaded on demand when React Router navigates to a page that imports it.
+- **`restore-and-launch.js` eagerly preloaded bundles** — `preloadAssets()` added duplicate `modulepreload` for `vendor-react` (already in index.html) and injected the main entry bundle before React started. Removed eager preloading; browser fetches bundles on demand.
+- **`restore-and-launch.js` blocked routing for 5 seconds** — `fetchProfileFromServer()` and `fetchBootstrapFromServer()` used 5s `AbortController` timeouts that blocked the route decision. Reduced to 3s.
+- **Non-critical scripts loaded in `<head>` blocking render** — `focus-bg-import.js`, `update-checker.js`, `pwa-local.js` moved from `<head>` to end of `<body>`. Only `auth-bridge.js`, `boot-recovery.js`, `ux-setup.js`, and the sync scripts remain in `<head>`.
+- **`focus-bg-import.js` loaded twice** — Was in both `<head>` and `<body>` due to previous edit. Removed duplicate from `<head>`.
+- **HTML responses not gzipped** — JS and CSS were gzip-compressed by the server, but HTML (the largest initial payload at ~15KB with injected scripts) was served uncompressed. Added gzip for HTML responses.
+- **No `preconnect` hint for Supabase domain** — Browser had to do a full DNS+TLS handshake on the first API call. Added `<link rel="preconnect">` injected from `SUPA_URL` env var.
+- **`pwa-local.js` server check had no timeout** — `fetch('/api/version')` could hang indefinitely when the local server was down. Added `AbortSignal.timeout(3s)`.
+- **Duplicate `modulepreload` for `vendor-react`** — `restore-and-launch.js` added a `modulepreload` link for `vendor-react-BWKHxYQy.js` that was already in `index.html`. Removed.
+
+### Changed
+
+- `VERSION` bumped to `3.4.0`.
+- `package.json` version bumped to `3.4.0`.
+
+### Audit (v3.4.0 — 2026-08-13)
+
+| # | Check | Result |
+|---|-------|--------|
+| 1 | SW installs even if some precache URLs 404 | ✅ `Promise.allSettled` |
+| 2 | Offline: `cacheFirst` returns 503, no crash | ✅ try/catch + 503 |
+| 3 | Offline: `networkFirstStatic` returns 503, no crash | ✅ try/catch + 503 |
+| 4 | `boot-recovery.js` no longer clears all caches | ✅ reload only |
+| 5 | `pwa-local.js` no longer forces reload on every visit | ✅ updatefound only |
+| 6 | First paint precache reduced from 50+ to 14 files | ✅ critical vs lazy |
+| 7 | KaTeX CSS not loaded on non-math pages | ✅ removed from head |
+| 8 | HTML responses gzipped | ✅ zlib.gzip in serveHtml |
+| 9 | Preconnect hint injected from env var | ✅ SUPA_URL |
+| 10 | Non-critical scripts at end of body | ✅ 3 scripts moved |
+
+---
+
 ## [3.3.9] — 2026-08-09 — Cross-platform CLI, one-line installers, main-branch updates, auto screenshots
 
 ### Added
