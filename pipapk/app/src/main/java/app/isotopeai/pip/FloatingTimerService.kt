@@ -167,7 +167,7 @@ class FloatingTimerService : Service() {
 
         manualStart = intent?.getBooleanExtra("MANUAL_START", false) ?: false
 
-        freeSizeEnabled = prefs.getBoolean("free_size_enabled", false)
+        freeSizeEnabled = prefs.getBoolean("free_size_enabled", true)
 
         ensureForeground()
         ensureOverlay()
@@ -657,12 +657,12 @@ class FloatingTimerService : Service() {
 
         root.addView(cardView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
-        // Resize handle — visible only in free-size mode
+        // Resize handle — visible by default so users can always free-resize
         resizeHandle = TextView(this).apply {
             text = "\u25e2"; textSize = 14f; typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
             setOnTouchListener { v, event -> handleResizeTouch(v, event) }
-            visibility = View.GONE
+            visibility = View.VISIBLE
         }
         root.addView(resizeHandle, FrameLayout.LayoutParams(dp(32), dp(32), Gravity.BOTTOM or Gravity.END))
 
