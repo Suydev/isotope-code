@@ -663,8 +663,12 @@ class FloatingTimerService : Service() {
             gravity = Gravity.CENTER
             setOnTouchListener { v, event -> handleResizeTouch(v, event) }
             visibility = View.VISIBLE
+            // Card has elevation=4dp; give the handle MORE elevation so it draws
+            // above the card and actually receives touches (elevation beats
+            // add-order in z-ordering).
+            elevation = dp(8).toFloat()
         }
-        root.addView(resizeHandle, FrameLayout.LayoutParams(dp(32), dp(32), Gravity.BOTTOM or Gravity.END))
+        root.addView(resizeHandle, FrameLayout.LayoutParams(dp(44), dp(44), Gravity.BOTTOM or Gravity.END))
 
         rootView = root
     }
