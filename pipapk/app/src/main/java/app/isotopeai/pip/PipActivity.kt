@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -43,6 +44,7 @@ class PipActivity : Activity() {
     private var autoStartEnabled = true
     private var overlayRunning = false
     private var lastActiveSeen = false
+    private var inPipMode = false
 
     private lateinit var statusDot: TextView
     private lateinit var statusText: TextView
@@ -190,6 +192,17 @@ class PipActivity : Activity() {
             setOnClickListener { startOverlay() }
         }
         root.addView(overlayButton, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(48)).apply {
+            bottomMargin = dp(12)
+        })
+
+        val pipButton = makeButton("Enter PiP Mode").apply {
+            setOnClickListener {
+                if (supportsPictureInPicture()) enterPip(340, 390)
+                else Toast.makeText(this@PipActivity, "PiP not supported on this device", Toast.LENGTH_SHORT).show()
+            }
+        }
+        root.addView(pipButton, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, dp(48)).apply {
             bottomMargin = dp(12)
         })
@@ -542,4 +555,44 @@ class PipActivity : Activity() {
     }
 
     private fun dp(value: Int): Int = Math.round(value * resources.displayMetrics.density)
+
+    // ── Native system PiP mode (pipapk.md §4 Option A) ──────────────────────────
+    private fun supportsPictureInPicture(): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+
+    // Clamp the SW/PiP aspect to Android's legal 1/2.39 .. 2.39 band
+    private fun safeAspectRatio(w: Int, h: Int): Rational {
+        val r = if (w <= 0 || h <= 0) 340.0 / 390.0 else w.toDouble() / h.toDouble()
+        return when {
+            r < (1.0 / 2.39) -> Rational(100, 239)
+            r > 2.39 -> Rational(239, 100)
+            else -> Rational(w.coerceAtLeast(1), h.coerceAtLeast(1))
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        inPipMode = isInPictureInPictureMode
+        // Pause the auto-start poll while minimized to save battery (plan §7)
+        if (inPipMode) {
+            ui.removeCallbacks(autoStartPoll)
+        } else {
+            ui.postDelayed(autoStartPoll, AUTO_POLL_MS)
+        }
+    }
+
+    private fun enterPip(width: Int, height: Int) {
+        try {
+            val params = PictureInPictureParams.Builder()
+                .setAspectRatio(safeAspectRatio(width, height))
+                .build()
+            enterPictureInPictureMode(params)
+        } catch (e: Exception) {
+            Toast.makeText(this, "PiP failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
 }
