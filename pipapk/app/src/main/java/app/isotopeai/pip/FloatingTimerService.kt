@@ -28,6 +28,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
 
 class FloatingTimerService : Service() {
 
@@ -95,6 +96,8 @@ class FloatingTimerService : Service() {
     private var wasRunning = false
     private var stopRunnable: Runnable? = null
     private var resizeHandle: TextView? = null
+    private var freeSizeButton: Button? = null
+    private var freeSizeEnabled = false
 
     private fun typefaceWeight(base: Int, weight: Int): Typeface {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -164,8 +167,12 @@ class FloatingTimerService : Service() {
 
         manualStart = intent?.getBooleanExtra("MANUAL_START", false) ?: false
 
+        freeSizeEnabled = prefs.getBoolean("free_size_enabled", false)
+
         ensureForeground()
         ensureOverlay()
+        // Restore free-size handle visibility from persisted pref
+        resizeHandle?.visibility = if (freeSizeEnabled) View.VISIBLE else View.GONE
         renderAll()
         handler.removeCallbacks(poll)
         handler.removeCallbacks(tick)
@@ -495,9 +502,17 @@ class FloatingTimerService : Service() {
             setPadding(dp(8), dp(6), dp(8), dp(6))
             setOnClickListener { resizeOverlay(dp(420), dp(480)) }
         }
+        val sizeFree = Button(this).apply {
+            text = "Free"; isAllCaps = false; textSize = 10f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            setPadding(dp(8), dp(6), dp(8), dp(6))
+            setOnClickListener { toggleFreeSize() }
+        }
+        freeSizeButton = sizeFree
         settingsRow!!.addView(sizeSmall, LinearLayout.LayoutParams(0, dp(28), 1f))
         settingsRow!!.addView(sizeMed, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
         settingsRow!!.addView(sizeLg, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
+        settingsRow!!.addView(sizeFree, LinearLayout.LayoutParams(0, dp(28), 1f).apply { setMargins(dp(4), 0, 0, 0) })
 
         // Close button — opens PipActivity and stops overlay
         closeButton = Button(this).apply {
@@ -642,11 +657,12 @@ class FloatingTimerService : Service() {
 
         root.addView(cardView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
 
-        // Resize handle
+        // Resize handle — visible only in free-size mode
         resizeHandle = TextView(this).apply {
             text = "\u25e2"; textSize = 14f; typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
             setOnTouchListener { v, event -> handleResizeTouch(v, event) }
+            visibility = View.GONE
         }
         root.addView(resizeHandle, FrameLayout.LayoutParams(dp(32), dp(32), Gravity.BOTTOM or Gravity.END))
 
@@ -781,6 +797,16 @@ class FloatingTimerService : Service() {
             setStroke(dp(1), Color.argb(40, 255, 255, 255))
         }
         headerCloseButton?.setTextColor(Color.rgb(228, 228, 231))
+
+        // Free-size button reflects its persisted state
+        freeSizeButton?.let { btn ->
+            btn.background = GradientDrawable().apply {
+                setColor(if (freeSizeEnabled) Color.rgb(139, 92, 246) else Color.argb(17, 255, 255, 255))
+                cornerRadius = dp(10).toFloat()
+                setStroke(dp(1), Color.argb(40, 255, 255, 255))
+            }
+            btn.setTextColor(if (freeSizeEnabled) Color.WHITE else Color.rgb(196, 181, 253))
+        }
 
         // Settings panel bg
         settingsPanel?.background = GradientDrawable().apply {
@@ -992,6 +1018,25 @@ class FloatingTimerService : Service() {
         try { wm.updateViewLayout(rootView, lp) } catch (ignored: Exception) {}
         prefs.edit().putInt(PREF_WIDTH, lp.width).putInt(PREF_HEIGHT, lp.height).apply()
         scaleButtonsToOverlay()
+    }
+
+    // ── Free-size mode: shows the bottom-right drag handle for arbitrary resize ──
+    private fun toggleFreeSize() {
+        freeSizeEnabled = !freeSizeEnabled
+        prefs.edit().putBoolean("free_size_enabled", freeSizeEnabled).apply()
+        val handle = resizeHandle ?: return
+        handle.visibility = if (freeSizeEnabled) View.VISIBLE else View.GONE
+        handle.bringToFront()
+        val btn = freeSizeButton
+        if (btn != null) {
+            btn.background = GradientDrawable().apply {
+                setColor(if (freeSizeEnabled) Color.rgb(139, 92, 246) else Color.argb(17, 255, 255, 255))
+                cornerRadius = dp(10).toFloat()
+                setStroke(dp(1), Color.argb(40, 255, 255, 255))
+            }
+            btn.setTextColor(if (freeSizeEnabled) Color.WHITE else Color.rgb(196, 181, 253))
+        }
+        Toast.makeText(this, if (freeSizeEnabled) "Free resize: drag the corner handle" else "Free resize off", Toast.LENGTH_SHORT).show()
     }
 
     private fun formatSeconds(totalSeconds: Int): String {
