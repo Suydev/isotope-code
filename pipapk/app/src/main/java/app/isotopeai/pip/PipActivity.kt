@@ -233,76 +233,6 @@ class PipActivity : Activity() {
             bottomMargin = dp(8)
         })
 
-        // Theme picker — three options: Dark / Glass / Apple Glass
-        val themeLabel = TextView(this).apply {
-            text = "Theme"
-            textSize = 14f
-            setTextColor(Color.rgb(200, 200, 210))
-        }
-        root.addView(themeLabel, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(8)
-        })
-
-        val currentTheme = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .getString("overlay_theme", "dark") ?: "dark"
-        val themeRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        val themePresets = listOf(
-            "Dark" to "dark",
-            "Glass" to "glass",
-            "Apple" to "apple"
-        )
-        themePresets.forEachIndexed { idx, (label, value) ->
-            val isActive = currentTheme == value
-            val btn = Button(this).apply {
-                text = label
-                isAllCaps = false
-                textSize = 12f
-                typeface = Typeface.DEFAULT_BOLD
-                setTextColor(if (isActive) Color.WHITE else Color.rgb(161, 161, 170))
-                background = GradientDrawable().apply {
-                    setColor(if (isActive) Color.rgb(139, 92, 246) else Color.rgb(38, 38, 42))
-                    cornerRadius = dp(10).toFloat()
-                }
-                setPadding(dp(12), dp(4), dp(12), dp(4))
-                setOnClickListener {
-                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                        .putString("overlay_theme", value).apply()
-                    // Apply to running overlay service immediately
-                    val svcIntent = Intent(this@PipActivity, FloatingTimerService::class.java).apply {
-                        action = "SET_THEME"
-                        putExtra("THEME_VALUE", value)
-                    }
-                    try { startService(svcIntent) } catch (ignored: Exception) {}
-                    Toast.makeText(this@PipActivity, "Theme: $label", Toast.LENGTH_SHORT).show()
-                    // Refresh all three buttons
-                    (parent as? LinearLayout)?.let { row ->
-                        for (i in 0 until row.childCount) {
-                            val child = row.getChildAt(i) as? Button
-                            child?.let {
-                                val (_, v) = themePresets[i]
-                                val active = v == value
-                                it.setTextColor(if (active) Color.WHITE else Color.rgb(161, 161, 170))
-                                (it.background as? GradientDrawable)?.setColor(
-                                    if (active) Color.rgb(139, 92, 246) else Color.rgb(38, 38, 42))
-                            }
-                        }
-                    }
-                }
-            }
-            val params = LinearLayout.LayoutParams(0, dp(36), 1f).apply {
-                setMargins(if (idx > 0) dp(6) else 0, 0, 0, 0)
-            }
-            themeRow.addView(btn, params)
-        }
-        root.addView(themeRow, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(48)).apply {
-            bottomMargin = dp(12)
-        })
-
         // Overlay size presets
         val sizeLabel = TextView(this).apply {
             text = "Default Overlay Size"
@@ -413,8 +343,7 @@ class PipActivity : Activity() {
         val info = TextView(this).apply {
             text = "Auto-start: overlay launches when server detects an active timer.\n" +
                    "Press 'Start Overlay' to launch manually.\n" +
-                   "Overlay requires 'Display over other apps' permission.\n" +
-                   "Theme: tap the snowflake icon in the overlay to toggle glass mode."
+                   "Overlay requires 'Display over other apps' permission."
             textSize = 12f
             setTextColor(Color.rgb(113, 113, 122))
             setLineSpacing(dp(4).toFloat(), 1f)
