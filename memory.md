@@ -148,3 +148,15 @@
 - Server runs in Termux; browser (Cromite) on same phone hits `127.0.0.1:3000/focus`.
 - `session-ses_*.md` files are auto-generated session artifacts — do NOT commit.
 - Repo branches: work only on `main`. Read `isotope-apk-ref/AGENTS.md` + `.agent/` docs before touching isotope-apk-ref code.
+## 10. pipapk progress (2026-08-14)
+
+- Overlay card gained header expand ↗ / close × buttons (commit `65e12b2`).
+- Free-size toggle button for corner-drag resize (commit `5ffec31`).
+- Native system PiP mode added to PipActivity (commit `3137188`):
+  supportsPictureInPicture="true" in manifest, enterPip(340,390) with safe
+  aspect ratio (clamp 1/2.39..2.39), onPictureInPictureModeChanged pauses the
+  auto-start poll while minimized, "Enter PiP Mode" button on settings screen.
+- All three CI-built (GitHub Actions pip-apk.yml). Newest APK:
+  `~/.cache/opencode/tmp/apk/app-debug.apk` (2.1MB, isMinifyEnabled=false).
+- BLOCKED on on-device install: wireless ADB down (10.171.170.148:45355
+  unreachable). Need pairing IP:port + 6-digit code + connect IP:port.
