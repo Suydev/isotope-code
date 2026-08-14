@@ -160,3 +160,19 @@
   `~/.cache/opencode/tmp/apk/app-debug.apk` (2.1MB, isMinifyEnabled=false).
 - BLOCKED on on-device install: wireless ADB down (10.171.170.148:45355
   unreachable). Need pairing IP:port + 6-digit code + connect IP:port.
+
+### On-device verification (2026-08-14, ADB 192.168.1.8:43999)
+
+- Overlay card: draggable + corner-handle resize WORKS after elevation fix
+  (card elevation 4dp covered the handle; handle now 8dp elevation + 44dp
+  touch target). Verified resize 536x612 -> 459x711 via input swipe.
+- Native system PiP: "Enter PiP Mode" button -> mIsInPictureInPictureMode=true,
+  task mode=pinned, pip-dismiss-overlay present. Verified.
+- Device gotcha: ColorOS/OnePlus freeze manager aggressively kills the
+  FloatingTimerService in background; the stuck NotificationShade + "Display
+  over other apps" settings page needs `input keyevent 4` x3 to dismiss.
+- Install: CI debug APKs have different signatures per run -> uninstall before
+  install (`adb uninstall in.isotopeai.pip`).
+- adb on Termux: needs `HOME` set and `TMPDIR=/data/data/com.termux/files/usr/tmp`
+  (/tmp doesn't exist, read-only). Device re-pairs: 10.171.170.148:45355 (old),
+  then 192.168.1.8:39249/43999.
