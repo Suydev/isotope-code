@@ -6302,21 +6302,13 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ ok: true, status: 'ok', ts: Date.now(), version: LOCAL_VERSION?.version || null }));
     return;
   }
+  // REMOVED: deferred-scripts.js route. All scripts are now injected inline
+  // into <head> by injectScripts(). If a stale service worker serves an old
+  // index.html that still references /deferred-scripts.js, this 404 will
+  // cause a script load error → boot-recovery.js catches it → clears cache → reloads.
   if (req.method === 'GET' && req.url === '/deferred-scripts.js') {
-    const stripTags = (s) => s.replace(/<\/?script>/g, '').replace(/<\/?style>/g, '');
-    const deferredScripts = [
-      PREMIUM_SCRIPT,
-      RELOAD_GUARD_SCRIPT,
-      FEATURE_REMOVAL_STYLE,
-      KEY_SCRIPT || '',
-      USERNAME_AUTH_SCRIPT
-    ].filter(Boolean).map(stripTags).join('\n');
-    res.writeHead(200, {
-      'Content-Type': 'application/javascript',
-      'Cache-Control': 'public, max-age=31536000, immutable',
-      'Service-Worker-Allowed': '/'
-    });
-    res.end(deferredScripts);
+    res.writeHead(404, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' });
+    res.end('// deferred-scripts.js was removed. All scripts are now inlined in <head>. Clear your service worker cache (hard refresh).');
     return;
   }
   if (req.method === 'GET' && req.url === '/__isotope/state') {
