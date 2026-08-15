@@ -4,7 +4,6 @@
 
   var STATUS_ID = '__iso_offline_status__';
   var DISMISS_KEY = 'isotope_offline_status_dismissed';
-  var swActivationReloadGuard = false;
   var state = {
     browserOnline: navigator.onLine,
     serverOnline: true,
@@ -176,13 +175,18 @@
       if (data.type === 'ISOTOPE_SW_READY' || data.type === 'ISOTOPE_SW_VERSION') {
         var newVersion = data.version || '';
         var newSha = data.sha || '';
-        // One-shot reload guard: only reload on first SW activation with new version
-        if (!swActivationReloadGuard && newVersion && newVersion !== state.swVersion) {
-          swActivationReloadGuard = true;
-          state.swVersion = newVersion;
-          state.swSha = newSha;
+        // Persist SW version across reloads so we don't re-reload on fresh page load
+        var storedVersion = '';
+        try { storedVersion = sessionStorage.getItem('iso_sw_version') || ''; } catch (_) {}
+        if (newVersion && storedVersion && newVersion !== storedVersion) {
+          // SW version changed while page was already loaded — reload once
+          try { sessionStorage.setItem('iso_sw_version', newVersion); } catch (_) {}
           window.location.reload();
           return;
+        }
+        // First time seeing this version on this page load — just record it
+        if (newVersion) {
+          try { sessionStorage.setItem('iso_sw_version', newVersion); } catch (_) {}
         }
         state.swVersion = newVersion;
         state.swSha = newSha;
@@ -213,6 +217,10 @@
     _serverCheckTimer = setTimeout(checkServer, delayMs);
   }
 
+  function isPotatoMode() {
+    try { return localStorage.getItem('isotope_potato_mode') === '1'; } catch (_) { return false; }
+  }
+
   function init() {
     registerServiceWorker();
     checkServer();
@@ -220,12 +228,13 @@
     // This replaces aggressive 10s polling with event-driven refresh.
     document.addEventListener('visibilitychange', function () {
       if (!document.hidden) {
-        scheduleServerCheck(800);
+        scheduleServerCheck(isPotatoMode() ? 3000 : 800);
       }
     });
-    // Long-running session keepalive: one recheck every 5 minutes.
+    // Long-running session keepalive: one recheck every 5 minutes (30s in potato mode).
     // Covers cases where the browser tab stays open without visibility changes.
-    setInterval(checkServer, 5 * 60 * 1000);
+    var potato = isPotatoMode();
+    setInterval(checkServer, potato ? 30 * 1000 : 5 * 60 * 1000);
   }
 
   if (document.readyState === 'loading') {

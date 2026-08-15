@@ -3348,20 +3348,23 @@ button[title="Remove Background"] {
 const DOCS_LINK_HTML = `<a href="https://suydev.github.io/isotope-code/" target="_blank" rel="noopener noreferrer" id="iso-docs-badge" title="IsotopeAI documentation" style="position:fixed;bottom:14px;right:18px;z-index:9998;background:rgba(10,10,20,0.82);border:1px solid rgba(124,58,237,0.38);border-radius:999px;padding:6px 14px;font-size:11px;font-family:system-ui,-apple-system,sans-serif;color:#a78bfa;text-decoration:none;backdrop-filter:blur(6px);letter-spacing:0.02em;pointer-events:auto;user-select:none" onmouseover="this.style.background='rgba(124,58,237,0.22)';this.style.borderColor='rgba(124,58,237,0.7)'" onmouseout="this.style.background='rgba(10,10,20,0.82)';this.style.borderColor='rgba(124,58,237,0.38)'">📖 Docs</a>`;
 
 function injectScripts(html) {
-  // All scripts injected into <head> so they run before React:
+  // Critical scripts in <head> (run before React):
   //  1. ORIGIN_SCRIPT   — sets window.__ISO_ORIGIN__, __ISO_SUPA_URL__, __ISO_ANON__
   //  2. LOCAL_DATA_GUARD_SCRIPT — per-user local workspace isolation
   //  3. AUTH_GUARD_SCRIPT — immediate redirect if no valid session (must be early)
-  //  4. PREMIUM_SCRIPT  — fetch interceptor + profile upgrade (only runs if authed)
-  //  5. RELOAD_GUARD_SCRIPT — one-shot SW reload guard
-  //  6. FEATURE_REMOVAL_STYLE — hide removed features (background upload buttons)
-  //  7. KEY_SCRIPT      — AI API keys
-  //  8. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
+  // Non-critical scripts injected before </body> so they don't block first paint:
+  //  PREMIUM_SCRIPT (fetch interceptor), RELOAD_GUARD_SCRIPT, FEATURE_REMOVAL_STYLE,
+  //  KEY_SCRIPT (AI keys), USERNAME_AUTH_SCRIPT (auth form helpers)
   // UPDATE_COMMAND_DIALOG_SCRIPT + DOCS_LINK_HTML go before </body> (need document.body).
-  let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + RELOAD_GUARD_SCRIPT + FEATURE_REMOVAL_STYLE + '</head>');
-  if (KEY_SCRIPT) out = out.replace('</head>', KEY_SCRIPT + '</head>');
-  out = out.replace('</head>', USERNAME_AUTH_SCRIPT + '</head>');
-  out = out.replace('</body>', DOCS_LINK_HTML + UPDATE_COMMAND_DIALOG_SCRIPT + buildUpdatePillScript() + '</body>');
+  let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + '</head>');
+  let deferred = [
+    PREMIUM_SCRIPT,
+    RELOAD_GUARD_SCRIPT,
+    FEATURE_REMOVAL_STYLE,
+    KEY_SCRIPT || '',
+    USERNAME_AUTH_SCRIPT
+  ].filter(Boolean).join('\n');
+  out = out.replace('</body>', DOCS_LINK_HTML + UPDATE_COMMAND_DIALOG_SCRIPT + buildUpdatePillScript() + deferred + '</body>');
   if (SUPA_URL) {
     try {
       const supaOrigin = new URL(SUPA_URL).origin;

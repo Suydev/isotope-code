@@ -6,9 +6,30 @@
  *
  * fillRequiredDefaults() is exposed on window so other scripts
  * can call it if needed, but nothing auto-advances any step.
+ *
+ * Potato mode (low-performance): set localStorage.isotope_potato_mode = '1'
+ * to disable animations, blur, heavy background effects, and reduce polling.
  */
 (function () {
   'use strict';
+
+  // Potato mode: check localStorage and apply minimal CSS if enabled
+  (function applyPotatoMode() {
+    try {
+      if (localStorage.getItem('isotope_potato_mode') === '1') {
+        var style = document.createElement('style');
+        style.id = 'isotope-potato-mode';
+        style.textContent = [
+          '*{animation:none!important;transition:none!important}',
+          '.blur,[style*="blur"]{filter:none!important;backdrop-filter:none!important}',
+          '[style*="box-shadow"]{box-shadow:none!important}',
+          'video{display:none!important}'
+        ].join('');
+        document.documentElement.classList.add('isotope-potato');
+        document.head.appendChild(style);
+      }
+    } catch (_) {}
+  })();
 
   function setReactValue(el, value) {
     try {
