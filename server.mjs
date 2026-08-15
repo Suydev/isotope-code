@@ -6296,13 +6296,14 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (req.method === 'GET' && req.url === '/deferred-scripts.js') {
+    const stripTags = (s) => s.replace(/<\/?script>/g, '').replace(/<\/?style>/g, '');
     const deferredScripts = [
       PREMIUM_SCRIPT,
       RELOAD_GUARD_SCRIPT,
       FEATURE_REMOVAL_STYLE,
       KEY_SCRIPT || '',
       USERNAME_AUTH_SCRIPT
-    ].filter(Boolean).join('\n');
+    ].filter(Boolean).map(stripTags).join('\n');
     res.writeHead(200, {
       'Content-Type': 'application/javascript',
       'Cache-Control': 'public, max-age=31536000, immutable',
