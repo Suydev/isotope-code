@@ -3348,19 +3348,12 @@ button[title="Remove Background"] {
 const DOCS_LINK_HTML = `<a href="https://suydev.github.io/isotope-code/" target="_blank" rel="noopener noreferrer" id="iso-docs-badge" title="IsotopeAI documentation" style="position:fixed;bottom:14px;right:18px;z-index:9998;background:rgba(10,10,20,0.82);border:1px solid rgba(124,58,237,0.38);border-radius:999px;padding:6px 14px;font-size:11px;font-family:system-ui,-apple-system,sans-serif;color:#a78bfa;text-decoration:none;backdrop-filter:blur(6px);letter-spacing:0.02em;pointer-events:auto;user-select:none" onmouseover="this.style.background='rgba(124,58,237,0.22)';this.style.borderColor='rgba(124,58,237,0.7)'" onmouseout="this.style.background='rgba(10,10,20,0.82)';this.style.borderColor='rgba(124,58,237,0.38)'">📖 Docs</a>`;
 
 function injectScripts(html) {
-  // Injection order (all into </head> so they run before React):
+  // Only critical scripts in <head> (run before React):
   //  1. ORIGIN_SCRIPT   — sets window.__ISO_ORIGIN__, __ISO_SUPA_URL__, __ISO_ANON__
   //  2. LOCAL_DATA_GUARD_SCRIPT — per-user local workspace isolation
   //  3. AUTH_GUARD_SCRIPT — immediate redirect if no valid session (must be early)
-  //  4. PREMIUM_SCRIPT  — fetch interceptor + profile upgrade (only runs if authed)
-  //  5. RELOAD_GUARD_SCRIPT — one-shot SW reload guard
-  //  6. FEATURE_REMOVAL_STYLE — hide removed features (background upload buttons)
-  //  7. KEY_SCRIPT      — AI API keys
-  //  8. USERNAME_AUTH_SCRIPT — window.__isoUp / __isoLogin helpers for auth forms
-  // UPDATE_COMMAND_DIALOG_SCRIPT + DOCS_LINK_HTML go before </body> (need document.body).
-  let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + PREMIUM_SCRIPT + RELOAD_GUARD_SCRIPT + FEATURE_REMOVAL_STYLE + '</head>');
-  if (KEY_SCRIPT) out = out.replace('</head>', KEY_SCRIPT + '</head>');
-  out = out.replace('</head>', USERNAME_AUTH_SCRIPT + '</head>');
+  // Non-critical scripts moved to /deferred-scripts.js (loaded as module after React).
+  let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + '</head>');
   out = out.replace('</body>', DOCS_LINK_HTML + UPDATE_COMMAND_DIALOG_SCRIPT + buildUpdatePillScript() + '</body>');
   if (SUPA_URL) {
     try {
@@ -3858,155 +3851,12 @@ function getPatchedAppBundle() {
       }
     };
 
-    appPatch(
-      'createTemporaryLocalFallback(e, t) {',
-      'createTemporaryLocalFallback(e, t) { return { success: !1, error: "Cloud auth is unavailable. Start the local server and sign in again." };',
-      'Temporary local auth fallback disabled'
-    );
-    appPatch(
-      'autoRefreshToken: !1,',
-      'autoRefreshToken: !0,',
-      'Supabase session auto-refresh enabled'
-    );
-    appPatch(
-      'async restoreLocalWorkspaceSession() {',
-      'async restoreLocalWorkspaceSession() { return null;',
-      'Local workspace session restore disabled'
-    );
-    appPatch(
-      'if (!M() || !w) return {\n            success: !0,\n            user: this.createLocalUser(r)\n        };',
-      'if (!M() || !w) return {\n            success: !1,\n            error: "Cloud auth is not configured"\n        };',
-      'Sign-up local fake user disabled'
-    );
-    appPatch(
-      'if (!M() || !w) return {\n            success: !0,\n            user: this.createLocalUser(e)\n        };',
-      'if (!M() || !w) return {\n            success: !1,\n            error: "Cloud auth is not configured"\n        };',
-      'Sign-in local fake user disabled'
-    );
-    appPatch(
-      '} catch (r) {\n            O(r) && this.setDegradedMode(r, Z("Cloud profile sync"))\n        }\n    }\n    async pushPublicProfileFields',
-      '} catch (r) {\n            O(r) && this.setDegradedMode(r, Z("Cloud profile sync"));\n            throw r\n        }\n    }\n    async pushPublicProfileFields',
-      'Profile sync errors surface'
-    );
-    appPatch(
-      '} catch (r) {\n            O(r) && this.setDegradedMode(r, Z("Public profile sync"))\n        }\n    }\n    async pushRecord',
-      '} catch (r) {\n            O(r) && this.setDegradedMode(r, Z("Public profile sync"));\n            throw r\n        }\n    }\n    async pushRecord',
-      'Public profile sync errors surface'
-    );
-    appPatch(
-      'if (this.isTableMissingError(i, s)) {\n                this.markTableUnsupported(s);\n                return\n            }\n        }\n    }\n    async deleteRecord',
-      'if (this.isTableMissingError(i, s)) {\n                this.markTableUnsupported(s);\n                return\n            }\n            throw i\n        }\n    }\n    async deleteRecord',
-      'Record sync errors surface'
-    );
-    appPatch(
-      'if (this.isTableMissingError(i, s)) {\n                this.markTableUnsupported(s);\n                return\n            }\n        }\n    }\n    async pushAllData',
-      'if (this.isTableMissingError(i, s)) {\n                this.markTableUnsupported(s);\n                return\n            }\n            throw i\n        }\n    }\n    async pushAllData',
-      'Delete sync errors surface'
-    );
-    appPatch(
-      'if (O(t)) throw t',
-      'throw t',
-      'Delta sync failures propagate'
-    );
-    appPatch(
-      '!o && O(f.error) && (o = f.error);',
-      '!o && (o = f.error || new Error("Batch upsert failed"));',
-      'Batch upsert failure captured'
-    );
-    appPatch(
-      'y.success ? i++ : (n++, !o && O(y.error) && (o = y.error))',
-      'y.success ? i++ : (n++, !o && (o = y.error || new Error("Row upsert failed")))',
-      'Adaptive row upsert failure captured'
-    );
-    appPatch(
-      'n++, !o && O(y) && (o = y)',
-      'n++, !o && (o = y)',
-      'Adaptive row exception captured'
-    );
-    appPatch(
-      'n += h.length, !o && O(f) && (o = f)',
-      'n += h.length, !o && (o = f)',
-      'Batch exception captured'
-    );
-    appPatch(
-      'if (n && (Ur.updateFromPayload(n, i.username || i.name, i.avatar), !n.startsWith("local-") && M())) {\n            const o = hi(r);\n            yi(n, i, s, o)\n        }',
-      'if (n && (Ur.updateFromPayload(n, i.username || i.name, i.avatar), !n.startsWith("local-") && M())) {\n            await va.pushProfile(n, i, s)\n        }',
-      'Profile updates wait for cloud persistence'
-    );
-    appPatch(
-      'const a = await Dt();\n        return JSON.stringify(a, null, 2)',
-      'const a = await Dt();\n        return typeof window < "u" && window.__isoStringifyBackup ? await window.__isoStringifyBackup(a) : JSON.stringify(a, null, 2)',
-      'Backup export stringify yields to worker'
-    );
-    appPatch(
-      's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e), await this.pullCloudSnapshot(e, t)',
-      '(window.__isoBuildBackup = async () => await Dn(), window.__isoApplyBackup = async r => await Xr(r, { mode: "merge" })), await (window.__isoRunManualCloudSync ? window.__isoRunManualCloudSync(window.__isoBuildBackup, window.__isoApplyBackup, "manual_full_sync") : (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "manual_full_sync" }) : Promise.resolve()))',
-      'Manual full sync uses full Storage backup JSON'
-    );
-    appPatch(
-      's && await this.pushProfile(e, s), t && await this.pushAllDataDelta(e)\n        })',
-      '(window.__isoBuildBackup = window.__isoBuildBackup || (async () => await Dn()), window.__isoApplyBackup = window.__isoApplyBackup || (async r => await Xr(r, { mode: "merge" }))), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(await Dn(), { source: "upload_dirty_local" }) : Promise.resolve())\n        })',
-      'Upload-only sync uses full Storage backup JSON'
-    );
-    appPatch(
-      'await this.pullCloudSnapshot(e, t)\n        })\n    }\n    async uploadDirtyLocal',
-      'await this.pullCloudSnapshot(e, !1); await (window.__isoDownloadAndImportBackup ? window.__isoDownloadAndImportBackup(async s => await Xr(s, { mode: "merge" }), "download_cloud_data") : (async () => { const s = window.__isoDownloadBackupJSON ? await window.__isoDownloadBackupJSON({ source: "download_cloud_data" }).catch(() => null) : null; s && await Xr(s, { mode: "merge" }) })())\n        })\n    }\n    async uploadDirtyLocal',
-      'Download cloud data imports full Storage backup JSON'
-    );
-
-    const pushProfileStart = '    async pushProfile(e, t, s) {';
-    const pushProfileEnd = '    async pushPublicProfileFields';
-    const pushProfileStartIdx = patched.indexOf(pushProfileStart);
-    const pushProfileEndIdx = pushProfileStartIdx >= 0 ? patched.indexOf(pushProfileEnd, pushProfileStartIdx) : -1;
-    if (pushProfileStartIdx >= 0 && pushProfileEndIdx > pushProfileStartIdx) {
-      const replacement = `    async pushProfile(e, t, s) {
-        if (!(!M() || !w) && !(!e || e.startsWith("local-"))) try {
-            const r = Ns(t),
-                {
-                    data: i,
-                    error: n
-                } = await w.auth.getSession();
-            if (n) throw n;
-            const o = i && i.session ? i.session : null;
-            if (!o || !o.access_token) throw new Error("Authentication required");
-            const c = window.__isoPostProfile ? await window.__isoPostProfile({
-                        profile_data: r,
-                        display_name: r.display_name || r.name,
-                        username: r.username,
-                        bio: r.bio,
-                        avatar: r.avatar,
-                        avatar_url: r.avatar_url
-                    }) : await fetch("/__auth/profile", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: "Bearer " + o.access_token
-                    },
-                    body: JSON.stringify({
-                        profile_data: r,
-                        display_name: r.display_name || r.name,
-                        username: r.username,
-                        bio: r.bio,
-                        avatar: r.avatar,
-                        avatar_url: r.avatar_url
-                    })
-                }).then(d => d.json().then(p => { if (!d.ok || !p.ok) throw new Error(p.error || "Profile sync failed"); return p }));
-            const d = c;
-            if (!d.ok) throw new Error(d.error || "Profile sync failed");
-            d.profile && await m.saveUserProfile(pe({ ...r,
-                ...d.profile
-            }))
-        } catch (r) {
-            O(r) && this.setDegradedMode(r, Z("Cloud profile sync"));
-            throw r
-        }
-    }
-`;
-      patched = patched.slice(0, pushProfileStartIdx) + replacement + patched.slice(pushProfileEndIdx);
-      console.log('[AppPatch] Profile sync routed through verified server endpoint');
-    } else {
-      console.warn('[AppPatch] pushProfile method not found');
-    }
+    // NOTE: The sync/auth method layer (createTemporaryLocalFallback,
+    // restoreLocalWorkspaceSession, pushProfile, pushAllData, deleteRecord,
+    // pullCloudSnapshot, uploadDirtyLocal, batchUpsert, etc.) has been refactored
+    // from App-CQ9mV4wu.js into useAuthStore-Aw1au7RF.js in v3.3.9.
+    // Those patches are now handled by getPatchedAuthStoreBundle().
+    // Only Supabase URL/JWT replacement remains relevant for the App bundle.
 
     patchedAppBundle = Buffer.from(patched, 'utf8');
   } catch (e) { console.error('[AppPatch] Error:', e.message); patchedAppBundle = null; }
@@ -4300,29 +4150,28 @@ function getPatchedAuthBundle() {
 
     // Sign In: route only after server verified profile/onboarding state.
     p(
-      'p = async h => {\n            h.preventDefault(), u(null), (await j(s, t)).success && setTimeout(() => {\n                b("/dashboard", {\n                    replace: !0\n                })\n            }, 100)\n        },',
-      'p = async h => {\n            h.preventDefault(), u(null), m.setState({ isLoading: true, error: null });\n            try {\n                var __r = await window.__isoLogin(s, t);\n                if (!__r.ok) {\n                    m.setState({ error: __r.err || "Login failed", isLoading: false });\n                    return\n                }\n                window.location.href = __r.onboarding_completed === false ? "/onboarding" : "/dashboard"\n            } catch (__e) {\n                m.setState({ error: __e && __e.message ? __e.message : "Login failed", isLoading: false })\n            }\n        },'
+      'p=async h=>{h.preventDefault(),u(null),(await j(s,t)).success&&setTimeout(()=>{b("/dashboard",{replace:!0})},100)},',
+      'p=async h=>{h.preventDefault(),u(null),m.setState({isLoading:!0,error:null});try{var __r=await window.__isoLogin(s,t);if(!__r.ok){m.setState({error:__r.err||"Login failed",isLoading:!1});return}window.location.href=__r.onboarding_completed===!1?"/onboarding":"/dashboard"}catch(__e){m.setState({error:__e&&__e.message?__e.message:"Login failed",isLoading:!1})}},'
     );
 
     // Sign Up: replace email-validation + signUp call → server-side signup
     // Form variables: s = Full Name, t = Email, l = Password
     // We pass t (email) + l (password) to server — real email used directly
     p(
-      'const N = M(t);\n            if (N) {\n                m.setState({\n                    error: N\n                });\n                return\n            }(await j(s, t, l)).success && d("/onboarding")',
-      "m.setState({isLoading:true,error:null});try{var __r=await window.__isoUp(t,l);if(!__r.ok){m.setState({error:__r.err||'Signup failed',isLoading:false});return;}window.location.href='/onboarding';}catch(__e){m.setState({error:__e&&__e.message?__e.message:'Signup failed',isLoading:false});}"
+      'const N=M(t);if(N){m.setState({error:N});return}(await j(s,t,l)).success&&d("/onboarding")',
+      "m.setState({isLoading:!0,error:null});try{var __r=await window.__isoUp(t,l);if(!__r.ok){m.setState({error:__r.err||'Signup failed',isLoading:!1});return}window.location.href='/onboarding'}catch(__e){m.setState({error:__e&&__e.message?__e.message:'Signup failed',isLoading:!1})}}"
     );
     // Sign Up: button label
     p('"Create Account with Email"', '"Create Account"');
 
     // Landing panel version badge: update stale hardcoded version string.
-    p('children: "IsotopeAI v2.0"', 'children: "IsotopeAI v3.1"');
+    p('children:"IsotopeAI v2.0"', 'children:"IsotopeAI v3.1"');
 
-    // BUG-003: Add autocomplete="current-password" to the password input
+    // BUG-003: Add autoComplete="current-password" to the password input
     // to silence browser accessibility warnings on every page load.
-    // The Auth bundle uses space-separated JSX-style props.
     p(
-      'type: "password",\n                        placeholder: "Enter your password"',
-      'type: "password",\n                        autoComplete: "current-password",\n                        placeholder: "Enter your password"'
+      'type:"password",placeholder:"Enter your password"',
+      'type:"password",autoComplete:"current-password",placeholder:"Enter your password"'
     );
 
     console.log('[AuthPatch] ' + applied + '/7 patches applied to Auth bundle');
@@ -4417,65 +4266,37 @@ function getPatchedSettingsBundle() {
       if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
       else console.warn('[SettingsPatch] Not found:', label);
     };
-    patch('avatar: void 0', 'avatar: null', 'avatar remove sends explicit null');
+    patch('avatar:void 0', 'avatar:null', 'avatar remove sends explicit null');
     patch(
-      '} = ae(), l = f(), [z, N] = ne.useState(!1);',
-      '} = ae(), l = f(), __isoMeta = (() => { try { return JSON.parse(localStorage.getItem("isotope_sync_metadata") || "{}") || {} } catch { return {} } })(), __isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !__isoMeta.last_error, __isoBusyStates = ["syncing","selecting_backup","restoring_cloud","verifying_restore","uploading_local"], __isoDisplayStatus = __isoBusyStates.includes(__isoMeta.last_sync_status) ? "syncing" : (__isoMeta.last_sync_status === "blocked_empty_overwrite" ? "error" : g), [z, N] = ne.useState(!1);',
+      'onst{status:b,lastSyncAt:N,triggerSync:h,downloadCloudSnapshot:n,error:o,needsCloudBootstrap:d}=Ws()',
+      'onst{status:b,lastSyncAt:N,triggerSync:h,downloadCloudSnapshot:n,error:o,needsCloudBootstrap:d}=Ws(),__isoMeta=(()=>{try{return JSON.parse(localStorage.getItem("isotope_sync_metadata")||"{}")||{}}catch{return{}}})(),__isoSnapshotOk=__isoMeta.last_sync_status==="synced"&&!__isoMeta.last_error',
       'sync status reads snapshot metadata'
     );
+    // skipped: sync metadata patches 2-5 — bundle restructured, variables renamed
+    // skipped: 'Synced manually' label no longer exists in bundle
+    // skipped: 'label: __isoSnapshotOk ? "Synced" : "Pending"' - label restructured in bundle
     patch(
-      '__isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !!__isoMeta.last_snapshot_at && !__isoMeta.last_error',
-      '__isoSnapshotOk = __isoMeta.last_sync_status === "synced" && !__isoMeta.last_error',
-      'synced metadata does not require legacy snapshot timestamp'
-    );
-    patch('if (g !== "syncing") {', 'if (__isoDisplayStatus !== "syncing") {', 'sync button treats restore/upload stages as busy');
-    patch('})(g),\n            d = o.icon,', '})(__isoDisplayStatus),\n            d = o.icon,', 'sync icon uses mapped display status');
-    patch('disabled: g === "syncing" || !l', 'disabled: __isoDisplayStatus === "syncing" || !l', 'sync button disabled during detailed busy states');
-    patch('label: "Synced manually"', 'label: __isoSnapshotOk ? "Synced" : "Pending"', 'synced label requires snapshot');
-    patch(
-      'label: __isoSnapshotOk ? "Synced" : "Pending"',
-      'label: __isoSnapshotOk || w === "success" ? "Synced" : "Pending"',
-      'success status never renders green pending'
-    );
-    patch(
-      'description: "Local data and cloud data were synced successfully."',
+      'description:"Local data and cloud data were synced successfully."',
       'description: __isoSnapshotOk ? "Last cloud upload/download completed successfully." : "Waiting for verified cloud snapshot upload."',
       'synced description requires snapshot'
     );
+    // skipped: 'success status never renders pending description' - description restructured in bundle
+    patch('label:"Local mode"', 'label:"Pending/offline"', 'degraded label');
+    patch('label:"Sync failed"', 'label:"Failed"', 'failed label');
+    // skipped: 'Ready to sync' label no longer exists in bundle
+    // skipped: 'Manual sync is available' description no longer exists in bundle
+    // skipped: 'Manual cloud backup only' text no longer exists in bundle
     patch(
-      'description: __isoSnapshotOk ? "Last cloud upload/download completed successfully." : "Waiting for verified cloud snapshot upload."',
-      'description: __isoSnapshotOk || w === "success" ? "Last cloud upload/download completed successfully." : "Waiting for verified cloud snapshot upload."',
-      'success status never renders pending description'
-    );
-    patch('label: "Local mode"', 'label: "Pending/offline"', 'degraded label');
-    patch('label: "Sync failed"', 'label: "Failed"', 'failed label');
-    patch('label: l ? "Ready to sync" : "Local only"', 'label: l ? "Pending" : "Local only"', 'default sync label');
-    patch(
-      'description: l ? "Manual sync is available when you press the sync button." : "Cloud sync is unavailable on the free plan."',
-      'description: l ? "No verified cloud sync has completed yet." : "Cloud sync is unavailable for this account."',
-      'default sync description'
-    );
-    patch(
-      'children: "Manual cloud backup only. Nothing syncs until you press the button."',
-      'children: "Cloud sync writes verified Supabase rows and a Storage snapshot."',
-      'sync backup copy'
-    );
-    patch(
-      'children: "Download or sync your premium cloud backup on demand"',
-      'children: "Sync DB data and the user-content cloud snapshot"',
-      'cloud sync copy'
-    );
-    patch(
-      'u.href = C, u.download = `isotope-backup-${E}.json`, u.click(), window.URL.revokeObjectURL(C), b("JSON backup exported successfully.")',
-      'u.href = C, u.download = `isotope-backup-${E}.json`, u.click(), window.URL.revokeObjectURL(C), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(w, { source: "manual_export" }) : Promise.resolve()), b("JSON backup exported and cloud snapshot checked.")',
+      'd("Plain JSON backup exported successfully.")',
+      'd("Plain JSON backup exported successfully."), await (window.__isoUploadBackupJSON ? window.__isoUploadBackupJSON(w, { source: "manual_export" }) : Promise.resolve())',
       'manual export uploads cloud backup'
     );
     patch(
-      '}), await Xs(), b("Backup imported successfully. Newer local entries were preserved.")',
-      '}), await Xs(), await (window.__isoImportBackupJSON ? window.__isoImportBackupJSON(C, "merge", { source: "manual_import" }) : Promise.resolve()), b("Backup imported locally and cloud snapshot checked.")',
+      'd("Backup imported successfully. Newer local entries were preserved.")',
+      'd("Backup imported successfully. Newer local entries were preserved."), await (window.__isoImportBackupJSON ? window.__isoImportBackupJSON(E, "merge", { source: "manual_import" }) : Promise.resolve())',
       'manual import writes supported cloud fields'
     );
-    console.log('[SettingsPatch] ' + applied + '/18 settings patches applied');
+    console.log('[SettingsPatch] ' + applied + '/7 settings patches applied');
     patchedSettingsBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[SettingsPatch] Error:', e.message); patchedSettingsBundle = null; }
   return patchedSettingsBundle;
@@ -4493,124 +4314,18 @@ function getPatchedUseSyncStoreBundle() {
       else console.warn('[SyncStorePatch] Not found:', label);
     };
     patch(
-      `        triggerSync: async () => {
-            const t = u.getState(),
-                {
-                    userId: r,
-                    isAuthenticated: s
-                } = t,
-                a = t.isPremium();
-            if (!s || !r || !a) return;
-            const o = await n();
-            await o.fullManualSync(r, a), await l(), o.getState().status === "success" && e({
-                needsCloudBootstrap: !1,
-                bootstrapChecked: !0
-            })
-        },`,
-      `        triggerSync: async () => {
-            const t = u.getState(),
-                {
-                    userId: r,
-                    isAuthenticated: s
-                } = t,
-                a = t.isPremium();
-            if (!s || !r || String(r).startsWith("local-")) {
-                const o = new Error("Cloud session missing. Log in again before syncing.");
-                e({ status: "error", error: o.message });
-                throw o
-            }
-            if (!a) {
-                const o = new Error("Cloud sync requires premium access.");
-                e({ status: "error", error: o.message });
-                throw o
-            }
-            if (typeof window < "u" && typeof window.__isoGetValidJwt == "function") {
-                const o = await window.__isoGetValidJwt();
-                if (!o) {
-                    const c = new Error("Cloud session missing. Log in again before syncing.");
-                    typeof window.__isoSyncAuthBlock == "function" && window.__isoSyncAuthBlock(c.message);
-                    e({ status: "error", error: c.message });
-                    throw c
-                }
-            }
-            e({ status: "syncing", error: null });
-            try {
-                typeof window < "u" && typeof window.__isoRunManualCloudSync == "function" ? await window.__isoRunManualCloudSync(null, null, "header_manual_sync") : await (await n()).fullManualSync(r, a);
-                await l(), e({
-                    status: "success",
-                    lastSyncAt: new Date().toISOString(),
-                    error: null,
-                    needsCloudBootstrap: !1,
-                    bootstrapChecked: !0
-                })
-            } catch (c) {
-                const b = c && c.message ? c.message : "Sync failed";
-                e({ status: "error", error: b });
-                throw c
-            }
-        },`,
+      'triggerSync:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=await n();await o.fullManualSync(a,r),await l(),o.getState().status==="success"&&e({needsCloudBootstrap:!1,bootstrapChecked:!0})}',
+      'triggerSync:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=typeof window<"u"&&typeof window.__isoRunManualCloudSync=="function"?{fullManualSync:async()=>window.__isoRunManualCloudSync(null,null,"header_manual_sync")}:await n();await o.fullManualSync(a,r),await l(),e({status:"success",lastSyncAt:new Date().toISOString(),error:null,needsCloudBootstrap:!1,bootstrapChecked:!0})}',
       'header sync uses runtime manual cloud sync'
     );
     patch(
-      `        downloadCloudSnapshot: async () => {
-            const t = u.getState(),
-                {
-                    userId: r,
-                    isAuthenticated: s
-                } = t,
-                a = t.isPremium();
-            if (!s || !r || !a) return;
-            const o = await n();
-            await o.downloadCloudSnapshot(r, a), await l(), o.getState().status === "success" && e({
-                needsCloudBootstrap: !1,
-                bootstrapChecked: !0
-            })
-        },`,
-      `        downloadCloudSnapshot: async () => {
-            const t = u.getState(),
-                {
-                    userId: r,
-                    isAuthenticated: s
-                } = t,
-                a = t.isPremium();
-            if (!s || !r || String(r).startsWith("local-")) {
-                const o = new Error("Cloud session missing. Log in again before downloading cloud data.");
-                e({ status: "error", error: o.message });
-                throw o
-            }
-            if (!a) {
-                const o = new Error("Cloud restore requires premium access.");
-                e({ status: "error", error: o.message });
-                throw o
-            }
-            if (typeof window < "u" && typeof window.__isoGetValidJwt == "function") {
-                const o = await window.__isoGetValidJwt();
-                if (!o) {
-                    const c = new Error("Cloud session missing. Log in again before downloading cloud data.");
-                    typeof window.__isoSyncAuthBlock == "function" && window.__isoSyncAuthBlock(c.message);
-                    e({ status: "error", error: c.message });
-                    throw c
-                }
-            }
-            e({ status: "syncing", error: null });
-            try {
-                typeof window < "u" && typeof window.__isoDownloadAndImportBackup == "function" ? await window.__isoDownloadAndImportBackup(null, "header_download_cloud_data") : await (await n()).downloadCloudSnapshot(r, a);
-                await l(), e({
-                    status: "success",
-                    lastSyncAt: new Date().toISOString(),
-                    error: null,
-                    needsCloudBootstrap: !1,
-                    bootstrapChecked: !0
-                })
-            } catch (c) {
-                const b = c && c.message ? c.message : "Cloud data download failed";
-                e({ status: "error", error: b });
-                throw c
-            }
-        },`,
+      'downloadCloudSnapshot:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=await n();await o.downloadCloudSnapshot(a,r),await l(),o.getState().status==="success"&&e({needsCloudBootstrap:!1,bootstrapChecked:!0})}',
+      'downloadCloudSnapshot:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=typeof window<"u"&&typeof window.__isoDownloadAndImportBackup=="function"?{downloadCloudSnapshot:async()=>window.__isoDownloadAndImportBackup(null,"header_download_cloud_data")}:await n();await o.downloadCloudSnapshot(a,r),await l(),e({status:"success",lastSyncAt:new Date().toISOString(),error:null,needsCloudBootstrap:!1,bootstrapChecked:!0})}',
       'header download uses runtime download/import helper'
     );
     console.log('[SyncStorePatch] ' + applied + '/2 patches applied');
+    // NOTE: The old multi-line downloadCloudSnapshot patch was removed — it targeted
+    // pre-minified bundle format. The minified version above replaces it.
     patchedUseSyncStoreBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[SyncStorePatch] Error:', e.message); patchedUseSyncStoreBundle = null; }
   return patchedUseSyncStoreBundle;
@@ -4629,8 +4344,8 @@ function getPatchedAppAccessGateBundle() {
       else console.warn('[AppAccessGatePatch] Not found:', label);
     };
     patch(
-      'const ge = await (await ke()).canBootstrapFromCloud(R.userId, !0);\n                        I(ge)',
-      'const ge = await (await ke()).canBootstrapFromCloud(R.userId, !0);\n                        if (ge) { await S.getState().downloadCloudSnapshot(); I(!1) } else I(!1)',
+      'const ye=await(await Ae()).canBootstrapFromCloud(O.userId,!0);D(ye)',
+      'const ye=await(await Ae()).canBootstrapFromCloud(O.userId,!0);if(ye){await S.getState().downloadCloudSnapshot();D(!1)}else D(!1)',
       'auto-import cloud backup on empty local workspace'
     );
     console.log('[AppAccessGatePatch] ' + applied + '/1 patches applied');
@@ -6578,6 +6293,22 @@ const server = http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify({ ok: true, status: 'ok', ts: Date.now(), version: LOCAL_VERSION?.version || null }));
+    return;
+  }
+  if (req.method === 'GET' && req.url === '/deferred-scripts.js') {
+    const deferredScripts = [
+      PREMIUM_SCRIPT,
+      RELOAD_GUARD_SCRIPT,
+      FEATURE_REMOVAL_STYLE,
+      KEY_SCRIPT || '',
+      USERNAME_AUTH_SCRIPT
+    ].filter(Boolean).join('\n');
+    res.writeHead(200, {
+      'Content-Type': 'application/javascript',
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Service-Worker-Allowed': '/'
+    });
+    res.end(deferredScripts);
     return;
   }
   if (req.method === 'GET' && req.url === '/__isotope/state') {
