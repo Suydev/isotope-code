@@ -10,13 +10,32 @@ import https from 'https';
 const ROOT = dirname(fileURLToPath(import.meta.url)) === process.cwd()
   ? process.cwd()
   : join(dirname(fileURLToPath(import.meta.url)), '..');
-const env = Object.fromEntries(
-  readFileSync(join(ROOT, '.env'), 'utf8')
-    .split(/\r?\n/)
-    .filter((l) => l.includes('='))
-    .map((l) => { const i = l.indexOf('='); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; })
-);
+// Keys: process env wins (backup.sh may pass CLI keys via env), .env is the
+// fallback so the script still works when invoked directly.
+function loadEnv() {
+  const env = { ...process.env };
+  // Same precedence as backup.sh: .backup_env (keeper project) > .env.
+  for (const name of ['.backup_env', '.env']) {
+    try {
+      for (const raw of readFileSync(join(ROOT, name), 'utf8').split(/\r?\n/)) {
+        const m = raw.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+        if (m && !env[m[1]]) env[m[1]] = m[2].trim();
+      }
+    } catch {}
+  }
+  return env;
+}
+const env = loadEnv();
+if (!env.SUPABASE_URL || !env.SUPABASE_ACCESS_TOKEN) {
+  console.error('ERROR: SUPABASE_URL and SUPABASE_ACCESS_TOKEN required (set in .env or export them)');
+  process.exit(1);
+}
 const project = new URL(env.SUPABASE_URL).hostname.split('.')[0];
+
+process.on('uncaughtException', (e) => {
+  console.error(`ERROR: ${e.message}`);
+  process.exit(1);
+});
 
 const query = (sql) => new Promise((resolve, reject) => {
   const req = https.request({

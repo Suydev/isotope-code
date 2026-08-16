@@ -1,7 +1,7 @@
 -- =============================================================================
 -- IsotopeAI — full portable schema dump (NO user data)
--- Generated: 2026-08-09 17:52:24 UTC
--- Project ref: vteqquoqvksshmfhuepu
+-- Generated: 2026-08-16 15:00:25 UTC
+-- Project ref: ollsqiutzartjhiuzkbf
 -- Schemas: private, rpc_private, public
 --
 -- HOW TO RESTORE INTO A FRESH SUPABASE PROJECT:
@@ -637,6 +637,39 @@ CREATE TABLE IF NOT EXISTS "public"."users" (
   "device_id" text,
   "access_source" text
 );
+CREATE OR REPLACE VIEW "public"."hypopg_hidden_indexes" AS
+ SELECT h.indexid AS indexrelid,
+    i.relname AS index_name,
+    n.nspname AS schema_name,
+    t.relname AS table_name,
+    m.amname AS am_name,
+    false AS is_hypo
+   FROM (((((hypopg_hidden_indexes() h(indexid)
+     JOIN pg_index x ON ((x.indexrelid = h.indexid)))
+     JOIN pg_class i ON ((i.oid = h.indexid)))
+     JOIN pg_namespace n ON ((n.oid = i.relnamespace)))
+     JOIN pg_class t ON ((t.oid = x.indrelid)))
+     JOIN pg_am m ON ((m.oid = i.relam)))
+UNION ALL
+ SELECT hl.indexrelid,
+    hl.index_name,
+    hl.schema_name,
+    hl.table_name,
+    hl.am_name,
+    true AS is_hypo
+   FROM (hypopg_hidden_indexes() hi(indexid)
+     JOIN hypopg_list_indexes hl ON ((hl.indexrelid = hi.indexid)))
+  ORDER BY 2;;
+CREATE OR REPLACE VIEW "public"."hypopg_list_indexes" AS
+ SELECT h.indexrelid,
+    h.indexname AS index_name,
+    n.nspname AS schema_name,
+    COALESCE(c.relname, '<dropped>'::name) AS table_name,
+    am.amname AS am_name
+   FROM (((hypopg() h(indexname, indexrelid, indrelid, innatts, indisunique, indkey, indcollation, indclass, indoption, indexprs, indpred, amid)
+     LEFT JOIN pg_class c ON ((c.oid = h.indrelid)))
+     LEFT JOIN pg_namespace n ON ((n.oid = c.relnamespace)))
+     LEFT JOIN pg_am am ON ((am.oid = h.amid)));;
 ALTER TABLE ONLY "public"."backup_manifests" ADD CONSTRAINT "backup_manifests_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY "public"."buddy_invites" ADD CONSTRAINT "buddy_invites_pkey" PRIMARY KEY (id);
 ALTER TABLE ONLY "public"."community_device_tokens" ADD CONSTRAINT "community_device_tokens_pkey" PRIMARY KEY (id);
@@ -810,8 +843,9 @@ CREATE OR REPLACE FUNCTION "private"."can_manage_group"(p_group_id uuid, p_user_
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
   select
     exists (
@@ -833,8 +867,9 @@ CREATE OR REPLACE FUNCTION "private"."is_group_member"(p_group_id uuid, p_user_i
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
   select exists (
     select 1
@@ -848,8 +883,9 @@ CREATE OR REPLACE FUNCTION "rpc_private"."accept_invite"(p_code text)
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 declare
   v_invite public.group_invites%rowtype;
@@ -913,8 +949,9 @@ CREATE OR REPLACE FUNCTION "rpc_private"."get_invite_details"(p_code text)
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
   select
     g.id,
@@ -940,8 +977,9 @@ CREATE OR REPLACE FUNCTION "rpc_private"."join_community_event"(p_event_id uuid)
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 declare
   v_uid uuid := (select auth.uid());
@@ -980,8 +1018,9 @@ CREATE OR REPLACE FUNCTION "rpc_private"."leave_community_event"(p_event_id uuid
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 declare
   v_uid uuid := (select auth.uid());
@@ -1010,8 +1049,9 @@ CREATE OR REPLACE FUNCTION "rpc_private"."purchase_store_item"(p_user_id uuid, p
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 declare
   v_item public.store_items%rowtype;
@@ -1068,8 +1108,9 @@ CREATE OR REPLACE FUNCTION "public"."_auto_add_group_owner"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
      BEGIN
        INSERT INTO public.group_members(group_id, user_id, role, joined_at)
@@ -1083,8 +1124,9 @@ CREATE OR REPLACE FUNCTION "public"."_auto_add_super_admin"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
   BEGIN
     -- Only if the admin user exists and isn't already a member
@@ -1104,6 +1146,7 @@ CREATE OR REPLACE FUNCTION "public"."_has_group_role"(gid uuid, uid uuid, allowe
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
   SELECT EXISTS (
     SELECT 1
     FROM public.group_members gm
@@ -1119,6 +1162,7 @@ CREATE OR REPLACE FUNCTION "public"."_is_group_member"(gid uuid, uid uuid)
  SECURITY DEFINER
  AS $iso_fn$
 
+
   SELECT EXISTS (SELECT 1 FROM public.group_members WHERE group_id = gid AND user_id = uid);
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."_sync_group_member_count"()
@@ -1128,6 +1172,7 @@ CREATE OR REPLACE FUNCTION "public"."_sync_group_member_count"()
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 BEGIN
   IF TG_OP = 'INSERT' THEN
@@ -1147,6 +1192,7 @@ CREATE OR REPLACE FUNCTION "public"."accept_invite"(p_code text)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 DECLARE
   v_invite public.group_invites%ROWTYPE;
@@ -1187,8 +1233,9 @@ CREATE OR REPLACE FUNCTION "public"."check_user_role"(p_user_id uuid, p_role tex
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
     SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = p_user_id AND role = p_role);
 $iso_fn$;
@@ -1197,8 +1244,9 @@ CREATE OR REPLACE FUNCTION "public"."cleanup_old_notifications"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 BEGIN
   DELETE FROM public.notifications
@@ -1213,6 +1261,7 @@ CREATE OR REPLACE FUNCTION "public"."community_bootstrap_profile"(p_display_name
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 begin
   insert into public.community_enrollments (user_id, enrolled, day_offset_hours, onboarded, updated_at)
@@ -1239,6 +1288,7 @@ CREATE OR REPLACE FUNCTION "public"."community_create_group"(p_name text, p_desc
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 declare
   gid uuid;
@@ -1297,6 +1347,7 @@ CREATE OR REPLACE FUNCTION "public"."community_create_invite"(p_type text, p_tar
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 declare
   code text;
   group_exists boolean;
@@ -1346,6 +1397,7 @@ CREATE OR REPLACE FUNCTION "public"."community_delete_group"(p_group_id uuid)
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 begin
   if not exists (select 1 from public.group_members
                  where group_id = p_group_id and user_id = auth.uid()
@@ -1363,6 +1415,7 @@ CREATE OR REPLACE FUNCTION "public"."community_discover_groups"(p_query text DEF
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 declare
   uid uuid := auth.uid();
@@ -1417,6 +1470,7 @@ CREATE OR REPLACE FUNCTION "public"."community_get_group"(p_group_id text, p_per
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 declare
   uid uuid := auth.uid();
@@ -1486,6 +1540,7 @@ CREATE OR REPLACE FUNCTION "public"."community_get_group_messages"(p_group_id te
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 declare
   uid uuid := auth.uid();
   gid uuid;
@@ -1541,6 +1596,7 @@ CREATE OR REPLACE FUNCTION "public"."community_get_overview"()
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 declare
   uid uuid := auth.uid();
@@ -1660,6 +1716,7 @@ CREATE OR REPLACE FUNCTION "public"."community_get_privacy"()
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 declare
   priv jsonb;
 begin
@@ -1690,6 +1747,7 @@ CREATE OR REPLACE FUNCTION "public"."community_get_start_alert"(p_target_type te
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 declare
   res jsonb;
 begin
@@ -1711,6 +1769,7 @@ CREATE OR REPLACE FUNCTION "public"."community_heartbeat"(p_state text, p_subjec
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 begin
   insert into public.user_presence (user_id, state, current_subject, session_started_at, last_beat_at, updated_at)
@@ -1739,6 +1798,7 @@ CREATE OR REPLACE FUNCTION "public"."community_is_enrolled"()
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
   select exists(
     select 1 from public.community_enrollments where user_id = auth.uid()
   );
@@ -1750,6 +1810,7 @@ CREATE OR REPLACE FUNCTION "public"."community_join_group"(p_group_id uuid)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 declare
   vis text; jp text; is_member boolean; is_owner boolean;
@@ -1788,6 +1849,7 @@ CREATE OR REPLACE FUNCTION "public"."community_leave_group"(p_group_id uuid)
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 begin
   update public.group_members set left_at = now(), updated_at = now()
    where group_id = p_group_id and user_id = auth.uid();
@@ -1801,6 +1863,7 @@ CREATE OR REPLACE FUNCTION "public"."community_preview_invite"(p_token text)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 declare
   res jsonb;
@@ -1852,6 +1915,7 @@ CREATE OR REPLACE FUNCTION "public"."community_redeem_invite"(p_token text)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 declare
   inviter uuid;
@@ -1920,6 +1984,7 @@ CREATE OR REPLACE FUNCTION "public"."community_register_device_token"(p_token te
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 begin
   insert into public.community_device_tokens (user_id, token, platform)
   values (auth.uid(), p_token, 'web')
@@ -1934,6 +1999,7 @@ CREATE OR REPLACE FUNCTION "public"."community_remove_buddy"(p_other_user uuid, 
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 begin
   delete from public.community_friends
@@ -1955,6 +2021,7 @@ CREATE OR REPLACE FUNCTION "public"."community_remove_group_member"(p_group_id u
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 begin
   if not exists (select 1 from public.group_members
                  where group_id = p_group_id and user_id = auth.uid()
@@ -1974,6 +2041,7 @@ CREATE OR REPLACE FUNCTION "public"."community_request_buddy"(p_handle text)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 declare
   uid uuid := auth.uid();
@@ -2005,6 +2073,7 @@ CREATE OR REPLACE FUNCTION "public"."community_respond_buddy"(p_connection_id uu
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 begin
   update public.community_friends
      set status = case when p_accept then 'accepted' else 'rejected' end,
@@ -2022,6 +2091,7 @@ CREATE OR REPLACE FUNCTION "public"."community_respond_join_request"(p_request_i
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 declare
   gid uuid; uid uuid;
@@ -2052,6 +2122,7 @@ CREATE OR REPLACE FUNCTION "public"."community_save_privacy"(p_settings jsonb)
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 begin
   insert into public.community_enrollments (user_id, privacy, onboarded, updated_at)
   values (auth.uid(), coalesce(p_settings, '{}'::jsonb), true, now())
@@ -2069,6 +2140,7 @@ CREATE OR REPLACE FUNCTION "public"."community_send_group_message"(p_group_id te
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 declare
   uid uuid := auth.uid();
@@ -2110,6 +2182,7 @@ CREATE OR REPLACE FUNCTION "public"."community_set_group_role"(p_group_id uuid, 
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 begin
   if not exists (select 1 from public.group_members
                  where group_id = p_group_id and user_id = auth.uid()
@@ -2129,6 +2202,7 @@ CREATE OR REPLACE FUNCTION "public"."community_set_start_alert"(p_target_type te
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 begin
   insert into public.community_start_alerts
@@ -2153,6 +2227,7 @@ CREATE OR REPLACE FUNCTION "public"."community_submit_report"(p_target_type text
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 begin
   insert into public.community_reports (reporter_user_id, target_type, target_id, reason)
   values (auth.uid(), p_target_type, p_target_id, coalesce(p_reason, ''));
@@ -2166,6 +2241,7 @@ CREATE OR REPLACE FUNCTION "public"."community_sync_quiet_hours"(p_enabled boole
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 begin
   insert into public.community_enrollments (user_id, quiet_hours, onboarded, updated_at)
@@ -2188,6 +2264,7 @@ CREATE OR REPLACE FUNCTION "public"."community_transfer_group"(p_group_id uuid, 
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 begin
   if not exists (select 1 from public.group_members
@@ -2215,6 +2292,7 @@ CREATE OR REPLACE FUNCTION "public"."community_update_group"(p_group_id uuid, p_
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 begin
   if not exists (select 1 from public.group_members
@@ -2255,6 +2333,7 @@ CREATE OR REPLACE FUNCTION "public"."create_community_event"(p_title text, p_eve
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 DECLARE v_id uuid;
 BEGIN
   IF p_title IS NULL OR trim(p_title) = '' THEN
@@ -2271,6 +2350,62 @@ BEGIN
   RETURN jsonb_build_object('ok', true, 'id', v_id);
 END
 $iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."create_community_group"(p_name text, p_description text DEFAULT NULL::text, p_category text DEFAULT 'community'::text, p_is_public boolean DEFAULT true, p_slug text DEFAULT NULL::text, p_logo_url text DEFAULT NULL::text, p_cover_url text DEFAULT NULL::text, p_settings jsonb DEFAULT '{}'::jsonb)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ VOLATILE
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
+
+
+DECLARE
+  v_group_id uuid;
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF p_slug IS NULL THEN
+    -- basic slug fallback; you can override by passing p_slug
+    p_slug := lower(regexp_replace(coalesce(p_name,''), '[^a-zA-Z0-9]+', '-', 'g'));
+    IF p_slug = '' THEN
+      p_slug := NULL;
+    END IF;
+  END IF;
+
+  INSERT INTO public.groups (
+    name,
+    description,
+    category,
+    is_public,
+    slug,
+    logo_url,
+    cover_url,
+    owner_id,
+    settings
+  )
+  VALUES (
+    p_name,
+    p_description,
+    p_category,
+    COALESCE(p_is_public, true),
+    p_slug,
+    p_logo_url,
+    p_cover_url,
+    v_uid,
+    COALESCE(p_settings, '{}'::jsonb)
+  )
+  RETURNING id INTO v_group_id;
+
+  -- add creator as owner (and ensure a member row exists)
+  INSERT INTO public.group_members (group_id, user_id, role)
+  VALUES (v_group_id, v_uid, 'owner')
+  ON CONFLICT (group_id, user_id) DO UPDATE SET role = EXCLUDED.role;
+
+  RETURN v_group_id;
+END;
+$iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."create_community_group"(p_name text, p_description text DEFAULT NULL::text, p_category text DEFAULT 'General'::text, p_cover_url text DEFAULT NULL::text, p_is_public boolean DEFAULT true, p_max_members integer DEFAULT 100, p_visibility text DEFAULT 'public'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2278,6 +2413,7 @@ CREATE OR REPLACE FUNCTION "public"."create_community_group"(p_name text, p_desc
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 DECLARE
   v_uid      uuid := auth.uid();
@@ -2343,61 +2479,6 @@ EXCEPTION WHEN OTHERS THEN
   RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END;
 $iso_fn$;
-CREATE OR REPLACE FUNCTION "public"."create_community_group"(p_name text, p_description text DEFAULT NULL::text, p_category text DEFAULT 'community'::text, p_is_public boolean DEFAULT true, p_slug text DEFAULT NULL::text, p_logo_url text DEFAULT NULL::text, p_cover_url text DEFAULT NULL::text, p_settings jsonb DEFAULT '{}'::jsonb)
- RETURNS uuid
- LANGUAGE plpgsql
- VOLATILE
- SET "search_path" TO '""'
- AS $iso_fn$
-
-DECLARE
-  v_group_id uuid;
-  v_uid uuid := auth.uid();
-BEGIN
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'Not authenticated';
-  END IF;
-
-  IF p_slug IS NULL THEN
-    -- basic slug fallback; you can override by passing p_slug
-    p_slug := lower(regexp_replace(coalesce(p_name,''), '[^a-zA-Z0-9]+', '-', 'g'));
-    IF p_slug = '' THEN
-      p_slug := NULL;
-    END IF;
-  END IF;
-
-  INSERT INTO public.groups (
-    name,
-    description,
-    category,
-    is_public,
-    slug,
-    logo_url,
-    cover_url,
-    owner_id,
-    settings
-  )
-  VALUES (
-    p_name,
-    p_description,
-    p_category,
-    COALESCE(p_is_public, true),
-    p_slug,
-    p_logo_url,
-    p_cover_url,
-    v_uid,
-    COALESCE(p_settings, '{}'::jsonb)
-  )
-  RETURNING id INTO v_group_id;
-
-  -- add creator as owner (and ensure a member row exists)
-  INSERT INTO public.group_members (group_id, user_id, role)
-  VALUES (v_group_id, v_uid, 'owner')
-  ON CONFLICT (group_id, user_id) DO UPDATE SET role = EXCLUDED.role;
-
-  RETURN v_group_id;
-END;
-$iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."delete_community_event"(p_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2405,6 +2486,7 @@ CREATE OR REPLACE FUNCTION "public"."delete_community_event"(p_id uuid)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 BEGIN
   DELETE FROM public.community_events WHERE id = p_id;
@@ -2418,6 +2500,7 @@ CREATE OR REPLACE FUNCTION "public"."delete_community_group"(p_group_id uuid)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 DECLARE
   v_uid uuid := auth.uid();
@@ -2453,8 +2536,9 @@ CREATE OR REPLACE FUNCTION "public"."expire_stale_presence"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 BEGIN
   UPDATE public.user_presence SET status='offline'
@@ -2468,6 +2552,7 @@ CREATE OR REPLACE FUNCTION "public"."finish_session_sync"(p_session_id uuid, p_a
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 DECLARE
   v_uid       uuid    := auth.uid();
@@ -2542,6 +2627,7 @@ CREATE OR REPLACE FUNCTION "public"."get_event_attendees"(p_event_id uuid)
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
   SELECT cea.user_id, u.username, u.name, cea.joined_at
   FROM   public.community_event_attendees cea
   LEFT JOIN public.users u ON u.id = cea.user_id
@@ -2554,6 +2640,7 @@ CREATE OR REPLACE FUNCTION "public"."get_group_analytics_from_snapshots"(p_group
  STABLE
  SECURITY DEFINER
  AS $iso_fn$
+
 
   SELECT
     d.date,
@@ -2571,6 +2658,7 @@ CREATE OR REPLACE FUNCTION "public"."get_group_leaderboard"(p_group_id uuid, p_l
  STABLE
  SECURITY DEFINER
  AS $iso_fn$
+
 
   SELECT
     ROW_NUMBER() OVER (ORDER BY COALESCE(up.points,0) DESC),
@@ -2592,6 +2680,7 @@ CREATE OR REPLACE FUNCTION "public"."get_invite_details"(p_code text)
  STABLE
  SECURITY DEFINER
  AS $iso_fn$
+
 
   SELECT
     g.id,
@@ -2622,6 +2711,7 @@ CREATE OR REPLACE FUNCTION "public"."get_leaderboard"(p_period text DEFAULT 'wee
  STABLE
  SECURITY DEFINER
  AS $iso_fn$
+
 
 BEGIN
   RETURN QUERY
@@ -2662,6 +2752,7 @@ CREATE OR REPLACE FUNCTION "public"."get_membership_snapshot"(p_user_id uuid DEF
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
   select jsonb_build_object(
     'user_id',          u.id,
     'effective_plan',   coalesce(u.plan_type, 'free'),
@@ -2685,16 +2776,18 @@ CREATE OR REPLACE FUNCTION "public"."get_my_group_ids"()
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
  SELECT ARRAY(SELECT group_id FROM public.group_members WHERE user_id = (SELECT auth.uid()));
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."get_my_role"()
  RETURNS text
  LANGUAGE sql
  STABLE
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
     SELECT role FROM public.user_roles
     WHERE user_id = auth.uid()
@@ -2707,6 +2800,7 @@ CREATE OR REPLACE FUNCTION "public"."handle_new_user"()
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 DECLARE
   v_username text;
@@ -2738,20 +2832,288 @@ BEGIN
   RETURN NEW;
 END
 $iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."hypopg"(OUT indexname text, OUT indexrelid oid, OUT indrelid oid, OUT innatts integer, OUT indisunique boolean, OUT indkey int2vector, OUT indcollation oidvector, OUT indclass oidvector, OUT indoption oidvector, OUT indexprs pg_node_tree, OUT indpred pg_node_tree, OUT amid oid)
+ RETURNS SETOF record
+ LANGUAGE c
+ VOLATILE
+ AS $iso_fn$
+hypopg
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."hypopg_create_index"(sql_order text, OUT indexrelid oid, OUT indexname text)
+ RETURNS SETOF record
+ LANGUAGE c
+ VOLATILE
+ STRICT
+ AS $iso_fn$
+hypopg_create_index
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."hypopg_drop_index"(indexid oid)
+ RETURNS boolean
+ LANGUAGE c
+ VOLATILE
+ STRICT
+ AS $iso_fn$
+hypopg_drop_index
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."hypopg_get_indexdef"(indexid oid)
+ RETURNS text
+ LANGUAGE c
+ VOLATILE
+ STRICT
+ AS $iso_fn$
+hypopg_get_indexdef
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."hypopg_hidden_indexes"()
+ RETURNS TABLE(indexid oid)
+ LANGUAGE c
+ VOLATILE
+ STRICT
+ AS $iso_fn$
+hypopg_hidden_indexes
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."hypopg_hide_index"(indexid oid)
+ RETURNS boolean
+ LANGUAGE c
+ VOLATILE
+ STRICT
+ AS $iso_fn$
+hypopg_hide_index
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."hypopg_relation_size"(indexid oid)
+ RETURNS bigint
+ LANGUAGE c
+ VOLATILE
+ STRICT
+ AS $iso_fn$
+hypopg_relation_size
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."hypopg_reset"()
+ RETURNS void
+ LANGUAGE c
+ VOLATILE
+ AS $iso_fn$
+hypopg_reset
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."hypopg_reset_index"()
+ RETURNS void
+ LANGUAGE c
+ VOLATILE
+ AS $iso_fn$
+hypopg_reset_index
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."hypopg_unhide_all_indexes"()
+ RETURNS void
+ LANGUAGE c
+ VOLATILE
+ AS $iso_fn$
+hypopg_unhide_all_indexes
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."hypopg_unhide_index"(indexid oid)
+ RETURNS boolean
+ LANGUAGE c
+ VOLATILE
+ STRICT
+ AS $iso_fn$
+hypopg_unhide_index
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."index_advisor"(query text)
+ RETURNS TABLE(startup_cost_before jsonb, startup_cost_after jsonb, total_cost_before jsonb, total_cost_after jsonb, index_statements text[], errors text[])
+ LANGUAGE plpgsql
+ VOLATILE
+ AS $iso_fn$
+
+declare
+    n_args int;
+    prepared_statement_name text = 'index_advisor_working_statement';
+    hypopg_schema_name text = (select extnamespace::regnamespace::text from pg_extension where extname = 'hypopg');
+    explain_plan_statement text;
+    error_message text;
+    rec record;
+    plan_initial jsonb;
+    plan_final jsonb;
+    statements text[] = '{}';
+begin
+
+    -- Remove comment lines (its common that they contain semicolons)
+    query := trim(
+        regexp_replace(
+            regexp_replace(
+                regexp_replace(query,'\/\*.+\*\/', '', 'g'),
+            '--[^\r\n]*', ' ', 'g'),
+        '\s+', ' ', 'g')
+    );
+
+    -- Remove trailing semicolon
+    query := regexp_replace(query, ';\s*$', '');
+
+    begin
+        -- Disallow multiple statements
+        if query ilike '%;%' then
+            raise exception 'Query must not contain a semicolon';
+        end if;
+
+        -- Hack to support PostgREST because the prepared statement for args incorrectly defaults to text
+        query := replace(query, 'WITH pgrst_payload AS (SELECT $1 AS json_data)', 'WITH pgrst_payload AS (SELECT $1::json AS json_data)');
+
+        -- Create a prepared statement for the given query
+        deallocate all;
+        execute format('prepare %I as %s', prepared_statement_name, query);
+
+        -- Detect how many arguments are present in the prepared statement
+        n_args = (
+            select
+                coalesce(array_length(parameter_types, 1), 0)
+            from
+                pg_prepared_statements
+            where
+                name = prepared_statement_name
+            limit
+                1
+        );
+
+        -- Create a SQL statement that can be executed to collect the explain plan
+        explain_plan_statement = format(
+            'set local plan_cache_mode = force_generic_plan; explain (format json) execute %I%s',
+            --'explain (format json) execute %I%s',
+            prepared_statement_name,
+            case
+                when n_args = 0 then ''
+                else format(
+                    '(%s)', array_to_string(array_fill('null'::text, array[n_args]), ',')
+                )
+            end
+        );
+
+        -- Store the query plan before any new indexes
+        execute explain_plan_statement into plan_initial;
+
+        -- Create possible indexes
+        for rec in (
+            with extension_regclass as (
+                select
+                    distinct objid as oid
+                from
+                    pg_catalog.pg_depend
+                where
+                    deptype = 'e'
+            )
+            select
+                pc.relnamespace::regnamespace::text as schema_name,
+                pc.relname as table_name,
+                pa.attname as column_name,
+                format(
+                    'select %I.hypopg_create_index($i$create index on %I.%I(%I)$i$)',
+                    hypopg_schema_name,
+                    pc.relnamespace::regnamespace::text,
+                    pc.relname,
+                    pa.attname
+                ) hypopg_statement
+            from
+                pg_catalog.pg_class pc
+                join pg_catalog.pg_attribute pa
+                    on pc.oid = pa.attrelid
+                left join extension_regclass er
+                    on pc.oid = er.oid
+                left join pg_catalog.pg_index pi
+                    on pc.oid = pi.indrelid
+                    and (select array_agg(x) from unnest(pi.indkey) v(x)) = array[pa.attnum]
+                    and pi.indexprs is null -- ignore expression indexes
+                    and pi.indpred is null -- ignore partial indexes
+            where
+                pc.relnamespace::regnamespace::text not in ( -- ignore schema list
+                    'pg_catalog', 'pg_toast', 'information_schema'
+                )
+                and er.oid is null -- ignore entities owned by extensions
+                and pc.relkind in ('r', 'm') -- regular tables, and materialized views
+                and pc.relpersistence = 'p' -- permanent tables (not unlogged or temporary)
+                and pa.attnum > 0
+                and not pa.attisdropped
+                and pi.indrelid is null
+                and pa.atttypid in (20,16,1082,1184,1114,701,23,21,700,1083,2950,1700,25,18,1042,1043)
+            )
+            loop
+                -- Create the hypothetical index
+                execute rec.hypopg_statement;
+            end loop;
+
+        /*
+        for rec in select * from hypopg()
+            loop
+                raise notice '%', rec;
+            end loop;
+        */
+
+        -- Create a prepared statement for the given query
+        -- The original prepared statement MUST be dropped because its plan is cached
+        execute format('deallocate %I', prepared_statement_name);
+        execute format('prepare %I as %s', prepared_statement_name, query);
+
+        -- Store the query plan after new indexes
+        execute explain_plan_statement into plan_final;
+
+        --raise notice '%', plan_final;
+
+        -- Idenfity referenced indexes in new plan
+        execute format(
+            'select
+                coalesce(array_agg(hypopg_get_indexdef(indexrelid) order by indrelid, indkey::text), $i${}$i$::text[])
+            from
+                %I.hypopg()
+            where
+                %s ilike ($i$%%$i$ || indexname || $i$%%$i$)
+            ',
+            hypopg_schema_name,
+            quote_literal(plan_final)::text
+        ) into statements;
+
+        -- Reset all hypothetical indexes
+        perform hypopg_reset();
+
+        -- Reset prepared statements
+        deallocate all;
+
+        return query values (
+            (plan_initial -> 0 -> 'Plan' -> 'Startup Cost'),
+            (plan_final -> 0 -> 'Plan' -> 'Startup Cost'),
+            (plan_initial -> 0 -> 'Plan' -> 'Total Cost'),
+            (plan_final -> 0 -> 'Plan' -> 'Total Cost'),
+            statements::text[],
+            array[]::text[]
+        );
+        return;
+
+    exception when others then
+        get stacked diagnostics error_message = MESSAGE_TEXT;
+
+        return query values (
+            null::jsonb,
+            null::jsonb,
+            null::jsonb,
+            null::jsonb,
+            array[]::text[],
+            array[error_message]::text[]
+        );
+        return;
+    end;
+
+end;
+$iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."is_premium_user"(uid uuid)
  RETURNS boolean
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
  AS $iso_fn$
+
  SELECT true;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."is_premium_user"()
  RETURNS boolean
  LANGUAGE sql
  STABLE
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
  SELECT true;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."join_community_event"(p_event_id uuid)
@@ -2761,6 +3123,7 @@ CREATE OR REPLACE FUNCTION "public"."join_community_event"(p_event_id uuid)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 DECLARE
   v_uid uuid := auth.uid();
@@ -2789,6 +3152,7 @@ CREATE OR REPLACE FUNCTION "public"."join_community_group"(p_group_id uuid)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 DECLARE
   v_uid   uuid := auth.uid();
@@ -2834,6 +3198,7 @@ CREATE OR REPLACE FUNCTION "public"."leave_community_event"(p_event_id uuid)
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 DECLARE
   v_uid uuid := auth.uid();
 BEGIN
@@ -2854,6 +3219,7 @@ CREATE OR REPLACE FUNCTION "public"."leave_community_group"(p_group_id uuid)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 DECLARE
   v_uid  uuid := auth.uid();
@@ -2886,8 +3252,9 @@ CREATE OR REPLACE FUNCTION "public"."purchase_store_item"(p_user_id uuid, p_item
  RETURNS jsonb
  LANGUAGE sql
  VOLATILE
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
   select rpc_private.purchase_store_item(p_user_id, p_item_id);
 $iso_fn$;
@@ -2896,8 +3263,9 @@ CREATE OR REPLACE FUNCTION "public"."rls_auto_enable"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 DECLARE
   cmd record;
@@ -2926,8 +3294,9 @@ CREATE OR REPLACE FUNCTION "public"."set_group_slug_from_name"()
  RETURNS trigger
  LANGUAGE plpgsql
  VOLATILE
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 BEGIN
   IF NEW.slug IS NULL THEN
@@ -2943,8 +3312,9 @@ CREATE OR REPLACE FUNCTION "public"."set_user_tours_updated_at"()
  RETURNS trigger
  LANGUAGE plpgsql
  VOLATILE
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
   BEGIN NEW.updated_at = now(); RETURN NEW; END;
 $iso_fn$;
@@ -2953,8 +3323,9 @@ CREATE OR REPLACE FUNCTION "public"."sync_group_member_count"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 BEGIN
   IF TG_OP = 'INSERT' THEN
@@ -2969,8 +3340,9 @@ CREATE OR REPLACE FUNCTION "public"."sync_group_visibility"()
  RETURNS trigger
  LANGUAGE plpgsql
  VOLATILE
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 BEGIN
   -- Normalize common strings
@@ -2988,8 +3360,9 @@ CREATE OR REPLACE FUNCTION "public"."sync_user_display_profile"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 begin
   if tg_op = 'DELETE' then
@@ -3011,8 +3384,9 @@ CREATE OR REPLACE FUNCTION "public"."sync_user_onboarding_from_profile"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""'
+ SET "search_path" TO '""""""'
  AS $iso_fn$
+
 
 DECLARE
   v_done boolean;
@@ -3046,6 +3420,7 @@ CREATE OR REPLACE FUNCTION "public"."update_community_event"(p_id uuid, p_title 
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+
 DECLARE v_found boolean;
 BEGIN
   SELECT EXISTS(SELECT 1 FROM public.community_events WHERE id = p_id) INTO v_found;
@@ -3075,6 +3450,7 @@ CREATE OR REPLACE FUNCTION "public"."update_group_member_role"(p_group_id uuid, 
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
+
 
 DECLARE
   v_uid       uuid := auth.uid();
@@ -3516,9 +3892,21 @@ DROP POLICY IF EXISTS "users_update_own" ON "public"."users";
 CREATE POLICY "users_update_own" ON "public"."users" AS PERMISSIVE FOR UPDATE TO authenticated USING ((id = ( SELECT auth.uid() AS uid))) WITH CHECK ((id = ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "users_update_policy" ON "public"."users";
 CREATE POLICY "users_update_policy" ON "public"."users" AS PERMISSIVE FOR UPDATE  USING ((auth.uid() = id)) WITH CHECK ((auth.uid() = id));
+GRANT DELETE ON TABLE "public"."backup_manifests" TO anon;
+GRANT INSERT ON TABLE "public"."backup_manifests" TO anon;
+GRANT MAINTAIN ON TABLE "public"."backup_manifests" TO anon;
+GRANT REFERENCES ON TABLE "public"."backup_manifests" TO anon;
+GRANT SELECT ON TABLE "public"."backup_manifests" TO anon;
+GRANT TRIGGER ON TABLE "public"."backup_manifests" TO anon;
+GRANT TRUNCATE ON TABLE "public"."backup_manifests" TO anon;
+GRANT UPDATE ON TABLE "public"."backup_manifests" TO anon;
 GRANT DELETE ON TABLE "public"."backup_manifests" TO authenticated;
 GRANT INSERT ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."backup_manifests" TO authenticated;
 GRANT SELECT ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."backup_manifests" TO authenticated;
 GRANT UPDATE ON TABLE "public"."backup_manifests" TO authenticated;
 GRANT DELETE ON TABLE "public"."backup_manifests" TO service_role;
 GRANT INSERT ON TABLE "public"."backup_manifests" TO service_role;
@@ -3528,6 +3916,22 @@ GRANT SELECT ON TABLE "public"."backup_manifests" TO service_role;
 GRANT TRIGGER ON TABLE "public"."backup_manifests" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."backup_manifests" TO service_role;
 GRANT UPDATE ON TABLE "public"."backup_manifests" TO service_role;
+GRANT DELETE ON TABLE "public"."buddy_invites" TO anon;
+GRANT INSERT ON TABLE "public"."buddy_invites" TO anon;
+GRANT MAINTAIN ON TABLE "public"."buddy_invites" TO anon;
+GRANT REFERENCES ON TABLE "public"."buddy_invites" TO anon;
+GRANT SELECT ON TABLE "public"."buddy_invites" TO anon;
+GRANT TRIGGER ON TABLE "public"."buddy_invites" TO anon;
+GRANT TRUNCATE ON TABLE "public"."buddy_invites" TO anon;
+GRANT UPDATE ON TABLE "public"."buddy_invites" TO anon;
+GRANT DELETE ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT INSERT ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT SELECT ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT UPDATE ON TABLE "public"."buddy_invites" TO authenticated;
 GRANT DELETE ON TABLE "public"."buddy_invites" TO service_role;
 GRANT INSERT ON TABLE "public"."buddy_invites" TO service_role;
 GRANT MAINTAIN ON TABLE "public"."buddy_invites" TO service_role;
@@ -3584,9 +3988,22 @@ GRANT SELECT ON TABLE "public"."community_enrollments" TO service_role;
 GRANT TRIGGER ON TABLE "public"."community_enrollments" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."community_enrollments" TO service_role;
 GRANT UPDATE ON TABLE "public"."community_enrollments" TO service_role;
+GRANT DELETE ON TABLE "public"."community_event_attendees" TO anon;
+GRANT INSERT ON TABLE "public"."community_event_attendees" TO anon;
+GRANT MAINTAIN ON TABLE "public"."community_event_attendees" TO anon;
+GRANT REFERENCES ON TABLE "public"."community_event_attendees" TO anon;
+GRANT SELECT ON TABLE "public"."community_event_attendees" TO anon;
+GRANT TRIGGER ON TABLE "public"."community_event_attendees" TO anon;
+GRANT TRUNCATE ON TABLE "public"."community_event_attendees" TO anon;
+GRANT UPDATE ON TABLE "public"."community_event_attendees" TO anon;
 GRANT DELETE ON TABLE "public"."community_event_attendees" TO authenticated;
 GRANT INSERT ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."community_event_attendees" TO authenticated;
 GRANT SELECT ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT UPDATE ON TABLE "public"."community_event_attendees" TO authenticated;
 GRANT DELETE ON TABLE "public"."community_event_attendees" TO service_role;
 GRANT INSERT ON TABLE "public"."community_event_attendees" TO service_role;
 GRANT MAINTAIN ON TABLE "public"."community_event_attendees" TO service_role;
@@ -3595,8 +4012,22 @@ GRANT SELECT ON TABLE "public"."community_event_attendees" TO service_role;
 GRANT TRIGGER ON TABLE "public"."community_event_attendees" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."community_event_attendees" TO service_role;
 GRANT UPDATE ON TABLE "public"."community_event_attendees" TO service_role;
+GRANT DELETE ON TABLE "public"."community_events" TO anon;
+GRANT INSERT ON TABLE "public"."community_events" TO anon;
+GRANT MAINTAIN ON TABLE "public"."community_events" TO anon;
+GRANT REFERENCES ON TABLE "public"."community_events" TO anon;
 GRANT SELECT ON TABLE "public"."community_events" TO anon;
+GRANT TRIGGER ON TABLE "public"."community_events" TO anon;
+GRANT TRUNCATE ON TABLE "public"."community_events" TO anon;
+GRANT UPDATE ON TABLE "public"."community_events" TO anon;
+GRANT DELETE ON TABLE "public"."community_events" TO authenticated;
+GRANT INSERT ON TABLE "public"."community_events" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."community_events" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."community_events" TO authenticated;
 GRANT SELECT ON TABLE "public"."community_events" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."community_events" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."community_events" TO authenticated;
+GRANT UPDATE ON TABLE "public"."community_events" TO authenticated;
 GRANT DELETE ON TABLE "public"."community_events" TO service_role;
 GRANT INSERT ON TABLE "public"."community_events" TO service_role;
 GRANT MAINTAIN ON TABLE "public"."community_events" TO service_role;
@@ -3725,10 +4156,21 @@ GRANT SELECT ON TABLE "public"."daily_logs" TO service_role;
 GRANT TRIGGER ON TABLE "public"."daily_logs" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."daily_logs" TO service_role;
 GRANT UPDATE ON TABLE "public"."daily_logs" TO service_role;
+GRANT DELETE ON TABLE "public"."daily_user_stats" TO anon;
+GRANT INSERT ON TABLE "public"."daily_user_stats" TO anon;
+GRANT MAINTAIN ON TABLE "public"."daily_user_stats" TO anon;
+GRANT REFERENCES ON TABLE "public"."daily_user_stats" TO anon;
 GRANT SELECT ON TABLE "public"."daily_user_stats" TO anon;
+GRANT TRIGGER ON TABLE "public"."daily_user_stats" TO anon;
+GRANT TRUNCATE ON TABLE "public"."daily_user_stats" TO anon;
+GRANT UPDATE ON TABLE "public"."daily_user_stats" TO anon;
 GRANT DELETE ON TABLE "public"."daily_user_stats" TO authenticated;
 GRANT INSERT ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."daily_user_stats" TO authenticated;
 GRANT SELECT ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."daily_user_stats" TO authenticated;
 GRANT UPDATE ON TABLE "public"."daily_user_stats" TO authenticated;
 GRANT DELETE ON TABLE "public"."daily_user_stats" TO service_role;
 GRANT INSERT ON TABLE "public"."daily_user_stats" TO service_role;
@@ -3786,10 +4228,21 @@ GRANT SELECT ON TABLE "public"."focus_sessions" TO service_role;
 GRANT TRIGGER ON TABLE "public"."focus_sessions" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."focus_sessions" TO service_role;
 GRANT UPDATE ON TABLE "public"."focus_sessions" TO service_role;
+GRANT DELETE ON TABLE "public"."group_announcements" TO anon;
+GRANT INSERT ON TABLE "public"."group_announcements" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_announcements" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_announcements" TO anon;
 GRANT SELECT ON TABLE "public"."group_announcements" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_announcements" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_announcements" TO anon;
+GRANT UPDATE ON TABLE "public"."group_announcements" TO anon;
 GRANT DELETE ON TABLE "public"."group_announcements" TO authenticated;
 GRANT INSERT ON TABLE "public"."group_announcements" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_announcements" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_announcements" TO authenticated;
 GRANT SELECT ON TABLE "public"."group_announcements" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_announcements" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_announcements" TO authenticated;
 GRANT UPDATE ON TABLE "public"."group_announcements" TO authenticated;
 GRANT DELETE ON TABLE "public"."group_announcements" TO service_role;
 GRANT INSERT ON TABLE "public"."group_announcements" TO service_role;
@@ -3799,9 +4252,21 @@ GRANT SELECT ON TABLE "public"."group_announcements" TO service_role;
 GRANT TRIGGER ON TABLE "public"."group_announcements" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."group_announcements" TO service_role;
 GRANT UPDATE ON TABLE "public"."group_announcements" TO service_role;
+GRANT DELETE ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT INSERT ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT SELECT ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT UPDATE ON TABLE "public"."group_challenge_participants" TO anon;
 GRANT DELETE ON TABLE "public"."group_challenge_participants" TO authenticated;
 GRANT INSERT ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_challenge_participants" TO authenticated;
 GRANT SELECT ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_challenge_participants" TO authenticated;
 GRANT UPDATE ON TABLE "public"."group_challenge_participants" TO authenticated;
 GRANT DELETE ON TABLE "public"."group_challenge_participants" TO service_role;
 GRANT INSERT ON TABLE "public"."group_challenge_participants" TO service_role;
@@ -3811,10 +4276,21 @@ GRANT SELECT ON TABLE "public"."group_challenge_participants" TO service_role;
 GRANT TRIGGER ON TABLE "public"."group_challenge_participants" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."group_challenge_participants" TO service_role;
 GRANT UPDATE ON TABLE "public"."group_challenge_participants" TO service_role;
+GRANT DELETE ON TABLE "public"."group_challenges" TO anon;
+GRANT INSERT ON TABLE "public"."group_challenges" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_challenges" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_challenges" TO anon;
 GRANT SELECT ON TABLE "public"."group_challenges" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_challenges" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_challenges" TO anon;
+GRANT UPDATE ON TABLE "public"."group_challenges" TO anon;
 GRANT DELETE ON TABLE "public"."group_challenges" TO authenticated;
 GRANT INSERT ON TABLE "public"."group_challenges" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_challenges" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_challenges" TO authenticated;
 GRANT SELECT ON TABLE "public"."group_challenges" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_challenges" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_challenges" TO authenticated;
 GRANT UPDATE ON TABLE "public"."group_challenges" TO authenticated;
 GRANT DELETE ON TABLE "public"."group_challenges" TO service_role;
 GRANT INSERT ON TABLE "public"."group_challenges" TO service_role;
@@ -3824,8 +4300,22 @@ GRANT SELECT ON TABLE "public"."group_challenges" TO service_role;
 GRANT TRIGGER ON TABLE "public"."group_challenges" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."group_challenges" TO service_role;
 GRANT UPDATE ON TABLE "public"."group_challenges" TO service_role;
+GRANT DELETE ON TABLE "public"."group_chat_messages" TO anon;
+GRANT INSERT ON TABLE "public"."group_chat_messages" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_chat_messages" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_chat_messages" TO anon;
+GRANT SELECT ON TABLE "public"."group_chat_messages" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_chat_messages" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_chat_messages" TO anon;
+GRANT UPDATE ON TABLE "public"."group_chat_messages" TO anon;
+GRANT DELETE ON TABLE "public"."group_chat_messages" TO authenticated;
 GRANT INSERT ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_chat_messages" TO authenticated;
 GRANT SELECT ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT UPDATE ON TABLE "public"."group_chat_messages" TO authenticated;
 GRANT DELETE ON TABLE "public"."group_chat_messages" TO service_role;
 GRANT INSERT ON TABLE "public"."group_chat_messages" TO service_role;
 GRANT MAINTAIN ON TABLE "public"."group_chat_messages" TO service_role;
@@ -3834,9 +4324,21 @@ GRANT SELECT ON TABLE "public"."group_chat_messages" TO service_role;
 GRANT TRIGGER ON TABLE "public"."group_chat_messages" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."group_chat_messages" TO service_role;
 GRANT UPDATE ON TABLE "public"."group_chat_messages" TO service_role;
+GRANT DELETE ON TABLE "public"."group_invites" TO anon;
+GRANT INSERT ON TABLE "public"."group_invites" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_invites" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_invites" TO anon;
+GRANT SELECT ON TABLE "public"."group_invites" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_invites" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_invites" TO anon;
+GRANT UPDATE ON TABLE "public"."group_invites" TO anon;
 GRANT DELETE ON TABLE "public"."group_invites" TO authenticated;
 GRANT INSERT ON TABLE "public"."group_invites" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_invites" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_invites" TO authenticated;
 GRANT SELECT ON TABLE "public"."group_invites" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_invites" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_invites" TO authenticated;
 GRANT UPDATE ON TABLE "public"."group_invites" TO authenticated;
 GRANT DELETE ON TABLE "public"."group_invites" TO service_role;
 GRANT INSERT ON TABLE "public"."group_invites" TO service_role;
@@ -3846,10 +4348,21 @@ GRANT SELECT ON TABLE "public"."group_invites" TO service_role;
 GRANT TRIGGER ON TABLE "public"."group_invites" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."group_invites" TO service_role;
 GRANT UPDATE ON TABLE "public"."group_invites" TO service_role;
+GRANT DELETE ON TABLE "public"."group_members" TO anon;
+GRANT INSERT ON TABLE "public"."group_members" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_members" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_members" TO anon;
 GRANT SELECT ON TABLE "public"."group_members" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_members" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_members" TO anon;
+GRANT UPDATE ON TABLE "public"."group_members" TO anon;
 GRANT DELETE ON TABLE "public"."group_members" TO authenticated;
 GRANT INSERT ON TABLE "public"."group_members" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_members" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_members" TO authenticated;
 GRANT SELECT ON TABLE "public"."group_members" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_members" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_members" TO authenticated;
 GRANT UPDATE ON TABLE "public"."group_members" TO authenticated;
 GRANT DELETE ON TABLE "public"."group_members" TO service_role;
 GRANT INSERT ON TABLE "public"."group_members" TO service_role;
@@ -3859,7 +4372,22 @@ GRANT SELECT ON TABLE "public"."group_members" TO service_role;
 GRANT TRIGGER ON TABLE "public"."group_members" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."group_members" TO service_role;
 GRANT UPDATE ON TABLE "public"."group_members" TO service_role;
+GRANT DELETE ON TABLE "public"."group_milestones" TO anon;
+GRANT INSERT ON TABLE "public"."group_milestones" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_milestones" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_milestones" TO anon;
+GRANT SELECT ON TABLE "public"."group_milestones" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_milestones" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_milestones" TO anon;
+GRANT UPDATE ON TABLE "public"."group_milestones" TO anon;
+GRANT DELETE ON TABLE "public"."group_milestones" TO authenticated;
+GRANT INSERT ON TABLE "public"."group_milestones" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_milestones" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_milestones" TO authenticated;
 GRANT SELECT ON TABLE "public"."group_milestones" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_milestones" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_milestones" TO authenticated;
+GRANT UPDATE ON TABLE "public"."group_milestones" TO authenticated;
 GRANT DELETE ON TABLE "public"."group_milestones" TO service_role;
 GRANT INSERT ON TABLE "public"."group_milestones" TO service_role;
 GRANT MAINTAIN ON TABLE "public"."group_milestones" TO service_role;
@@ -3868,10 +4396,21 @@ GRANT SELECT ON TABLE "public"."group_milestones" TO service_role;
 GRANT TRIGGER ON TABLE "public"."group_milestones" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."group_milestones" TO service_role;
 GRANT UPDATE ON TABLE "public"."group_milestones" TO service_role;
+GRANT DELETE ON TABLE "public"."groups" TO anon;
+GRANT INSERT ON TABLE "public"."groups" TO anon;
+GRANT MAINTAIN ON TABLE "public"."groups" TO anon;
+GRANT REFERENCES ON TABLE "public"."groups" TO anon;
 GRANT SELECT ON TABLE "public"."groups" TO anon;
+GRANT TRIGGER ON TABLE "public"."groups" TO anon;
+GRANT TRUNCATE ON TABLE "public"."groups" TO anon;
+GRANT UPDATE ON TABLE "public"."groups" TO anon;
 GRANT DELETE ON TABLE "public"."groups" TO authenticated;
 GRANT INSERT ON TABLE "public"."groups" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."groups" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."groups" TO authenticated;
 GRANT SELECT ON TABLE "public"."groups" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."groups" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."groups" TO authenticated;
 GRANT UPDATE ON TABLE "public"."groups" TO authenticated;
 GRANT DELETE ON TABLE "public"."groups" TO service_role;
 GRANT INSERT ON TABLE "public"."groups" TO service_role;
@@ -3905,6 +4444,54 @@ GRANT SELECT ON TABLE "public"."habits" TO service_role;
 GRANT TRIGGER ON TABLE "public"."habits" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."habits" TO service_role;
 GRANT UPDATE ON TABLE "public"."habits" TO service_role;
+GRANT DELETE ON TABLE "public"."hypopg_hidden_indexes" TO anon;
+GRANT INSERT ON TABLE "public"."hypopg_hidden_indexes" TO anon;
+GRANT MAINTAIN ON TABLE "public"."hypopg_hidden_indexes" TO anon;
+GRANT REFERENCES ON TABLE "public"."hypopg_hidden_indexes" TO anon;
+GRANT SELECT ON TABLE "public"."hypopg_hidden_indexes" TO anon;
+GRANT TRIGGER ON TABLE "public"."hypopg_hidden_indexes" TO anon;
+GRANT TRUNCATE ON TABLE "public"."hypopg_hidden_indexes" TO anon;
+GRANT UPDATE ON TABLE "public"."hypopg_hidden_indexes" TO anon;
+GRANT DELETE ON TABLE "public"."hypopg_hidden_indexes" TO authenticated;
+GRANT INSERT ON TABLE "public"."hypopg_hidden_indexes" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."hypopg_hidden_indexes" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."hypopg_hidden_indexes" TO authenticated;
+GRANT SELECT ON TABLE "public"."hypopg_hidden_indexes" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."hypopg_hidden_indexes" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."hypopg_hidden_indexes" TO authenticated;
+GRANT UPDATE ON TABLE "public"."hypopg_hidden_indexes" TO authenticated;
+GRANT DELETE ON TABLE "public"."hypopg_hidden_indexes" TO service_role;
+GRANT INSERT ON TABLE "public"."hypopg_hidden_indexes" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."hypopg_hidden_indexes" TO service_role;
+GRANT REFERENCES ON TABLE "public"."hypopg_hidden_indexes" TO service_role;
+GRANT SELECT ON TABLE "public"."hypopg_hidden_indexes" TO service_role;
+GRANT TRIGGER ON TABLE "public"."hypopg_hidden_indexes" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."hypopg_hidden_indexes" TO service_role;
+GRANT UPDATE ON TABLE "public"."hypopg_hidden_indexes" TO service_role;
+GRANT DELETE ON TABLE "public"."hypopg_list_indexes" TO anon;
+GRANT INSERT ON TABLE "public"."hypopg_list_indexes" TO anon;
+GRANT MAINTAIN ON TABLE "public"."hypopg_list_indexes" TO anon;
+GRANT REFERENCES ON TABLE "public"."hypopg_list_indexes" TO anon;
+GRANT SELECT ON TABLE "public"."hypopg_list_indexes" TO anon;
+GRANT TRIGGER ON TABLE "public"."hypopg_list_indexes" TO anon;
+GRANT TRUNCATE ON TABLE "public"."hypopg_list_indexes" TO anon;
+GRANT UPDATE ON TABLE "public"."hypopg_list_indexes" TO anon;
+GRANT DELETE ON TABLE "public"."hypopg_list_indexes" TO authenticated;
+GRANT INSERT ON TABLE "public"."hypopg_list_indexes" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."hypopg_list_indexes" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."hypopg_list_indexes" TO authenticated;
+GRANT SELECT ON TABLE "public"."hypopg_list_indexes" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."hypopg_list_indexes" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."hypopg_list_indexes" TO authenticated;
+GRANT UPDATE ON TABLE "public"."hypopg_list_indexes" TO authenticated;
+GRANT DELETE ON TABLE "public"."hypopg_list_indexes" TO service_role;
+GRANT INSERT ON TABLE "public"."hypopg_list_indexes" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."hypopg_list_indexes" TO service_role;
+GRANT REFERENCES ON TABLE "public"."hypopg_list_indexes" TO service_role;
+GRANT SELECT ON TABLE "public"."hypopg_list_indexes" TO service_role;
+GRANT TRIGGER ON TABLE "public"."hypopg_list_indexes" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."hypopg_list_indexes" TO service_role;
+GRANT UPDATE ON TABLE "public"."hypopg_list_indexes" TO service_role;
 GRANT DELETE ON TABLE "public"."mock_tests" TO anon;
 GRANT INSERT ON TABLE "public"."mock_tests" TO anon;
 GRANT MAINTAIN ON TABLE "public"."mock_tests" TO anon;
@@ -3929,9 +4516,21 @@ GRANT SELECT ON TABLE "public"."mock_tests" TO service_role;
 GRANT TRIGGER ON TABLE "public"."mock_tests" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."mock_tests" TO service_role;
 GRANT UPDATE ON TABLE "public"."mock_tests" TO service_role;
+GRANT DELETE ON TABLE "public"."notifications" TO anon;
+GRANT INSERT ON TABLE "public"."notifications" TO anon;
+GRANT MAINTAIN ON TABLE "public"."notifications" TO anon;
+GRANT REFERENCES ON TABLE "public"."notifications" TO anon;
+GRANT SELECT ON TABLE "public"."notifications" TO anon;
+GRANT TRIGGER ON TABLE "public"."notifications" TO anon;
+GRANT TRUNCATE ON TABLE "public"."notifications" TO anon;
+GRANT UPDATE ON TABLE "public"."notifications" TO anon;
 GRANT DELETE ON TABLE "public"."notifications" TO authenticated;
 GRANT INSERT ON TABLE "public"."notifications" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."notifications" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."notifications" TO authenticated;
 GRANT SELECT ON TABLE "public"."notifications" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."notifications" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."notifications" TO authenticated;
 GRANT UPDATE ON TABLE "public"."notifications" TO authenticated;
 GRANT DELETE ON TABLE "public"."notifications" TO service_role;
 GRANT INSERT ON TABLE "public"."notifications" TO service_role;
@@ -3941,8 +4540,22 @@ GRANT SELECT ON TABLE "public"."notifications" TO service_role;
 GRANT TRIGGER ON TABLE "public"."notifications" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."notifications" TO service_role;
 GRANT UPDATE ON TABLE "public"."notifications" TO service_role;
+GRANT DELETE ON TABLE "public"."store_items" TO anon;
+GRANT INSERT ON TABLE "public"."store_items" TO anon;
+GRANT MAINTAIN ON TABLE "public"."store_items" TO anon;
+GRANT REFERENCES ON TABLE "public"."store_items" TO anon;
 GRANT SELECT ON TABLE "public"."store_items" TO anon;
+GRANT TRIGGER ON TABLE "public"."store_items" TO anon;
+GRANT TRUNCATE ON TABLE "public"."store_items" TO anon;
+GRANT UPDATE ON TABLE "public"."store_items" TO anon;
+GRANT DELETE ON TABLE "public"."store_items" TO authenticated;
+GRANT INSERT ON TABLE "public"."store_items" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."store_items" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."store_items" TO authenticated;
 GRANT SELECT ON TABLE "public"."store_items" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."store_items" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."store_items" TO authenticated;
+GRANT UPDATE ON TABLE "public"."store_items" TO authenticated;
 GRANT DELETE ON TABLE "public"."store_items" TO service_role;
 GRANT INSERT ON TABLE "public"."store_items" TO service_role;
 GRANT MAINTAIN ON TABLE "public"."store_items" TO service_role;
@@ -3951,9 +4564,21 @@ GRANT SELECT ON TABLE "public"."store_items" TO service_role;
 GRANT TRIGGER ON TABLE "public"."store_items" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."store_items" TO service_role;
 GRANT UPDATE ON TABLE "public"."store_items" TO service_role;
+GRANT DELETE ON TABLE "public"."study_sessions_log" TO anon;
+GRANT INSERT ON TABLE "public"."study_sessions_log" TO anon;
+GRANT MAINTAIN ON TABLE "public"."study_sessions_log" TO anon;
+GRANT REFERENCES ON TABLE "public"."study_sessions_log" TO anon;
+GRANT SELECT ON TABLE "public"."study_sessions_log" TO anon;
+GRANT TRIGGER ON TABLE "public"."study_sessions_log" TO anon;
+GRANT TRUNCATE ON TABLE "public"."study_sessions_log" TO anon;
+GRANT UPDATE ON TABLE "public"."study_sessions_log" TO anon;
 GRANT DELETE ON TABLE "public"."study_sessions_log" TO authenticated;
 GRANT INSERT ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."study_sessions_log" TO authenticated;
 GRANT SELECT ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."study_sessions_log" TO authenticated;
 GRANT UPDATE ON TABLE "public"."study_sessions_log" TO authenticated;
 GRANT DELETE ON TABLE "public"."study_sessions_log" TO service_role;
 GRANT INSERT ON TABLE "public"."study_sessions_log" TO service_role;
@@ -3987,9 +4612,21 @@ GRANT SELECT ON TABLE "public"."subjects" TO service_role;
 GRANT TRIGGER ON TABLE "public"."subjects" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."subjects" TO service_role;
 GRANT UPDATE ON TABLE "public"."subjects" TO service_role;
+GRANT DELETE ON TABLE "public"."sync_items" TO anon;
+GRANT INSERT ON TABLE "public"."sync_items" TO anon;
+GRANT MAINTAIN ON TABLE "public"."sync_items" TO anon;
+GRANT REFERENCES ON TABLE "public"."sync_items" TO anon;
+GRANT SELECT ON TABLE "public"."sync_items" TO anon;
+GRANT TRIGGER ON TABLE "public"."sync_items" TO anon;
+GRANT TRUNCATE ON TABLE "public"."sync_items" TO anon;
+GRANT UPDATE ON TABLE "public"."sync_items" TO anon;
 GRANT DELETE ON TABLE "public"."sync_items" TO authenticated;
 GRANT INSERT ON TABLE "public"."sync_items" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."sync_items" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."sync_items" TO authenticated;
 GRANT SELECT ON TABLE "public"."sync_items" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."sync_items" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."sync_items" TO authenticated;
 GRANT UPDATE ON TABLE "public"."sync_items" TO authenticated;
 GRANT DELETE ON TABLE "public"."sync_items" TO service_role;
 GRANT INSERT ON TABLE "public"."sync_items" TO service_role;
@@ -4047,8 +4684,22 @@ GRANT SELECT ON TABLE "public"."tests" TO service_role;
 GRANT TRIGGER ON TABLE "public"."tests" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."tests" TO service_role;
 GRANT UPDATE ON TABLE "public"."tests" TO service_role;
+GRANT DELETE ON TABLE "public"."user_display_profiles" TO anon;
+GRANT INSERT ON TABLE "public"."user_display_profiles" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_display_profiles" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_display_profiles" TO anon;
 GRANT SELECT ON TABLE "public"."user_display_profiles" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_display_profiles" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_display_profiles" TO anon;
+GRANT UPDATE ON TABLE "public"."user_display_profiles" TO anon;
+GRANT DELETE ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_display_profiles" TO authenticated;
 GRANT SELECT ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_display_profiles" TO authenticated;
 GRANT DELETE ON TABLE "public"."user_display_profiles" TO service_role;
 GRANT INSERT ON TABLE "public"."user_display_profiles" TO service_role;
 GRANT MAINTAIN ON TABLE "public"."user_display_profiles" TO service_role;
@@ -4057,9 +4708,21 @@ GRANT SELECT ON TABLE "public"."user_display_profiles" TO service_role;
 GRANT TRIGGER ON TABLE "public"."user_display_profiles" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."user_display_profiles" TO service_role;
 GRANT UPDATE ON TABLE "public"."user_display_profiles" TO service_role;
+GRANT DELETE ON TABLE "public"."user_inventory" TO anon;
+GRANT INSERT ON TABLE "public"."user_inventory" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_inventory" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_inventory" TO anon;
+GRANT SELECT ON TABLE "public"."user_inventory" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_inventory" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_inventory" TO anon;
+GRANT UPDATE ON TABLE "public"."user_inventory" TO anon;
 GRANT DELETE ON TABLE "public"."user_inventory" TO authenticated;
 GRANT INSERT ON TABLE "public"."user_inventory" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_inventory" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_inventory" TO authenticated;
 GRANT SELECT ON TABLE "public"."user_inventory" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_inventory" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_inventory" TO authenticated;
 GRANT UPDATE ON TABLE "public"."user_inventory" TO authenticated;
 GRANT DELETE ON TABLE "public"."user_inventory" TO service_role;
 GRANT INSERT ON TABLE "public"."user_inventory" TO service_role;
@@ -4069,9 +4732,21 @@ GRANT SELECT ON TABLE "public"."user_inventory" TO service_role;
 GRANT TRIGGER ON TABLE "public"."user_inventory" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."user_inventory" TO service_role;
 GRANT UPDATE ON TABLE "public"."user_inventory" TO service_role;
+GRANT DELETE ON TABLE "public"."user_onboarding" TO anon;
+GRANT INSERT ON TABLE "public"."user_onboarding" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_onboarding" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_onboarding" TO anon;
+GRANT SELECT ON TABLE "public"."user_onboarding" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_onboarding" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_onboarding" TO anon;
+GRANT UPDATE ON TABLE "public"."user_onboarding" TO anon;
 GRANT DELETE ON TABLE "public"."user_onboarding" TO authenticated;
 GRANT INSERT ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_onboarding" TO authenticated;
 GRANT SELECT ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_onboarding" TO authenticated;
 GRANT UPDATE ON TABLE "public"."user_onboarding" TO authenticated;
 GRANT DELETE ON TABLE "public"."user_onboarding" TO service_role;
 GRANT INSERT ON TABLE "public"."user_onboarding" TO service_role;
@@ -4081,8 +4756,21 @@ GRANT SELECT ON TABLE "public"."user_onboarding" TO service_role;
 GRANT TRIGGER ON TABLE "public"."user_onboarding" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."user_onboarding" TO service_role;
 GRANT UPDATE ON TABLE "public"."user_onboarding" TO service_role;
+GRANT DELETE ON TABLE "public"."user_points" TO anon;
+GRANT INSERT ON TABLE "public"."user_points" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_points" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_points" TO anon;
+GRANT SELECT ON TABLE "public"."user_points" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_points" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_points" TO anon;
+GRANT UPDATE ON TABLE "public"."user_points" TO anon;
+GRANT DELETE ON TABLE "public"."user_points" TO authenticated;
 GRANT INSERT ON TABLE "public"."user_points" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_points" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_points" TO authenticated;
 GRANT SELECT ON TABLE "public"."user_points" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_points" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_points" TO authenticated;
 GRANT UPDATE ON TABLE "public"."user_points" TO authenticated;
 GRANT DELETE ON TABLE "public"."user_points" TO service_role;
 GRANT INSERT ON TABLE "public"."user_points" TO service_role;
@@ -4092,9 +4780,21 @@ GRANT SELECT ON TABLE "public"."user_points" TO service_role;
 GRANT TRIGGER ON TABLE "public"."user_points" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."user_points" TO service_role;
 GRANT UPDATE ON TABLE "public"."user_points" TO service_role;
+GRANT DELETE ON TABLE "public"."user_presence" TO anon;
+GRANT INSERT ON TABLE "public"."user_presence" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_presence" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_presence" TO anon;
+GRANT SELECT ON TABLE "public"."user_presence" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_presence" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_presence" TO anon;
+GRANT UPDATE ON TABLE "public"."user_presence" TO anon;
 GRANT DELETE ON TABLE "public"."user_presence" TO authenticated;
 GRANT INSERT ON TABLE "public"."user_presence" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_presence" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_presence" TO authenticated;
 GRANT SELECT ON TABLE "public"."user_presence" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_presence" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_presence" TO authenticated;
 GRANT UPDATE ON TABLE "public"."user_presence" TO authenticated;
 GRANT DELETE ON TABLE "public"."user_presence" TO service_role;
 GRANT INSERT ON TABLE "public"."user_presence" TO service_role;
@@ -4104,9 +4804,21 @@ GRANT SELECT ON TABLE "public"."user_presence" TO service_role;
 GRANT TRIGGER ON TABLE "public"."user_presence" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."user_presence" TO service_role;
 GRANT UPDATE ON TABLE "public"."user_presence" TO service_role;
+GRANT DELETE ON TABLE "public"."user_profiles" TO anon;
+GRANT INSERT ON TABLE "public"."user_profiles" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_profiles" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_profiles" TO anon;
+GRANT SELECT ON TABLE "public"."user_profiles" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_profiles" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_profiles" TO anon;
+GRANT UPDATE ON TABLE "public"."user_profiles" TO anon;
 GRANT DELETE ON TABLE "public"."user_profiles" TO authenticated;
 GRANT INSERT ON TABLE "public"."user_profiles" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_profiles" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_profiles" TO authenticated;
 GRANT SELECT ON TABLE "public"."user_profiles" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_profiles" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_profiles" TO authenticated;
 GRANT UPDATE ON TABLE "public"."user_profiles" TO authenticated;
 GRANT DELETE ON TABLE "public"."user_profiles" TO service_role;
 GRANT INSERT ON TABLE "public"."user_profiles" TO service_role;
@@ -4116,7 +4828,22 @@ GRANT SELECT ON TABLE "public"."user_profiles" TO service_role;
 GRANT TRIGGER ON TABLE "public"."user_profiles" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."user_profiles" TO service_role;
 GRANT UPDATE ON TABLE "public"."user_profiles" TO service_role;
+GRANT DELETE ON TABLE "public"."user_roles" TO anon;
+GRANT INSERT ON TABLE "public"."user_roles" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_roles" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_roles" TO anon;
+GRANT SELECT ON TABLE "public"."user_roles" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_roles" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_roles" TO anon;
+GRANT UPDATE ON TABLE "public"."user_roles" TO anon;
+GRANT DELETE ON TABLE "public"."user_roles" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_roles" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_roles" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_roles" TO authenticated;
 GRANT SELECT ON TABLE "public"."user_roles" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_roles" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_roles" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_roles" TO authenticated;
 GRANT DELETE ON TABLE "public"."user_roles" TO service_role;
 GRANT INSERT ON TABLE "public"."user_roles" TO service_role;
 GRANT MAINTAIN ON TABLE "public"."user_roles" TO service_role;
@@ -4125,9 +4852,21 @@ GRANT SELECT ON TABLE "public"."user_roles" TO service_role;
 GRANT TRIGGER ON TABLE "public"."user_roles" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."user_roles" TO service_role;
 GRANT UPDATE ON TABLE "public"."user_roles" TO service_role;
+GRANT DELETE ON TABLE "public"."user_settings" TO anon;
+GRANT INSERT ON TABLE "public"."user_settings" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_settings" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_settings" TO anon;
+GRANT SELECT ON TABLE "public"."user_settings" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_settings" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_settings" TO anon;
+GRANT UPDATE ON TABLE "public"."user_settings" TO anon;
 GRANT DELETE ON TABLE "public"."user_settings" TO authenticated;
 GRANT INSERT ON TABLE "public"."user_settings" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_settings" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_settings" TO authenticated;
 GRANT SELECT ON TABLE "public"."user_settings" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_settings" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_settings" TO authenticated;
 GRANT UPDATE ON TABLE "public"."user_settings" TO authenticated;
 GRANT DELETE ON TABLE "public"."user_settings" TO service_role;
 GRANT INSERT ON TABLE "public"."user_settings" TO service_role;
@@ -4137,10 +4876,21 @@ GRANT SELECT ON TABLE "public"."user_settings" TO service_role;
 GRANT TRIGGER ON TABLE "public"."user_settings" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."user_settings" TO service_role;
 GRANT UPDATE ON TABLE "public"."user_settings" TO service_role;
+GRANT DELETE ON TABLE "public"."user_stats_summary" TO anon;
+GRANT INSERT ON TABLE "public"."user_stats_summary" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_stats_summary" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_stats_summary" TO anon;
 GRANT SELECT ON TABLE "public"."user_stats_summary" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_stats_summary" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_stats_summary" TO anon;
+GRANT UPDATE ON TABLE "public"."user_stats_summary" TO anon;
 GRANT DELETE ON TABLE "public"."user_stats_summary" TO authenticated;
 GRANT INSERT ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_stats_summary" TO authenticated;
 GRANT SELECT ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_stats_summary" TO authenticated;
 GRANT UPDATE ON TABLE "public"."user_stats_summary" TO authenticated;
 GRANT DELETE ON TABLE "public"."user_stats_summary" TO service_role;
 GRANT INSERT ON TABLE "public"."user_stats_summary" TO service_role;
@@ -4150,9 +4900,21 @@ GRANT SELECT ON TABLE "public"."user_stats_summary" TO service_role;
 GRANT TRIGGER ON TABLE "public"."user_stats_summary" TO service_role;
 GRANT TRUNCATE ON TABLE "public"."user_stats_summary" TO service_role;
 GRANT UPDATE ON TABLE "public"."user_stats_summary" TO service_role;
+GRANT DELETE ON TABLE "public"."user_tours" TO anon;
+GRANT INSERT ON TABLE "public"."user_tours" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_tours" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_tours" TO anon;
+GRANT SELECT ON TABLE "public"."user_tours" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_tours" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_tours" TO anon;
+GRANT UPDATE ON TABLE "public"."user_tours" TO anon;
 GRANT DELETE ON TABLE "public"."user_tours" TO authenticated;
 GRANT INSERT ON TABLE "public"."user_tours" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_tours" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_tours" TO authenticated;
 GRANT SELECT ON TABLE "public"."user_tours" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_tours" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_tours" TO authenticated;
 GRANT UPDATE ON TABLE "public"."user_tours" TO authenticated;
 GRANT DELETE ON TABLE "public"."user_tours" TO service_role;
 GRANT INSERT ON TABLE "public"."user_tours" TO service_role;
@@ -4164,11 +4926,19 @@ GRANT TRUNCATE ON TABLE "public"."user_tours" TO service_role;
 GRANT UPDATE ON TABLE "public"."user_tours" TO service_role;
 GRANT DELETE ON TABLE "public"."users" TO anon;
 GRANT INSERT ON TABLE "public"."users" TO anon;
+GRANT MAINTAIN ON TABLE "public"."users" TO anon;
+GRANT REFERENCES ON TABLE "public"."users" TO anon;
 GRANT SELECT ON TABLE "public"."users" TO anon;
+GRANT TRIGGER ON TABLE "public"."users" TO anon;
+GRANT TRUNCATE ON TABLE "public"."users" TO anon;
 GRANT UPDATE ON TABLE "public"."users" TO anon;
 GRANT DELETE ON TABLE "public"."users" TO authenticated;
 GRANT INSERT ON TABLE "public"."users" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."users" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."users" TO authenticated;
 GRANT SELECT ON TABLE "public"."users" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."users" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."users" TO authenticated;
 GRANT UPDATE ON TABLE "public"."users" TO authenticated;
 GRANT DELETE ON TABLE "public"."users" TO service_role;
 GRANT INSERT ON TABLE "public"."users" TO service_role;
@@ -4184,11 +4954,14 @@ GRANT EXECUTE ON FUNCTION "rpc_private"."accept_invite"(p_code text) TO authenti
 GRANT EXECUTE ON FUNCTION "rpc_private"."join_community_event"(p_event_id uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION "rpc_private"."leave_community_event"(p_event_id uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION "rpc_private"."purchase_store_item"(p_user_id uuid, p_item_id uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION "public"."_auto_add_group_owner"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."_auto_add_super_admin"() TO anon;
 GRANT EXECUTE ON FUNCTION "public"."_has_group_role"(gid uuid, uid uuid, allowed_roles text[]) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."_is_group_member"(gid uuid, uid uuid) TO anon;
-GRANT EXECUTE ON FUNCTION "public"."_sync_group_member_count"() TO service_role;
-GRANT EXECUTE ON FUNCTION "public"."accept_invite"(p_code text) TO authenticated;
-GRANT EXECUTE ON FUNCTION "public"."check_user_role"(p_user_id uuid, p_role text) TO service_role;
+GRANT EXECUTE ON FUNCTION "public"."_sync_group_member_count"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."accept_invite"(p_code text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."check_user_role"(p_user_id uuid, p_role text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."cleanup_old_notifications"() TO anon;
 GRANT EXECUTE ON FUNCTION "public"."community_bootstrap_profile"(p_display_name text, p_handle text, p_day_offset_hours integer) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."community_create_group"(p_name text, p_description text, p_exam text, p_target_year integer, p_subjects text[], p_visibility text, p_join_policy text, p_timezone_offset_minutes integer) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."community_create_invite"(p_type text, p_target_id uuid, p_days integer) TO anon;
@@ -4219,26 +4992,48 @@ GRANT EXECUTE ON FUNCTION "public"."community_submit_report"(p_target_type text,
 GRANT EXECUTE ON FUNCTION "public"."community_sync_quiet_hours"(p_enabled boolean, p_start time without time zone, p_end time without time zone, p_timezone_offset_minutes integer) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."community_transfer_group"(p_group_id uuid, p_new_owner uuid) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."community_update_group"(p_group_id uuid, p_changes jsonb) TO anon;
-GRANT EXECUTE ON FUNCTION "public"."create_community_event"(p_title text, p_event_type text, p_description text, p_host text, p_start_time timestamp with time zone, p_end_time timestamp with time zone, p_image_gradient text, p_image_url text, p_tags text[], p_max_attendees integer, p_is_featured boolean, p_is_active boolean) TO service_role;
-GRANT EXECUTE ON FUNCTION "public"."create_community_group"(p_name text, p_description text, p_category text, p_cover_url text, p_is_public boolean, p_max_members integer, p_visibility text) TO authenticated;
+GRANT EXECUTE ON FUNCTION "public"."create_community_event"(p_title text, p_event_type text, p_description text, p_host text, p_start_time timestamp with time zone, p_end_time timestamp with time zone, p_image_gradient text, p_image_url text, p_tags text[], p_max_attendees integer, p_is_featured boolean, p_is_active boolean) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."create_community_group"(p_name text, p_description text, p_category text, p_cover_url text, p_is_public boolean, p_max_members integer, p_visibility text) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."create_community_group"(p_name text, p_description text, p_category text, p_is_public boolean, p_slug text, p_logo_url text, p_cover_url text, p_settings jsonb) TO anon;
-GRANT EXECUTE ON FUNCTION "public"."delete_community_event"(p_id uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION "public"."delete_community_group"(p_group_id uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION "public"."expire_stale_presence"() TO service_role;
-GRANT EXECUTE ON FUNCTION "public"."finish_session_sync"(p_session_id uuid, p_action text, p_duration_minutes integer, p_group_id uuid, p_session_type text, p_notes text, p_ended_at timestamp with time zone) TO authenticated;
-GRANT EXECUTE ON FUNCTION "public"."get_event_attendees"(p_event_id uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION "public"."get_group_analytics_from_snapshots"(p_group_id uuid, p_days integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION "public"."delete_community_event"(p_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."delete_community_group"(p_group_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."expire_stale_presence"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."finish_session_sync"(p_session_id uuid, p_action text, p_duration_minutes integer, p_group_id uuid, p_session_type text, p_notes text, p_ended_at timestamp with time zone) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_event_attendees"(p_event_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_group_analytics_from_snapshots"(p_group_id uuid, p_days integer) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."get_group_leaderboard"(p_group_id uuid, p_limit integer) TO anon;
-GRANT EXECUTE ON FUNCTION "public"."get_leaderboard"(p_period text, p_limit integer, p_offset integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION "public"."get_invite_details"(p_code text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_leaderboard"(p_period text, p_limit integer, p_offset integer) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."get_membership_snapshot"(p_user_id uuid, target_user_id uuid) TO anon;
-GRANT EXECUTE ON FUNCTION "public"."get_my_role"() TO authenticated;
-GRANT EXECUTE ON FUNCTION "public"."is_premium_user"() TO authenticated;
+GRANT EXECUTE ON FUNCTION "public"."get_my_group_ids"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_my_role"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."handle_new_user"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."hypopg"(OUT indexname text, OUT indexrelid oid, OUT indrelid oid, OUT innatts integer, OUT indisunique boolean, OUT indkey int2vector, OUT indcollation oidvector, OUT indclass oidvector, OUT indoption oidvector, OUT indexprs pg_node_tree, OUT indpred pg_node_tree, OUT amid oid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."hypopg_create_index"(sql_order text, OUT indexrelid oid, OUT indexname text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."hypopg_drop_index"(indexid oid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."hypopg_get_indexdef"(indexid oid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."hypopg_hidden_indexes"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."hypopg_hide_index"(indexid oid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."hypopg_relation_size"(indexid oid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."hypopg_reset"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."hypopg_reset_index"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."hypopg_unhide_all_indexes"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."hypopg_unhide_index"(indexid oid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."index_advisor"(query text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."is_premium_user"() TO anon;
 GRANT EXECUTE ON FUNCTION "public"."is_premium_user"(uid uuid) TO anon;
-GRANT EXECUTE ON FUNCTION "public"."join_community_event"(p_event_id uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION "public"."join_community_group"(p_group_id uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION "public"."leave_community_event"(p_event_id uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION "public"."leave_community_group"(p_group_id uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION "public"."purchase_store_item"(p_user_id uuid, p_item_id uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION "public"."update_community_event"(p_id uuid, p_title text, p_event_type text, p_description text, p_host text, p_start_time timestamp with time zone, p_end_time timestamp with time zone, p_image_gradient text, p_image_url text, p_tags text[], p_max_attendees integer, p_is_featured boolean, p_is_active boolean) TO service_role;
-GRANT EXECUTE ON FUNCTION "public"."update_group_member_role"(p_group_id uuid, p_target_uid uuid, p_new_role text) TO authenticated;
+GRANT EXECUTE ON FUNCTION "public"."join_community_event"(p_event_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."join_community_group"(p_group_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."leave_community_event"(p_event_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."leave_community_group"(p_group_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."purchase_store_item"(p_user_id uuid, p_item_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."rls_auto_enable"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."set_group_slug_from_name"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."set_user_tours_updated_at"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."sync_group_member_count"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."sync_group_visibility"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."sync_user_display_profile"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."sync_user_onboarding_from_profile"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."update_community_event"(p_id uuid, p_title text, p_event_type text, p_description text, p_host text, p_start_time timestamp with time zone, p_end_time timestamp with time zone, p_image_gradient text, p_image_url text, p_tags text[], p_max_attendees integer, p_is_featured boolean, p_is_active boolean) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."update_group_member_role"(p_group_id uuid, p_target_uid uuid, p_new_role text) TO anon;
 COMMIT;

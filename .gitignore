@@ -1,6 +1,8 @@
 node_modules/
 .env
 .env.*
+.backup_env
+backups/
 !.env.example
 *.local
 dist/
