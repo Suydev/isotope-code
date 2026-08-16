@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="./CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-3.4.0-314f28"></a>
+  <a href="./CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-3.4.1-314f28"></a>
   <a href="https://suydev.github.io/isotope-code/"><img alt="Docs" src="https://img.shields.io/badge/docs-animated%20GitHub%20Pages-8df31f"></a>
 </p>
 
@@ -52,6 +52,7 @@ Start here:
 - Admin guide: [ADMIN.md](./ADMIN.md)
 - Sync details: [docs/sync-system.md](./docs/sync-system.md)
 - Backup storage details: [docs/storage-backup-system.md](./docs/storage-backup-system.md)
+- Backup & restore CLI: [docs/backup-restore.md](./docs/backup-restore.md)
 
 ## Pick Your Device
 
@@ -224,6 +225,21 @@ Blocked code:
 BLOCKED_EMPTY_OVERWRITE
 ```
 
+## Local Backup & Restore (backup.sh)
+
+For full project backups (schema + auth + storage + all users), a standalone CLI is provided:
+
+```bash
+./backup.sh backup           # create encrypted backup (sha256 sidecar + auto-verify)
+./backup.sh restore <file>   # restore with pre-flight integrity check
+./backup.sh verify <file>    # verify tables, row counts, auth, storage
+./backup.sh info             # list local backups with status
+```
+
+See [docs/backup-restore.md](./docs/backup-restore.md) for key precedence, scheduling, and safety notes.
+
+Keys are resolved from CLI flags > `.backup_env` (gitignored) > `.env`. The `.backup_env` file holds the **keeper project** credentials (separate from your working project in `.env`) so cloud backups never hit your live app DB.
+
 ## Admin Mode
 
 Admin mode is optional.
@@ -289,6 +305,7 @@ node scripts/validate-storage-cleanup.mjs --user <user-id> --dry-run
 | Storage permission error | Re-run `isotope-complete.sql` |
 | Android widget is missing | `isotope reinstall-widgets` |
 | Update failed | `isotope doctor`, then `isotope repair` |
+| App blank / React doesn't load offline | Clear browser caches: `caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => location.reload())` — the PWA shell now falls back to its precache for first-visit assets |
 
 ### Runtime Login Bridge And Cache Troubleshooting
 

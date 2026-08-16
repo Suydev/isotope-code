@@ -4169,8 +4169,13 @@ function getPatchedAuthBundle() {
     // We pass t (email) + l (password) to server — real email used directly
     p(
       'const N=M(t);if(N){m.setState({error:N});return}(await j(s,t,l)).success&&d("/onboarding")',
-      "m.setState({isLoading:!0,error:null});try{var __r=await window.__isoUp(t,l);if(!__r.ok){m.setState({error:__r.err||'Signup failed',isLoading:!1});return}window.location.href='/onboarding'}catch(__e){m.setState({error:__e&&__e.message?__e.message:'Signup failed',isLoading:!1})}}"
+      "m.setState({isLoading:!0,error:null});try{var __r=await window.__isoUp(t,l);if(!__r.ok){m.setState({error:__r.err||'Signup failed',isLoading:!1});return}window.location.href='/onboarding'}catch(__e){m.setState({error:__e&&__e.message?__e.message:'Signup failed',isLoading:!1})}"
     );
+    // The replacement above ends with a single '}' (catch close). The original
+    // '};return …' that follows supplies the handler's own closing brace — a
+    // second '}' here would close the handler early and put the component's
+    // top-level 'return' outside any function (SyntaxError: Illegal return
+    // statement), breaking the whole Auth chunk.
     // Sign Up: button label
     p('"Create Account with Email"', '"Create Account"');
 

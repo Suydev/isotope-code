@@ -115,9 +115,30 @@ function isRuntimeGlue(url) {
     url.pathname.startsWith('/sync/');
 }
 
-async function cacheFirst(request) {
+// The install precache stores the first-paint shell in SHELL_CACHE. A request
+// arriving before the service worker took control (the very first visit) never
+// reaches the RUNTIME_CACHE, so offline reloads of that same visit must be able
+// to fall back to the shell precache. Exact lookup first, then pathname-only so
+// query-stringed requests like /auth-bridge.js?v=5 match their shell entries.
+async function matchAcrossCaches(request, url) {
+  for (const name of [RUNTIME_CACHE, SHELL_CACHE]) {
+    let cache;
+    try { cache = await caches.open(name); } catch (_) { continue; }
+    try {
+      const exact = await cache.match(request);
+      if (exact) return exact;
+    } catch (_) {}
+    try {
+      const pathOnly = await cache.match(new Request(url.pathname));
+      if (pathOnly) return pathOnly;
+    } catch (_) {}
+  }
+  return null;
+}
+
+async function cacheFirst(request, url) {
   const cache = await caches.open(RUNTIME_CACHE);
-  const cached = await cache.match(request);
+  const cached = await matchAcrossCaches(request, url);
   if (cached) return cached;
   try {
     const response = await fetch(request);
@@ -130,7 +151,7 @@ async function cacheFirst(request) {
   });
 }
 
-async function networkFirstStatic(request) {
+async function networkFirstStatic(request, url) {
   const cache = await caches.open(RUNTIME_CACHE);
   try {
     const freshRequest = new Request(request.url, {
@@ -144,7 +165,7 @@ async function networkFirstStatic(request) {
     if (response && response.ok) await cache.put(request, response.clone());
     return response;
   } catch {}
-  const cached = await cache.match(request);
+  const cached = await matchAcrossCaches(request, url);
   if (cached) return cached;
   return new Response('Offline', {
     status: 503,
@@ -244,16 +265,16 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (isRuntimeGlue(url)) {
-    event.respondWith(networkFirstStatic(request));
+    event.respondWith(networkFirstStatic(request, url));
     return;
   }
 
   if (isCacheableAsset(request, url)) {
-    event.respondWith(cacheFirst(request));
+    event.respondWith(cacheFirst(request, url));
     return;
   }
 
   if (LAZY_CACHE_URLS.includes(url.pathname)) {
-    event.respondWith(cacheFirst(request));
+    event.respondWith(cacheFirst(request, url));
   }
 });
