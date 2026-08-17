@@ -4501,6 +4501,34 @@ function supaRestReq(method, restPath, bodyObj, extraHeaders = {}) {
   });
 }
 
+function supaRestReqWithAuth(method, restPath, userJwt, extraHeaders = {}) {
+  return new Promise((resolve, reject) => {
+    const supaHost = new URL(SUPA_URL).hostname;
+    const opts = {
+      hostname: supaHost,
+      path: restPath,
+      method,
+      headers: {
+        'Content-Type':  'application/json',
+        'Accept':        'application/json',
+        'Authorization': 'Bearer ' + userJwt,
+        'apikey':        SUPA_ANON_KEY,
+        ...extraHeaders,
+      },
+    };
+    const rq = https.request(opts, (r) => {
+      let d = ''; r.on('data', c => d += c);
+      r.on('end', () => {
+        try { resolve({ status: r.statusCode, body: JSON.parse(d) }); }
+        catch { resolve({ status: r.statusCode, body: d }); }
+      });
+    });
+    rq.on('error', reject);
+    rq.setTimeout(15000, () => { rq.destroy(); reject(new Error('Supabase REST timeout')); });
+    rq.end();
+  });
+}
+
 function fetchRemoteAsset(assetName) {
   const safeName = path.basename(String(assetName || ''));
   if (!/^[A-Za-z0-9._-]+\.js$/.test(safeName)) {
@@ -8724,7 +8752,7 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
     return;
   }
 
-  // ── /__leaderboard — server-side leaderboard (service key, no RLS/anonymity issues) ──
+  // ── /__leaderboard — server-side leaderboard (uses user JWT, no service key) ──
   if (req.method === 'POST' && adminPath === '/__leaderboard') {
     (async () => {
       const auth = await requireUserAuth(req, res);
@@ -8737,8 +8765,9 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const sortCol = period === 'monthly' ? 'monthly_hours' : 'weekly_hours';
       const today   = new Date().toISOString().slice(0, 10);
 
+      // Use user's JWT for RLS-friendly queries
       const fetchRows = async (path) => {
-        const r = await supaRestReq('GET', path);
+        const r = await supaRestReqWithAuth('GET', path, auth.userJwt);
         return Array.isArray(r.body) ? r.body : [];
       };
 
@@ -8757,7 +8786,7 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
         }
         if (!rows.length) return sendJson(res, 200, { rankings: [], period, source: 'db', currentUserRank: null, display_names_resolved: true });
 
-        // Enrich with names/avatars from `users` (admin key bypasses RLS).
+        // Enrich with names/avatars from `users` (user's JWT respects RLS).
         const ids = rows.map(r => r.user_id).filter(Boolean);
         let users = [];
         if (ids.length) {

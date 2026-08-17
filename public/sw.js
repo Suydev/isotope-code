@@ -93,6 +93,17 @@ const RUNTIME_PATCHED_ASSET_PATHS = new Set([
   '/assets/index-D1Y5F8Lk.js',
 ]);
 
+const KNOWN_ASSET_PATHS = new Set([
+  ...SHELL_URLS,
+  ...LAZY_CACHE_URLS,
+  ...RUNTIME_GLUE_PATHS,
+  ...RUNTIME_PATCHED_ASSET_PATHS,
+]);
+
+function isKnownAsset(url) {
+  return KNOWN_ASSET_PATHS.has(url.pathname);
+}
+
 function isApiLike(url) {
   return url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/__admin/') ||
@@ -101,25 +112,12 @@ function isApiLike(url) {
     url.pathname.startsWith('/__isotope/');
 }
 
-function isCacheableAsset(request, url) {
-  if (request.method !== 'GET' || url.origin !== self.location.origin) return false;
-  if (isApiLike(url)) return false;
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') ||
-      url.pathname.startsWith('/fonts/')) return true;
-  return /\.(?:js|css|svg|png|jpg|jpeg|webp|woff2?|ttf|webmanifest)$/i.test(url.pathname);
-}
-
 function isRuntimeGlue(url) {
   return RUNTIME_GLUE_PATHS.has(url.pathname) ||
     RUNTIME_PATCHED_ASSET_PATHS.has(url.pathname) ||
     url.pathname.startsWith('/sync/');
 }
 
-// The install precache stores the first-paint shell in SHELL_CACHE. A request
-// arriving before the service worker took control (the very first visit) never
-// reaches the RUNTIME_CACHE, so offline reloads of that same visit must be able
-// to fall back to the shell precache. Exact lookup first, then pathname-only so
-// query-stringed requests like /auth-bridge.js?v=5 match their shell entries.
 async function matchAcrossCaches(request, url) {
   for (const name of [RUNTIME_CACHE, SHELL_CACHE]) {
     let cache;
@@ -230,8 +228,7 @@ self.addEventListener('activate', (event) => {
     for (const client of clients) {
       try {
         client.postMessage({ type: 'ISOTOPE_SW_READY', version: APP_VERSION, sha: APP_SHA });
-      } catch (e) {
-      }
+      } catch (e) {}
     }
   })());
 });
@@ -257,24 +254,25 @@ self.addEventListener('fetch', (event) => {
   let url;
   try { url = new URL(request.url); } catch { return; }
   if (url.origin !== self.location.origin) return;
-  if (isApiLike(url)) return;
+  if (url.pathname.startsWith('/api/') ||
+      url.pathname.startsWith('/__admin/') ||
+      url.pathname.startsWith('/__auth/') ||
+      url.pathname.startsWith('/__supa/') ||
+      url.pathname.startsWith('/__isotope/')) return;
+  if (!KNOWN_ASSET_PATHS.has(url.pathname)) return; // Let unknown assets pass through
 
   if (request.mode === 'navigate') {
     event.respondWith(networkFirstNavigation(request));
     return;
   }
 
-  if (isRuntimeGlue(url)) {
+  if (RUNTIME_GLUE_PATHS.has(url.pathname) ||
+      RUNTIME_PATCHED_ASSET_PATHS.has(url.pathname) ||
+      url.pathname.startsWith('/sync/')) {
     event.respondWith(networkFirstStatic(request, url));
     return;
   }
 
-  if (isCacheableAsset(request, url)) {
-    event.respondWith(cacheFirst(request, url));
-    return;
-  }
-
-  if (LAZY_CACHE_URLS.includes(url.pathname)) {
-    event.respondWith(cacheFirst(request, url));
-  }
+  // All remaining known assets use cache-first
+  event.respondWith(cacheFirst(request, url));
 });
