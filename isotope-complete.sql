@@ -1658,6 +1658,274 @@ BEGIN
 END;
 $$;
 
+-- community_create_invite
+CREATE OR REPLACE FUNCTION public.community_create_invite(
+  p_type text,
+  p_target_id uuid,
+  p_days integer DEFAULT 7
+)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_code text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  v_code := encode(gen_random_bytes(16), 'base64url');
+  INSERT INTO public.group_invites (group_id, token, invite_code, created_by, expires_at, max_uses)
+  VALUES (p_target_id, v_code, substr(v_code, 1, 8), v_uid, now() + (p_days || ' days')::interval, 1)
+  ON CONFLICT (token) DO UPDATE SET token = EXCLUDED.token
+  RETURNING token INTO v_code;
+  RETURN jsonb_build_object('success', true, 'data', v_code);
+END;
+$$;
+
+-- community_preview_invite
+CREATE OR REPLACE FUNCTION public.community_preview_invite(p_token text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_invite RECORD;
+BEGIN
+  SELECT gi.*, g.name, g.exam, g.target_year, g.subjects, g.visibility, g.join_policy,
+    (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id) AS member_count
+  INTO v_invite
+  FROM public.group_invites gi
+  JOIN public.groups g ON g.id = gi.group_id
+  WHERE gi.token = p_token OR gi.invite_code = p_token
+  LIMIT 1;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Invite not found');
+  END IF;
+  RETURN jsonb_build_object('success', true, 'data', jsonb_build_object(
+    'status', CASE WHEN (v_invite.expires_at IS NULL OR v_invite.expires_at > now()) AND (v_invite.max_uses IS NULL OR v_invite.uses_count < v_invite.max_uses) THEN 'valid' ELSE 'expired' END,
+    'type', 'group',
+    'targetId', v_invite.group_id,
+    'name', v_invite.name,
+    'exam', v_invite.exam,
+    'targetYear', v_invite.target_year,
+    'subjects', v_invite.subjects,
+    'memberCount', v_invite.member_count,
+    'isFull', (SELECT COUNT(*) FROM public.group_members WHERE group_id = v_invite.group_id) >= 30
+  ));
+END;
+$$;
+
+-- community_redeem_invite
+CREATE OR REPLACE FUNCTION public.community_redeem_invite(p_token text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_invite RECORD;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT * INTO v_invite FROM public.group_invites WHERE token = p_token OR invite_code = p_token LIMIT 1;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Invite not found');
+  END IF;
+  IF v_invite.expires_at IS NOT NULL AND v_invite.expires_at < now() THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Invite has expired');
+  END IF;
+  IF v_invite.max_uses IS NOT NULL AND v_invite.uses_count >= v_invite.max_uses THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Invite has reached maximum uses');
+  END IF;
+  INSERT INTO public.group_members (group_id, user_id, role)
+  VALUES (v_invite.group_id, v_uid, 'member')
+  ON CONFLICT (group_id, user_id) DO NOTHING;
+  UPDATE public.group_invites SET
+    uses_count = uses_count + 1,
+    invite_code = COALESCE(invite_code, token),
+    token = COALESCE(token, invite_code)
+  WHERE id = v_invite.id;
+  RETURN jsonb_build_object('success', true, 'data', jsonb_build_object(
+    'type', 'group',
+    'groupId', v_invite.group_id
+  ));
+END;
+$$;
+
+-- community_request_buddy
+CREATE OR REPLACE FUNCTION public.community_request_buddy(p_handle text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_target uuid;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT id INTO v_target FROM public.users WHERE username = p_handle LIMIT 1;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'User not found');
+  END IF;
+  IF v_target = v_uid THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Cannot buddy yourself');
+  END IF;
+  INSERT INTO public.community_friends (user_id, friend_id, status)
+  VALUES (v_uid, v_target, 'pending')
+  ON CONFLICT (user_id, friend_id) DO UPDATE SET status = 'pending';
+  RETURN jsonb_build_object('success', true, 'data', 'demo-request');
+END;
+$$;
+
+-- community_respond_buddy
+CREATE OR REPLACE FUNCTION public.community_respond_buddy(p_connection_id uuid, p_accept boolean)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  -- Note: community_friends uses (user_id, friend_id) as PK, connection_id is a stand-in
+  IF p_accept THEN
+    UPDATE public.community_friends SET status = 'accepted' WHERE friend_id = v_uid AND user_id = p_connection_id;
+  ELSE
+    DELETE FROM public.community_friends WHERE friend_id = v_uid AND user_id = p_connection_id;
+  END IF;
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- community_remove_buddy
+CREATE OR REPLACE FUNCTION public.community_remove_buddy(p_other_user uuid, p_block boolean DEFAULT false)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  DELETE FROM public.community_friends
+  WHERE (user_id = v_uid AND friend_id = p_other_user)
+     OR (user_id = p_other_user AND friend_id = v_uid);
+  IF p_block THEN
+    -- Could add to a block list table if it exists
+    NULL;
+  END IF;
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- community_get_privacy
+CREATE OR REPLACE FUNCTION public.community_get_privacy()
+RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT jsonb_build_object(
+    'scope', 'global',
+    'targetId', '',
+    'shareLiveStatus', COALESCE((SELECT (profile_data->>'shareLiveStatus')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
+    'shareCurrentSubject', COALESCE((SELECT (profile_data->>'shareCurrentSubject')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
+    'shareCurrentTask', COALESCE((SELECT (profile_data->>'shareCurrentTask')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
+    'shareTasks', COALESCE((SELECT (profile_data->>'shareTasks')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
+    'shareExactTime', COALESCE((SELECT (profile_data->>'shareExactTime')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
+    'shareSubjectBreakdown', COALESCE((SELECT (profile_data->>'shareSubjectBreakdown')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
+    'shareQuestionCounts', COALESCE((SELECT (profile_data->>'shareQuestionCounts')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
+    'shareStreak', COALESCE((SELECT (profile_data->>'shareStreak')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
+    'allowStartNotifications', COALESCE((SELECT (profile_data->>'allowStartNotifications')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), false),
+    'stealthMode', COALESCE((SELECT (profile_data->>'stealthMode')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), false)
+  );
+$$;
+
+-- community_save_privacy
+CREATE OR REPLACE FUNCTION public.community_save_privacy(p_settings jsonb)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  UPDATE public.user_profiles
+  SET profile_data = jsonb_set(
+    COALESCE(profile_data, '{}'),
+    '{shareLiveStatus}',
+    to_jsonb(COALESCE((p_settings->>'shareLiveStatus')::boolean, true))
+  ),
+  profile_data = jsonb_set(profile_data, '{shareCurrentSubject}', to_jsonb(COALESCE((p_settings->>'shareCurrentSubject')::boolean, true))),
+  profile_data = jsonb_set(profile_data, '{shareCurrentTask}', to_jsonb(COALESCE((p_settings->>'shareCurrentTask')::boolean, true))),
+  profile_data = jsonb_set(profile_data, '{shareTasks}', to_jsonb(COALESCE((p_settings->>'shareTasks')::boolean, true))),
+  profile_data = jsonb_set(profile_data, '{shareExactTime}', to_jsonb(COALESCE((p_settings->>'shareExactTime')::boolean, true))),
+  profile_data = jsonb_set(profile_data, '{shareSubjectBreakdown}', to_jsonb(COALESCE((p_settings->>'shareSubjectBreakdown')::boolean, true))),
+  profile_data = jsonb_set(profile_data, '{shareQuestionCounts}', to_jsonb(COALESCE((p_settings->>'shareQuestionCounts')::boolean, true))),
+  profile_data = jsonb_set(profile_data, '{shareStreak}', to_jsonb(COALESCE((p_settings->>'shareStreak')::boolean, true))),
+  profile_data = jsonb_set(profile_data, '{allowStartNotifications}', to_jsonb(COALESCE((p_settings->>'allowStartNotifications')::boolean, false))),
+  profile_data = jsonb_set(profile_data, '{stealthMode}', to_jsonb(COALESCE((p_settings->>'stealthMode')::boolean, false)))
+  WHERE user_id = auth.uid();
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- community_get_start_alert
+CREATE OR REPLACE FUNCTION public.community_get_start_alert(p_target_type text, p_target_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_alert RECORD;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('ok', false, 'enabled', false);
+  END IF;
+  SELECT * INTO v_alert FROM public.community_start_alerts
+  WHERE user_id = v_uid AND target_type = p_target_type AND target_id = p_target_id
+  LIMIT 1;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', true, 'enabled', false);
+  END IF;
+  RETURN jsonb_build_object(
+    'ok', true, 'enabled', v_alert.enabled,
+    'quietHours', jsonb_build_object('enabled', v_alert.quiet_hours_enabled, 'start', v_invite.quiet_start, 'end', v_invite.quiet_end)
+  );
+END;
+$$;
+
+-- community_set_start_alert
+CREATE OR REPLACE FUNCTION public.community_set_start_alert(
+  p_target_type text, p_target_id uuid,
+  p_enabled boolean,
+  p_quiet_hours_enabled boolean DEFAULT false,
+  p_quiet_start time DEFAULT '22:00',
+  p_quiet_end time DEFAULT '07:00',
+  p_timezone_offset_minutes integer DEFAULT 0
+)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  INSERT INTO public.community_start_alerts (user_id, target_type, target_id, enabled, quiet_hours_enabled, quiet_start, quiet_end, timezone_offset_minutes)
+  VALUES (auth.uid(), p_target_type, p_target_id, p_enabled, p_quiet_hours_enabled, p_quiet_start, p_quiet_end, p_timezone_offset_minutes)
+  ON CONFLICT (user_id, target_type, target_id) DO UPDATE SET
+    enabled = EXCLUDED.enabled,
+    quiet_hours_enabled = EXCLUDED.quiet_hours_enabled,
+    quiet_start = EXCLUDED.quiet_start,
+    quiet_end = EXCLUDED.quiet_end,
+    timezone_offset_minutes = EXCLUDED.timezone_offset_minutes,
+    updated_at = now();
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- community_submit_report
+CREATE OR REPLACE FUNCTION public.community_submit_report(
+  p_target_type text, p_target_id uuid, p_reason text
+)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  INSERT INTO public.community_reports (reporter_id, target_type, target_id, reason)
+  VALUES (v_uid, p_target_type, p_target_id, p_reason);
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
 -- purchase_store_item (atomic, coin-deducting)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
