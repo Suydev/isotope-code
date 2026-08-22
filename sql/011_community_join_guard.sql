@@ -1,9 +1,25 @@
+-- 011_community_join_guard.sql
+--
 -- Fix: community_join_group must not create a phantom join request for the
 -- group owner or an existing active member.
 -- Verified 2026-08-09: owner joining own request-policy group returned
 -- {"status":"requested"} and inserted a self-request into
 -- community_join_requests (then had to be declined via
 -- community_respond_join_request). Now returns {"status":"member"} instead.
+--
+-- NOTE: this function writes to community_join_requests, which is NOT created
+-- by isotope-complete.sql (it only exists in sql/isotope-schema-restore.sql).
+-- The idempotent CREATE TABLE IF NOT EXISTS below closes that gap for fresh
+-- installs. Safe to run on databases that already have the table.
+
+CREATE TABLE IF NOT EXISTS "public"."community_join_requests" (
+  "id" uuid not null default gen_random_uuid(),
+  "group_id" uuid not null,
+  "user_id" uuid not null,
+  "status" text not null default 'pending'::text,
+  "created_at" timestamp with time zone not null default now()
+);
+
 CREATE OR REPLACE FUNCTION public.community_join_group(p_group_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql

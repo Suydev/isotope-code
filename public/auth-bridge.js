@@ -6,8 +6,17 @@
 
   var DEFAULT_SUPA_URL = 'https://vteqquoqvksshmfhuepu.supabase.co';
   var DEFAULT_SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0ZXFxdW9xdmtzc2htZmh1ZXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODU2NzUsImV4cCI6MjA5NTY2MTY3NX0.ZkRislOhJRQUjVa1y5ixu-xBhlgkXWWyZKI_CClWj64';
+  var __warnedFallback = false;
   function supaUrl() {
-    return String(window.__ISO_SUPA_URL__ || DEFAULT_SUPA_URL).replace(/\/+$/, '');
+    if (window.__ISO_SUPA_URL__) return String(window.__ISO_SUPA_URL__).replace(/\/+$/, '');
+    // Built-in default target for plain static installs. If the local server
+    // was supposed to inject the real project URL but didn't, say so loudly —
+    // a silent fallback would point logins at the wrong Supabase project.
+    if (!__warnedFallback && typeof console !== 'undefined' && console.warn) {
+      __warnedFallback = true;
+      console.warn('[IsotopeAuthBridge] window.__ISO_SUPA_URL__ not injected — falling back to built-in default project. If you self-host with your own Supabase, check that server.mjs served this page.');
+    }
+    return DEFAULT_SUPA_URL;
   }
 
   function supaAnon() {

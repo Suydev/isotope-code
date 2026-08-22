@@ -232,7 +232,10 @@ const ADMIN_EMAILS   = Array.from(new Set(
     .filter(Boolean)
 ));
 const BROWSER_PROOF_EMAIL = String(process.env.BROWSER_PROOF_EMAIL || ADMIN_EMAIL || ADMIN_EMAILS[0] || '').trim().toLowerCase();
-const ADMIN_COOKIE_SECRET = ADMIN_SECRET || SUPA_SERVICE_KEY;
+// Cookie HMAC secret: use ADMIN_SECRET when set; otherwise derive a fresh
+// per-process random instead of reusing the Supabase service-role key, so
+// the service key keeps a single purpose (admins simply re-login after restart).
+const ADMIN_COOKIE_SECRET = ADMIN_SECRET || crypto.randomBytes(32).toString('hex');
 const ADMIN_MODE_READY  = ENABLE_ADMIN_MODE && !!SUPA_SERVICE_KEY && !!ADMIN_COOKIE_SECRET;
 
 
@@ -5703,7 +5706,21 @@ function handleSupabaseProxy(req, res) {
 
   const proxyReq = https.request(options, (proxyRes) => {
     const respHeaders = { ...proxyRes.headers };
-    respHeaders['access-control-allow-origin']  = '*';
+    // CORS: the app page is same-origin with this server, so it needs no ACAO.
+    // Reflect the Origin only for loopback/LAN-private callers (APK WebView,
+    // LAN device) instead of a wildcard — never hand arbitrary public origins
+    // an open door to proxied Supabase responses.
+    const origin = typeof req.headers.origin === 'string' ? req.headers.origin : '';
+    let originAllowed = false;
+    if (origin) {
+      try {
+        const oHost = new URL(origin).hostname;
+        originAllowed = /^(localhost|127\.0\.0\.1|\[::1\]|::1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(oHost)
+          || oHost === (req.headers.host || '').split(':')[0];
+      } catch {}
+    }
+    if (originAllowed) respHeaders['access-control-allow-origin'] = origin;
+    else delete respHeaders['access-control-allow-origin'];
     respHeaders['access-control-allow-methods'] = 'GET,POST,PATCH,DELETE,OPTIONS';
     respHeaders['access-control-allow-headers'] = 'content-type,authorization,apikey,x-client-info,prefer,range';
     // Remove hop-by-hop
@@ -6590,6 +6607,14 @@ const server = http.createServer((req, res) => {
 
   // ── /__auth/check — is email available? ──────────────────────────────────
   if (req.method === 'POST' && req.url === '/__auth/check') {
+    // Rate-limited: this endpoint answers "does this account exist", which is
+    // an enumeration oracle if left open (signup/login already have limits).
+    const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+    if (!checkRateLimit('check:' + clientIp)) {
+      res.writeHead(429, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ available: false, error: 'Too many requests — slow down' }));
+      return;
+    }
     readReqBody(req).then(({ email, username }) => {
       // accept either `email` or legacy `username` field
       const raw = (email || username || '').toString().trim().toLowerCase();

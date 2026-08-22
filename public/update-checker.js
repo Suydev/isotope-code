@@ -160,8 +160,9 @@
   }
 
   function localServerPreflight() {
-    if (!navigator.onLine || window.__isoLocalServerOffline === true) {
-      window.__isoLocalServerOffline = true;
+    // Probe the local server directly — navigator.onLine says nothing about
+    // loopback reachability, so it must not mark the local server offline.
+    if (window.__isoLocalServerOffline === true) {
       hideBanner();
       clearStaleFlags();
       return Promise.resolve(null);
@@ -226,10 +227,11 @@
     startPolling();
   });
   window.addEventListener('offline', function () {
+    // Internet is gone but the local server (and /api/check-update, which
+    // degrades gracefully) still works — just pause polling to save battery.
     clearInterval(timer);
-    window.__isoLocalServerOffline = true;
+    window.__isoLocalServerOffline = false;
     hideBanner();
-    clearStaleFlags();
   });
   window.addEventListener('isotope:local-status', function (event) {
     var detail = event && event.detail || {};
@@ -243,7 +245,7 @@
     runCheck();
   });
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && navigator.onLine) runCheck();
+    if (!document.hidden) runCheck();
   });
   window.addEventListener('beforeunload', function () {
     clearInterval(timer);

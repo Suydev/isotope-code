@@ -739,22 +739,6 @@ async function ensureSchema() {
   }
 }
 
-// ── Asset preload ───────────────────────────────────────────────────────────
-
-function preloadAssets() {
-  const link       = document.createElement('link');
-  link.rel         = 'modulepreload';
-  link.crossOrigin = '';
-  link.href        = '/assets/vendor-react-BWKHxYQy.js';
-  document.head.appendChild(link);
-
-  const script       = document.createElement('script');
-  script.type        = 'module';
-  script.crossOrigin = '';
-  script.src         = '/assets/index-D1Y5F8Lk.js';
-  document.head.appendChild(script);
-}
-
 // ── Main ────────────────────────────────────────────────────────────────────
 
 (async () => {
@@ -778,7 +762,35 @@ function preloadAssets() {
   // Step 2: authenticated cloud bootstrap before routing/app preload.
   // Refresh expired/near-expired access tokens before any route decision or sync.
   let session = parseSession(findSessionRaw());
-  if (session) {
+  const offlineNow = typeof navigator !== 'undefined' && navigator.onLine === false;
+  if (session && offlineNow) {
+    // Device has no internet but localhost works. Refresh/bootstrap calls to
+    // Supabase cannot succeed right now, so skip them entirely and route from
+    // the trusted cached cloud snapshot instead of stalling ~10s on doomed
+    // fetches.
+    const cached = readTrustedCloudSnapshot(session.user.id);
+    if (cached) {
+      applyCachedCloudSnapshot(cached);
+      bootDecision = publishBootState(BOOT_STATES.OFFLINE_CACHED, {
+        user_id: session.user.id,
+        cached: true,
+        onboarding: {
+          state: cached.onboarding.completed ? 'completed' : 'incomplete',
+          completed: cached.onboarding.completed,
+          completed_at: cached.onboarding.completed_at || null,
+        },
+        source: 'cached_cloud_snapshot',
+        snapshotDownloadedAt: cached.downloaded_at || null,
+      });
+    } else {
+      bootDecision = publishBootState(BOOT_STATES.SYNC_FAILED, {
+        user_id: session.user.id,
+        onboarding: { state: 'unknown' },
+        source: 'unavailable',
+        error: 'Device is offline and no trusted cached cloud snapshot exists.',
+      });
+    }
+  } else if (session) {
     const refreshed = await refreshStoredSessionIfNeeded(session);
     if (refreshed) session = refreshed;
     else if (sessionExpiresSoon(session) && refreshStoredSessionIfNeeded.lastFailure === 'auth') session = null;
@@ -863,6 +875,7 @@ function preloadAssets() {
     if (!session) window.history.replaceState(null, '', '/auth');
     else if (completed) window.history.replaceState(null, '', '/dashboard');
     else if (incomplete) window.history.replaceState(null, '', '/onboarding');
+    else if (bootDecision?.state === BOOT_STATES.SYNC_FAILED) window.history.replaceState(null, '', '/dashboard'); // cloud unreachable → local data
     else window.history.replaceState(null, '', '/onboarding'); // unknown state → onboarding (safe default)
   } else if (!session && (isProtectedPath || isOnboardingPath)) {
     window.history.replaceState(null, '', '/auth');
@@ -874,8 +887,7 @@ function preloadAssets() {
     window.history.replaceState(null, '', '/dashboard');
   }
 
-  // Step 4: preload the app bundle
-  // preloadAssets() removed — the SW now caches route bundles on demand via
-  // networkFirstNavigation. Eagerly inserting <link rel=modulepreload> and a
-  // <script type=module> doubled first-paint JS for no benefit.
+  // Step 4: the SW caches route bundles on demand via networkFirstNavigation.
+  // Do not eagerly insert <link rel=modulepreload> / <script type=module> here —
+  // that doubles first-paint JS and pins hashes that rot on rebuilds.
 })();

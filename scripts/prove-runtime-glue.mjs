@@ -32,46 +32,48 @@ const bridge = await text('/auth-bridge.js');
 assert.match(bridge, /window\.__isoLogin\s*=/, 'auth bridge does not define window.__isoLogin');
 assert.match(bridge, /window\.__isoUp\s*=/, 'auth bridge does not define window.__isoUp');
 
-const appBundle = await text('/assets/App-pJGjDiPw.js');
-assert.match(appBundle, /header_manual_sync|manual_full_sync/, 'served app bundle should expose manual sync runtime path');
-assert.doesNotMatch(
-  appBundle,
-  /s && await this\.pushProfile\(e, s\), await \(window\.__isoRunManualCloudSync/,
-  'manual sync must not block Storage backup sync behind profile-table push'
-);
+// Manual-sync runtime path now lives in the SERVED (patched) useSyncStore
+// bundle via server.mjs SyncStorePatch — see assertions below on syncStore.
+// The App bundle carries no manual-sync markers anymore.
 
-const syncStore = await text('/assets/useSyncStore-vWs_TdIc.js');
+const syncStore = await text('/assets/useSyncStore-Di0wBMnH.js');
 assert.match(syncStore, /header_manual_sync/, 'sync store must route header sync through runtime manual cloud sync');
 assert.match(syncStore, /header_download_cloud_data/, 'sync store must route header download through runtime cloud download/import');
-assert.match(syncStore, /Cloud session missing\. Log in again before syncing\./, 'sync store must require a real Supabase session');
-assert.match(syncStore, /__isoGetValidJwt/, 'sync store must validate the runtime Supabase JWT before syncing');
+// Session/JWT validation moved upstream: triggerSync guards on isAuthenticated
+// from the auth store, and __isoRunManualCloudSync (injected runtime) validates
+// the JWT via __isoGetValidJwt. Assert the guard survived the build:
+assert.match(
+  syncStore,
+  /triggerSync:async\(\)\=>\{const t=u\.getState\(\),\{userId:a,isAuthenticated:s\}=t,r=t\.isPremium\(\);if\(!s\|\|!a\|\|!r\)return;/,
+  'sync store triggerSync must bail without an authenticated premium user'
+);
 assert.doesNotMatch(
   syncStore,
   /const o = await n\(\);\s*try \{\s*typeof window < "u" && typeof window\.__isoRunManualCloudSync/,
   'header sync must not import old table sync engine before runtime Storage sync'
 );
 
-const settingsBundle = await text('/assets/SettingsLayout-B4OgCkQ5.js');
+const settingsBundle = await text('/assets/SettingsLayout-DkuooNHv.js');
 assert.doesNotMatch(
   settingsBundle,
-  /__isoSnapshotOk = __isoMeta\.last_sync_status === "synced" && !!__isoMeta\.last_snapshot_at/,
+  /__isoSnapshotOk\s*=\s*__isoMeta\.last_sync_status === "synced" && !!__isoMeta\.last_snapshot_at/,
   'settings sync status must not show green Pending only because legacy last_snapshot_at is missing'
 );
 assert.match(
   settingsBundle,
-  /__isoSnapshotOk = __isoMeta\.last_sync_status === "synced" && !__isoMeta\.last_error/,
+  /__isoSnapshotOk\s*=\s*__isoMeta\.last_sync_status\s*===\s*"synced"\s*&&\s*!__isoMeta\.last_error/,
   'settings sync status must trust synced metadata when no error is recorded'
 );
 
 const authBridgeCache = (await head('/auth-bridge.js')).get('cache-control') || '';
 const restoreCache = (await head('/restore-and-launch.js')).get('cache-control') || '';
-const appBundleCache = (await head('/assets/App-pJGjDiPw.js')).get('cache-control') || '';
-const syncStoreCache = (await head('/assets/useSyncStore-vWs_TdIc.js')).get('cache-control') || '';
-const settingsCache = (await head('/assets/SettingsLayout-B4OgCkQ5.js')).get('cache-control') || '';
+const appBundleCache = (await head('/assets/App-CQ9mV4wu.js')).get('cache-control') || '';
+const syncStoreCache = (await head('/assets/useSyncStore-Di0wBMnH.js')).get('cache-control') || '';
+const settingsCache = (await head('/assets/SettingsLayout-DkuooNHv.js')).get('cache-control') || '';
 const swHeaders = await head('/sw.js');
 const swCache = swHeaders.get('cache-control') || '';
 const swAllowed = swHeaders.get('service-worker-allowed') || '';
-const assetCache = (await head('/assets/index-CrO6t5EW.css')).get('cache-control') || '';
+const assetCache = (await head('/assets/index-LkPKl--4.css')).get('cache-control') || '';
 
 assert.match(authBridgeCache, /no-store/, 'auth-bridge.js must not be immutable cached');
 assert.match(restoreCache, /no-store/, 'restore-and-launch.js must not be immutable cached');

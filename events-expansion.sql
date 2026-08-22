@@ -4,6 +4,13 @@
 -- Events have been removed from this installation.  This file is kept so older
 -- setup instructions that apply events-expansion.sql remain safe: running it now
 -- deletes event-only Supabase objects instead of recreating them.
+--
+-- ⚠ RUN-ORDER WARNING: this file also drops `user_inventory` and `store_items`,
+-- which isotope-complete.sql CREATES. Applying this file AFTER complete.sql on
+-- a fresh project removes those tables and breaks anything that reads them.
+-- Recommended order on fresh installs: complete.sql → performance-patch.sql →
+-- sql/verify-security.sql. Only run THIS file if you specifically want events
+-- and store tables gone (legacy-install cleanup).
 
 DROP POLICY IF EXISTS "event_images_public_read" ON storage.objects;
 DROP POLICY IF EXISTS "event_images_authenticated_write" ON storage.objects;

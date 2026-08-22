@@ -93,17 +93,6 @@ const RUNTIME_PATCHED_ASSET_PATHS = new Set([
   '/assets/index-D1Y5F8Lk.js',
 ]);
 
-const KNOWN_ASSET_PATHS = new Set([
-  ...SHELL_URLS,
-  ...LAZY_CACHE_URLS,
-  ...RUNTIME_GLUE_PATHS,
-  ...RUNTIME_PATCHED_ASSET_PATHS,
-]);
-
-function isKnownAsset(url) {
-  return KNOWN_ASSET_PATHS.has(url.pathname);
-}
-
 function isApiLike(url) {
   return url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/__admin/') ||
@@ -201,8 +190,11 @@ async function networkFirstNavigation(request) {
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
+    // Precache the shell plus the lazy route list. Failures are tolerated:
+    // stale hashed entries simply 404 and are skipped, while anything that
+    // lands makes the app usable offline sooner.
     await Promise.allSettled(
-      SHELL_URLS.map(async (url) => {
+      [...SHELL_URLS, ...LAZY_CACHE_URLS].map(async (url) => {
         try {
           const req = new Request(url, { cache: 'reload' });
           const resp = await fetch(req);
@@ -259,20 +251,25 @@ self.addEventListener('fetch', (event) => {
       url.pathname.startsWith('/__auth/') ||
       url.pathname.startsWith('/__supa/') ||
       url.pathname.startsWith('/__isotope/')) return;
-  if (!KNOWN_ASSET_PATHS.has(url.pathname)) return; // Let unknown assets pass through
 
   if (request.mode === 'navigate') {
     event.respondWith(networkFirstNavigation(request));
     return;
   }
 
-  if (RUNTIME_GLUE_PATHS.has(url.pathname) ||
-      RUNTIME_PATCHED_ASSET_PATHS.has(url.pathname) ||
-      url.pathname.startsWith('/sync/')) {
-    event.respondWith(networkFirstStatic(request, url));
+  // Versioned build output, fonts, and icons are content-addressed — cache
+  // them the first time they are fetched so every previously visited route
+  // keeps working offline. Do not gate on a hardcoded hash list: any chunk
+  // missing from such a list would bypass the SW and fail raw-network when
+  // the device is offline.
+  if (url.pathname.startsWith('/assets/') ||
+      url.pathname.startsWith('/fonts/') ||
+      url.pathname.startsWith('/icons/')) {
+    event.respondWith(cacheFirst(request, url));
     return;
   }
 
-  // All remaining known assets use cache-first
-  event.respondWith(cacheFirst(request, url));
+  // Runtime glue and any other same-origin static file: prefer fresh from the
+  // local server, fall back to cache when it cannot be reached.
+  event.respondWith(networkFirstStatic(request, url));
 });

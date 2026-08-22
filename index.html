@@ -20,6 +20,32 @@
       <link rel="preload" href="/assets/vendor-katex-ASjZcBK0.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
       <noscript><link rel="stylesheet" href="/assets/vendor-katex-ASjZcBK0.css"></noscript>
       <!-- Runtime auth bridge: must load synchronously before React/Auth interaction -->
+      <script>
+        /* Offline safety: cap cross-origin fetches (Supabase token refresh,
+           REST reads) at 20s so a hanging connection can never leave the app
+           stuck on the boot/auth spinner. Same-origin requests are untouched. */
+        (function () {
+          try {
+            if (window.__isoFetchGuardInstalled) return;
+            window.__isoFetchGuardInstalled = true;
+            var origFetch = window.fetch.bind(window);
+            window.fetch = function (input, init) {
+              try {
+                var url = typeof input === 'string' ? input : (input && input.url) || '';
+                var u = new URL(url, location.href);
+                var hasSignal = (init && init.signal) || (input && input.signal);
+                if (u.origin !== location.origin && u.protocol === 'https:' && !hasSignal) {
+                  var ctrl = new AbortController();
+                  var tid = setTimeout(function () { ctrl.abort(); }, 20000);
+                  init = Object.assign({}, init, { signal: ctrl.signal });
+                  return origFetch(input, init).finally(function () { clearTimeout(tid); });
+                }
+              } catch (_) {}
+              return origFetch(input, init);
+            };
+          } catch (_) {}
+        })();
+      </script>
       <script src="/auth-bridge.js?v=5"></script>
       <style id="isotope-runtime-ui-fixes">
         [data-radix-popper-content-wrapper],

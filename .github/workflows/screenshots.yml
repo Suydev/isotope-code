@@ -85,7 +85,11 @@ jobs:
           if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "docs(screenshots): refresh UI screenshots (automated)"
+            # [skip ci] prevents this bot commit from re-triggering ci/codeql/release,
+            # which previously caused the recurring push-race loop (see memory.md §5).
+            # Rebase first so a concurrent human push doesn't reject ours.
+            git commit -m "docs(screenshots): refresh UI screenshots (automated) [skip ci]"
+            git pull --rebase origin main
             git push origin HEAD:main
             echo "✅ Screenshots committed"
           else

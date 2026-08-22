@@ -100,7 +100,8 @@
     var kind = statusKind();
     var snapshotText = 'Last cloud snapshot: ' + formatSnapshotTime(state.lastSnapshotAt) + '. ';
     if (!state.browserOnline) {
-      message = '<strong>Offline mode.</strong> <span>' + snapshotText + 'Browser network is offline. Cloud sync is pending.</span>';
+      var localOk = state.serverOnline ? 'Your data and focus timer keep working locally.' : '';
+      message = '<strong>Offline mode.</strong> <span>' + snapshotText + 'Browser network is offline. Cloud sync is pending. ' + localOk + '</span>';
     } else if (!state.serverOnline) {
       message = '<strong>Local server unavailable.</strong> <span>' + snapshotText + 'Browser is online, but the Isotope local server is not responding.</span>';
     }
@@ -145,14 +146,9 @@
   }
 
   function checkServer() {
-    if (!navigator.onLine) {
-      state.browserOnline = false;
-      state.serverOnline = false;
-      publishStatus();
-      renderStatus();
-      return;
-    }
-    state.browserOnline = true;
+    // Always probe the local server directly. navigator.onLine only describes
+    // internet reachability — localhost:3000 keeps working when the device is
+    // offline, so it must never be treated as "server down".
     var controller = new AbortController();
     var tid = setTimeout(function () { controller.abort(); }, 3000);
     fetch('/api/version', { cache: 'no-store', signal: controller.signal })
@@ -202,9 +198,11 @@
   });
   window.addEventListener('offline', function () {
     state.browserOnline = false;
-    state.serverOnline = false;
+    // The local server keeps serving over loopback without internet — probe
+    // instead of assuming it went down with the network.
     publishStatus();
     renderStatus();
+    checkServer();
   });
   window.addEventListener('isotope:boot-state', function () {
     renderStatus();

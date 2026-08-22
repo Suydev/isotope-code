@@ -209,7 +209,7 @@ Events and Store checks are intentionally absent because those product surfaces 
 
 ### What it does
 
-Serves the full contents of `community-patch-v4.sql` as a runnable SQL patch. Provides:
+Serves the full contents of `community-patch-v6.sql` as a runnable SQL patch (v6 supersedes v4 and is the current canonical cumulative patch). Provides:
 - **One-click apply** via Supabase Personal Access Token (PAT) — no copy-paste needed
 - **Download** as `.sql` file
 - **Copy to clipboard** for manual Supabase SQL Editor paste
