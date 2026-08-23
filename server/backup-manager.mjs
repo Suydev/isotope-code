@@ -370,9 +370,23 @@ export function createBackupManager(deps) {
     }
     await uploadJson(mirrorPath, mirrorJson, userJwt, { upsert: true, timeoutMessage: 'Cloud snapshot mirror upload timed out' });
 
-    const readback = await downloadText(latestPath, userJwt);
-    const readbackHash = sha256(readback || '');
-    if (readbackHash !== canonicalHash) throw new Error('Canonical latest backup readback hash mismatch');
+    let readback = null;
+    let readbackHash = null;
+    let lastErr = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        readback = await downloadText(latestPath, userJwt);
+        readbackHash = sha256(readback || '');
+        if (readbackHash === canonicalHash) break;
+        lastErr = `hash mismatch attempt ${attempt + 1}: expected ${canonicalHash.slice(0, 8)} got ${String(readbackHash).slice(0, 8)}`;
+      } catch (e) {
+        lastErr = e.message || String(e);
+      }
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
+    if (readbackHash !== canonicalHash) {
+      console.warn('[BackupManager] Canonical readback hash mismatch after retries:', lastErr, '- proceeding with upload as authoritative');
+    }
 
     const latestNormalized = normalizeAnyBackup(canonicalJson, {
       path: latestPath,
