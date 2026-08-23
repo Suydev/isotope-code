@@ -21,18 +21,27 @@
       <noscript><link rel="stylesheet" href="/assets/vendor-katex-ASjZcBK0.css"></noscript>
       <!-- Runtime auth bridge: must load synchronously before React/Auth interaction -->
       <script>
-        /* Offline safety: cap cross-origin fetches (Supabase token refresh,
-           REST reads) at 20s so a hanging connection can never leave the app
-           stuck on the boot/auth spinner. Same-origin requests are untouched. */
+        /* Offline safety: 1) cap cross-origin fetches at 20s, 2) circuit-break
+           Supabase calls when offline — return instantly instead of hammering
+           the network and flooding console with ERR_INTERNET_DISCONNECTED. */
         (function () {
           try {
             if (window.__isoFetchGuardInstalled) return;
             window.__isoFetchGuardInstalled = true;
             var origFetch = window.fetch.bind(window);
+            var lastOfflineLog = 0;
             window.fetch = function (input, init) {
               try {
                 var url = typeof input === 'string' ? input : (input && input.url) || '';
                 var u = new URL(url, location.href);
+                var isSupa = u.hostname.indexOf('supabase.co') !== -1;
+                if (!navigator.onLine && isSupa) {
+                  if (Date.now() - lastOfflineLog > 5000) {
+                    lastOfflineLog = Date.now();
+                    console.info('[offline] Supabase fetch suppressed (offline):', u.pathname);
+                  }
+                  return Promise.reject(new TypeError('Failed to fetch (offline)'));
+                }
                 var hasSignal = (init && init.signal) || (input && input.signal);
                 if (u.origin !== location.origin && u.protocol === 'https:' && !hasSignal) {
                   var ctrl = new AbortController();

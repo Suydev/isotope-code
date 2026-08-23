@@ -236,6 +236,12 @@ cmd_start() {
   info "Starting IsotopeAI from: $project"
   info "Logs: $SERVER_LOG"
 
+  # Keep Termux alive when device goes offline / screen off — otherwise
+  # Android Doze kills the Node process and localhost:3000 returns
+  # ERR_CONNECTION_REFUSED (see offline.log). Acquire wake lock if available.
+  if is_termux && has termux-wake-lock; then
+    termux-wake-lock 2>/dev/null || true
+  fi
   (
     cd "$project" || exit 1
     if command -v setsid >/dev/null 2>&1; then
@@ -271,6 +277,9 @@ cmd_stop() {
   pid="$(server_pid)"
   info "Stopping IsotopeAI (PID $pid)..."
   kill "$pid" >/dev/null 2>&1 || true
+  if is_termux && has termux-wake-unlock; then
+    termux-wake-unlock 2>/dev/null || true
+  fi
   i=0
   while [ "$i" -lt 20 ]; do
     if ! kill -0 "$pid" >/dev/null 2>&1; then

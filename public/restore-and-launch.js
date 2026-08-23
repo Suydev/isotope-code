@@ -141,14 +141,18 @@ function clearStore(db, storeName) {
  */
 function findSessionRaw() {
   try {
-    const legacy = localStorage.getItem(SUPABASE_TOKEN_KEY);
-    if (legacy) return legacy;
+    // Prefer the standard supabase-js key: it is written by the live client
+    // and tracks the CURRENT login. The legacy 'isotope-auth-token' may hold
+    // a session from a previous project/user — using it first caused stale-
+    // JWT API calls (401/406 noise) after switching login methods.
     if (SUPA_REF) {
       const standard = localStorage.getItem('sb-' + SUPA_REF + '-auth-token');
       if (standard) return standard;
     }
     const lastRaw = localStorage.getItem('isotope-last-session-raw');
     if (lastRaw) return lastRaw;
+    const legacy = localStorage.getItem(SUPABASE_TOKEN_KEY);
+    if (legacy) return legacy;
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
@@ -751,6 +755,26 @@ async function ensureSchema() {
     try { sessionStorage.removeItem('isotope-demo-mode'); } catch (_) {}
   }
 
+  // ── OAuth return short-circuit ────────────────────────────────────────────
+  // After Google/other OAuth, Supabase redirects back with the session in the
+  // URL hash (access_token=…) or as a PKCE ?code=…. supabase-js consumes it
+  // via detectSessionInUrl when the app initializes — but this script runs
+  // FIRST. If we read localStorage now we see no session yet, and rewriting
+  // history to /auth would destroy the fragment and log the user out.
+  // So: publish an unresolved boot state and let the app own the return.
+  const _oauthHash = window.location.hash || '';
+  const _oauthQuery = window.location.search || '';
+  const isOAuthReturn = _oauthHash.includes('access_token=')
+    || _oauthHash.includes('error=')
+    || /[#&?]code=/.test(_oauthQuery + _oauthHash);
+  if (isOAuthReturn) {
+    publishBootState(BOOT_STATES.CLOUD_LOADING, {
+      source: 'oauth_return',
+      onboarding: { state: 'unknown' },
+    });
+    return;
+  }
+
   // Step 1: clean up any stale / fake data from old script versions
   try {
     await purgeStaleFakeData();
@@ -762,6 +786,7 @@ async function ensureSchema() {
   // Step 2: authenticated cloud bootstrap before routing/app preload.
   // Refresh expired/near-expired access tokens before any route decision or sync.
   let session = parseSession(findSessionRaw());
+  let bootDecision = null;
   const offlineNow = typeof navigator !== 'undefined' && navigator.onLine === false;
   if (session && offlineNow) {
     // Device has no internet but localhost works. Refresh/bootstrap calls to
@@ -795,7 +820,6 @@ async function ensureSchema() {
     if (refreshed) session = refreshed;
     else if (sessionExpiresSoon(session) && refreshStoredSessionIfNeeded.lastFailure === 'auth') session = null;
   }
-  let bootDecision = null;
   if (session) {
     publishBootState(BOOT_STATES.CLOUD_LOADING, {
       user_id: session.user.id,

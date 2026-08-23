@@ -246,6 +246,24 @@ self.addEventListener('fetch', (event) => {
   let url;
   try { url = new URL(request.url); } catch { return; }
   if (url.origin !== self.location.origin) return;
+  if (url.pathname === '/api/version' || url.pathname === '/api/health') {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(new Request(request.url, { cache: 'no-store', headers: request.headers }));
+        if (fresh && fresh.ok) {
+          const cache = await caches.open(RUNTIME_CACHE);
+          cache.put(request, fresh.clone());
+          return fresh;
+        }
+      } catch (_) {}
+      const cached = await matchAcrossCaches(request, url);
+      if (cached) return cached;
+      return new Response(JSON.stringify({ version: APP_VERSION, sha: APP_SHA, offline: true }), {
+        status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
+      });
+    })());
+    return;
+  }
   if (url.pathname.startsWith('/api/') ||
       url.pathname.startsWith('/__admin/') ||
       url.pathname.startsWith('/__auth/') ||

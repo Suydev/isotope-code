@@ -3270,7 +3270,14 @@ function buildAuthGuardScript() {
   }
 
   var session = getStoredSessionEvidence();
-  if (!session) {
+  // OAuth return: the implicit-flow hash (access_token=…) or PKCE ?code=…
+  // belongs to supabase-js (detectSessionInUrl / exchangeCodeForSession).
+  // Nothing here may redirect before it is processed — the token lives in
+  // the URL fragment and any history rewrite destroys it.
+  var oauthReturn = window.location.hash.indexOf('access_token=') !== -1
+    || window.location.hash.indexOf('error=') !== -1
+    || /[#&?]code=/.test(window.location.search + window.location.hash);
+  if (!session && !oauthReturn) {
     // Route decisions are made by restore-and-launch.js after Supabase session
     // hydration/refresh. Do not preemptively redirect protected deep links.
     window.__ISO_AUTH_GUARD__ = { state: 'sessionRestoring', protectedPath: currentPath, startedAt: Date.now() };
@@ -3381,6 +3388,35 @@ function injectKeys(htmlBuffer) {
   return Buffer.from(injectScripts(htmlBuffer.toString('utf8')), 'utf8');
 }
 
+// ── Auth bridge credential substitution ──────────────────────────────────────
+// auth-bridge.js ships with built-in fallback Supabase credentials for plain
+// static installs. When this server serves it, swap those literals for the
+// .env-configured project so the fallback can never point at the wrong
+// project (see the console.warn in auth-bridge.js).
+const AUTH_BRIDGE_ABS = path.join(PUBLIC_DIR, 'auth-bridge.js');
+let patchedAuthBridge = null;
+function getPatchedAuthBridge() {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) return null; // serve file as-is
+  if (patchedAuthBridge) return patchedAuthBridge;
+  try {
+    let raw = fs.readFileSync(AUTH_BRIDGE_ABS, 'utf8');
+    const urlRe   = /var DEFAULT_SUPA_URL\s*=\s*'[^']*';/;
+    const anonRe  = /var DEFAULT_SUPA_ANON\s*=\s*'[^']*';/;
+    if (!urlRe.test(raw) || !anonRe.test(raw)) {
+      console.warn('[AuthBridgeEnv] fallback literal anchors not found — serving unmodified');
+      return null;
+    }
+    raw = raw.replace(urlRe,  "var DEFAULT_SUPA_URL = '" + String(process.env.SUPABASE_URL).replace(/'/g, '') + "';");
+    raw = raw.replace(anonRe, "var DEFAULT_SUPA_ANON = '" + String(process.env.SUPABASE_ANON_KEY).replace(/'/g, '') + "';");
+    patchedAuthBridge = Buffer.from(raw, 'utf8');
+    console.log('[AuthBridgeEnv] fallback credentials pointed at .env project');
+    return patchedAuthBridge;
+  } catch (e) {
+    console.warn('[AuthBridgeEnv] read failed:', e && e.message);
+    return null;
+  }
+}
+
 // ── AI store patch ────────────────────────────────────────────────────────────
 const AI_STORE_ABS  = path.join(PUBLIC_DIR, 'assets', 'useAIStore-DRa7CkEN.js');
 const AI_PATCH_FROM = 'async getApiKey(n){const e=`ai_api_key_${n}`,t=await';
@@ -3460,6 +3496,24 @@ function getPatchedCommunityBundle() {
     if (raw.includes(SUBJ_FROM)) {
       raw = raw.replace(SUBJ_FROM, SUBJ_TO);
       console.log('[CommunityCrashFix] null-safe subjects spread');
+    }
+    // Fix: b.data?.buddies.filter(...) — buddies can be undefined when the
+    // overview RPC fails or returns a payload without the key; the first ?.
+    // stops at b.data and the bare .filter still throws.
+    const BUDDIES_FROM = 'b.data?.buddies.filter(';
+    const BUDDIES_TO   = '(b.data?.buddies||[]).filter(';
+    if (raw.includes(BUDDIES_FROM)) {
+      raw = raw.split(BUDDIES_FROM).join(BUDDIES_TO);
+      console.log('[CommunityCrashFix] null-safe buddies filter guard added');
+    }
+    // Fix: We=({overview:s…}) reads s.buddies/s.groups/s.groupRequests
+    // unguarded — a partial overview payload crashes the Community page.
+    // Normalize the shape once at the component entry.
+    const OVERVIEW_FROM = 'We=({overview:s,recommendations:r,onDestination:i,onBuddy:l,onGroup:o,onJoin:d,onStudy:m})=>{';
+    const OVERVIEW_TO   = 'We=({overview:s,recommendations:r,onDestination:i,onBuddy:l,onGroup:o,onJoin:d,onStudy:m})=>{if(s==null)s={};s.buddies=s.buddies||[];s.groups=s.groups||[];s.groupRequests=s.groupRequests||[];';
+    if (raw.includes(OVERVIEW_FROM)) {
+      raw = raw.replace(OVERVIEW_FROM, OVERVIEW_TO);
+      console.log('[CommunityCrashFix] overview shape normalized in We');
     }
     // Fix: s.subjects.slice() — subjects can be null on group cards
     const SLICE_A_FROM = 's.subjects.slice(0,3)';
@@ -3769,15 +3823,18 @@ function getPatchedAuthStoreBundle() {
       console.log('[AuthStorePatch] auth-token mirrored to plain localStorage');
     } else { console.warn('[AuthStorePatch] vs storage adapter anchor not found'); }
 
-    // Session freshness: upstream ships autoRefreshToken:false (only the
-    // restore-and-launch bootstrap refreshes once at boot). In-app that means
-    // the access token goes stale after ~1h and every RPC 401s → hard logout
-    // while the app is open. Enable in-app auto-refresh so sessions stay alive.
+    // Session freshness: upstream ships autoRefreshToken:false. Previously we enabled
+    // it (true) to keep sessions alive, but offline.log proved that enables a
+    // tight retry storm (refresh_token → ERR_INTERNET_DISCONNECTED in a loop).
+    // Keep it disabled (false) and rely on the restore-and-launch bootstrap refresh
+    // at boot + explicit manual refresh only when navigator.onLine. Offline the app
+    // must use the cached IndexedDB snapshot, not hammer Supabase.
     const AR_FROM = 'auth:{autoRefreshToken:!1,persistSession:!0,detectSessionInUrl:!0,storage:vs,storageKey:"isotope-auth-token"}';
-    const AR_TO   = 'auth:{autoRefreshToken:!0,persistSession:!0,detectSessionInUrl:!0,storage:vs,storageKey:"isotope-auth-token"}';
     if (patched.includes(AR_FROM)) {
-      patched = patched.split(AR_FROM).join(AR_TO);
-      console.log('[AuthStorePatch] supabase autoRefreshToken enabled');
+      console.log('[AuthStorePatch] supabase autoRefreshToken kept disabled (offline-safe)');
+    } else if (patched.includes('autoRefreshToken:!0')) {
+      patched = patched.replace('autoRefreshToken:!0,persistSession:!0,detectSessionInUrl:!0,storage:vs,storageKey:"isotope-auth-token"', 'autoRefreshToken:!1,persistSession:!0,detectSessionInUrl:!0,storage:vs,storageKey:"isotope-auth-token"');
+      console.log('[AuthStorePatch] supabase autoRefreshToken disabled for offline safety');
     } else { console.warn('[AuthStorePatch] auth config anchor not found'); }
 
     // Avatar reliability: the app persists profile.avatar (data-URL) by pushing
@@ -4537,11 +4594,15 @@ function fetchRemoteAsset(assetName) {
   if (!/^[A-Za-z0-9._-]+\.js$/.test(safeName)) {
     return Promise.reject(new Error('unsupported asset name'));
   }
-  const origins = [
-    'https://isotopeai.in/assets/',
-    'https://isotopeai.ai/assets/',
-    'https://isotopai.ai/assets/',
-  ];
+  // Upstream asset-recovery origins — override via ASSET_CDN_ORIGINS (comma-
+  // separated, each ending with /) in .env when self-hosting your own CDN.
+  const origins = (process.env.ASSET_CDN_ORIGINS
+    ? process.env.ASSET_CDN_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
+    : [
+        'https://isotopeai.in/assets/',
+        'https://isotopeai.ai/assets/',
+        'https://isotopai.ai/assets/',
+      ]);
   let index = 0;
   return new Promise((resolve, reject) => {
     const tryNext = () => {
@@ -5739,8 +5800,9 @@ function handleSupabaseProxy(req, res) {
 }
 
 // ── GitHub auto-update checker ────────────────────────────────────────────────
-const GH_OWNER = 'Suydev';
-const GH_REPO  = 'isotope-code';
+// Update-check repo target — override via .env when forking.
+const GH_OWNER = process.env.GITHUB_OWNER || 'Suydev';
+const GH_REPO  = process.env.GITHUB_REPO  || 'isotope-code';
 
 function readLocalVersionInfo() {
   const info = {
@@ -8941,6 +9003,12 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const buf = getPatchedAiStore();
       if (buf) { send(buf); return; }
     }
+    if (fp === AUTH_BRIDGE_ABS) {
+      // Point the bridge's built-in fallback credentials at the .env project
+      // so a missed HTML injection can never send logins to the wrong project.
+      const buf = getPatchedAuthBridge();
+      if (buf) { send(buf); return; }
+    }
     if (fp === SERVICE_WORKER_ABS) {
       fs.readFile(fp, 'utf8', (err, raw) => {
         if (err) { res.writeHead(404); res.end('Not found'); return; }
@@ -9086,6 +9154,15 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
   }
 })();
 
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error(`[Startup] Port ${port} already in use — another Isotope instance may be running.`);
+    console.error('[Startup] Run: isotope stop && isotope start  or  lsof -i :${port}');
+  } else {
+    console.error('[Startup] Server error:', err && err.message ? err.message : err);
+  }
+  process.exit(1);
+});
 server.listen(port, '0.0.0.0', () => {
   console.log(`IsotopeAI running on port ${port}`);
   if (ADMIN_MODE_READY) console.log('[Cloud] Owner tools can use private server-side Supabase access');
