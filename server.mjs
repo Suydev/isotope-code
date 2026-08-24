@@ -9469,6 +9469,28 @@ async function runStartupBackfills() {
       console.log('[Startup] Seeded user_profiles for', missingProfiles.length, 'user(s)');
     }
 
+    // 6. Seed user_points for any user missing a row
+    const r6 = await supaRest('GET', 'user_points', 'select=user_id&limit=2000');
+    let existingPointsSet = new Set();
+    try { JSON.parse(r6.body.replace(/\n/g,'')).forEach(r => existingPointsSet.add(r.user_id)); } catch {}
+    const missingPointsRows = users.filter(u => !existingPointsSet.has(u.id));
+    if (missingPointsRows.length > 0) {
+      const rows = missingPointsRows.map(u => ({ user_id: u.id, points: 0, lifetime_points: 0 }));
+      await supaRest('POST', 'user_points', null, rows);
+      console.log('[Startup] Seeded user_points for', missingPointsRows.length, 'user(s)');
+    }
+
+    // 7. Enroll all users into community
+    const r7 = await supaRest('GET', 'community_enrollments', 'select=user_id&limit=2000');
+    let existingEnrolled = new Set();
+    try { JSON.parse(r7.body.replace(/\n/g,'')).forEach(r => existingEnrolled.add(r.user_id)); } catch {}
+    const missingEnrolled = users.filter(u => !existingEnrolled.has(u.id));
+    if (missingEnrolled.length > 0) {
+      const rows = missingEnrolled.map(u => ({ user_id: u.id }));
+      await supaRest('POST', 'community_enrollments', null, rows);
+      console.log('[Startup] Enrolled', missingEnrolled.length, 'user(s) into community');
+    }
+
     console.log('[Startup] DML backfills complete');
 
     // 6. Create admin user if configured and not present
