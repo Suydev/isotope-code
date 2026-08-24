@@ -2100,6 +2100,94 @@ function buildUsernameAuthScript() {
       }
     };
 
+    // ── Notification poller ───────────────────────────────────────────────────
+    // Reads unread notifications from the Supabase notifications table and
+    // shows them via useNotificationStore (browser push + in-app panel).
+    // Bridge: the app's useNotificationStore can register itself here so
+    // poller notifications go through the app's UI instead of raw browser API.
+    window.__isoNotificationStore = null;
+    var _lastNotifCheck = 0;
+    var _notifPollTimer = null;
+
+    window.__isoPollNotifications = async function() {
+      if (!navigator.onLine) return;
+      if (window.__isoSyncAuthBlocked) return;
+      var now = Date.now();
+      if (now - _lastNotifCheck < 30000) return; // min 30s between polls
+      _lastNotifCheck = now;
+
+      var jwt = await getValidJwt();
+      if (!jwt) return;
+
+      try {
+        var r = await fetch(SUPA_URL_BASE + '/rest/v1/notifications?select=id,type,title,body,data,created_at&user_id=eq.' + encodeURIComponent(_getUserId()) + '&read_at=is.null&order=created_at.desc&limit=20', {
+          headers: { 'apikey': SUPA_ANON, 'Authorization': 'Bearer ' + jwt },
+          signal: AbortSignal.timeout(10000)
+        });
+        if (!r.ok) return;
+        var rows = await r.json();
+        if (!Array.isArray(rows) || rows.length === 0) return;
+
+        // Get already-seen notification IDs from sessionStorage
+        var seenIds = [];
+        try { seenIds = JSON.parse(sessionStorage.getItem('iso_seen_notifs') || '[]'); } catch(e) {}
+
+        var newRows = rows.filter(function(row) { return seenIds.indexOf(row.id) === -1; });
+        if (newRows.length === 0) return;
+
+        // Show each new notification
+        newRows.forEach(function(row) {
+          try {
+            // Use the app's notification store if available
+            if (window.__isoNotificationStore && typeof window.__isoNotificationStore.sendNotification === 'function') {
+              window.__isoNotificationStore.sendNotification(
+                row.type || 'system',
+                row.title || 'IsotopeAI',
+                { body: row.body || '', data: row.data || {}, tag: row.id }
+              );
+            } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+              new Notification(row.title || 'IsotopeAI', {
+                body: row.body || '',
+                icon: '/icons/icon-192x192.png',
+                tag: row.id,
+                data: row.data || {}
+              });
+            }
+          } catch(_showErr) {}
+        });
+
+        // Track seen IDs (keep last 50)
+        seenIds = newRows.map(function(r2) { return r2.id; }).concat(seenIds).slice(0, 50);
+        try { sessionStorage.setItem('iso_seen_notifs', JSON.stringify(seenIds)); } catch(e) {}
+      } catch(e) {
+        // Silently fail — notifications are non-critical
+      }
+    };
+
+    function _getUserId() {
+      try {
+        var raw = localStorage.getItem('sb-' + SUPA_REF + '-auth-token') || localStorage.getItem('isotope-auth-token');
+        if (!raw) return '';
+        var s = JSON.parse(raw);
+        return (s.user && s.user.id) || (s.session && s.session.user && s.session.user.id) || '';
+      } catch(e) { return ''; }
+    }
+
+    function startNotifPolling() {
+      if (_notifPollTimer) clearInterval(_notifPollTimer);
+      _notifPollTimer = setInterval(function() {
+        window.__isoPollNotifications().catch(function() {});
+      }, 60000); // poll every 60s
+      // Also check on visibility change (user returns to tab)
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+          setTimeout(function() { window.__isoPollNotifications().catch(function() {}); }, 2000);
+        }
+      });
+      // Initial poll after 15s (let the app boot first)
+      setTimeout(function() { window.__isoPollNotifications().catch(function() {}); }, 15000);
+    }
+
     // ── 30-minute recurring timer ─────────────────────────────────────────────
     var _autoSyncTimer = null;
     var AUTO_SYNC_INTERVAL = 30 * 60 * 1000; // 30 minutes
@@ -2152,6 +2240,7 @@ function buildUsernameAuthScript() {
     // 5 s (gives the app time to fully initialise, load IndexedDB, etc.).
     function bootAutoSync() {
       startAutoSyncTimer();
+      startNotifPolling();
       // Measure speed in the background immediately — result cached for later.
       setTimeout(function() { measureNetSpeed().catch(function(){}); }, 500);
       // Startup sync: wait 8 s so the app is fully initialised and the bundle
@@ -3505,6 +3594,27 @@ function getPatchedAuthBridge() {
 
 // ── AI store patch ────────────────────────────────────────────────────────────
 const AI_STORE_ABS  = path.join(PUBLIC_DIR, 'assets', 'useAIStore-DRa7CkEN.js');
+// Notification store bridge: exposes the app's zustand notification store
+// globally so the injected sync-engine poller can deliver DB notifications
+// through the app's UI (in-app panel + browser push with categories).
+const NOTIF_STORE_ABS = path.join(PUBLIC_DIR, 'assets', 'useNotificationStore-BTREori0.js');
+let patchedNotifStore = null;
+function getPatchedNotifStore() {
+  if (patchedNotifStore) return patchedNotifStore;
+  try {
+    let raw = fs.readFileSync(NOTIF_STORE_ABS, 'utf8');
+    // Append bridge after the export — exposes sendNotification globally.
+    // The poller calls window.__isoNotificationStore.sendNotification(...)
+    const BRIDGE = '\n;if(typeof window!=="undefined"&&!window.__isoNotificationStore){try{var __ns=_.getState();window.__isoNotificationStore={sendNotification:function(e,i,t){__ns.sendNotification(e,i,t||{})}}}catch(_e){}}';
+    raw = raw + BRIDGE;
+    patchedNotifStore = Buffer.from(raw, 'utf8');
+    console.log('[NotifStorePatch] bridge added — window.__isoNotificationStore exposed');
+    return patchedNotifStore;
+  } catch (e) {
+    console.warn('[NotifStorePatch] read failed:', e && e.message);
+    return null;
+  }
+}
 const AI_PATCH_FROM = 'async getApiKey(n){const e=`ai_api_key_${n}`,t=await';
 const AI_PATCH_TO   = 'async getApiKey(n){if(typeof window!=="undefined"&&window.__IK__&&window.__IK__[n])return window.__IK__[n];const e=`ai_api_key_${n}`,t=await';
 let patchedAiStore = null;
@@ -9082,6 +9192,10 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       }
     }
 
+    if (fp === NOTIF_STORE_ABS) {
+      const buf = getPatchedNotifStore();
+      if (buf) { send(buf); return; }
+    }
     if ((GEMINI_API_KEY || GROQ_API_KEY) && fp === AI_STORE_ABS) {
       const buf = getPatchedAiStore();
       if (buf) { send(buf); return; }
