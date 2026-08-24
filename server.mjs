@@ -3909,18 +3909,15 @@ function getPatchedAuthStoreBundle() {
       console.log('[AuthStorePatch] auth-token mirrored to plain localStorage');
     } else { console.warn('[AuthStorePatch] vs storage adapter anchor not found'); }
 
-    // Session freshness: upstream ships autoRefreshToken:false. Previously we enabled
-    // it (true) to keep sessions alive, but offline.log proved that enables a
-    // tight retry storm (refresh_token → ERR_INTERNET_DISCONNECTED in a loop).
-    // Keep it disabled (false) and rely on the restore-and-launch bootstrap refresh
-    // at boot + explicit manual refresh only when navigator.onLine. Offline the app
-    // must use the cached IndexedDB snapshot, not hammer Supabase.
+    // Session freshness + PKCE flow:
+    // - autoRefreshToken disabled (offline-safe): rely on boot refresh only
+    // - flowType "pkce": OAuth redirects carry ?code= instead of #access_token=
+    //   so tokens NEVER appear in URLs (no leak when sharing/pasting)
     const AR_FROM = 'auth:{autoRefreshToken:!1,persistSession:!0,detectSessionInUrl:!0,storage:vs,storageKey:"isotope-auth-token"}';
+    const AR_TO   = 'auth:{autoRefreshToken:!1,persistSession:!0,detectSessionInUrl:!0,flowType:"pkce",storage:vs,storageKey:"isotope-auth-token"}';
     if (patched.includes(AR_FROM)) {
-      console.log('[AuthStorePatch] supabase autoRefreshToken kept disabled (offline-safe)');
-    } else if (patched.includes('autoRefreshToken:!0')) {
-      patched = patched.replace('autoRefreshToken:!0,persistSession:!0,detectSessionInUrl:!0,storage:vs,storageKey:"isotope-auth-token"', 'autoRefreshToken:!1,persistSession:!0,detectSessionInUrl:!0,storage:vs,storageKey:"isotope-auth-token"');
-      console.log('[AuthStorePatch] supabase autoRefreshToken disabled for offline safety');
+      patched = patched.replace(AR_FROM, AR_TO);
+      console.log('[AuthStorePatch] PKCE flow enabled + autoRefreshToken kept disabled');
     } else { console.warn('[AuthStorePatch] auth config anchor not found'); }
 
     // Avatar reliability: the app persists profile.avatar (data-URL) by pushing
