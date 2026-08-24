@@ -3702,6 +3702,48 @@ function getPatchedCommunityBundle() {
       raw = raw.split(BUDDIES_FROM).join(BUDDIES_TO);
       console.log('[CommunityCrashFix] null-safe buddies filter guard added');
     }
+    // Fix: tab call sites pass raw b.data.buddies/groups/groupRequests into
+    // Xe (buddies tab), es (groups tab) without normalization — crash if the
+    // overview RPC omits those keys. Guard at each JSX prop site.
+    const TAB_BUDDIES_FROM = 'buddies:b.data.buddies,';
+    const TAB_BUDDIES_TO   = 'buddies:b.data.buddies||[],';
+    if (raw.includes(TAB_BUDDIES_FROM)) {
+      raw = raw.split(TAB_BUDDIES_FROM).join(TAB_BUDDIES_TO);
+      console.log('[CommunityCrashFix] buddies tab prop guarded');
+    }
+    const TAB_GROUPS_FROM = 'groups:b.data.groups,';
+    const TAB_GROUPS_TO   = 'groups:b.data.groups||[],';
+    if (raw.includes(TAB_GROUPS_FROM)) {
+      raw = raw.split(TAB_GROUPS_FROM).join(TAB_GROUPS_TO);
+      console.log('[CommunityCrashFix] groups tab prop guarded');
+    }
+    const TAB_REQ_FROM = 'requests:b.data.groupRequests,';
+    const TAB_REQ_TO   = 'requests:b.data.groupRequests||[],';
+    if (raw.includes(TAB_REQ_FROM)) {
+      raw = raw.split(TAB_REQ_FROM).join(TAB_REQ_TO);
+      console.log('[CommunityCrashFix] groupRequests tab prop guarded');
+    }
+    // Fix: per-buddy subjects/tasks broken chains in Ke card + We today rows
+    // s.subjects?.reduce(...) throws if subjects key is absent on row object
+    const ROW_SUBJ_RED = '.subjects?.reduce((t,a)=>t+(a.questions??0),0)??null';
+    const ROW_SUBJ_RED_TO = '.subjects?.reduce?.((t,a)=>t+(a.questions??0),0)??null';
+    if (raw.includes(ROW_SUBJ_RED)) {
+      raw = raw.split(ROW_SUBJ_RED).join(ROW_SUBJ_RED_TO);
+      console.log('[CommunityCrashFix] buddy subjects reduce guarded');
+    }
+    const ROW_TASKS_LEN = '.tasks?.length??null';
+    const ROW_TASKS_LEN_TO = '(.tasks?.length)??null';
+    if (raw.includes(ROW_TASKS_LEN)) {
+      raw = raw.split(ROW_TASKS_LEN).join(ROW_TASKS_LEN_TO);
+      console.log('[CommunityCrashFix] buddy tasks length guarded');
+    }
+    // Fix: h.members unguarded in SingleGroup detail view
+    const MEMBERS_GUARD_FROM = 'h.members.filter(n=>n.status==="studying")';
+    const MEMBERS_GUARD_TO   = '(h.members||[]).filter(n=>n.status==="studying")';
+    if (raw.includes(MEMBERS_GUARD_FROM)) {
+      raw = raw.split(MEMBERS_GUARD_FROM).join(MEMBERS_GUARD_TO);
+      console.log('[CommunityCrashFix] null-safe members filter guard added');
+    }
     // Fix: We=({overview:s…}) reads s.buddies/s.groups/s.groupRequests
     // unguarded — a partial overview payload crashes the Community page.
     // Normalize the shape once at the component entry.
@@ -4496,7 +4538,13 @@ function getPatchedSingleGroupBundle() {
       'onDestroyed:()=>{l(t,!0);l("community_group_v1",!0)}})',
       'tour completion'
     );
-    console.log('[SingleGroupPatch] ' + applied + '/3 guided-tour patches applied');
+    // Fix: s.tags?.join(", ") throws if tags key absent on group object
+    patch(
+      '.tags?.join(", ")',
+      '(.tags||[])?.join?.(", ")',
+      'null-safe tags join'
+    );
+    console.log('[SingleGroupPatch] ' + applied + '/4 guided-tour patches applied');
     patchedSingleGroupBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[SingleGroupPatch] Error:', e.message); patchedSingleGroupBundle = null; }
   return patchedSingleGroupBundle;
