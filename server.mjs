@@ -640,8 +640,15 @@ function buildUsernameAuthScript() {
 
   // Call Supabase /auth/v1/token to exchange refresh_token for a new session.
   // Saves and returns the new access_token, or null on failure.
+  // Offline circuit-breaker: when navigator.onLine is false, return null
+  // immediately — do NOT hit the network (offline.log showed this in a tight
+  // loop: POST refresh_token → ERR_INTERNET_DISCONNECTED × hundreds).
   async function _refreshSession(refreshToken) {
     if (!refreshToken) return null;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      try { console.info('[offline] token refresh skipped (offline)'); } catch(e) {}
+      return null;
+    }
     try {
       var r = await fetch(SUPA_URL_BASE + '/auth/v1/token?grant_type=refresh_token', {
         method: 'POST',
@@ -2024,8 +2031,10 @@ function buildUsernameAuthScript() {
     function startAutoSyncTimer() {
       if (_autoSyncTimer) clearInterval(_autoSyncTimer);
       _autoSyncTimer = setInterval(function() {
-        // AUTH GATE: timer must not fire while auth is blocked
+        // AUTH GATE + OFFLINE GATE: timer must not fire while auth is blocked
+        // or the device is offline (no point syncing to an unreachable cloud).
         if (window.__isoSyncAuthBlocked) return;
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
         window.__isoAutoSync('auto_30min').catch(function() {});
       }, AUTO_SYNC_INTERVAL);
     }
@@ -2036,7 +2045,8 @@ function buildUsernameAuthScript() {
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
         var away = Date.now() - _lastVisibleAt;
-        if (away >= 5 * 60 * 1000 && !window.__isoSyncAuthBlocked) {
+        if (away >= 5 * 60 * 1000 && !window.__isoSyncAuthBlocked
+            && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
           setTimeout(function() {
             window.__isoAutoSync('visibility_sync').catch(function() {});
           }, 2000);
