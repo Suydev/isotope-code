@@ -931,8 +931,9 @@ function buildUsernameAuthScript() {
 
   function isNetworkError(e) {
     if (!e) return false;
+    if (e.__isNetworkError) return true;
     var msg = String(e.message || e || '').toLowerCase();
-    return /network|fetch|timeout|timed out|econnrefused|econnreset|dns|no internet|failed to fetch|load failed/.test(msg) || e.name === 'AbortError' || e.name === 'TypeError';
+    return /network|fetch|timeout|timed out|econnrefused|econnreset|dns|no internet|failed to fetch|load failed|device is offline/.test(msg) || e.name === 'AbortError' || e.name === 'TypeError';
   }
 
   window.__isoSyncAuthBlocked = false;
@@ -968,6 +969,14 @@ function buildUsernameAuthScript() {
   };
 
   async function authedJson(url, options) {
+    // Offline gate: don't attempt cloud calls when the device is offline.
+    // Callers already handle thrown errors, and this prevents queued syncs
+    // from hammering a dead network (offline.log pattern).
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      var _offErr = new Error('Device is offline');
+      _offErr.__isNetworkError = true;
+      throw _offErr;
+    }
     var jwt = await getValidJwt();
     if (!jwt) {
       var _noJwtErr = new Error('Authentication required — please log in');
