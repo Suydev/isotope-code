@@ -1993,6 +1993,70 @@ function buildUsernameAuthScript() {
       }
     };
 
+    // ── Stats backfill ───────────────────────────────────────────────────────
+    // Reads local sessions from isotope_sessions_v2, checks which are missing
+    // from study_sessions_log (via finish_session_sync idempotency), and pushes
+    // them. Fixes the case where sessions completed while auth was broken or
+    // device was offline — they sat in IndexedDB but never reached Supabase,
+    // leaving leaderboard/stats empty.
+    window.__isoBackfillSessions = async function(jwt) {
+      if (!jwt) return { ok: false, reason: 'no_jwt' };
+      var raw = null;
+      try { raw = localStorage.getItem('isotope_sessions_v2'); } catch(e) {}
+      if (!raw) return { ok: false, reason: 'no_local_sessions' };
+      var sessions = [];
+      try { sessions = JSON.parse(raw); } catch(e) { return { ok: false, reason: 'parse_error' }; }
+      if (!Array.isArray(sessions) || sessions.length === 0) return { ok: false, reason: 'empty' };
+
+      // Filter to sessions that have a duration > 0 and haven't been synced yet
+      var unsynced = sessions.filter(function(s) {
+        return s && s.id && (Number(s.duration) || Number(s.durationMinutes) || 0) > 0 && !s.cloudSynced;
+      });
+      if (unsynced.length === 0) return { ok: true, skipped: true, reason: 'all_synced', total_local: sessions.length };
+
+      var pushed = 0, failed = 0;
+      for (var i = 0; i < unsynced.length; i++) {
+        var sess = unsynced[i];
+        try {
+          var durationMin = Math.max(1, Math.round(Number(sess.duration || sess.durationMinutes || 0)));
+          var endedAt = sess.endTime || sess.ended_at || sess.startTime || new Date().toISOString();
+          var r = await fetch(SUPA_URL_BASE + '/rest/v1/rpc/finish_session_sync', {
+            method: 'POST',
+            headers: {
+              'apikey': SUPA_ANON,
+              'Authorization': 'Bearer ' + jwt,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              p_session_id: sess.id,
+              p_action: 'complete',
+              p_duration_minutes: durationMin,
+              p_session_type: sess.sessionType || sess.type || 'focus',
+              p_ended_at: endedAt
+            })
+          });
+          if (r.ok) {
+            pushed++;
+            // Mark local session as synced so we don't retry it next time
+            try {
+              sess.cloudSynced = true;
+              sess.cloudSource = 'backfill';
+            } catch(_me) {}
+          } else {
+            failed++;
+          }
+        } catch(_e) { failed++; }
+      }
+
+      // Write back the updated cloudSynced flags
+      if (pushed > 0) {
+        try { localStorage.setItem('isotope_sessions_v2', JSON.stringify(sessions)); } catch(e) {}
+        writeSyncHistory({ op: 'stats_backfill', status: 'ok', detail: pushed + ' pushed, ' + failed + ' failed' });
+      }
+      return { ok: true, pushed: pushed, failed: failed, total_local: sessions.length };
+    };
+
     // ── Startup sync ──────────────────────────────────────────────────────────
     // Runs once per 5-minute window on page load: downloads cloud if newer,
     // then uploads merged local state. Debounced so tab-switches don't re-fire.
@@ -2025,6 +2089,9 @@ function buildUsernameAuthScript() {
         if (_isFirstSync && r && !r.downloaded) {
           try { writeSyncMetadata({ last_startup_sync_at: null }); } catch(_e) {}
         }
+        // Stats backfill: push any local sessions that never reached
+        // study_sessions_log (e.g. completed while auth was broken).
+        try { await window.__isoBackfillSessions(jwt); } catch(_bf) {}
         writeSyncHistory({ op: 'startup_sync', status: r && r.ok !== false ? 'ok' : 'skipped', source: _src, detail: r && r.reason || null });
         return r;
       } catch(e) {
