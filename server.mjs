@@ -3637,6 +3637,7 @@ const COMMUNITY_API_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'communityApi-C
 const COMMUNITY_HUB_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityHub-gANxZssO.js');
 const COMMUNITY_VISUALS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityVisuals-mHr4KGyg.js');
 const DASHBOARD_BUNDLE_ABS     = path.join(PUBLIC_DIR, 'assets', 'Dashboard-Dzf-IC_a.js');
+const STUDY_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'Study-BXfkiHvM.js');
 const STORE_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'FocusStore-D5cRXSIr.js');
 const EVENTS_BUNDLE_ABS        = path.join(PUBLIC_DIR, 'assets', 'EventsCalendar-COHF8nOK.js');
 const SERVICE_WORKER_ABS       = path.join(PUBLIC_DIR, 'sw.js');
@@ -3873,6 +3874,38 @@ function getPatchedDashboardBundle() {
     patchedDashboardBundle = Buffer.from(raw, 'utf8');
   } catch { patchedDashboardBundle = null; }
   return patchedDashboardBundle;
+}
+
+// ── Study patch: guard `syllabusIds` before `.includes` ─────────────────────────
+// Browser error bridge caught a runtime crash on /study:
+//   Cannot read properties of undefined (reading 'includes')
+//   at Study-BXfkiHvM.js:1:108603
+// `Y.filter((m) => I.syllabusIds.includes(m.subject.id))` — when a profile
+// exists but has no syllabusIds field, `I.syllabusIds.includes` throws. Patch
+// to be null-safe so the study page falls back to empty filter.
+const STUDY_SYLLABUS_FROM = `Y.filter((m) => I.syllabusIds.includes(m.subject.id))`;
+const STUDY_SYLLABUS_TO   = `Y.filter((m) => (I.syllabusIds||[]).includes(m.subject.id))`;
+const STUDY_SYLLABUS_FROM2 = `Y.filter((t) => I.syllabusIds.includes(t.subject.id))`;
+const STUDY_SYLLABUS_TO2   = `Y.filter((t) => (I.syllabusIds||[]).includes(t.subject.id))`;
+let patchedStudyBundle = null;
+function getPatchedStudyBundle() {
+  if (patchedStudyBundle) return patchedStudyBundle;
+  try {
+    let raw = fs.readFileSync(STUDY_BUNDLE_ABS, 'utf8');
+    if (raw.includes(STUDY_SYLLABUS_FROM)) {
+      raw = raw.replace(STUDY_SYLLABUS_FROM, STUDY_SYLLABUS_TO);
+      console.log('[StudyPatch] syllabusIds null-guard added (Y.filter m)');
+    }
+    if (raw.includes(STUDY_SYLLABUS_FROM2)) {
+      raw = raw.replace(STUDY_SYLLABUS_FROM2, STUDY_SYLLABUS_TO2);
+      console.log('[StudyPatch] syllabusIds null-guard added (Y.filter t)');
+    }
+    if (!raw.includes(STUDY_SYLLABUS_FROM) && !raw.includes(STUDY_SYLLABUS_FROM2)) {
+      console.warn('[StudyPatch] syllabusIds anchor not found');
+    }
+    patchedStudyBundle = Buffer.from(raw, 'utf8');
+  } catch { patchedStudyBundle = null; }
+  return patchedStudyBundle;
 }
 
 // ── Community API patch: force the real RPC path (self-hosted community) ─────
@@ -9345,6 +9378,10 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const buf = getPatchedDashboardBundle();
       if (buf) { send(buf); return; }
     }
+    if (fp === STUDY_BUNDLE_ABS) {
+      const buf = getPatchedStudyBundle();
+      if (buf) { send(buf); return; }
+    }
     if (fp === PWA_MANAGER_BUNDLE_ABS) {
       const buf = getPatchedPWAManagerBundle();
       if (buf) { send(buf); return; }
@@ -9436,6 +9473,7 @@ server.listen(port, '0.0.0.0', () => {
     safeWarm(COMMUNITY_HUB_BUNDLE_ABS, getPatchedCommunityHubBundle);
     safeWarm(COMMUNITY_VISUALS_BUNDLE_ABS, getPatchedCommunityVisualsBundle);
     safeWarm(DASHBOARD_BUNDLE_ABS, getPatchedDashboardBundle);
+    safeWarm(STUDY_BUNDLE_ABS, getPatchedStudyBundle);
     safeWarm(PWA_MANAGER_BUNDLE_ABS, getPatchedPWAManagerBundle);
 
     // Pre-gzip all patched bundles so first client request is instant.
