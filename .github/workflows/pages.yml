@@ -30,7 +30,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        # enablement: true turns Pages on via the API if it is not already, which
+        # fixes "Get Pages site failed … verify that the repository has Pages
+        # enabled" on repos where Pages was never switched on in Settings.
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

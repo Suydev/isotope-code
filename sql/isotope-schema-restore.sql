@@ -1,6 +1,6 @@
 -- =============================================================================
 -- IsotopeAI — full portable schema dump (NO user data)
--- Generated: 2026-08-16 15:00:25 UTC
+-- Generated: 2026-08-27 18:10:08 UTC
 -- Project ref: ollsqiutzartjhiuzkbf
 -- Schemas: private, rpc_private, public
 --
@@ -554,7 +554,11 @@ CREATE TABLE IF NOT EXISTS "public"."user_presence" (
   "is_online" boolean not null default false,
   "last_beat_at" timestamp with time zone,
   "session_started_at" timestamp with time zone,
-  "total_seconds" bigint not null default 0
+  "total_seconds" bigint not null default 0,
+  "subject_id" uuid,
+  "subject_name" text,
+  "task_id" uuid,
+  "task_title" text
 );
 CREATE TABLE IF NOT EXISTS "public"."user_profiles" (
   "id" uuid not null default gen_random_uuid(),
@@ -1138,6 +1142,75 @@ CREATE OR REPLACE FUNCTION "public"."_auto_add_super_admin"()
     RETURN NEW;
   END;
 $iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_ensure_community_enrollment"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+BEGIN
+  INSERT INTO public.community_enrollments (user_id)
+  VALUES (NEW.id)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_ensure_onboarding_complete"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+ BEGIN INSERT INTO public.user_onboarding (user_id, completed, completed_at, data) VALUES (NEW.id, true, now(), '{}'::jsonb) ON CONFLICT (user_id) DO NOTHING; RETURN NEW; END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_ensure_stats_summary"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+BEGIN
+  INSERT INTO public.user_stats_summary (user_id, total_hours, weekly_hours, monthly_hours, total_sessions, current_streak)
+  VALUES (NEW.id, 0, 0, 0, 0, 0)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_ensure_user_points"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+BEGIN
+  INSERT INTO public.user_points (user_id, points, lifetime_points)
+  VALUES (NEW.id, 0, 0)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_ensure_user_profile"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+BEGIN
+  INSERT INTO public.user_profiles (user_id, profile_data)
+  VALUES (NEW.id, '{}'::jsonb)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."_has_group_role"(gid uuid, uid uuid, allowed_roles text[])
  RETURNS boolean
  LANGUAGE sql
@@ -1262,26 +1335,38 @@ CREATE OR REPLACE FUNCTION "public"."community_bootstrap_profile"(p_display_name
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-begin
-  insert into public.community_enrollments (user_id, enrolled, day_offset_hours, onboarded, updated_at)
-  values (auth.uid(), true, coalesce(p_day_offset_hours, 0), true, now())
-  on conflict (user_id) do update
-    set day_offset_hours = excluded.day_offset_hours,
-        onboarded = true,
-        updated_at = now();
-  if p_handle is not null and p_handle <> '' then
-    insert into public.user_profiles (user_id, handle, display_name, updated_at)
-    values (auth.uid(), nullif(p_handle, ''), nullif(p_display_name, ''), now())
-    on conflict (user_id) do update
-      set handle = excluded.handle,
-          display_name = excluded.display_name,
-          updated_at = now();
-  end if;
-  return jsonb_build_object('ok', true, 'enrolled', true);
-end;
+DECLARE
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  UPDATE public.user_profiles
+  SET profile_data = jsonb_set(
+    COALESCE(profile_data, '{}'),
+    '{community_enrolled}',
+    'true'
+  ),
+  profile_data = jsonb_set(
+    profile_data,
+    '{community_handle}',
+    to_jsonb(p_handle)
+  ),
+  profile_data = jsonb_set(
+    profile_data,
+    '{community_display_name}',
+    to_jsonb(p_display_name)
+  ),
+  profile_data = jsonb_set(
+    profile_data,
+    '{community_day_offset_hours}',
+    to_jsonb(p_day_offset_hours)
+  )
+  WHERE user_id = v_uid;
+  RETURN jsonb_build_object('success', true);
+END;
 $iso_fn$;
-CREATE OR REPLACE FUNCTION "public"."community_create_group"(p_name text, p_description text DEFAULT ''::text, p_exam text DEFAULT NULL::text, p_target_year integer DEFAULT NULL::integer, p_subjects text[] DEFAULT NULL::text[], p_visibility text DEFAULT 'private'::text, p_join_policy text DEFAULT 'request'::text, p_timezone_offset_minutes integer DEFAULT 0)
+CREATE OR REPLACE FUNCTION "public"."community_create_group"(p_name text, p_description text DEFAULT NULL::text, p_exam text DEFAULT NULL::text, p_target_year integer DEFAULT NULL::integer, p_subjects text[] DEFAULT '{}'::text[], p_visibility text DEFAULT 'public'::text, p_join_policy text DEFAULT 'open'::text, p_timezone_offset_minutes integer DEFAULT 0)
  RETURNS jsonb
  LANGUAGE plpgsql
  VOLATILE
@@ -1289,55 +1374,34 @@ CREATE OR REPLACE FUNCTION "public"."community_create_group"(p_name text, p_desc
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-declare
-  gid uuid;
-  cslug text;
-  base_slug text;
-  tries int := 0;
-begin
-  if p_name is null or p_name = '' then raise exception 'name_required'; end if;
-  base_slug := regexp_replace(lower(p_name), '[^a-z0-9]+', '-', 'g');
-  base_slug := trim(both '-' from base_slug);
-  base_slug := coalesce(nullif(base_slug, ''), 'group-' || substr(md5(random()::text), 1, 6));
-  cslug := base_slug;
-  loop
-    exit when not exists (select 1 from public.groups where slug = cslug);
-    tries := tries + 1;
-    if tries > 4 then
-      cslug := base_slug || '-' || substr(md5(random()::text || clock_timestamp()::text), 1, 5);
-    else
-      cslug := base_slug || '-' || substr(md5(random()::text || clock_timestamp()::text), 1, 5);
-    end if;
-  end loop;
-
-  insert into public.groups
-    (name, description, slug, exam, target_year, subjects, visibility, join_policy,
-     owner_id, member_count, visual_key, timezone_offset, created_at, updated_at)
-  values
-    (p_name, coalesce(p_description, ''), cslug, p_exam, p_target_year,
-     coalesce(p_subjects, '{}'), coalesce(p_visibility, 'public'), coalesce(p_join_policy, 'request'),
-     auth.uid(), 1, abs(hashtext(cslug)) % 6, coalesce(p_timezone_offset_minutes, 0), now(), now())
-  returning id into gid;
-
-  insert into public.group_members (group_id, user_id, role, joined_at)
-  values (gid, auth.uid(), 'owner', now())
-  on conflict (group_id, user_id) do nothing;
-
-  return jsonb_build_object(
-    'id', gid,
-    'slug', cslug,
+DECLARE
+  v_uid uuid := auth.uid();
+  v_group_id uuid;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  INSERT INTO public.groups (name, description, exam, target_year, subjects, visibility, join_policy, owner_id)
+  VALUES (p_name, p_description, p_exam, p_target_year, p_subjects, p_visibility, p_join_policy, v_uid)
+  RETURNING id INTO v_group_id;
+  INSERT INTO public.group_members (group_id, user_id, role)
+  VALUES (v_group_id, v_uid, 'owner');
+  RETURN jsonb_build_object('success', true, 'data', jsonb_build_object(
+    'id', v_group_id,
+    'slug', lower(regexp_replace(p_name, '[^a-z0-9]+', '-', 'g')),
     'name', p_name,
-    'description', coalesce(p_description, ''),
+    'description', p_description,
     'exam', p_exam,
-    'target_year', p_target_year,
-    'subjects', coalesce(p_subjects, '{}'::text[]),
-    'visibility', coalesce(p_visibility, 'public'),
-    'join_policy', coalesce(p_join_policy, 'request'),
-    'member_count', 1,
-    'visual_key', abs(hashtext(cslug)) % 6
-  );
-end
+    'targetYear', p_target_year,
+    'subjects', p_subjects,
+    'visibility', p_visibility,
+    'joinPolicy', p_join_policy,
+    'memberCount', 1,
+    'activeNow', 0,
+    'visualKey', 0,
+    'role', 'owner'
+  ));
+END;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_create_invite"(p_type text, p_target_id uuid DEFAULT NULL::uuid, p_days integer DEFAULT 7)
  RETURNS text
@@ -1346,7 +1410,6 @@ CREATE OR REPLACE FUNCTION "public"."community_create_invite"(p_type text, p_tar
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 declare
   code text;
@@ -1397,149 +1460,104 @@ CREATE OR REPLACE FUNCTION "public"."community_delete_group"(p_group_id uuid)
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-begin
-  if not exists (select 1 from public.group_members
-                 where group_id = p_group_id and user_id = auth.uid()
-                   and role = 'owner' and left_at is null) then
-    raise exception 'not_allowed';
-  end if;
-  update public.groups set deleted_at = now(), updated_at = now() where id = p_group_id;
-  return jsonb_build_object('ok', true);
-end
+DECLARE
+  v_uid uuid := auth.uid();
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  IF v_role != 'owner' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Only owner can delete');
+  END IF;
+  UPDATE public.groups SET deleted_at = now() WHERE id = p_group_id;
+  RETURN jsonb_build_object('success', true);
+END;
 $iso_fn$;
-CREATE OR REPLACE FUNCTION "public"."community_discover_groups"(p_query text DEFAULT NULL::text, p_exam text DEFAULT NULL::text, p_target_year integer DEFAULT NULL::integer, p_subject text DEFAULT NULL::text, p_has_space boolean DEFAULT true, p_join_policy text DEFAULT NULL::text, p_limit integer DEFAULT 20, p_offset integer DEFAULT 0)
+CREATE OR REPLACE FUNCTION "public"."community_discover_groups"(p_query text DEFAULT ''::text, p_exam text DEFAULT NULL::text, p_target_year integer DEFAULT NULL::integer, p_subject text DEFAULT NULL::text, p_has_space boolean DEFAULT NULL::boolean, p_join_policy text DEFAULT NULL::text, p_limit integer DEFAULT 20, p_offset integer DEFAULT 0)
  RETURNS jsonb
  LANGUAGE plpgsql
- STABLE
+ VOLATILE
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-declare
-  uid uuid := auth.uid();
-  res jsonb;
-begin
-  select coalesce(jsonb_agg(row), '[]'::jsonb) into res from (
-    select jsonb_build_object(
-      'id', g.id,
-      'name', g.name,
-      'slug', g.slug,
-      'description', g.description,
-      'exam', coalesce(g.exam, ''),
-      'targetYear', coalesce(g.target_year, 0),
-      'subjects', coalesce(g.subjects, '{}'::text[]),
-      'visibility', coalesce(g.visibility, 'public'),
-      'joinPolicy', coalesce(g.join_policy, 'request'),
-      'memberCount', (select count(*) from public.group_members a where a.group_id = g.id and a.left_at is null),
-      'activeNow', (select count(*) from public.group_members a
-                     join public.user_presence up on up.user_id = a.user_id
-                     where a.group_id = g.id and a.left_at is null and up.state = 'studying'),
-      'visualKey', coalesce(g.visual_key, 0),
-      'joined', exists (select 1 from public.group_members a
-                        where a.group_id = g.id and a.user_id = uid and a.left_at is null),
-      'matches', coalesce((
-        select coalesce(array_agg(ma), '{}') from (
-          select g.exam as ma where g.exam is not null
-          union all select g.target_year::text || ' edition' where g.target_year is not null
-          union all select s || ' group' from unnest(g.subjects) s where g.subjects is not null
-        ) sub
-      ), '{}')
-    ) as row
-    from public.groups g
-    where g.deleted_at is null
-      and coalesce(g.visibility, 'public') = 'public'
-      and (p_query is null or g.name ilike '%' || p_query || '%')
-      and (p_exam is null or g.exam = p_exam)
-      and (p_target_year is null or g.target_year = p_target_year)
-      and (p_subject is null or (g.subjects is not null and (p_subject = any (g.subjects))))
-      and (p_has_space is false or
-           (select count(*) from public.group_members a where a.group_id = g.id and a.left_at is null) < 30)
-      and (p_join_policy is null or g.join_policy = p_join_policy)
-    order by g.created_at desc
-    limit greatest(coalesce(p_limit, 20), 0) offset greatest(coalesce(p_offset, 0), 0)
-  ) sub;
-  return res;
-end
+DECLARE
+  v_sql text;
+BEGIN
+  v_sql := 'SELECT jsonb_agg(jsonb_build_object(
+    ''id'', id, ''name'', name, ''slug'', lower(regexp_replace(name, ''[^a-z0-9]+'', ''-'', ''g'')),
+    ''memberCount'', (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id),
+    ''activeNow'', 0, ''visualKey'', visual_key, ''exam'', exam, ''targetYear'', target_year
+  )) FROM public.groups g WHERE deleted_at IS NULL';
+  IF p_query IS NOT NULL AND p_query != '' THEN
+    v_sql := v_sql || ' AND (g.name ILIKE ''%' || replace(p_query, '''', '''''') || '%'' OR g.description ILIKE ''%' || replace(p_query, '''', '''''') || '%'')';
+  END IF;
+  IF p_exam IS NOT NULL THEN v_sql := v_sql || ' AND g.exam = ' || quote_literal(p_exam); END IF;
+  IF p_target_year IS NOT NULL THEN v_sql := v_sql || ' AND g.target_year = ' || p_target_year::text; END IF;
+  IF p_subject IS NOT NULL THEN v_sql := v_sql || ' AND ' || quote_literal(p_subject) || ' = ANY(g.subjects)'; END IF;
+  IF p_has_space THEN v_sql := v_sql || ' AND (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id) < 30'; END IF;
+  IF p_join_policy IS NOT NULL THEN v_sql := v_sql || ' AND g.join_policy = ' || quote_literal(p_join_policy); END IF;
+  v_sql := v_sql || ' ORDER BY g.created_at DESC LIMIT ' || p_limit::text || ' OFFSET ' || p_offset::text;
+  RETURN (SELECT jsonb_build_object('success', true, 'data', COALESCE((SELECT v_sql::jsonb), '[]'::jsonb)));
+END;
 $iso_fn$;
-CREATE OR REPLACE FUNCTION "public"."community_get_group"(p_group_id text, p_period text DEFAULT 'day'::text)
+CREATE OR REPLACE FUNCTION "public"."community_get_group"(p_group_id uuid, p_period text DEFAULT 'week'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
- STABLE
+ VOLATILE
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-declare
-  uid uuid := auth.uid();
-  gid uuid;
-  res jsonb;
-begin
-  if uid is null then return null; end if;
-
-  begin
-    gid := p_group_id::uuid;
-  exception when others then
-    select g.id into gid from public.groups g
-     where g.slug = p_group_id and g.deleted_at is null;
-  end;
-
-  if gid is null then return null; end if;
-
-  select jsonb_build_object(
-    'group', jsonb_build_object(
-      'id', g.id, 'name', g.name, 'slug', g.slug, 'description', g.description,
-      'exam', g.exam, 'targetYear', g.target_year, 'subjects', g.subjects,
-      'visibility', g.visibility, 'joinPolicy', g.join_policy,
-      'owner_id', g.owner_id, 'created_at', g.created_at,
-      'memberCount', (select count(*) from public.group_members a where a.group_id = g.id and a.left_at is null),
-      'visualKey', g.visual_key,
-      'role', (select ro.role from public.group_members ro where ro.group_id = g.id and ro.user_id = uid and ro.left_at is null)
-    ),
-    'period', p_period,
-    'updatedAt', now(),
-    'members', coalesce((
-      select jsonb_agg(jsonb_build_object(
-        'rank', m.rn,
-        'userId', m.user_id,
-        'name', m.dname,
-        'handle', m.handle,
-        'avatarUrl', null,
-        'role', m.role,
-        'minutes', 0,
-        'subjects', '[]'::jsonb,
-        'status', coalesce(m.state, 'offline'),
-        'currentSubject', m.curr_subject,
-        'tasks', null
-      ))
-      from (
-        select a.user_id, a.role,
-               row_number() over (order by a.joined_at) as rn,
-               coalesce(pf.display_name, '') dname, pf.handle,
-               up.state, up.current_subject as curr_subject
-        from public.group_members a
-        left join public.user_profiles pf on pf.user_id = a.user_id
-        left join public.user_presence up on up.user_id = a.user_id
-        where a.group_id = gid and a.left_at is null
-      ) m
-    ), '[]'::jsonb)
-  ) into res
-  from public.groups g
-  where g.id = gid and g.deleted_at is null;
-
-  return res;
-end
+DECLARE
+  v_group RECORD;
+BEGIN
+  SELECT * INTO v_group FROM public.groups WHERE id = p_group_id AND deleted_at IS NULL;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Group not found');
+  END IF;
+  RETURN jsonb_build_object(
+    'success', true,
+    'data', jsonb_build_object(
+      'id', v_group.id,
+      'slug', lower(regexp_replace(v_group.name, '[^a-z0-9]+', '-', 'g')),
+      'name', v_group.name,
+      'description', v_group.description,
+      'exam', v_group.exam,
+      'targetYear', v_group.target_year,
+      'subjects', v_group.subjects,
+      'visibility', v_group.visibility,
+      'joinPolicy', v_group.join_policy,
+      'memberCount', (SELECT COUNT(*) FROM public.group_members WHERE group_id = v_group.id),
+      'activeNow', 0,
+      'visualKey', v_group.visual_key,
+      'role', (SELECT role FROM public.group_members WHERE group_id = v_group.id AND user_id = auth.uid()),
+      'members', COALESCE((
+        SELECT jsonb_agg(jsonb_build_object(
+          'id', gm.user_id,
+          'name', COALESCE(u.username, u.name, 'Unknown'),
+          'avatar', u.avatar_url,
+          'role', gm.role,
+          'minutes', COALESCE(us.total_study_seconds / 60, 0),
+          'status', 'idle'
+        ))
+        FROM public.group_members gm
+        LEFT JOIN public.users u ON u.id = gm.user_id
+        LEFT JOIN public.user_stats_summary us ON us.user_id = gm.user_id
+        WHERE gm.group_id = v_group.id
+      ), '[]'::jsonb)
+    )
+  );
+END;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_get_group_messages"(p_group_id text, p_limit integer DEFAULT 50)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE
- SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 declare
   uid uuid := auth.uid();
@@ -1591,131 +1609,30 @@ end
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_get_overview"()
  RETURNS jsonb
- LANGUAGE plpgsql
+ LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-declare
-  uid uuid := auth.uid();
-  prof jsonb;
-  pend int;
-  buddies jsonb;
-  groups jsonb;
-  groupreq jsonb;
-  out jsonb;
-begin
-  if uid is null then return null; end if;
-
-  select jsonb_build_object(
-    'user_id', up.user_id,
-    'handle', up.handle,
-    'display_name', up.display_name,
-    'avatar_url', null
-  ) into prof
-  from public.user_profiles up where up.user_id = uid;
-
-  select
-    (select count(*) from public.community_friends f
-       where f.friend_id = uid and f.status = 'pending')
-    + (select count(*) from public.community_join_requests r
-        where r.status = 'pending'
-          and exists (select 1
-            from public.group_members gm
-            join public.groups g on g.id = gm.group_id
-            where gm.group_id = r.group_id and gm.user_id = uid
-              and gm.role in ('owner','coowner') and g.deleted_at is null))
-  into pend;
-
-  select coalesce(jsonb_agg(jsonb_build_object(
-    'connectionId', f.id,
-    'userId', case when f.user_id = uid then f.friend_id else f.user_id end,
-    'name', other.display_name,
-    'handle', other.handle,
-    'avatarUrl', null,
-    'requestStatus', f.status,
-    'requestedByMe', f.user_id = uid,
-    'presence', jsonb_build_object(
-      'state', coalesce(up.state, 'offline'),
-      'subject', up.current_subject,
-      'startedAt', up.session_started_at,
-      'lastSeenAt', coalesce(up.last_beat_at, up.last_seen)
+  SELECT jsonb_build_object(
+    'stats', jsonb_build_object(
+      'totalGroups', (SELECT COUNT(*) FROM public.groups WHERE deleted_at IS NULL),
+      'totalMembers', (SELECT COUNT(DISTINCT user_id) FROM public.group_members),
+      'totalMessages', 0
     ),
-    'minutesToday', 0,
-    'subjects', '[]'::jsonb,
-    'tasks', null
-  )), '[]'::jsonb)
-  into buddies
-  from public.community_friends f
-  left join public.user_profiles other
-    on other.user_id = case when f.user_id = uid then f.friend_id else f.user_id end
-  left join public.user_presence up
-    on up.user_id = case when f.user_id = uid then f.friend_id else f.user_id end
-  where (f.user_id = uid or f.friend_id = uid)
-    and f.status in ('pending','accepted');
-
-  select coalesce(jsonb_agg(jsonb_build_object(
-    'id', g.id,
-    'name', g.name,
-    'slug', g.slug,
-    'description', g.description,
-    'exam', coalesce(g.exam, ''),
-    'targetYear', coalesce(g.target_year, 0),
-    'subjects', coalesce(g.subjects, '{}'::text[]),
-    'visibility', coalesce(g.visibility, 'public'),
-    'joinPolicy', coalesce(g.join_policy, 'request'),
-    'memberCount', (select count(*) from public.group_members a where a.group_id = g.id and a.left_at is null),
-    'activeNow', (select count(*) from public.group_members a
-                   join public.user_presence up on up.user_id = a.user_id
-                   where a.group_id = g.id and a.left_at is null and up.state = 'studying'),
-    'visualKey', coalesce(g.visual_key, 0),
-    'role', case when gm.role = 'coowner' then 'admin' else gm.role end
-  )), '[]'::jsonb)
-  into groups
-  from public.group_members gm
-  join public.groups g on g.id = gm.group_id
-  where gm.user_id = uid and gm.left_at is null and g.deleted_at is null;
-
-  select coalesce(jsonb_agg(jsonb_build_object(
-    'id', r.id,
-    'groupId', r.group_id,
-    'groupName', g.name,
-    'userId', r.user_id,
-    'name', up.display_name,
-    'handle', up.handle,
-    'createdAt', r.created_at
-  )), '[]'::jsonb)
-  into groupreq
-  from public.community_join_requests r
-  join public.groups g on g.id = r.group_id
-  left join public.user_profiles up on up.user_id = r.user_id
-  where r.status = 'pending'
-    and exists (select 1 from public.group_members gm
-      where gm.group_id = r.group_id and gm.user_id = uid
-        and gm.role in ('owner','coowner') and gm.left_at is null)
-    and g.deleted_at is null;
-
-  out := jsonb_build_object(
-    'profile', prof,
-    'pendingCount', pend,
-    'buddies', buddies,
-    'groups', groups,
-    'groupRequests', groupreq,
-    'updatedAt', now()
+    'groups', (SELECT jsonb_agg(jsonb_build_object(
+      'id', id, 'name', name, 'slug', lower(regexp_replace(name, '[^a-z0-9]+', '-', 'g')),
+      'memberCount', (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id),
+      'activeNow', 0, 'visualKey', visual_key, 'exam', exam
+    )) FROM public.groups g WHERE deleted_at IS NULL)
   );
-  return out;
-end
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_get_privacy"()
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE
- SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 declare
   priv jsonb;
@@ -1743,10 +1660,8 @@ CREATE OR REPLACE FUNCTION "public"."community_get_start_alert"(p_target_type te
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE
- SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 declare
   res jsonb;
@@ -1770,37 +1685,43 @@ CREATE OR REPLACE FUNCTION "public"."community_heartbeat"(p_state text, p_subjec
  SET "search_path" TO 'public'
  AS $iso_fn$
 
+DECLARE
+  v_uid uuid := auth.uid();
+  v_now timestamptz := now();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Not authenticated');
+  END IF;
 
-begin
-  insert into public.user_presence (user_id, state, current_subject, session_started_at, last_beat_at, updated_at)
-  values (auth.uid(), p_state, p_subject_name, p_session_started_at, now(), now())
-  on conflict (user_id) do update set
-    state = excluded.state,
-    is_online = true,
-    current_subject = case
-                        when excluded.state in ('idle','offline') then null
-                        else coalesce(excluded.current_subject, user_presence.current_subject)
-                      end,
-    session_started_at = case
-                        when excluded.state in ('idle','offline') then null
-                        else coalesce(excluded.session_started_at, user_presence.session_started_at)
-                      end,
-    last_beat_at = now(),
+  -- Update or insert presence record
+  INSERT INTO public.user_presence (user_id, status, last_seen, subject_id, subject_name, task_id, task_title, session_started_at)
+  VALUES (auth.uid(), p_state, now(), p_subject_id, p_subject_name, p_task_id, p_task_title, p_session_started_at)
+  ON CONFLICT (user_id) DO UPDATE SET
+    status = EXCLUDED.status,
+    last_seen = EXCLUDED.last_seen,
+    subject_id = EXCLUDED.subject_id,
+    subject_name = EXCLUDED.subject_name,
+    task_id = EXCLUDED.task_id,
+    task_title = EXCLUDED.task_title,
+    session_started_at = COALESCE(user_presence.session_started_at, EXCLUDED.session_started_at),
     updated_at = now();
-  return jsonb_build_object('ok', true);
-end
+
+  RETURN jsonb_build_object('ok', true);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('ok', false, 'error', SQLERRM);
+END;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_is_enrolled"()
  RETURNS boolean
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-  select exists(
-    select 1 from public.community_enrollments where user_id = auth.uid()
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_profiles up
+    WHERE up.user_id = auth.uid()
+    AND (up.profile_data->>'community_enrolled')::boolean = true
   );
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_join_group"(p_group_id uuid)
@@ -1811,35 +1732,22 @@ CREATE OR REPLACE FUNCTION "public"."community_join_group"(p_group_id uuid)
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-declare
-  vis text; jp text; is_member boolean; is_owner boolean;
-begin
-  select g.visibility, g.join_policy, (g.owner_id = auth.uid()) into vis, jp, is_owner
-    from public.groups g where g.id = p_group_id and g.deleted_at is null;
-  if vis is null then raise exception 'group_not_found'; end if;
-
-  select exists(
-    select 1 from public.group_members m
-    where m.group_id = p_group_id and m.user_id = auth.uid() and m.left_at is null
-  ) into is_member;
-
-  if is_owner or is_member then
-    return jsonb_build_object('status', 'member');
-  end if;
-
-  if jp = 'open' or jp = 'instant' then
-    insert into public.group_members (group_id, user_id, role, joined_at)
-    values (p_group_id, auth.uid(), 'member', now())
-    on conflict (group_id, user_id) do update set left_at = null;
-    return jsonb_build_object('status', 'joined');
-  else
-    insert into public.community_join_requests (group_id, user_id, status, created_at)
-    values (p_group_id, auth.uid(), 'pending', now())
-    on conflict (group_id, user_id) do update set status = 'pending', created_at = now();
-    return jsonb_build_object('status', 'requested');
-  end if;
-end
+DECLARE
+  v_uid uuid := auth.uid();
+  v_group RECORD;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT * INTO v_group FROM public.groups WHERE id = p_group_id AND (deleted_at IS NULL);
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Group not found');
+  END IF;
+  INSERT INTO public.group_members (group_id, user_id, role)
+  VALUES (p_group_id, v_uid, 'member')
+  ON CONFLICT (group_id, user_id) DO NOTHING;
+  RETURN jsonb_build_object('success', true, 'data', 'joined');
+END;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_leave_group"(p_group_id uuid)
  RETURNS jsonb
@@ -1849,21 +1757,22 @@ CREATE OR REPLACE FUNCTION "public"."community_leave_group"(p_group_id uuid)
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-begin
-  update public.group_members set left_at = now(), updated_at = now()
-   where group_id = p_group_id and user_id = auth.uid();
-  return jsonb_build_object('ok', true);
-end
+DECLARE
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  DELETE FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  RETURN jsonb_build_object('success', true);
+END;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_preview_invite"(p_token text)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE
- SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 declare
   res jsonb;
@@ -1915,7 +1824,6 @@ CREATE OR REPLACE FUNCTION "public"."community_redeem_invite"(p_token text)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 declare
   inviter uuid;
@@ -1984,7 +1892,6 @@ CREATE OR REPLACE FUNCTION "public"."community_register_device_token"(p_token te
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
 begin
   insert into public.community_device_tokens (user_id, token, platform)
   values (auth.uid(), p_token, 'web')
@@ -1999,7 +1906,6 @@ CREATE OR REPLACE FUNCTION "public"."community_remove_buddy"(p_other_user uuid, 
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 begin
   delete from public.community_friends
@@ -2021,18 +1927,20 @@ CREATE OR REPLACE FUNCTION "public"."community_remove_group_member"(p_group_id u
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-begin
-  if not exists (select 1 from public.group_members
-                 where group_id = p_group_id and user_id = auth.uid()
-                   and role in ('owner','coowner') and left_at is null) then
-    raise exception 'not_allowed';
-  end if;
-  if p_user_id = auth.uid() then raise exception 'cannot_remove_self'; end if;
-  update public.group_members set left_at = now(), updated_at = now()
-   where group_id = p_group_id and user_id = p_user_id;
-  return jsonb_build_object('ok', true);
-end
+DECLARE
+  v_uid uuid := auth.uid();
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  IF v_role NOT IN ('owner', 'admin') THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Insufficient permissions');
+  END IF;
+  DELETE FROM public.group_members WHERE group_id = p_group_id AND user_id = p_user_id;
+  RETURN jsonb_build_object('success', true);
+END;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_request_buddy"(p_handle text)
  RETURNS uuid
@@ -2041,7 +1949,6 @@ CREATE OR REPLACE FUNCTION "public"."community_request_buddy"(p_handle text)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 declare
   uid uuid := auth.uid();
@@ -2073,7 +1980,6 @@ CREATE OR REPLACE FUNCTION "public"."community_respond_buddy"(p_connection_id uu
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
 begin
   update public.community_friends
      set status = case when p_accept then 'accepted' else 'rejected' end,
@@ -2091,7 +1997,6 @@ CREATE OR REPLACE FUNCTION "public"."community_respond_join_request"(p_request_i
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 declare
   gid uuid; uid uuid;
@@ -2112,7 +2017,7 @@ begin
     on conflict (group_id, user_id) do update set left_at = null;
   end if;
   return jsonb_build_object('ok', true);
-end
+end;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_save_privacy"(p_settings jsonb)
  RETURNS jsonb
@@ -2121,7 +2026,6 @@ CREATE OR REPLACE FUNCTION "public"."community_save_privacy"(p_settings jsonb)
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 begin
   insert into public.community_enrollments (user_id, privacy, onboarded, updated_at)
@@ -2140,7 +2044,6 @@ CREATE OR REPLACE FUNCTION "public"."community_send_group_message"(p_group_id te
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 declare
   uid uuid := auth.uid();
@@ -2182,18 +2085,22 @@ CREATE OR REPLACE FUNCTION "public"."community_set_group_role"(p_group_id uuid, 
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-begin
-  if not exists (select 1 from public.group_members
-                 where group_id = p_group_id and user_id = auth.uid()
-                   and role = 'owner' and left_at is null) then
-    raise exception 'not_allowed';
-  end if;
-  if p_role not in ('owner','coowner','member','admin') then raise exception 'invalid_role'; end if;
-  update public.group_members set role = case when p_role = 'admin' then 'coowner' else p_role end, updated_at = now()
-   where group_id = p_group_id and user_id = p_user_id;
-  return jsonb_build_object('ok', true);
-end
+DECLARE
+  v_uid uuid := auth.uid();
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  IF v_role != 'owner' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Only owner can set roles');
+  END IF;
+  UPDATE public.group_members
+  SET role = p_role
+  WHERE group_id = p_group_id AND user_id = p_user_id;
+  RETURN jsonb_build_object('success', true);
+END;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_set_start_alert"(p_target_type text, p_target_id uuid, p_enabled boolean DEFAULT true, p_quiet_hours_enabled boolean DEFAULT false, p_quiet_start time without time zone DEFAULT NULL::time without time zone, p_quiet_end time without time zone DEFAULT NULL::time without time zone, p_timezone_offset_minutes integer DEFAULT 0)
  RETURNS jsonb
@@ -2202,7 +2109,6 @@ CREATE OR REPLACE FUNCTION "public"."community_set_start_alert"(p_target_type te
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 begin
   insert into public.community_start_alerts
@@ -2227,7 +2133,6 @@ CREATE OR REPLACE FUNCTION "public"."community_submit_report"(p_target_type text
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
 begin
   insert into public.community_reports (reporter_user_id, target_type, target_id, reason)
   values (auth.uid(), p_target_type, p_target_id, coalesce(p_reason, ''));
@@ -2241,7 +2146,6 @@ CREATE OR REPLACE FUNCTION "public"."community_sync_quiet_hours"(p_enabled boole
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
-
 
 begin
   insert into public.community_enrollments (user_id, quiet_hours, onboarded, updated_at)
@@ -2265,25 +2169,21 @@ CREATE OR REPLACE FUNCTION "public"."community_transfer_group"(p_group_id uuid, 
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-begin
-  if not exists (select 1 from public.group_members
-                 where group_id = p_group_id and user_id = auth.uid()
-                   and role = 'owner' and left_at is null) then
-    raise exception 'not_allowed';
-  end if;
-  if p_new_owner is null then raise exception 'invalid_owner'; end if;
-  if not exists (select 1 from public.group_members
-                 where group_id = p_group_id and user_id = p_new_owner and left_at is null) then
-    raise exception 'not_a_member';
-  end if;
-  update public.groups set owner_id = p_new_owner, updated_at = now() where id = p_group_id;
-  update public.group_members set role = 'member', updated_at = now()
-   where group_id = p_group_id and user_id = auth.uid();
-  update public.group_members set role = 'owner', updated_at = now()
-   where group_id = p_group_id and user_id = p_new_owner;
-  return jsonb_build_object('ok', true);
-end
+DECLARE
+  v_uid uuid := auth.uid();
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  IF v_role != 'owner' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Only owner can transfer');
+  END IF;
+  UPDATE public.group_members SET role = 'owner' WHERE group_id = p_group_id AND user_id = p_new_owner;
+  UPDATE public.group_members SET role = 'admin' WHERE group_id = p_group_id AND user_id = v_uid;
+  RETURN jsonb_build_object('success', true);
+END;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_update_group"(p_group_id uuid, p_changes jsonb)
  RETURNS jsonb
@@ -2293,37 +2193,30 @@ CREATE OR REPLACE FUNCTION "public"."community_update_group"(p_group_id uuid, p_
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-begin
-  if not exists (select 1 from public.group_members
-                 where group_id = p_group_id and user_id = auth.uid()
-                   and role in ('owner','coowner') and left_at is null) then
-    raise exception 'not_allowed';
-  end if;
-  if p_changes->>'name' is not null and trim(coalesce(p_changes->>'name', '')) = '' then
-    raise exception 'name_required';
-  end if;
-  update public.groups g set
-    name          = coalesce(p_changes->>'name', g.name),
-    description   = coalesce(p_changes->>'description', g.description),
-    visibility    = coalesce(p_changes->>'visibility', g.visibility),
-    join_policy   = coalesce(p_changes->>'joinPolicy', p_changes->>'join_policy', g.join_policy),
-    target_year   = case
-                      when coalesce(p_changes->'targetYear', p_changes->'target_year') is null
-                        or jsonb_typeof(coalesce(p_changes->'targetYear', p_changes->'target_year')) = 'null'
-                      then g.target_year
-                      else coalesce(p_changes->>'targetYear', p_changes->>'target_year')::int
-                    end,
-    exam          = coalesce(p_changes->>'exam', g.exam),
-    subjects      = case
-                      when p_changes ? 'subjects' and jsonb_typeof(p_changes->'subjects') = 'array'
-                      then (select coalesce(array_agg(s), '{}'::text[]) from jsonb_array_elements_text(p_changes->'subjects') s)
-                      else g.subjects
-                    end,
-    updated_at    = now()
-   where id = p_group_id;
-  return jsonb_build_object('ok', true);
-end
+DECLARE
+  v_uid uuid := auth.uid();
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  IF v_role NOT IN ('owner', 'admin') THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Insufficient permissions');
+  END IF;
+  UPDATE public.groups
+  SET
+    name = COALESCE(p_changes->>'name', name),
+    description = COALESCE(p_changes->>'description', description),
+    exam = COALESCE(p_changes->>'exam', exam),
+    target_year = COALESCE((p_changes->>'targetYear')::int, target_year),
+    subjects = COALESCE(p_changes->'subjects', subjects),
+    visibility = COALESCE(p_changes->>'visibility', visibility),
+    join_policy = COALESCE(p_changes->>'joinPolicy', join_policy),
+    updated_at = now()
+  WHERE id = p_group_id;
+  RETURN jsonb_build_object('success', true);
+END;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."create_community_event"(p_title text, p_event_type text DEFAULT 'webinar'::text, p_description text DEFAULT NULL::text, p_host text DEFAULT NULL::text, p_start_time timestamp with time zone DEFAULT now(), p_end_time timestamp with time zone DEFAULT NULL::timestamp with time zone, p_image_gradient text DEFAULT 'from-purple-600 to-blue-500'::text, p_image_url text DEFAULT NULL::text, p_tags text[] DEFAULT '{}'::text[], p_max_attendees integer DEFAULT NULL::integer, p_is_featured boolean DEFAULT false, p_is_active boolean DEFAULT true)
  RETURNS jsonb
@@ -2349,135 +2242,6 @@ BEGIN
   RETURNING id INTO v_id;
   RETURN jsonb_build_object('ok', true, 'id', v_id);
 END
-$iso_fn$;
-CREATE OR REPLACE FUNCTION "public"."create_community_group"(p_name text, p_description text DEFAULT NULL::text, p_category text DEFAULT 'community'::text, p_is_public boolean DEFAULT true, p_slug text DEFAULT NULL::text, p_logo_url text DEFAULT NULL::text, p_cover_url text DEFAULT NULL::text, p_settings jsonb DEFAULT '{}'::jsonb)
- RETURNS uuid
- LANGUAGE plpgsql
- VOLATILE
- SET "search_path" TO '""""""'
- AS $iso_fn$
-
-
-DECLARE
-  v_group_id uuid;
-  v_uid uuid := auth.uid();
-BEGIN
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'Not authenticated';
-  END IF;
-
-  IF p_slug IS NULL THEN
-    -- basic slug fallback; you can override by passing p_slug
-    p_slug := lower(regexp_replace(coalesce(p_name,''), '[^a-zA-Z0-9]+', '-', 'g'));
-    IF p_slug = '' THEN
-      p_slug := NULL;
-    END IF;
-  END IF;
-
-  INSERT INTO public.groups (
-    name,
-    description,
-    category,
-    is_public,
-    slug,
-    logo_url,
-    cover_url,
-    owner_id,
-    settings
-  )
-  VALUES (
-    p_name,
-    p_description,
-    p_category,
-    COALESCE(p_is_public, true),
-    p_slug,
-    p_logo_url,
-    p_cover_url,
-    v_uid,
-    COALESCE(p_settings, '{}'::jsonb)
-  )
-  RETURNING id INTO v_group_id;
-
-  -- add creator as owner (and ensure a member row exists)
-  INSERT INTO public.group_members (group_id, user_id, role)
-  VALUES (v_group_id, v_uid, 'owner')
-  ON CONFLICT (group_id, user_id) DO UPDATE SET role = EXCLUDED.role;
-
-  RETURN v_group_id;
-END;
-$iso_fn$;
-CREATE OR REPLACE FUNCTION "public"."create_community_group"(p_name text, p_description text DEFAULT NULL::text, p_category text DEFAULT 'General'::text, p_cover_url text DEFAULT NULL::text, p_is_public boolean DEFAULT true, p_max_members integer DEFAULT 100, p_visibility text DEFAULT 'public'::text)
- RETURNS jsonb
- LANGUAGE plpgsql
- VOLATILE
- SECURITY DEFINER
- SET "search_path" TO 'public'
- AS $iso_fn$
-
-
-DECLARE
-  v_uid      uuid := auth.uid();
-  v_group_id uuid;
-  v_slug     text;
-  v_slug_base text;
-  v_counter  integer := 0;
-  v_group    public.groups%ROWTYPE;
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  IF p_name IS NULL OR trim(p_name) = '' THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Group name is required');
-  END IF;
-  IF p_max_members < 2 OR p_max_members > 10000 THEN
-    RETURN jsonb_build_object('success', false, 'error', 'max_members must be between 2 and 10000');
-  END IF;
-
-  -- Generate unique slug
-  v_slug_base := lower(regexp_replace(trim(p_name), '[^a-zA-Z0-9]+', '-', 'g'));
-  v_slug_base := trim(v_slug_base, '-');
-  IF v_slug_base = '' THEN v_slug_base := 'group'; END IF;
-  v_slug := v_slug_base;
-  LOOP
-    EXIT WHEN NOT EXISTS (SELECT 1 FROM public.groups WHERE slug = v_slug AND deleted_at IS NULL);
-    v_counter := v_counter + 1;
-    v_slug := v_slug_base || '-' || v_counter;
-    IF v_counter > 9999 THEN
-      v_slug := v_slug_base || '-' || extract(epoch FROM now())::bigint;
-      EXIT;
-    END IF;
-  END LOOP;
-
-  -- Insert group
-  INSERT INTO public.groups (
-    name, description, category, cover_url,
-    is_public, max_members, visibility, owner_id,
-    slug, member_count, created_at, updated_at
-  ) VALUES (
-    trim(p_name), p_description, COALESCE(p_category,'General'), p_cover_url,
-    p_is_public, p_max_members,
-    CASE WHEN p_is_public THEN 'public' ELSE COALESCE(p_visibility,'invite_only') END,
-    v_uid,
-    v_slug, 1, now(), now()
-  )
-  RETURNING id INTO v_group_id;
-
-  -- Insert owner membership
-  INSERT INTO public.group_members (group_id, user_id, role, joined_at)
-  VALUES (v_group_id, v_uid, 'owner', now())
-  ON CONFLICT (group_id, user_id) DO UPDATE SET role = 'owner';
-
-  SELECT * INTO v_group FROM public.groups WHERE id = v_group_id;
-
-  RETURN jsonb_build_object(
-    'success',   true,
-    'group_id',  v_group_id,
-    'slug',      v_slug,
-    'group',     row_to_json(v_group)::jsonb
-  );
-EXCEPTION WHEN OTHERS THEN
-  RETURN jsonb_build_object('success', false, 'error', SQLERRM);
-END;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."delete_community_event"(p_id uuid)
  RETURNS jsonb
@@ -2707,42 +2471,44 @@ CREATE OR REPLACE FUNCTION "public"."get_invite_details"(p_code text)
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."get_leaderboard"(p_period text DEFAULT 'weekly'::text, p_limit integer DEFAULT 50, p_offset integer DEFAULT 0)
  RETURNS TABLE(rank bigint, user_id uuid, username text, name text, avatar_url text, total_hours numeric, weekly_hours numeric, monthly_hours numeric, total_sessions integer, current_streak integer, last_session_at timestamp with time zone, score numeric)
- LANGUAGE plpgsql
+ LANGUAGE sql
  STABLE
  SECURITY DEFINER
+ SET "search_path" TO 'public'
  AS $iso_fn$
 
-
-BEGIN
-  RETURN QUERY
   SELECT
     ROW_NUMBER() OVER (
       ORDER BY
         CASE p_period
-          WHEN 'monthly' THEN s.monthly_hours
-          ELSE                s.weekly_hours
-        END DESC NULLS LAST,
-        s.total_hours DESC NULLS LAST
-    ),
-    s.user_id,
+          WHEN 'monthly' THEN COALESCE(s.monthly_hours, 0)
+          ELSE                COALESCE(s.weekly_hours, 0)
+        END DESC,
+        COALESCE(s.total_hours, 0) DESC
+    ) AS rank,
+    u.id AS user_id,
     u.username,
-    u.name,
+    u."name",
     u.avatar_url,
-    COALESCE(s.total_hours,   0),
-    COALESCE(s.weekly_hours,  0),
-    COALESCE(s.monthly_hours, 0),
-    COALESCE(s.total_sessions,  0)::integer,
-    COALESCE(s.current_streak,  0)::integer,
+    COALESCE(s.total_hours, 0)   AS total_hours,
+    COALESCE(s.weekly_hours, 0)  AS weekly_hours,
+    COALESCE(s.monthly_hours, 0) AS monthly_hours,
+    COALESCE(s.total_sessions, 0)::integer AS total_sessions,
+    COALESCE(s.current_streak, 0)::integer AS current_streak,
     s.last_session_at,
     COALESCE(
       CASE p_period WHEN 'monthly' THEN s.monthly_hours ELSE s.weekly_hours END, 0
-    )
-  FROM public.user_stats_summary s
-  JOIN public.users u ON u.id = s.user_id
-  ORDER BY score DESC NULLS LAST, s.total_hours DESC NULLS LAST
-  LIMIT  p_limit
+    ) AS score
+  FROM public.users u
+  LEFT JOIN public.user_stats_summary s ON s.user_id = u.id
+  ORDER BY
+    CASE p_period
+      WHEN 'monthly' THEN COALESCE(s.monthly_hours, 0)
+      ELSE                COALESCE(s.weekly_hours, 0)
+    END DESC,
+    COALESCE(s.total_hours, 0) DESC
+  LIMIT p_limit
   OFFSET p_offset;
-END
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."get_membership_snapshot"(p_user_id uuid DEFAULT NULL::uuid, target_user_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
@@ -3510,6 +3276,16 @@ DROP TRIGGER IF EXISTS "trg_auto_add_owner" ON "public"."groups";
 CREATE TRIGGER trg_auto_add_owner AFTER INSERT ON public.groups FOR EACH ROW EXECUTE FUNCTION _auto_add_group_owner();
 DROP TRIGGER IF EXISTS "trg_auto_add_super_admin" ON "public"."groups";
 CREATE TRIGGER trg_auto_add_super_admin AFTER INSERT ON public.groups FOR EACH ROW EXECUTE FUNCTION _auto_add_super_admin();
+DROP TRIGGER IF EXISTS "trg_ensure_community_enrollment" ON "public"."users";
+CREATE TRIGGER trg_ensure_community_enrollment AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION _ensure_community_enrollment();
+DROP TRIGGER IF EXISTS "trg_ensure_onboarding" ON "public"."users";
+CREATE TRIGGER trg_ensure_onboarding AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION _ensure_onboarding_complete();
+DROP TRIGGER IF EXISTS "trg_ensure_stats" ON "public"."users";
+CREATE TRIGGER trg_ensure_stats AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION _ensure_stats_summary();
+DROP TRIGGER IF EXISTS "trg_ensure_user_points" ON "public"."users";
+CREATE TRIGGER trg_ensure_user_points AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION _ensure_user_points();
+DROP TRIGGER IF EXISTS "trg_ensure_user_profile" ON "public"."users";
+CREATE TRIGGER trg_ensure_user_profile AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION _ensure_user_profile();
 DROP TRIGGER IF EXISTS "trg_set_group_slug" ON "public"."groups";
 CREATE TRIGGER trg_set_group_slug BEFORE INSERT ON public.groups FOR EACH ROW EXECUTE FUNCTION set_group_slug_from_name();
 DROP TRIGGER IF EXISTS "trg_sync_group_visibility" ON "public"."groups";
@@ -3623,7 +3399,9 @@ CREATE POLICY "daily_delete_own" ON "public"."daily_user_stats" AS PERMISSIVE FO
 DROP POLICY IF EXISTS "daily_insert_own" ON "public"."daily_user_stats";
 CREATE POLICY "daily_insert_own" ON "public"."daily_user_stats" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "daily_own" ON "public"."daily_user_stats";
-CREATE POLICY "daily_own" ON "public"."daily_user_stats" AS PERMISSIVE FOR ALL  USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+CREATE POLICY "daily_own" ON "public"."daily_user_stats" AS PERMISSIVE FOR ALL  USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "daily_read_all" ON "public"."daily_user_stats";
+CREATE POLICY "daily_read_all" ON "public"."daily_user_stats" AS PERMISSIVE FOR SELECT  USING (true);
 DROP POLICY IF EXISTS "daily_read_authenticated" ON "public"."daily_user_stats";
 CREATE POLICY "daily_read_authenticated" ON "public"."daily_user_stats" AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 DROP POLICY IF EXISTS "daily_update_own" ON "public"."daily_user_stats";
@@ -3860,8 +3638,8 @@ DROP POLICY IF EXISTS "stats_delete_own" ON "public"."user_stats_summary";
 CREATE POLICY "stats_delete_own" ON "public"."user_stats_summary" AS PERMISSIVE FOR DELETE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "stats_insert_own" ON "public"."user_stats_summary";
 CREATE POLICY "stats_insert_own" ON "public"."user_stats_summary" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
-DROP POLICY IF EXISTS "stats_own_write" ON "public"."user_stats_summary";
-CREATE POLICY "stats_own_write" ON "public"."user_stats_summary" AS PERMISSIVE FOR ALL  USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+DROP POLICY IF EXISTS "stats_own" ON "public"."user_stats_summary";
+CREATE POLICY "stats_own" ON "public"."user_stats_summary" AS PERMISSIVE FOR ALL  USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "stats_read_all" ON "public"."user_stats_summary";
 CREATE POLICY "stats_read_all" ON "public"."user_stats_summary" AS PERMISSIVE FOR SELECT  USING (true);
 DROP POLICY IF EXISTS "stats_read_authenticated" ON "public"."user_stats_summary";
@@ -4956,6 +4734,11 @@ GRANT EXECUTE ON FUNCTION "rpc_private"."leave_community_event"(p_event_id uuid)
 GRANT EXECUTE ON FUNCTION "rpc_private"."purchase_store_item"(p_user_id uuid, p_item_id uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION "public"."_auto_add_group_owner"() TO anon;
 GRANT EXECUTE ON FUNCTION "public"."_auto_add_super_admin"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."_ensure_community_enrollment"() TO service_role;
+GRANT EXECUTE ON FUNCTION "public"."_ensure_onboarding_complete"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."_ensure_stats_summary"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."_ensure_user_points"() TO service_role;
+GRANT EXECUTE ON FUNCTION "public"."_ensure_user_profile"() TO service_role;
 GRANT EXECUTE ON FUNCTION "public"."_has_group_role"(gid uuid, uid uuid, allowed_roles text[]) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."_is_group_member"(gid uuid, uid uuid) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."_sync_group_member_count"() TO anon;
@@ -4967,7 +4750,7 @@ GRANT EXECUTE ON FUNCTION "public"."community_create_group"(p_name text, p_descr
 GRANT EXECUTE ON FUNCTION "public"."community_create_invite"(p_type text, p_target_id uuid, p_days integer) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."community_delete_group"(p_group_id uuid) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."community_discover_groups"(p_query text, p_exam text, p_target_year integer, p_subject text, p_has_space boolean, p_join_policy text, p_limit integer, p_offset integer) TO anon;
-GRANT EXECUTE ON FUNCTION "public"."community_get_group"(p_group_id text, p_period text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_get_group"(p_group_id uuid, p_period text) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."community_get_group_messages"(p_group_id text, p_limit integer) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."community_get_overview"() TO anon;
 GRANT EXECUTE ON FUNCTION "public"."community_get_privacy"() TO anon;
@@ -4993,8 +4776,6 @@ GRANT EXECUTE ON FUNCTION "public"."community_sync_quiet_hours"(p_enabled boolea
 GRANT EXECUTE ON FUNCTION "public"."community_transfer_group"(p_group_id uuid, p_new_owner uuid) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."community_update_group"(p_group_id uuid, p_changes jsonb) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."create_community_event"(p_title text, p_event_type text, p_description text, p_host text, p_start_time timestamp with time zone, p_end_time timestamp with time zone, p_image_gradient text, p_image_url text, p_tags text[], p_max_attendees integer, p_is_featured boolean, p_is_active boolean) TO anon;
-GRANT EXECUTE ON FUNCTION "public"."create_community_group"(p_name text, p_description text, p_category text, p_cover_url text, p_is_public boolean, p_max_members integer, p_visibility text) TO anon;
-GRANT EXECUTE ON FUNCTION "public"."create_community_group"(p_name text, p_description text, p_category text, p_is_public boolean, p_slug text, p_logo_url text, p_cover_url text, p_settings jsonb) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."delete_community_event"(p_id uuid) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."delete_community_group"(p_group_id uuid) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."expire_stale_presence"() TO anon;

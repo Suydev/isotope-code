@@ -5,8 +5,8 @@
 #   ./backup.sh backup [--out DIR] [--no-storage] [--keep N] [--no-verify]
 #        [--supabase-url URL --anon-key K --service-key K --pat TOKEN]
 #     Dumps schema (scripts/schema-dump.mjs) + all DB tables + auth users
-#     + storage buckets (avatars, user-content, notes, group-icons,
-#     study-material) into a timestamped tarball under backups/.
+#     + every storage bucket discovered on the project (avatars, user-content,
+#     notes, and any others) into a timestamped tarball under backups/.
 #     Keys: CLI args > env vars > .env (SUPABASE_URL / SUPABASE_ANON_KEY /
 #     SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ACCESS_TOKEN).
 #     Tarball integrity is checked (gzip -t + tar -tzf), a .sha256 sidecar is
@@ -324,7 +324,7 @@ EOF
   # previous .env when restoring into the SAME project — never wipe working config
   if [[ -n "$old_env" ]]; then
     local preserved=0 key
-    for key in ADMIN_SECRET ADMIN_EMAIL ADMIN_EMAILS BROWSER_PROOF_EMAIL GITHUB_PAT GEMINI_API_KEY GROQ_API_KEY YEPAPI_KEY SESSION_SECRET SUPABASE_SERVICE_ROLE_KEY; do
+    for key in ADMIN_SECRET ADMIN_EMAIL ADMIN_EMAILS BROWSER_PROOF_EMAIL GITHUB_PAT GITHUB_OWNER GITHUB_REPO ASSET_CDN_ORIGINS GEMINI_API_KEY GROQ_API_KEY YEPAPI_KEY SHOT_EMAIL SHOT_PASSWORD SESSION_SECRET SUPABASE_SERVICE_ROLE_KEY; do
       local newval
       newval="$(grep -E "^$key=" "$ROOT/.env" 2>/dev/null | head -1 | cut -d= -f2-)"
       if [[ -z "$newval" ]]; then
@@ -344,7 +344,10 @@ EOF
     say "restarting server…"
     bash "$ROOT/bin/isotope" restart >/dev/null 2>&1 || true
   fi
-  say "DONE. Server: $(grep -E '^PORT' "$ROOT/.env" | cut -d= -f2)x — visit http://localhost:$(grep -E '^PORT' "$ROOT/.env" | cut -d= -f2)"
+  local port
+  port="$(grep -E '^PORT=' "$ROOT/.env" | head -1 | cut -d= -f2 | tr -dc '0-9')"
+  port="${port:-3000}"
+  say "DONE. Visit http://localhost:$port"
 }
 
 # ── verify ──────────────────────────────────────────────────────────────────
@@ -427,11 +430,14 @@ case "${1:-}" in
   restore) shift; cmd_restore "$@" ;;
   verify)  shift; cmd_verify "$@" ;;
   info)    shift; cmd_info "$@" ;;
-  *) echo "usage: $0 {backup|restore|verify|info} [args…]
+  *) { echo "usage: $0 {backup|restore|verify|info} [args…]
   $0 backup [--out DIR] [--no-storage] [--keep N] [--no-verify]
         [--supabase-url URL --anon-key K --service-key K --pat TOKEN]
   $0 restore <backup.tar.gz> [--supabase-url URL --anon-key K --service-key K --pat TOKEN]
   $0 verify <backup.tar.gz> [--supabase-url URL --service-key K --pat TOKEN]
   $0 info <backup.tar.gz>
-(keys: CLI args > env vars > .env)" ;;
+(keys: CLI args > env vars > .env)"
+     # help was explicitly requested → success; an unknown command → error
+     case "${1:-}" in help|-h|--help|'') exit 0 ;; *) exit 2 ;; esac
+   } ;;
 esac
