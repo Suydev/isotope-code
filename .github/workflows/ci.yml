@@ -106,6 +106,13 @@ jobs:
             server/backup-manager.mjs
             public/sync/backup-normalizer.js
             public/sync/local-data-adapter.js
+            public/auth-bridge.js
+            public/boot-recovery.js
+            public/restore-and-launch.js
+            public/ux-setup.js
+            public/update-checker.js
+            public/pwa-local.js
+            public/focus-bg-import.js
             scripts/storage-backup-lib.mjs
             scripts/validate-backup-files.mjs
             scripts/repair-user-backup.mjs
@@ -118,6 +125,24 @@ jobs:
           for f in "${files[@]}"; do
             node --check "$f"
             echo "✅ $f"
+          done
+          # public/sw.js carries __ISOTOPE_*__ placeholders that server.mjs
+          # substitutes at serve time. Those are inside string literals so the
+          # raw file is still valid JS, but check the substituted form too —
+          # the cache-name expression is assembled from them.
+          SWTMP="$(mktemp -d)/sw.js"
+          sed -e 's/__ISOTOPE_APP_VERSION__/0.0.0-ci/g' \
+              -e 's/__ISOTOPE_APP_SHA__/0000000000000000/g' \
+              -e 's/__ISOTOPE_BUILD_TOKEN__/citoken00000/g' \
+              public/sw.js > "$SWTMP"
+          node --check public/sw.js
+          echo "✅ public/sw.js (raw)"
+          node --check "$SWTMP"
+          echo "✅ public/sw.js (placeholders substituted)"
+          # Every placeholder sw.js declares must be one server.mjs replaces.
+          for ph in $(grep -o '__ISOTOPE_[A-Z_]*__' public/sw.js | sort -u); do
+            grep -q "$ph" server.mjs || { echo "::error::$ph in public/sw.js is never substituted by server.mjs"; exit 1; }
+            echo "✅ $ph substituted by server.mjs"
           done
 
       - name: 🧪 Backup normalizer safety smoke

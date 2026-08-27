@@ -5,7 +5,7 @@ import path from 'path';
 import os from 'os';
 import zlib from 'zlib';
 import crypto from 'crypto';
-import { execSync, spawn } from 'child_process';
+import { execSync, spawn, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { createBackupManager } from './server/backup-manager.mjs';
 import {
@@ -3335,6 +3335,19 @@ function currentBuildStamp() {
     return 'unknown';
   }
 }
+
+// Short, cache-name-safe digest of currentBuildStamp(). The service worker keys
+// its caches on this, so editing server.mjs (i.e. changing a serve-time bundle
+// patch) rotates the SW cache automatically. Without it the cache name depended
+// only on VERSION, so patch fixes were masked by cache-first /assets/ responses
+// until the user manually cleared storage.
+function currentBuildToken() {
+  try {
+    return crypto.createHash('sha256').update(currentBuildStamp()).digest('hex').slice(0, 12);
+  } catch (e) {
+    return 'nobuildtoken';
+  }
+}
 function buildUpdatePillScript() {
   const stamp = currentBuildStamp();
   return `<script>
@@ -3393,15 +3406,27 @@ function buildUpdatePillScript() {
       if (!label.disabled) label.textContent = 'Update now';
     }, 6000);
   }
-  function updateNow() {
+  function runUpdate(confirmed) {
     setBusy();
-    fetch('/api/update-now', { method: 'POST', cache: 'no-store' })
+    var url = '/api/update-now' + (confirmed ? '?confirm=1' : '');
+    fetch(url, { method: 'POST', cache: 'no-store' })
       .then(function (r) {
         if (r.status === 202 || r.ok) { remember(); launchReloadCheck(0); return; }
-        // Surface the server's reason instead of bouncing to a login page that
-        // may itself be disabled. Only offer admin unlock when it can work.
         return r.json().catch(function(){ return {}; }).then(function (body) {
           var msg = (body && (body.error || body.message)) || 'Update failed';
+          // 409: dirty working tree. \`git pull\` would stash the user's work,
+          // so name the cost and let them decide instead of doing it silently.
+          if (r.status === 409 && body && body.error === 'confirmation_required') {
+            var n = body.dirty_count || 0;
+            var ok = window.confirm(
+              'Update will run "git pull".\\n\\n' +
+              n + ' locally modified file(s) will be stashed and removed from your working tree.\\n\\n' +
+              'Recover them afterwards with:  git stash pop\\n\\n' +
+              'Continue?'
+            );
+            if (ok) { runUpdate(true); } else { fail('Update cancelled'); }
+            return;
+          }
           if (r.status === 401 || r.status === 403) {
             if (body && body.admin_available) {
               fail('Admin unlock needed');
@@ -3418,6 +3443,7 @@ function buildUpdatePillScript() {
       })
       .catch(function () { fail('Server unreachable'); });
   }
+  function updateNow() { runUpdate(false); }
   label.addEventListener('click', updateNow);
   dismiss.addEventListener('click', function(){
     remember();
@@ -3813,6 +3839,46 @@ function getPatchedCommunityBundle() {
     if (raw.includes(TAB_REQ_FROM)) {
       raw = raw.split(TAB_REQ_FROM).join(TAB_REQ_TO);
       console.log('[CommunityCrashFix] groupRequests tab prop guarded');
+    }
+    // Fix: mobile keyboard closed after every keystroke in community modals
+    // (Create a group, Join with code, Privacy). The shared modal component runs
+    // its focus-trap effect with a [onClose] dep array, and every call site
+    // passes an inline arrow (`onClose:()=>D(!1)`), so onClose is a new function
+    // identity on each parent render. React therefore re-runs the effect on every
+    // keystroke, and its cleanup ends in `m?.focus()` — restoring focus to the
+    // element that opened the modal. That blurs the <input>, and Android WebView
+    // dismisses the soft keyboard on blur.
+    //
+    // Fix in three parts, keeping the trap and Escape behaviour intact:
+    //   1. Hold onClose in a ref so the effect no longer depends on its identity.
+    //   2. Capture the return-focus target once, not on every re-run.
+    //   3. Dep array [] so cleanup (and the focus restore) runs only on unmount.
+    const MODAL_FOCUS_FROM = '({title:s,description:r,onClose:i,children:l,wide:o})=>{const d=p.useRef(null);return p.useEffect(()=>{const m=document.activeElement instanceof HTMLElement?document.activeElement:null,x=a=>{';
+    const MODAL_FOCUS_TO   = '({title:s,description:r,onClose:i,children:l,wide:o})=>{const d=p.useRef(null),_isoOc=p.useRef(i),_isoRet=p.useRef(null);_isoOc.current=i;return p.useEffect(()=>{_isoRet.current||(_isoRet.current=document.activeElement instanceof HTMLElement?document.activeElement:null);const x=a=>{';
+    if (raw.includes(MODAL_FOCUS_FROM)) {
+      raw = raw.replace(MODAL_FOCUS_FROM, MODAL_FOCUS_TO);
+      console.log('[CommunityKeyboardFix] modal focus-trap: onClose moved to ref');
+    } else {
+      console.warn('[CommunityKeyboardFix] modal open anchor not found');
+      _criticalPatchFailures.push('community-modal-focus-open');
+    }
+    const MODAL_ESC_FROM = 'if(a.key==="Escape"&&i(),a.key!=="Tab"||!d.current)return;';
+    const MODAL_ESC_TO   = 'if(a.key==="Escape"&&_isoOc.current(),a.key!=="Tab"||!d.current)return;';
+    if (raw.includes(MODAL_ESC_FROM)) {
+      raw = raw.replace(MODAL_ESC_FROM, MODAL_ESC_TO);
+      console.log('[CommunityKeyboardFix] Escape handler reads onClose ref');
+    } else {
+      console.warn('[CommunityKeyboardFix] modal Escape anchor not found');
+      _criticalPatchFailures.push('community-modal-focus-esc');
+    }
+    const MODAL_CLEAN_FROM = 'window.removeEventListener("keydown",x),document.body.style.overflow=t,m?.focus()}},[i]),e.jsx("div",{className:"community-modal-backdrop';
+    const MODAL_CLEAN_TO   = 'window.removeEventListener("keydown",x),document.body.style.overflow=t,_isoRet.current?.focus()}},[]),e.jsx("div",{className:"community-modal-backdrop';
+    if (raw.includes(MODAL_CLEAN_FROM)) {
+      raw = raw.replace(MODAL_CLEAN_FROM, MODAL_CLEAN_TO);
+      console.log('[CommunityKeyboardFix] focus restored on unmount only (dep [])');
+    } else {
+      console.warn('[CommunityKeyboardFix] modal cleanup anchor not found');
+      _criticalPatchFailures.push('community-modal-focus-cleanup');
     }
     // Fix: per-buddy subjects/tasks broken chains in Ke card + We today rows
     // s.subjects?.reduce(...) throws if subjects key is absent on row object
@@ -6973,7 +7039,7 @@ const server = http.createServer((req, res) => {
       local_server: true,
       update_command: 'isotope update',
       start_command: 'isotope start',
-      pwa_cache: 'isotope-local-shell-' + LOCAL_VERSION.version + '-' + String(DEPLOYED_SHA).slice(0, 12),
+      pwa_cache: 'isotope-local-shell-' + LOCAL_VERSION.version + '-' + String(DEPLOYED_SHA).slice(0, 12) + '-' + currentBuildToken(),
     }));
     return;
   }
@@ -7036,12 +7102,53 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ── /api/update-status — is it safe to run `isotope update` right now? ──────
+  // `isotope update` runs `git pull`, which auto-stashes a dirty tree. On an
+  // install with local modifications that silently moves the operator's work
+  // into a stash, so the UI asks here first and warns before proceeding.
+  if (req.method === 'GET' && adminPath === '/api/update-status') {
+    const authorized = isAdminAuthed(req) || isLoopbackRequest(req);
+    const payload = {
+      ok: true,
+      authorized,
+      admin_available: ADMIN_MODE_READY,
+      dirty: false,
+      dirty_count: 0,
+      dirty_files: [],
+      branch: null,
+    };
+    try {
+      const st = spawnSync('git', ['status', '--porcelain', '--untracked-files=no'], {
+        cwd: __dirname, encoding: 'utf8', timeout: 5000,
+      });
+      if (st.status === 0) {
+        const lines = String(st.stdout || '').split('\n').map(l => l.trim()).filter(Boolean);
+        payload.dirty = lines.length > 0;
+        payload.dirty_count = lines.length;
+        payload.dirty_files = lines.slice(0, 12).map(l => l.replace(/^\S+\s+/, ''));
+      }
+      const br = spawnSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+        cwd: __dirname, encoding: 'utf8', timeout: 5000,
+      });
+      if (br.status === 0) payload.branch = String(br.stdout || '').trim() || null;
+    } catch (e) {
+      payload.git_error = (e && e.message) || 'git unavailable';
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify(payload));
+    return;
+  }
+
   // ── /api/update-now — run `isotope update` from the browser ────────────────
   // Authorized either by admin cookie, or by being a loopback request — i.e. the
   // owner's own browser on this machine. `isotope update` is a local `git pull`,
   // so the operator sitting at the box is exactly who should be allowed to run
   // it; requiring ENABLE_ADMIN_MODE made the Update button a permanent 403 for
   // normal self-hosted installs. LAN and remote callers are still rejected.
+  //
+  // A dirty tree additionally requires ?confirm=1, because `git pull` will
+  // auto-stash local modifications. The UI obtains that confirmation from the
+  // user after showing the file count from /api/update-status.
   if (req.method === 'POST' && adminPath === '/api/update-now') {
     if (!isAdminAuthed(req) && !isLoopbackRequest(req)) {
       res.writeHead(403, {
@@ -7055,6 +7162,30 @@ const server = http.createServer((req, res) => {
         hint: 'Run `isotope update` in a terminal, or enable admin mode in .env.',
       }));
       return;
+    }
+    let confirmed = false;
+    try { confirmed = new URL('http://x' + req.url).searchParams.get('confirm') === '1'; } catch (e) {}
+    if (!confirmed) {
+      let dirtyCount = 0;
+      try {
+        const st = spawnSync('git', ['status', '--porcelain', '--untracked-files=no'], {
+          cwd: __dirname, encoding: 'utf8', timeout: 5000,
+        });
+        if (st.status === 0) {
+          dirtyCount = String(st.stdout || '').split('\n').filter(l => l.trim()).length;
+        }
+      } catch (e) {}
+      if (dirtyCount > 0) {
+        res.writeHead(409, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({
+          ok: false,
+          error: 'confirmation_required',
+          dirty_count: dirtyCount,
+          message: dirtyCount + ' locally modified file(s) would be stashed by `git pull`.',
+          hint: 'Commit your work first, or retry with ?confirm=1.',
+        }));
+        return;
+      }
     }
     try {
       const bin = path.join(__dirname, 'bin', 'isotope');
@@ -9428,7 +9559,8 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
         DEPLOYED_SHA = LOCAL_VERSION.sha || DEPLOYED_SHA;
         const patched = raw
           .replace(/__ISOTOPE_APP_VERSION__/g, LOCAL_VERSION.version)
-          .replace(/__ISOTOPE_APP_SHA__/g, String(DEPLOYED_SHA).slice(0, 12));
+          .replace(/__ISOTOPE_APP_SHA__/g, String(DEPLOYED_SHA).slice(0, 12))
+          .replace(/__ISOTOPE_BUILD_TOKEN__/g, currentBuildToken());
         res.setHeader('Cache-Control', cacheHeaderForRequest('/sw.js'));
         res.setHeader('Service-Worker-Allowed', '/');
         res.writeHead(200, { 'Content-Type': contentType });

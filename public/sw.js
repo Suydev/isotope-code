@@ -4,9 +4,15 @@
 
 const APP_VERSION = '__ISOTOPE_APP_VERSION__';
 const APP_SHA = '__ISOTOPE_APP_SHA__';
+// Digest of VERSION + server.mjs mtime. Changes whenever a serve-time bundle
+// patch is edited, which rotates both caches below. /assets/ is served
+// cache-first, so without this a patch fix stays invisible until the user
+// manually clears site data.
+const BUILD_TOKEN = '__ISOTOPE_BUILD_TOKEN__';
 const CACHE_PREFIX = 'isotope-local';
-const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
-const RUNTIME_CACHE = CACHE_PREFIX + '-runtime-' + APP_VERSION + '-' + APP_SHA.slice(0, 12);
+const CACHE_SUFFIX = APP_VERSION + '-' + APP_SHA.slice(0, 12) + '-' + BUILD_TOKEN;
+const SHELL_CACHE = CACHE_PREFIX + '-shell-' + CACHE_SUFFIX;
+const RUNTIME_CACHE = CACHE_PREFIX + '-runtime-' + CACHE_SUFFIX;
 
 // CRITICAL: Only files needed for first paint. Everything else loads on demand.
 const SHELL_URLS = [
@@ -240,7 +246,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
   if (event.data && event.data.type === 'GET_VERSION') {
-    event.source && event.source.postMessage({ type: 'ISOTOPE_SW_VERSION', version: APP_VERSION, sha: APP_SHA });
+    event.source && event.source.postMessage({
+      type: 'ISOTOPE_SW_VERSION',
+      version: APP_VERSION,
+      sha: APP_SHA,
+      buildToken: BUILD_TOKEN,
+    });
   }
   if (event.data && event.data.type === 'CLEAR_ISOTOPE_CACHES') {
     event.waitUntil((async () => {

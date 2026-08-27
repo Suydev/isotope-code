@@ -93,7 +93,7 @@ jobs:
           required=(
             server.mjs
             package.json
-            public/index.html
+            index.html
             public/sync/backup-normalizer.js
             public/sync/local-data-adapter.js
             public/focus-bg-import.js
