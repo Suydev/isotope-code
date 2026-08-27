@@ -297,22 +297,21 @@ CREATE OR REPLACE FUNCTION public.community_discover_groups(
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_sql text;
-  v_params jsonb;
 BEGIN
   v_sql := 'SELECT jsonb_agg(jsonb_build_object(
     ''id'', id, ''name'', name, ''slug'', lower(regexp_replace(name, ''[^a-z0-9]+'', ''-'', ''g'')),
     ''memberCount'', (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id),
     ''activeNow'', 0, ''visualKey'', visual_key, ''exam'', exam, ''targetYear'', target_year
   )) FROM public.groups g WHERE deleted_at IS NULL';
-  IF p_query != '' THEN
-    v_sql := v_sql || ' AND (g.name ILIKE ''%' || p_query || '%'' OR g.description ILIKE ''%' || p_query || '%'')';
+  IF p_query IS NOT NULL AND p_query != '' THEN
+    v_sql := v_sql || ' AND (g.name ILIKE ''%' || replace(p_query, '''', '''''') || '%'' OR g.description ILIKE ''%' || replace(p_query, '''', '''''') || '%'')';
   END IF;
-  IF p_exam IS NOT NULL THEN v_sql := v_sql || ' AND g.exam = ''' || p_exam || ''''; END IF;
-  IF p_target_year IS NOT NULL THEN v_sql := v_sql || ' AND g.target_year = ' || p_target_year; END IF;
-  IF p_subject IS NOT NULL THEN v_sql := v_sql || ' AND ''' || p_subject || ''' = ANY(g.subjects)'; END IF;
+  IF p_exam IS NOT NULL THEN v_sql := v_sql || ' AND g.exam = ' || quote_literal(p_exam); END IF;
+  IF p_target_year IS NOT NULL THEN v_sql := v_sql || ' AND g.target_year = ' || p_target_year::text; END IF;
+  IF p_subject IS NOT NULL THEN v_sql := v_sql || ' AND ' || quote_literal(p_subject) || ' = ANY(g.subjects)'; END IF;
   IF p_has_space THEN v_sql := v_sql || ' AND (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id) < 30'; END IF;
-  IF p_join_policy IS NOT NULL THEN v_sql := v_sql || ' AND g.join_policy = ''' || p_join_policy || ''''; END IF;
-  v_sql := v_sql || ' ORDER BY g.created_at DESC LIMIT ' || p_limit || ' OFFSET ' || p_offset;
+  IF p_join_policy IS NOT NULL THEN v_sql := v_sql || ' AND g.join_policy = ' || quote_literal(p_join_policy); END IF;
+  v_sql := v_sql || ' ORDER BY g.created_at DESC LIMIT ' || p_limit::text || ' OFFSET ' || p_offset::text;
   RETURN (SELECT jsonb_build_object('success', true, 'data', COALESCE((SELECT v_sql::jsonb), '[]'::jsonb)));
 END;
 $$;

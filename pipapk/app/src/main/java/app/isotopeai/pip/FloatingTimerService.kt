@@ -135,7 +135,14 @@ class FloatingTimerService : Service() {
                 }
                 // Schedule next poll with correct delay
                 val delay = if (!lastPollOk) {
-                    Math.min(8000L, 1000L * (1 shl consecutiveFailures))
+                    if (PipClient.isLocalServer(this@FloatingTimerService)
+                        && !PipClient.hasNetwork(this@FloatingTimerService)) {
+                        // Local server + no internet: server is probably still running,
+                        // keep polling at normal-ish rate instead of backing off hard.
+                        Math.min(5000L, 1000L * (1 + consecutiveFailures))
+                    } else {
+                        Math.min(8000L, 1000L * (1 shl consecutiveFailures))
+                    }
                 } else {
                     pollInterval()
                 }
@@ -835,7 +842,12 @@ class FloatingTimerService : Service() {
         headingText?.text = heading
 
         statusText?.text = when {
-            !lastPollOk && !state.isActive() -> "Server offline"
+            !lastPollOk && !state.isActive() -> {
+                if (!PipClient.hasNetwork(this) && PipClient.isLocalServer(this))
+                    "No internet (server may be running)"
+                else
+                    "Server offline"
+            }
             state.timerState == "running" -> "Focusing..."
             state.timerState == "paused" -> "Paused"
             state.timerState == "break" || state.activePhase == "break" -> "Break"

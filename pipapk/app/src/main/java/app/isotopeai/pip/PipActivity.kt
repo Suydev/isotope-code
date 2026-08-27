@@ -34,7 +34,6 @@ class PipActivity : Activity() {
         private const val PREFS_NAME = "pipapk_settings"
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_AUTO_START = "auto_start"
-        private const val DEFAULT_SERVER_URL = "http://127.0.0.1:3000"
         private const val AUTO_POLL_MS = 5000L
     }
 
@@ -57,7 +56,13 @@ class PipActivity : Activity() {
 
     private val autoStartPoll = object : Runnable {
         override fun run() {
-            if (!autoStartEnabled || !serverOk || !lastCheckedPermission) {
+            if (!autoStartEnabled || !lastCheckedPermission) {
+                ui.postDelayed(this, AUTO_POLL_MS)
+                return
+            }
+            // For local servers, try polling even when serverOk is false —
+            // the server may be running but the device has no internet.
+            if (!serverOk && !PipClient.isLocalServer(this@PipActivity)) {
                 ui.postDelayed(this, AUTO_POLL_MS)
                 return
             }
@@ -363,24 +368,27 @@ class PipActivity : Activity() {
     }
 
     private fun checkServer() {
-        val url = getServerUrl()
         Thread {
-            try {
-                val conn = java.net.URL("$url/api/health").openConnection() as java.net.HttpURLConnection
-                conn.connectTimeout = 3000
-                conn.readTimeout = 3000
-                val code = conn.responseCode
-                conn.disconnect()
-                ui.post {
-                    serverOk = code == 200
-                    statusDot.setTextColor(if (serverOk) Color.rgb(16, 185, 129) else Color.rgb(239, 68, 68))
-                    statusText.text = if (serverOk) "Server online" else "Server error ($code)"
-                }
-            } catch (e: Exception) {
-                ui.post {
-                    serverOk = false
-                    statusDot.setTextColor(Color.rgb(239, 68, 68))
-                    statusText.text = "Server unreachable"
+            val health = PipClient.checkHealthDetailed(this)
+            ui.post {
+                when (health) {
+                    PipClient.HealthStatus.OK -> {
+                        serverOk = true
+                        statusDot.setTextColor(Color.rgb(16, 185, 129))
+                        statusText.text = "Server online"
+                    }
+                    PipClient.HealthStatus.NO_NETWORK -> {
+                        // Server is local but device has no internet.
+                        // The server may still be running — don't mark it as down.
+                        serverOk = false
+                        statusDot.setTextColor(Color.rgb(245, 158, 11))
+                        statusText.text = "No internet (server may be running)"
+                    }
+                    PipClient.HealthStatus.SERVER_DOWN -> {
+                        serverOk = false
+                        statusDot.setTextColor(Color.rgb(239, 68, 68))
+                        statusText.text = "Server unreachable"
+                    }
                 }
             }
         }.start()
@@ -415,9 +423,15 @@ class PipActivity : Activity() {
             return
         }
         if (!serverOk) {
+            val noNet = !PipClient.hasNetwork(this) && PipClient.isLocalServer(this)
+            val msg = if (noNet) {
+                "No internet connection. The local server may still be running — the overlay will try to connect."
+            } else {
+                "Cannot reach the server at ${getServerUrl()}. The overlay will show stale data or won't work."
+            }
             AlertDialog.Builder(this)
-                .setTitle("Server Unreachable")
-                .setMessage("Cannot reach the server at ${getServerUrl()}. The overlay will show stale data or won't work.")
+                .setTitle("Server status uncertain")
+                .setMessage(msg)
                 .setPositiveButton("Start Anyway") { _, _ -> launchOverlay(true) }
                 .setNegativeButton("Cancel", null)
                 .show()
@@ -455,7 +469,7 @@ class PipActivity : Activity() {
 
     private fun getServerUrl(): String {
         return getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .getString(KEY_SERVER_URL, DEFAULT_SERVER_URL) ?: DEFAULT_SERVER_URL
+            .getString(KEY_SERVER_URL, null) ?: "http://127.0.0.1:3000"
     }
 
     private fun makeCard(): LinearLayout {

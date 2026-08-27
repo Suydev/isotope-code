@@ -91,6 +91,9 @@ const RUNTIME_PATCHED_ASSET_PATHS = new Set([
   '/assets/useAuthStore-Aw1au7RF.js',
   '/assets/marketing-core-DzcTqL0l.js',
   '/assets/index-D1Y5F8Lk.js',
+  '/assets/Study-BXfkiHvM.js',
+  '/assets/useNotificationStore-BTREori0.js',
+  '/assets/CommunityVisuals-mHr4KGyg.js',
 ]);
 
 function isApiLike(url) {
@@ -128,7 +131,10 @@ async function cacheFirst(request, url) {
   const cached = await matchAcrossCaches(request, url);
   if (cached) return cached;
   try {
-    const response = await fetch(request);
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(request, { signal: controller.signal });
+    clearTimeout(tid);
     if (response && response.ok) cache.put(request, response.clone());
     return response;
   } catch {}
@@ -148,7 +154,10 @@ async function networkFirstStatic(request, url) {
       redirect: request.redirect,
       cache: 'no-store',
     });
-    const response = await fetch(freshRequest);
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 8000);
+    const response = await fetch(freshRequest, { signal: controller.signal });
+    clearTimeout(tid);
     if (response && response.ok) await cache.put(request, response.clone());
     return response;
   } catch {}
@@ -163,7 +172,10 @@ async function networkFirstStatic(request, url) {
 async function networkFirstNavigation(request) {
   const shell = await caches.open(SHELL_CACHE);
   try {
-    const response = await fetch(request);
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(request, { signal: controller.signal });
+    clearTimeout(tid);
     if (response && response.ok) {
       await shell.put('/index.html', response.clone());
       return response;
@@ -249,7 +261,10 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname === '/api/version' || url.pathname === '/api/health') {
     event.respondWith((async () => {
       try {
-        const fresh = await fetch(new Request(request.url, { cache: 'no-store', headers: request.headers }));
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 5000);
+        const fresh = await fetch(new Request(request.url, { cache: 'no-store', headers: request.headers, signal: controller.signal }));
+        clearTimeout(tid);
         if (fresh && fresh.ok) {
           const cache = await caches.open(RUNTIME_CACHE);
           cache.put(request, fresh.clone());

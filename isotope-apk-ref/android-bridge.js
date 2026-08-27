@@ -58,9 +58,12 @@
     } catch (e) { return ''; }
   })();
 
-  // Signal to pwa-local.js that server is "online" (no node server needed)
+  // Signal to pwa-local.js that this is the Android native shell.
+  // Do NOT assume online — let the Capacitor Network plugin (below) set the
+  // actual connectivity state.  Starting as `null` means "unknown" so the PWA
+  // offline banner won't flash a false-positive while the plugin initialises.
   window.__ISO_ANDROID_NATIVE__ = true;
-  window.__ISO_ANDROID_ONLINE__ = true;
+  window.__ISO_ANDROID_ONLINE__ = null;
 
   // ── Runtime error capture — logs to Logcat via console.error ────────────
   window.__ISO_LAST_RUNTIME_ERROR__ = null;
@@ -395,10 +398,11 @@
           network.getStatus().then(function (status) {
             setNativeOnline(!status || status.connected !== false, 'capacitor:getStatus');
           }).catch(function () {
-            setNativeOnline(true, 'capacitor:getStatus-error');
+            // Plugin error — keep the navigator.onLine hint, don't force true
+            setNativeOnline(typeof navigator !== 'undefined' ? navigator.onLine !== false : true, 'capacitor:getStatus-error');
           });
         } catch (e) {
-          setNativeOnline(true, 'capacitor:getStatus-exception');
+          setNativeOnline(typeof navigator !== 'undefined' ? navigator.onLine !== false : true, 'capacitor:getStatus-exception');
         }
       }
       if (!listenerInstalled && typeof network.addListener === 'function') {
@@ -418,7 +422,10 @@
       if (pollCount < 30) setTimeout(poll, 100);
     }
 
-    setNativeOnline(true, 'android-default');
+    // Start with navigator.onLine as the initial hint — it's not perfect but
+    // better than assuming true. The Capacitor Network plugin will override
+    // this within ~300ms once deviceready fires.
+    setNativeOnline(typeof navigator !== 'undefined' ? navigator.onLine !== false : true, 'android-default');
     poll();
     try { document.addEventListener('deviceready', install); } catch (e) {}
     try { document.addEventListener('DOMContentLoaded', install); } catch (e) {}
@@ -537,6 +544,65 @@
   };
 
   // ── Helper: read session from localStorage ──────────────────────────────────
+  var _refreshPromise = null;  // dedup concurrent refresh attempts
+
+  function refreshSession() {
+    // Debounce: if a refresh is already in flight, reuse it
+    if (_refreshPromise) return _refreshPromise;
+    _refreshPromise = (function () {
+      try {
+        var ref = 'vteqquoqvksshmfhuepu';
+        var rt = localStorage.getItem('isotope-last-rt');
+        if (!rt) return Promise.resolve(null);
+        var controller = null;
+        var tid = null;
+        var fetchOpts = {
+          method: 'POST',
+          headers: { 'apikey': SUPA_ANON_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: rt }),
+          credentials: 'omit'
+        };
+        if (typeof AbortController !== 'undefined') {
+          controller = new AbortController();
+          fetchOpts.signal = controller.signal;
+          tid = setTimeout(function () { controller.abort(); }, 15000);
+        }
+        return fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', fetchOpts)
+          .then(function (r) {
+            if (tid) clearTimeout(tid);
+            return r.text().then(function (text) {
+              var d = safeJsonParse(text, {});
+              if (d.access_token) {
+                var session = {
+                  access_token: d.access_token,
+                  refresh_token: d.refresh_token || rt,
+                  expires_at: d.expires_in ? Math.floor(Date.now() / 1000) + d.expires_in : 0
+                };
+                try {
+                  localStorage.setItem('isotope-last-jwt', session.access_token);
+                  localStorage.setItem('isotope-last-rt', session.refresh_token);
+                  var storageKey = 'sb-' + ref + '-auth-token';
+                  localStorage.setItem(storageKey, JSON.stringify({ session: session }));
+                } catch (e) {}
+                return session;
+              }
+              try {
+                localStorage.removeItem('isotope-last-rt');
+                localStorage.removeItem('isotope-last-jwt');
+              } catch (e) {}
+              return null;
+            });
+          }).catch(function () {
+            if (tid) clearTimeout(tid);
+            return null;
+          });
+      } catch (e) { return Promise.resolve(null); }
+    })();
+    var result = _refreshPromise;
+    result.then(function () { _refreshPromise = null; }, function () { _refreshPromise = null; });
+    return result;
+  }
+
   function getSession() {
     try {
       var ref = 'vteqquoqvksshmfhuepu';
@@ -548,10 +614,13 @@
       if (s && s.session && s.session.access_token) s = s.session;
       if (s && s.currentSession && s.currentSession.access_token) s = s.currentSession;
       if (s && s.state && s.state.session && s.state.session.access_token) s = s.state.session;
-      // Check expiry
+      // Check expiry — if expired, attempt refresh and return the refreshed token
       var exp = s.expires_at || 0;
       if (exp && exp < Math.floor(Date.now() / 1000) - 60) {
-        // Try to return expired session anyway — Supabase client will refresh
+        // Token is expired (or within 60s of expiry). Attempt async refresh.
+        // Return the expired token now; supaFetch callers will get a 401 and
+        // the next call will pick up the refreshed token.
+        refreshSession().catch(function () {});
       }
       return s;
     } catch (e) { return null; }
@@ -563,15 +632,65 @@
   }
 
   // ── Helper: supabase fetch ──────────────────────────────────────────────────
+  // All Supabase calls go through here. Adds a 30s timeout to prevent hangs
+  // when Supabase is slow or unresponsive, and retries once on 401 with a
+  // refreshed token.
   function supaFetch(path, opts) {
     var token = getAccessToken();
+    var timeoutMs = (opts && opts.timeoutMs) || 30000;
     var headers = Object.assign({}, {
       'apikey': SUPA_ANON_KEY,
       'Authorization': 'Bearer ' + (token || SUPA_ANON_KEY),
       'Content-Type': 'application/json',
       'Prefer': 'return=representation'
     }, opts && opts.headers ? opts.headers : {});
-    return fetch(SUPA_URL + path, Object.assign({}, opts, { headers: headers, credentials: 'omit' }));
+
+    // Strip timeoutMs from opts so it doesn't leak into fetch init
+    var fetchOpts = Object.assign({}, opts, { headers: headers, credentials: 'omit' });
+    if (fetchOpts.timeoutMs) delete fetchOpts.timeoutMs;
+
+    // Wrap fetch with AbortController timeout
+    var controller = null;
+    var tid = null;
+    if (typeof AbortController !== 'undefined') {
+      controller = new AbortController();
+      fetchOpts.signal = controller.signal;
+      tid = setTimeout(function () { controller.abort(); }, timeoutMs);
+    }
+
+    return fetch(SUPA_URL + path, fetchOpts)
+      .then(function (r) {
+        if (tid) clearTimeout(tid);
+        // If 401 and we have a refresh token, attempt refresh and retry once
+        if (r.status === 401) {
+          var rt = null;
+          try { rt = localStorage.getItem('isotope-last-rt'); } catch (e) {}
+          if (rt) {
+            return refreshSession().then(function (newSession) {
+              if (!newSession || !newSession.access_token) return r;
+              var retryHeaders = Object.assign({}, headers, { 'Authorization': 'Bearer ' + newSession.access_token });
+              var retryOpts = Object.assign({}, fetchOpts, { headers: retryHeaders });
+              // New timeout for retry
+              var c2 = null; var t2 = null;
+              if (typeof AbortController !== 'undefined') {
+                c2 = new AbortController();
+                retryOpts.signal = c2.signal;
+                t2 = setTimeout(function () { c2.abort(); }, timeoutMs);
+              }
+              return fetch(SUPA_URL + path, retryOpts).finally(function () { if (t2) clearTimeout(t2); });
+            });
+          }
+        }
+        return r;
+      })
+      .catch(function (e) {
+        if (tid) clearTimeout(tid);
+        // Convert AbortError to a clear timeout message
+        if (e && e.name === 'AbortError') {
+          throw new Error('Supabase request timed out (' + timeoutMs + 'ms)');
+        }
+        throw e;
+      });
   }
 
   // ── Helper: json response ───────────────────────────────────────────────────
@@ -1708,16 +1827,39 @@
     });
   }
 
-  // POST /__auth/check — neutral preflight only. Never probe signup.
+  // POST /__auth/check — check if email is available for signup.
+  // Probes Supabase signup with a throwaway password; if it returns
+  // "User already registered" the email is taken.
   function handleCheck(body) {
-    var email = body.email || body.username || '';
-    return Promise.resolve(jsonResponse({
-      ok: true,
-      available: true,
-      neutral: true,
-      checked: false,
-      email: email || null
-    }));
+    var email = (body.email || body.username || '').trim().toLowerCase();
+    if (!email || email.indexOf('@') < 1) {
+      return Promise.resolve(jsonResponse({ ok: true, available: false, checked: true, email: email || null }));
+    }
+    return fetch(SUPA_URL + '/auth/v1/signup', {
+      method: 'POST',
+      headers: { 'apikey': SUPA_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: '__iso_check_' + Date.now() }),
+      credentials: 'omit'
+    }).then(function (r) {
+      return r.text().then(function (text) {
+        var d = safeJsonParse(text, {});
+        var errMsg = (d.error_description || d.msg || d.error || '').toLowerCase();
+        // "already registered" or "already been registered" → email taken
+        if (errMsg.indexOf('already') !== -1 || r.status === 400 && errMsg.indexOf('registered') !== -1) {
+          return jsonResponse({ ok: true, available: false, checked: true, email: email });
+        }
+        // 429 rate limit — be conservative, say unavailable
+        if (r.status === 429) {
+          return jsonResponse({ ok: true, available: false, checked: true, email: email, rateLimited: true });
+        }
+        // Any other response (200 with confirmation, 400 with other errors) → treat as available
+        // 200 means user was created (pending confirmation), which means email was available
+        return jsonResponse({ ok: true, available: true, checked: true, email: email });
+      });
+    }).catch(function () {
+      // Network error — return neutral (don't block signup)
+      return jsonResponse({ ok: true, available: true, neutral: true, checked: false, email: email });
+    });
   }
 
   // POST /__auth/signup
@@ -1771,9 +1913,9 @@
 
     var since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     var fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    var profilePromise = supaJson('/rest/v1/user_profiles?select=profile_data,updated_at&user_id=eq.' + encodeURIComponent(userId) + '&limit=1', { method: 'GET' });
-    var userPromise = supaJson('/rest/v1/users?select=username,name,avatar_url,coins,gems,plan_type,email&id=eq.' + encodeURIComponent(userId) + '&limit=1', { method: 'GET' });
-    var onboardingPromise = supaJson('/rest/v1/user_onboarding?select=completed,completed_at,data&user_id=eq.' + encodeURIComponent(userId) + '&limit=1', { method: 'GET' });
+    var profilePromise = supaJson('/rest/v1/user_profiles?select=profile_data,updated_at&user_id=eq.' + encodeURIComponent(userId) + '&limit=1', { method: 'GET' }).catch(function (e) { return { ok: false, status: 0, body: { error: e.message } }; });
+    var userPromise = supaJson('/rest/v1/users?select=username,name,avatar_url,coins,gems,plan_type,email&id=eq.' + encodeURIComponent(userId) + '&limit=1', { method: 'GET' }).catch(function (e) { return { ok: false, status: 0, body: { error: e.message } }; });
+    var onboardingPromise = supaJson('/rest/v1/user_onboarding?select=completed,completed_at,data&user_id=eq.' + encodeURIComponent(userId) + '&limit=1', { method: 'GET' }).catch(function (e) { return { ok: false, status: 0, body: { error: e.message } }; });
     var settingsPromise = supaJson('/rest/v1/user_settings?select=settings,updated_at&user_id=eq.' + encodeURIComponent(userId) + '&limit=1', { method: 'GET' }).catch(function (e) { return { ok: false, status: 0, body: { error: e.message } }; });
     var statsPromise = supaJson('/rest/v1/user_stats_summary?select=*&user_id=eq.' + encodeURIComponent(userId) + '&limit=1', { method: 'GET' }).catch(function (e) { return { ok: false, status: 0, body: { error: e.message } }; });
     var dailyPromise = supaJson('/rest/v1/daily_user_stats?select=date,seconds_studied&user_id=eq.' + encodeURIComponent(userId) + '&date=gte.' + encodeURIComponent(fromDate) + '&order=date.desc&limit=120', { method: 'GET' }).catch(function (e) { return { ok: false, status: 0, body: { error: e.message } }; });
@@ -1790,7 +1932,10 @@
         var profileRes = results[0];
         var userRes = results[1];
         var onboardingRes = results[2];
-        if (!profileRes.ok || !userRes.ok || !onboardingRes.ok) {
+        // Degraded mode: if profile/user/onboarding queries failed, use fallbacks
+        // instead of returning 503 (which traps users in onboarding).
+        if (!profileRes.ok && !userRes.ok) {
+          // Both profile and user queries failed — genuinely unavailable
           return jsonResponse({
             ok: false,
             error: 'bootstrap_db_unavailable',

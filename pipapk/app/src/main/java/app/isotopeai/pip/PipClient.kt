@@ -1,6 +1,8 @@
 package app.isotopeai.pip
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Handler
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -32,6 +34,22 @@ object PipClient {
     fun stateUrl(ctx: Context?): String = "${baseUrl(ctx)}/api/pip/state"
     fun actionUrl(ctx: Context?): String = "${baseUrl(ctx)}/api/pip/action"
     fun healthUrl(ctx: Context?): String = "${baseUrl(ctx)}/api/health"
+
+    /** True if the target server URL points to localhost / 127.0.0.1. */
+    fun isLocalServer(ctx: Context?): Boolean {
+        val url = baseUrl(ctx).lowercase()
+        return url.contains("127.0.0.1") || url.contains("localhost")
+    }
+
+    /** Check if the device has any network connectivity at all. */
+    fun hasNetwork(ctx: Context?): Boolean {
+        if (ctx == null) return true
+        val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return true
+        val net = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(net) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
 
     /**
      * Fetch the latest snapshot with retry and caching.
@@ -90,17 +108,41 @@ object PipClient {
         }
     }
 
-    /** Quick health check. Returns true if server responds 200. */
-    fun checkHealth(ctx: Context?): Boolean {
+    /**
+     * Result of a health check with detailed status.
+     */
+    enum class HealthStatus {
+        OK,             // Server responded 200
+        SERVER_DOWN,    // Connection failed — server is not running
+        NO_NETWORK      // No internet AND server is local (server may still be up)
+    }
+
+    /**
+     * Quick health check. Returns [HealthStatus] indicating whether the server
+     * is reachable, or — for a local server — whether the failure is just
+     * because the device has no internet.
+     */
+    fun checkHealthDetailed(ctx: Context?): HealthStatus {
         return try {
             val conn = URL(healthUrl(ctx)).openConnection() as HttpURLConnection
             conn.connectTimeout = 2000
             conn.readTimeout = 2000
             val ok = conn.responseCode == 200
             conn.disconnect()
-            ok
+            if (ok) HealthStatus.OK else HealthStatus.SERVER_DOWN
         } catch (e: Exception) {
-            false
+            // If the server is on localhost and the device has no internet,
+            // the connection failure is expected — don't assume the server is down.
+            if (isLocalServer(ctx) && !hasNetwork(ctx)) {
+                HealthStatus.NO_NETWORK
+            } else {
+                HealthStatus.SERVER_DOWN
+            }
         }
+    }
+
+    /** Quick health check. Returns true if server responds 200. */
+    fun checkHealth(ctx: Context?): Boolean {
+        return checkHealthDetailed(ctx) == HealthStatus.OK
     }
 }

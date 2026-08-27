@@ -20,7 +20,13 @@ class BootReceiver : BroadcastReceiver() {
 
         Handler(Looper.getMainLooper()).postDelayed({
             Thread {
-                if (PipClient.checkHealth(context)) {
+                val health = PipClient.checkHealthDetailed(context)
+                // For local servers, even if health check fails due to no internet,
+                // the server may still be running — try fetching state directly.
+                val shouldTry = health == PipClient.HealthStatus.OK
+                    || (health == PipClient.HealthStatus.NO_NETWORK && PipClient.isLocalServer(context))
+
+                if (shouldTry) {
                     val state = try {
                         val url = PipClient.stateUrl(context)
                         val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection

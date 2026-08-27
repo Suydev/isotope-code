@@ -467,13 +467,21 @@ DO $$ BEGIN
       FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
   END IF;
 
-  -- user_stats_summary: own row only
+  -- user_stats_summary: PUBLIC read for leaderboard; own write
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='user_stats_summary' AND policyname='stats_read_all') THEN
+    CREATE POLICY stats_read_all ON public.user_stats_summary
+      FOR SELECT USING (true);
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='user_stats_summary' AND policyname='stats_own') THEN
     CREATE POLICY stats_own ON public.user_stats_summary
       FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
   END IF;
 
-  -- daily_user_stats: own rows only
+  -- daily_user_stats: PUBLIC read for leaderboard/streaks; own write
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='daily_user_stats' AND policyname='daily_read_all') THEN
+    CREATE POLICY daily_read_all ON public.daily_user_stats
+      FOR SELECT USING (true);
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='daily_user_stats' AND policyname='daily_own') THEN
     CREATE POLICY daily_own ON public.daily_user_stats
       FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());

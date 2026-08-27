@@ -147,7 +147,11 @@ const RUNTIME_PATCHED_ASSET_PATHS = new Set([
   '/assets/FocusStore-D5cRXSIr.js',
   '/assets/EventsCalendar-COHF8nOK.js',
   '/assets/PWAManager-CUuXr3sv.js',
+  '/assets/usePWA-BOujtGOv.js',
   '/assets/Dashboard-Dzf-IC_a.js',
+  '/assets/Study-BXfkiHvM.js',
+  '/assets/useNotificationStore-BTREori0.js',
+  '/assets/CommunityVisuals-mHr4KGyg.js',
 ]);
 
 function isRuntimePatchedAsset(pathname) {
@@ -270,6 +274,15 @@ function isRequestHttps(req) {
   const fwdProto = req.headers['x-forwarded-proto'];
   if (fwdProto) return fwdProto.split(',')[0].trim().toLowerCase() === 'https';
   return !!(req.socket && req.socket.encrypted);
+}
+
+// True only when the TCP peer is this machine. Any x-forwarded-* header means a
+// proxy is in front of us and the real client is elsewhere, so we refuse.
+function isLoopbackRequest(req) {
+  if (req.headers['x-forwarded-for'] || req.headers['x-forwarded-host']) return false;
+  const raw = (req.socket && req.socket.remoteAddress) || '';
+  const addr = raw.replace(/^::ffff:/, '');
+  return addr === '127.0.0.1' || addr === '::1' || addr === 'localhost';
 }
 
 function escapeHtml(value) {
@@ -3371,23 +3384,39 @@ function buildUpdatePillScript() {
       else { label.textContent = 'Update now'; label.disabled = false; dismiss.style.display = ''; }
     });
   }
+  function fail(msg) {
+    label.textContent = msg || 'Update failed';
+    label.disabled = false;
+    label.style.opacity = '';
+    dismiss.style.display = '';
+    setTimeout(function(){
+      if (!label.disabled) label.textContent = 'Update now';
+    }, 6000);
+  }
   function updateNow() {
-    remember();
     setBusy();
     fetch('/api/update-now', { method: 'POST', cache: 'no-store' })
       .then(function (r) {
-        if (r.status === 403 || r.status === 401) {
-          // Admin unlock needed — route to /__admin/login once; the admin
-          // cookie (Path=/) then authorizes /api/update-now on retry.
-          label.textContent = 'Admin unlock needed';
-          label.disabled = false;
-          dismiss.style.display = '';
-          window.location.href = '/__admin/login?next=/';
-          return;
-        }
-        launchReloadCheck(0);
+        if (r.status === 202 || r.ok) { remember(); launchReloadCheck(0); return; }
+        // Surface the server's reason instead of bouncing to a login page that
+        // may itself be disabled. Only offer admin unlock when it can work.
+        return r.json().catch(function(){ return {}; }).then(function (body) {
+          var msg = (body && (body.error || body.message)) || 'Update failed';
+          if (r.status === 401 || r.status === 403) {
+            if (body && body.admin_available) {
+              fail('Admin unlock needed');
+              setTimeout(function(){ window.location.href = '/__admin/login?next=/'; }, 900);
+              return;
+            }
+            fail('Run: isotope update');
+            console.warn('[Update] ' + msg + (body && body.hint ? ' — ' + body.hint : ''));
+            return;
+          }
+          fail(msg.length > 40 ? 'Update failed' : msg);
+          console.error('[Update] ' + msg);
+        });
       })
-      .catch(function () { launchReloadCheck(0); });
+      .catch(function () { fail('Server unreachable'); });
   }
   label.addEventListener('click', updateNow);
   dismiss.addEventListener('click', function(){
@@ -3527,6 +3556,56 @@ button[title="Remove Background"] {
 }
 </style>`;
 
+// ── Global error boundary — catches React/JS crashes and shows a retry UI ────
+// Without this, any unhandled error in the React tree results in a blank white
+// screen with no user-facing message.  This script runs before React and catches
+// both synchronous errors and unhandled promise rejections.
+const ERROR_BOUNDARY_SCRIPT = `<script>
+(function(){
+  if(window.__isoErrorBoundary) return;
+  window.__isoErrorBoundary=true;
+  var _errs=[];
+  function showError(msg){
+    try{
+      var d=document.getElementById('error-boundary-overlay');
+      if(!d){
+        d=document.createElement('div');
+        d.id='error-boundary-overlay';
+        d.style.cssText='position:fixed;inset:0;z-index:99999;background:#09090b;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif;';
+        d.innerHTML='<div style="text-align:center;max-width:400px;padding:2rem;"><div style="font-size:48px;margin-bottom:1rem;">⚠️</div><h2 style="color:#fff;font-size:1.25rem;margin:0 0 0.5rem;">Something went wrong</h2><p style="color:#a1a1aa;font-size:0.875rem;margin:0 0 1.5rem;line-height:1.5;">'+(msg||'The app encountered an unexpected error.')+'</p><button onclick="window.__isoErrorBoundaryDismiss&&window.__isoErrorBoundaryDismiss()" style="background:#8b5cf6;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;">Reload app</button></div>';
+        document.body.appendChild(d);
+      }
+    }catch(e){}
+  }
+  window.__isoErrorBoundaryDismiss=function(){try{localStorage.setItem('iso_error_boundary_ts',Date.now());}catch(e){}window.location.reload();};
+  window.onerror=function(msg,src,line,col,err){
+    var m=typeof msg==='string'?msg:String(msg);
+    if(m.indexOf('ResizeObserver')!==-1)return false;
+    if(m.indexOf('Loading chunk')!==-1||m.indexOf('ChunkLoadError')!==-1){
+      showNotFoundError();return false;
+    }
+    _errs.push({msg:m,src:src,line:line,col:col,ts:Date.now()});
+    if(_errs.length>3){
+      showError(m.indexOf('is not')!==-1||m.indexOf('Cannot read')!==-1?'A required data is missing. Try clearing your browser cache and reloading.':m);
+    }
+    return false;
+  };
+  window.addEventListener('unhandledrejection',function(e){
+    var r=e&&e.reason;
+    var m=r&&(r.message||String(r))||'Network request failed';
+    if(m.indexOf('Failed to fetch')!==-1||m.indexOf('NetworkError')!==-1){
+      showError('Could not connect to the server. Check your internet connection and make sure the local server is running.');
+    }
+  });
+  function showNotFoundError(){
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;inset:0;z-index:99999;background:#09090b;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;';
+    d.innerHTML='<div style="text-align:center;max-width:400px;padding:2rem;"><div style="font-size:48px;margin-bottom:1rem;">🔄</div><h2 style="color:#fff;font-size:1.25rem;margin:0 0 0.5rem;">Update available</h2><p style="color:#a1a1aa;font-size:0.875rem;margin:0 0 1.5rem;">The app was updated. Clear the cache to load the new version.</p><button onclick="caches.keys().then(function(k){return Promise.all(k.map(function(n){return caches.delete(n)}))}).then(function(){window.location.reload()})" style="background:#8b5cf6;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;">Clear cache & reload</button></div>';
+    document.body.appendChild(d);
+  }
+})();
+</script>`;
+
 // ── Docs link badge — always-visible link to GitHub Pages documentation ───────
 // Floats in the bottom-right corner; appears on the login page and throughout
 // the app so first-time users can find setup instructions without searching.
@@ -3543,6 +3622,7 @@ function injectScripts(html) {
   // UPDATE_COMMAND_DIALOG_SCRIPT + DOCS_LINK_HTML go before </body> (need document.body).
   let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + '</head>');
   let deferred = [
+    ERROR_BOUNDARY_SCRIPT,
     PREMIUM_SCRIPT,
     RELOAD_GUARD_SCRIPT,
     FEATURE_REMOVAL_STYLE,
@@ -3557,6 +3637,14 @@ function injectScripts(html) {
     } catch (_) {}
   }
   out = out.replace('<!--PRECONNECT_HINT-->', '');
+  // Inject critical warning banners when patches fail or schema is incomplete
+  if (_communitySchemaMissing || _criticalPatchFailures.length > 0) {
+    var bannerMsg = _communitySchemaMissing
+      ? 'Community features require a database update. Visit <a href="/__admin/patch" style="color:#fbbf24;">/__admin/patch</a> to apply.'
+      : 'Some app features may not work correctly. Check the server logs for details.';
+    var banner = '<div id="iso-patch-warning" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#7c3aed;color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-family:system-ui,sans-serif;">' + bannerMsg + ' <button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:4px;padding:2px 8px;margin-left:8px;cursor:pointer;font-size:12px;">Dismiss</button></div>';
+    out = out.replace('<body>', '<body>' + banner);
+  }
   return out;
 }
 function injectKeys(htmlBuffer) {
@@ -3674,6 +3762,8 @@ const COMMUNITY_LB_ICON_FROM = 's.jsx("path",{d:"m14.3 9.7 2.6-2.6-2.6 2.6-1.1 3
 const COMMUNITY_LB_ICON_TO   = 's.jsx("path",{d:"m14.3 9.7 2.6-2.6-2.6 2.6-1.1 3.5-3.5 1.1"})]}),n==="leaderboard"&&s.jsxs(s.Fragment,{children:[s.jsx("path",{d:"M6 9H4.5a2.5 2.5 0 0 1 0-5H6"}),s.jsx("path",{d:"M18 9h1.5a2.5 2.5 0 0 0 0-5H18"}),s.jsx("path",{d:"M4 22h16"}),s.jsx("path",{d:"M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"}),s.jsx("path",{d:"M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"}),s.jsx("path",{d:"M18 2H6v7a6 6 0 0 0 12 0V2Z"})]})]})},';
 
 let patchedCommunityBundle = null;
+var _communitySchemaMissing = false;
+var _criticalPatchFailures = [];  // tracks failed critical patches for banner injection
 function getPatchedCommunityBundle() {
   if (patchedCommunityBundle) return patchedCommunityBundle;
   try {
@@ -3732,8 +3822,8 @@ function getPatchedCommunityBundle() {
       raw = raw.split(ROW_SUBJ_RED).join(ROW_SUBJ_RED_TO);
       console.log('[CommunityCrashFix] buddy subjects reduce guarded');
     }
-    const ROW_TASKS_LEN = '.tasks?.length??null';
-    const ROW_TASKS_LEN_TO = '(.tasks?.length)??null';
+    const ROW_TASKS_LEN = 'c.tasks?.length??null';
+    const ROW_TASKS_LEN_TO = '(c.tasks?.length)??null';
     if (raw.includes(ROW_TASKS_LEN)) {
       raw = raw.split(ROW_TASKS_LEN).join(ROW_TASKS_LEN_TO);
       console.log('[CommunityCrashFix] buddy tasks length guarded');
@@ -3808,7 +3898,7 @@ function getPatchedCommunityBundle() {
     if (raw.includes(COMMUNITY_CREATE_BTN_FROM)) {
       raw = raw.replace(COMMUNITY_CREATE_BTN_FROM, COMMUNITY_CREATE_BTN_TO);
       console.log('[CommunityChatPatch] Create group button added to header actions');
-    } else { console.warn('[CommunityChatPatch] create button anchor not found'); }
+    } else { console.warn('[CommunityChatPatch] create button anchor not found'); _criticalPatchFailures.push('community-chat-btn'); }
     // Leaderboard: nav tab + view render + trophy icon (icon lives in the
     // CommunityVisuals bundle and is patched there).
     if (raw.includes(COMMUNITY_LB_TAB_FROM)) {
@@ -3883,24 +3973,27 @@ function getPatchedDashboardBundle() {
 // `Y.filter((m) => I.syllabusIds.includes(m.subject.id))` — when a profile
 // exists but has no syllabusIds field, `I.syllabusIds.includes` throws. Patch
 // to be null-safe so the study page falls back to empty filter.
-const STUDY_SYLLABUS_FROM = `Y.filter((m) => I.syllabusIds.includes(m.subject.id))`;
-const STUDY_SYLLABUS_TO   = `Y.filter((m) => (I.syllabusIds||[]).includes(m.subject.id))`;
-const STUDY_SYLLABUS_FROM2 = `Y.filter((t) => I.syllabusIds.includes(t.subject.id))`;
-const STUDY_SYLLABUS_TO2   = `Y.filter((t) => (I.syllabusIds||[]).includes(t.subject.id))`;
+const STUDY_SYLLABUS_FROM = `Y.filter(m=>I.syllabusIds.includes(m.subject.id))`;
+const STUDY_SYLLABUS_TO   = `Y.filter(m=>(I.syllabusIds||[]).includes(m.subject.id))`;
+const STUDY_SYLLABUS_FROM2 = `Y.filter(t=>I.syllabusIds.includes(t.subject.id))`;
+const STUDY_SYLLABUS_TO2   = `Y.filter(t=>(I.syllabusIds||[]).includes(t.subject.id))`;
 let patchedStudyBundle = null;
 function getPatchedStudyBundle() {
   if (patchedStudyBundle) return patchedStudyBundle;
   try {
     let raw = fs.readFileSync(STUDY_BUNDLE_ABS, 'utf8');
+    let studyHits = 0;
     if (raw.includes(STUDY_SYLLABUS_FROM)) {
       raw = raw.replace(STUDY_SYLLABUS_FROM, STUDY_SYLLABUS_TO);
+      studyHits++;
       console.log('[StudyPatch] syllabusIds null-guard added (Y.filter m)');
     }
     if (raw.includes(STUDY_SYLLABUS_FROM2)) {
       raw = raw.replace(STUDY_SYLLABUS_FROM2, STUDY_SYLLABUS_TO2);
+      studyHits++;
       console.log('[StudyPatch] syllabusIds null-guard added (Y.filter t)');
     }
-    if (!raw.includes(STUDY_SYLLABUS_FROM) && !raw.includes(STUDY_SYLLABUS_FROM2)) {
+    if (studyHits === 0) {
       console.warn('[StudyPatch] syllabusIds anchor not found');
     }
     patchedStudyBundle = Buffer.from(raw, 'utf8');
@@ -3927,7 +4020,7 @@ const COMMUNITY_API_GATE_TO   = `import{s as n}from"./useAuthStore-Aw1au7RF.js";
 // community-rpc-v3.sql (community_get_group_messages / community_send_group_message),
 // which accept a uuid OR a slug and gate on membership.
 const COMMUNITY_API_CHAT_FROM = `};export{g as c};`;
-const COMMUNITY_API_CHAT_TO   = `,async getGroupMessages(e,t){try{return s()?{messages:[]}:await c(a().rpc("community_get_group_messages",{p_group_id:e,p_limit:t||50}))}catch(r){return{success:!1,error:u(r)}}},async sendGroupMessage(e,t){try{return s()?{success:!1}:{success:!0,...await c(a().rpc("community_send_group_message",{p_group_id:e,p_content:t}))}}catch(r){return{success:!1,error:u(r)}}},async getLeaderboard(e,t=50){try{if(s())return{rankings:[{user_id:"demo-user",user_name:"Arnav",avatar_url:null,hours:12.5,rank:1},{user_id:"demo-1",name:"Isha",handle:"isha_revises",avatar_url:null,hours:9.8,rank:2},{user_id:"demo-2",name:"Kabir",handle:"kabir_math",avatar_url:null,hours:7.4,rank:3},{user_id:"demo-3",name:"Meera",handle:"meera_neet",avatar_url:null,hours:6.1,rank:4},{user_id:"demo-4",name:"Dev",handle:"dev_physics",avatar_url:null,hours:4.9,rank:5}],period:e,source:"user",currentUserRank:{user_id:"demo-user",name:"Arjun",handle:"arnav_studies",avatar_url:null,hours:12.5,rank:1}};const __lbTok=(()=>{try{const __now=Math.floor(Date.now()/1000),__c=[],__bd=s=>{try{const p=s.split(".")[1];if(!p)return 0;const u=p.replace(/-/g,"+").replace(/_/g,"/");return JSON.parse(atob(u+"=".repeat((4-u.length%4)%4)))["exp"]||0}catch(e){return 0}};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),v=localStorage.getItem(k);if(!k||!v)continue;try{const s2=JSON.parse(v);const t=(s2&&s2.state&&s2.state.session&&s2.state.session.access_token)||(s2&&s2.access_token)||(s2&&s2.session&&s2.session.access_token)||(s2&&s2.currentSession&&s2.currentSession.access_token);if(t)__c.push({t,e:__bd(t)})}catch(e){}}if(!__c.length)return null;__c.sort((a,b)=>b.e-a.e);const __ok=__c.find(x=>x.e>__now);return __ok?__ok.t:__c[0].t}catch(e){return null}})();const res=await fetch("/__leaderboard",{method:"POST",headers:{"Content-Type":"application/json",...(__lbTok?{"Authorization":"Bearer "+__lbTok}:{})},body:JSON.stringify({period:e,limit:t})});if(!res.ok)throw new Error("Leaderboard request failed ("+res.status+")");const d=await res.json();if(d.error)throw new Error(d.error);return{...d,rankings:Array.isArray(d?.rankings)?d.rankings.filter(x=>!!(x?.user_id&&x?.name)):[],currentUserRank:d?.currentUserRank}}catch(x){throw new Error(u(x))}}};export{g as c};`;
+const COMMUNITY_API_CHAT_TO   = `,async getGroupMessages(e,t){try{return s()?{messages:[]}:await c(a().rpc("community_get_group_messages",{p_group_id:e,p_limit:t||50}))}catch(r){return{success:!1,error:u(r)}}},async sendGroupMessage(e,t){try{return s()?{success:!1}:{success:!0,...await c(a().rpc("community_send_group_message",{p_group_id:e,p_content:t}))}}catch(r){return{success:!1,error:u(r)}}},async getLeaderboard(e,t=50){try{if(s())return{rankings:[{user_id:"demo-user",user_name:"Arnav",avatar_url:null,hours:12.5,rank:1},{user_id:"demo-1",name:"Isha",handle:"isha_revises",avatar_url:null,hours:9.8,rank:2},{user_id:"demo-2",name:"Kabir",handle:"kabir_math",avatar_url:null,hours:7.4,rank:3},{user_id:"demo-3",name:"Meera",handle:"meera_neet",avatar_url:null,hours:6.1,rank:4},{user_id:"demo-4",name:"Dev",handle:"dev_physics",avatar_url:null,hours:4.9,rank:5}],period:e,source:"user",currentUserRank:{user_id:"demo-user",name:"Arjun",handle:"arnav_studies",avatar_url:null,hours:12.5,rank:1}};const __lbTok=(()=>{try{const __now=Math.floor(Date.now()/1000),__c=[],__bd=s=>{try{const p=s.split(".")[1];if(!p)return 0;const u=p.replace(/-/g,"+").replace(/_/g,"/");return JSON.parse(atob(u+"=".repeat((4-u.length%4)%4)))["exp"]||0}catch(e){return 0}};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),v=localStorage.getItem(k);if(!k||!v)continue;try{const s2=JSON.parse(v);const t=(s2&&s2.state&&s2.state.session&&s2.state.session.access_token)||(s2&&s2.access_token)||(s2&&s2.session&&s2.session.access_token)||(s2&&s2.currentSession&&s2.currentSession.access_token);if(t)__c.push({t,e:__bd(t)})}catch(e){}}if(!__c.length)return null;__c.sort((a,b)=>b.e-a.e);const __ok=__c.find(x=>x.e>__now);return __ok?__ok.t:null}catch(e){return null}})();const res=await fetch("/__leaderboard",{method:"POST",headers:{"Content-Type":"application/json",...(__lbTok?{"Authorization":"Bearer "+__lbTok}:{})},body:JSON.stringify({period:e,limit:t})});if(!res.ok)throw new Error("Leaderboard request failed ("+res.status+")");const d=await res.json();if(d.error)throw new Error(d.error);return{...d,rankings:Array.isArray(d?.rankings)?d.rankings.filter(x=>!!(x?.user_id&&x?.name)):[],currentUserRank:d?.currentUserRank}}catch(x){throw new Error(u(x))}}};export{g as c};`;
 let patchedCommunityApiBundle = null;
 function getPatchedCommunityApiBundle() {
   if (patchedCommunityApiBundle) return patchedCommunityApiBundle;
@@ -3938,12 +4031,14 @@ function getPatchedCommunityApiBundle() {
       console.log('[CommunityApiPatch] premium demo-gate neutralised -> real RPC path enabled');
     } else {
       console.warn('[CommunityApiPatch] import gate anchor not found; community may show demo data');
+      _criticalPatchFailures.push('community-api-gate');
     }
     if (raw.includes(COMMUNITY_API_CHAT_FROM)) {
       raw = raw.replace(COMMUNITY_API_CHAT_FROM, COMMUNITY_API_CHAT_TO);
       console.log('[CommunityApiPatch] group chat methods (getGroupMessages/sendGroupMessage) added');
     } else {
       console.warn('[CommunityApiPatch] chat anchor not found; chat methods missing');
+      _criticalPatchFailures.push('community-api-chat');
     }
     patchedCommunityApiBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[CommunityApiPatch] Error:', e && e.message); patchedCommunityApiBundle = null; }
@@ -4051,7 +4146,7 @@ function getPatchedAuthStoreBundle() {
     if (patched.includes(PREM_FROM)) {
       patched = patched.split(PREM_FROM).join(PREM_TO);
       console.log('[AuthStorePatch] isPremium forced true');
-    } else { console.warn('[AuthStorePatch] isPremium anchor not found'); }
+    } else { console.warn('[AuthStorePatch] isPremium anchor not found'); _criticalPatchFailures.push('authstore-ispremium'); }
 
     // Demo-mode gate: upstream gates app+community on a demo path/session flag.
     // This build moved the gate into the auth store (App no longer has it), so
@@ -4061,7 +4156,7 @@ function getPatchedAuthStoreBundle() {
     if (patched.includes(DEMO_GATE_FROM)) {
       patched = patched.split(DEMO_GATE_FROM).join(DEMO_GATE_TO);
       console.log('[AuthStorePatch] Demo-mode gate disabled');
-    } else { console.warn('[AuthStorePatch] Demo gate anchor not found'); }
+    } else { console.warn('[AuthStorePatch] Demo gate anchor not found'); _criticalPatchFailures.push('authstore-demogate'); }
 
     // Circuit breaker: prevents a single failed request from locking ALL
     // Supabase calls for 5 minutes. The x() predicate decides whether an error
@@ -4531,8 +4626,8 @@ function getPatchedOnboardingBundle() {
   if (patchedOnboardingBundle) return patchedOnboardingBundle;
   try {
     let raw = fs.readFileSync(ONBOARDING_BUNDLE_ABS, 'utf8');
-    const from = 'a({\n                    currentStep: 7\n                }), await r({\n                    isOnboarded: !0,\n                    onboardingCompletedAt: new Date().toISOString()\n                })';
-    const to = 'const __isoOnbAt = new Date().toISOString(), __isoOnbSave = window.__isoCompleteOnboarding ? await window.__isoCompleteOnboarding({ isOnboarded: !0, onboardingCompletedAt: __isoOnbAt }) : { ok: !1, err: "Cloud onboarding sync is unavailable" };\n                if (!__isoOnbSave.ok) throw new Error(__isoOnbSave.err || "Onboarding cloud save failed");\n                a({\n                    currentStep: 7\n                }), await r({\n                    isOnboarded: !0,\n                    onboardingCompletedAt: __isoOnbAt\n                })';
+    const from = 'a({currentStep:C}),await r({isOnboarded:!0,onboardingCompletedAt:new Date().toISOString()})';
+    const to = 'const __isoOnbAt=new Date().toISOString(),__isoOnbSave=window.__isoCompleteOnboarding?await window.__isoCompleteOnboarding({isOnboarded:!0,onboardingCompletedAt:__isoOnbAt}):{ok:!1,err:"Cloud onboarding sync is unavailable"};if(!__isoOnbSave.ok)throw new Error(__isoOnbSave.err||"Onboarding cloud save failed");a({currentStep:C}),await r({isOnboarded:!0,onboardingCompletedAt:__isoOnbAt})';
     if (raw.includes(from)) {
       raw = raw.replace(from, to);
       console.log('[OnboardingPatch] Completion requires verified Supabase write');
@@ -6766,12 +6861,24 @@ const server = http.createServer((req, res) => {
   }
   if (req.method === 'POST' && adminPath === '/__pip/state') {
     let body = '';
-    req.on('data', d => { if (body.length < 32768) body += d; });
+    req.on('data', d => { if (body.length < 8192) body += d; });
     req.on('end', () => {
       try {
         const parsed = JSON.parse(body || '{}');
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-          pipStateCache = parsed;
+          // Validate expected fields to prevent arbitrary object injection
+          const allowed = new Set([
+            'ok','active','timerState','mode','activePhase','displayedSeconds','totalSeconds',
+            'completionAtMs','updatedAtMs','pomodoroCycle','pomodoroSessionsUntilLongBreak',
+            'questionsAttempted','questionsCorrect','questionsIncorrect','questionsSkipped',
+            'targetQuestions','undoAvailable','showQuestionControls','focusTypeLabel',
+            'focusTypeIcon','theme','pipConnected'
+          ]);
+          const clean = {};
+          for (const k of Object.keys(parsed)) {
+            if (allowed.has(k)) clean[k] = parsed[k];
+          }
+          pipStateCache = clean;
           pipStateAt = Date.now();
           pipSeq += 1;
         }
@@ -6790,8 +6897,23 @@ const server = http.createServer((req, res) => {
     });
     res.write('retry: 2000\n\n');
     pipEventClients.add(res);
+    var heartbeatFailures = 0;
     const heartbeat = setInterval(() => {
-      try { res.write(': ping\n\n'); } catch { clearInterval(heartbeat); pipEventClients.delete(res); }
+      if (res.destroyed || res.writableEnded) {
+        clearInterval(heartbeat);
+        pipEventClients.delete(res);
+        return;
+      }
+      try { res.write(': ping\n\n'); heartbeatFailures = 0; }
+      catch (e) {
+        heartbeatFailures++;
+        // Only drop the client after 2 consecutive failures (30s) —
+        // a single failure may be a transient network blip.
+        if (heartbeatFailures >= 2 || res.destroyed || res.writableEnded) {
+          clearInterval(heartbeat);
+          pipEventClients.delete(res);
+        }
+      }
     }, 15000);
     res.on('close', () => { clearInterval(heartbeat); pipEventClients.delete(res); });
     return;
@@ -6915,11 +7037,23 @@ const server = http.createServer((req, res) => {
   }
 
   // ── /api/update-now — run `isotope update` from the browser ────────────────
-  // Admin-only: an arbitrary visitor could otherwise overwrite the install.
+  // Authorized either by admin cookie, or by being a loopback request — i.e. the
+  // owner's own browser on this machine. `isotope update` is a local `git pull`,
+  // so the operator sitting at the box is exactly who should be allowed to run
+  // it; requiring ENABLE_ADMIN_MODE made the Update button a permanent 403 for
+  // normal self-hosted installs. LAN and remote callers are still rejected.
   if (req.method === 'POST' && adminPath === '/api/update-now') {
-    if (!isAdminAuthed(req)) {
-      res.writeHead(403, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      res.end(JSON.stringify({ ok: false, error: 'Admin authentication required' }));
+    if (!isAdminAuthed(req) && !isLoopbackRequest(req)) {
+      res.writeHead(403, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+      });
+      res.end(JSON.stringify({
+        ok: false,
+        error: 'Updates can only be triggered from this machine, or with admin unlock.',
+        admin_available: ADMIN_MODE_READY,
+        hint: 'Run `isotope update` in a terminal, or enable admin mode in .env.',
+      }));
       return;
     }
     try {
@@ -9592,6 +9726,7 @@ async function runStartupBackfills() {
       try {
         const errBody = JSON.parse(schemaCheck.body);
         if (errBody.message && errBody.message.includes('deleted_at')) {
+          _communitySchemaMissing = true;
           console.error('');
           console.error('╔══════════════════════════════════════════════════════╗');
           console.error('║  ⚠️  COMMUNITY SCHEMA PATCH REQUIRED                 ║');
