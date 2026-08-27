@@ -1302,8 +1302,6 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   WHERE cea.event_id = p_event_id ORDER BY cea.joined_at ASC;
 $$;
 
-$$;
-
 -- community_heartbeat — receives periodic heartbeat from client during community session
 -- p_state: 'active' | 'idle' | 'away'
 -- p_subject_id: optional subject UUID the user is currently viewing

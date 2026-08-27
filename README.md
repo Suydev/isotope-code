@@ -94,6 +94,15 @@ After install, update anytime with:
 isotope update
 ```
 
+You can also update from inside the app: when a newer build is detected an
+**Update now** pill appears at the bottom-right. It works without admin mode as
+long as the browser is on the same machine as the server (loopback); LAN and
+remote browsers are refused and should use the command above.
+
+`isotope update` runs `git pull`. If you have uncommitted local changes it will
+stash them — the in-app button warns you and names the file count first. Recover
+stashed work with `git stash pop`.
+
 Open:
 
 ```text
@@ -163,6 +172,12 @@ Steps:
    - `notes`
 5. Copy your Project URL and anon key.
 6. Put them in `.env`.
+
+**Upgrading an existing project?** `isotope-complete.sql` is safe to re-run, but if
+your project predates the leaderboard RLS change, also run
+[leaderboard-rls-fix.sql](./leaderboard-rls-fix.sql). The old policy blocked public
+`SELECT` on `user_stats_summary` and `daily_user_stats`, which makes the leaderboard
+render empty. Fresh installs do not need it.
 
 Example:
 

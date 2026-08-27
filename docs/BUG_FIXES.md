@@ -16,7 +16,7 @@ This release includes **7 critical bug fixes** for PWA service worker, update ch
 
 ### 1. Service Worker Cache SHA Not Truncated
 
-**File**: `public/sw.js` (Lines 8-9)
+**File**: `public/sw.js` (cache constants near the top of the file)
 
 **Problem**: 
 - Cache name used full SHA: `isotope-local-shell-3.1.2-{full-sha}`
@@ -33,6 +33,19 @@ const SHELL_CACHE = CACHE_PREFIX + '-shell-' + APP_VERSION + '-' + APP_SHA.slice
 ```
 
 **Impact**: Consistent cache naming, proper cleanup of old caches on activation
+
+> **Superseded (2026-08-27).** The cache name now also carries a build token:
+> `isotope-local-shell-<version>-<sha12>-<buildToken>`. `buildToken` is a 12-char
+> digest of `VERSION` + `server.mjs` mtime, substituted into the
+> `__ISOTOPE_BUILD_TOKEN__` placeholder when `/sw.js` is served.
+>
+> This was necessary because `/assets/` is served **cache-first**. The old name
+> derived from `VERSION` alone, so editing a serve-time bundle patch never
+> invalidated the cache and the fix stayed invisible until the user manually
+> cleared site data. Including `server.mjs` mtime makes any patch edit rotate both
+> caches on the next load.
+>
+> Read the live name from `/api/version` → `pwa_cache` rather than reconstructing it.
 
 ---
 
@@ -242,7 +255,7 @@ b.innerHTML = [
 ```
 1. isotope update (to bump version)
 2. DevTools → Application → Cache Storage
-3. Verify cache name format: isotope-local-shell-X.X.X-{12-char-sha}
+3. Verify cache name format: `isotope-local-shell-<version>-<sha12>-<buildToken>` — compare against `/api/version` → `pwa_cache`, which reports the live value
 4. Verify old caches are deleted
 5. No duplicate entries
 ```

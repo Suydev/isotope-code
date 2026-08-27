@@ -60,6 +60,10 @@ ADMIN_EMAIL=&lt;your-email@example.com&gt;
 BROWSER_PROOF_EMAIL=&lt;your-email@example.com&gt;
 SUPABASE_SERVICE_ROLE_KEY=&lt;service-role-key&gt;</pre>
       </article>
+      <p class="note">Admin mode gates the <code>/__admin/*</code> pages only. The
+      in-app <strong>Update now</strong> button does not need it — it authorizes on
+      a loopback connection, so a browser on the same machine as the server can
+      trigger <code>isotope update</code> with admin mode off.</p>
     </section>
 
     <section id="browser-proof" class="section scroll-pop">

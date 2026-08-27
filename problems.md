@@ -1,226 +1,228 @@
-# Isotope Code — Problems (detailed, fix-ready)
+# Isotope Code — Problems
 
-Audit date: 2026-08-09 · Repo root: `/data/data/com.termux/files/home/isotope-code`
-Served entry bundle: `public/assets/index-D1Y5F8Lk.js` (new build). Anchor strings in server.mjs were written against the PREVIOUS build — see H1.
+Last verified: 2026-08-27 · Repo root: `isotope-code` · Served entry: `public/assets/index-D1Y5F8Lk.js`
 
-Verification commands used (re-run before/after fixing):
+**Status: the 2026-08-09 audit backlog is closed.** H1–H4, M1–M6 and L1–L3 are all
+fixed and verified against the current tree. What remains open is L4–L7 below, all
+accepted-risk or low-priority.
+
+This file previously described those items as open, with line numbers from the
+2026-08-09 tree. Following it verbatim would now *re-introduce* bugs — most
+sharply H3, whose prescribed fix (`if (!isAdminAuthed(req))` on
+`/api/update-now`) is exactly the regression that made the in-app Update button a
+permanent 403 on every install running `ENABLE_ADMIN_MODE=false`. The historical
+detail is kept below each heading for provenance; the **Status** line is
+authoritative.
+
+---
+
+## Verification commands
+
+Anchor health is now self-reporting: every patch logs on apply and warns on miss,
+and misses are additionally collected into `_criticalPatchFailures`, which renders
+a banner in served HTML. So the check is just "start the server and read the log".
 
 ```bash
-# Anchor check (any anchor not matched exactly once in its target = broken patch)
-node -e '
-const fs=require("fs");
-const srv=fs.readFileSync("server.mjs","utf8");
-const getAnchor=(name)=>{const di=srv.indexOf("const "+name+" =");if(di<0)return null;
-const eq=srv.indexOf("=",di);const c1=srv[eq+1];let q,qStart;
-if(c1===" "){q=srv[eq+2];qStart=eq+3;}else{q=c1;qStart=eq+2;}
-const end=srv.indexOf(q,qStart);let s=srv.slice(qStart,end),o="",i=0;
-while(i<s.length){if(s[i]==="\\"&&i+1<s.length){const c=s[i+1];
-if(c==="n")o+="\n";else if(c==="t")o+="\t";else if(c==="r")o+="\r";
-else if(c==="u"){o+=s.slice(i,i+6);i+=5;}else if(c==="\\")o+="\\";
-else if(c==="\x22")o+="\x22";else if(c==="\x27")o+="\x27";else if(c==="\x60")o+="\x60";
-else o+=c;i+=2;}else{o+=s[i];i++;}}
-return o;};
-for(const name of ["AI_PATCH_FROM","APP_DEMO_FROM","PWA_RELOAD_FROM","COMMUNITY_FEATURE_RENDER_FROM","CB_FROM"]){
-  const a=getAnchor(name);const hits=[];
-  for(const f of fs.readdirSync("public/assets").filter(f=>f.endsWith(".js")))
-    if(fs.readFileSync("public/assets/"+f,"utf8").includes(a))hits.push(f);
-  console.log(name.padEnd(34),hits.join(", ")||"(NONE anywhere)");}
-'
+# Zero output = every anchor matched.
+bash bin/isotope restart && sleep 6
+grep -iE 'anchor not found|String not found' ~/.isotope/logs/server.log
 
-# Syntax check
-node --check server.mjs
+# What did apply (52 lines at time of writing).
+grep -E '^\[[A-Za-z]+(Patch|CrashFix|KeyboardFix)' ~/.isotope/logs/server.log | sort -u
+
+# Every patched bundle must return 200 and parse.
+for f in useAIStore-DRa7CkEN App-CQ9mV4wu Auth-D0Y8CB1f Focus-B4gLsWoP \
+         Onboarding-C0svxOgT SingleGroup-DU1IhoNK useLeaderboard-BpvH5FXA \
+         SettingsLayout-DkuooNHv useSyncStore-Di0wBMnH AppAccessGate-DzNuNpuU \
+         sessionSync-mloIEnTd useInvites-D9RLFwf8 Community-CEnEgsrd \
+         communityApi-Ccw5N_9O CommunityHub-gANxZssO CommunityVisuals-mHr4KGyg \
+         Dashboard-Dzf-IC_a Study-BXfkiHvM useNotificationStore-BTREori0 \
+         usePWA-BOujtGOv marketing-core-DzcTqL0l useAuthStore-Aw1au7RF \
+         index-D1Y5F8Lk; do
+  T=$(mktemp)
+  code=$(curl -s -o "$T" -w '%{http_code}' "http://127.0.0.1:3000/assets/$f.js")
+  [ "$code" = 200 ] && node --check "$T" || echo "FAIL $f ($code)"
+done
+
+node --check server.mjs && node --check public/sw.js
+```
+
+Two invariants worth asserting after any bundle rebuild:
+
+```bash
+# 1. The two RUNTIME_PATCHED_ASSET_PATHS sets must be identical.
+python3 - <<'PY'
+import re
+def s(p):
+    m = re.search(r'RUNTIME_PATCHED_ASSET_PATHS\s*=\s*new Set\(\[(.*?)\]\)',
+                  open(p, encoding='utf8').read(), re.S)
+    return set(re.findall(r"'([^']+)'", m.group(1)))
+a, b = s('server.mjs'), s('public/sw.js')
+print('IN SYNC' if a == b else f'OUT OF SYNC\n  server only: {sorted(a-b)}\n  sw only: {sorted(b-a)}')
+PY
+
+# 2. Every *_ABS asset the server patches must be in that set, or it ships immutable.
 ```
 
 ---
 
-# CRITICAL / HIGH
+# CRITICAL / HIGH — all closed
 
-## H1. Patch anchors target the OLD build — 5 patches silently dead
+## H1. Patch anchors targeted the OLD build — 5 patches silently dead
+**Status: ✅ FIXED.** All anchors match. `grep -iE 'anchor not found|String not found'`
+on a fresh server log returns nothing, and 52 patches report applied.
 
-**File:** `server.mjs` (runtime bundle patcher).
-**Root cause:** Assets in `public/assets/` were rebuilt (new content hashes, new minified code) but the `*_FROM` anchor constants still contain old-build substrings. The patcher pattern `if (raw.includes(FROM)) { raw = raw.replace(FROM, TO); }` then fails the `includes` check and returns the raw bundle **silently** (no log, no error).
+Re-anchoring happened in stages. The last two were fixed 2026-08-27 and are worth
+recording because they shared a root cause: the anchor was written against
+*pretty-printed* source while the shipped bundle is minified.
 
-Verified state (exact substring search across all `public/assets/*.js`):
+| Anchor | Was | Is |
+|---|---|---|
+| `STUDY_SYLLABUS_FROM` | `Y.filter((m) => I.syllabusIds.includes(...))` | `Y.filter(m=>I.syllabusIds.includes(...))` |
+| Onboarding completion | `a({\n  currentStep: 7\n}), await r({...})` | `a({currentStep:C}),await r({...})` |
 
-| Anchor | Defin ition line (server.mjs) | Usage line | Only matches (OLD file) | Required new target | Patch effect |
-|---|---|---|---|---|---|
-| `AI_PATCH_FROM` | 3346 | 3354 (in `getPatchedCommunityApiBundle`? → actually `getPatchedAIBundle`-style fn) | `useAIStore-B2cv1FZz.js` only | `useAIStore-DRa7CkEN.js` | AI API key scope downgrade dead |
-| `COMMUNITY_FEATURE_RENDER_FROM` | 3375 | 3408-3409 | `Community-DIqF5406.js` only | `Community-CEnEgsrd.js` | removing Store/Events nav surfaces dead |
-| `PWA_RELOAD_FROM` | 3590 | 3597-3598 | `PWAManager-DjIYufp2.js` only | `PWAManager-CUuXr3sv.js` | update banner auto-reload dead |
-| `APP_DEMO_FROM` | 3617 | 3775-3776 | `App-pJGjDiPw.js` only | `App-CQ9mV4wu.js` | demo-mode patch dead |
-| `CB_FROM` | 3412 (local const inside fn) | 3414-3415 | `App-pJGjDiPw.js` only | `App-CQ9mV4wu.js` | crash-circuit-breaker patch dead |
+`APP_DEMO_FROM` and `CB_FROM` no longer exist under those names — the demo gate and
+circuit breaker both moved into `useAuthStore-Aw1au7RF.js` and are now
+`DEMO_GATE_FROM` / `CB_FROM` inside `getPatchedAuthStoreBundle()`.
+`COMMUNITY_FEATURE_RENDER_FROM` became obsolete (the current Community bundle has
+no store/events feature switch); the removal is handled by
+`COMMUNITY_HUB_CARDS_FROM` against `CommunityHub-gANxZssO.js` instead.
 
-**Working anchors (do NOT touch):** `TRACE_FROM` (3757, hits `index-D1Y5F8Lk.js` OK), `COMMUNITY_HUB_CARDS_FROM` (3377, hits `CommunityHub-gANxZssO.js` OK), `COMMUNITY_LB_ICON_FROM` (3400, hits `CommunityVisuals-mHr4KGyg.js` OK), `DASHBOARD_SYLLABUS_FROM`, `COMMUNITY_CHAT_COMPONENT/RENDER`, `COMMUNITY_API_GATE/CHAT`, `SENTRY_DSN_FROM` (3752), `APP_PLAN_FROM_A/B`, `PREM_FROM` (3686).
+**Lesson, applied:** anchors were failing silently. Each patch now logs on apply,
+warns on miss, and pushes to `_criticalPatchFailures` so a miss surfaces in the UI
+rather than only in a log nobody reads. `StudyPatch` additionally counts hits
+instead of re-testing `raw.includes(FROM)` after the replace — that bug made it
+warn even on success.
 
-**How to fix (each broken anchor):**
-1. Open the CURRENT target file from the table (e.g. `public/assets/App-CQ9mV4wu.js`).
-2. Find the equivalent minified code that the old anchor described:
-   - `APP_DEMO_FROM`: in the old build it was `ge = () => typeof window > "u" ? !1 : Ys(window.location.pathname) || window.sessionStorage.getItem(Et) === "1",` — find the same demo-mode check in new build (search for `typeof window > "u"` and `sessionStorage.getItem` with `"1"`).
-   - `CB_FROM`: old = `function O(a) {\n    if (!a) return !1;...` — find the new circuit-breaker function (search for `return !1;` near a crash handler, or grep the old file for the context around `function O(`).
-   - `PWA_RELOAD_FROM`: old = `(r.isUpdate || r.isExternal) && window.location.reload()` — find same expression in `PWAManager-CUuXr3sv.js` (likely different var names).
-   - `COMMUNITY_FEATURE_RENDER_FROM`: old = `a==="store"&&e.jsx(U,{onNavigate:i},"store"),a==="events"&&e.jsx(M,{onNavigate:i},"events"),` — find the same feature-switch in `Community-CEnEgsrd.js`.
-   - `AI_PATCH_FROM`: old = `async getApiKey(n) {\n            const e = \`ai_api_key_${n}\`` — find the same `getApiKey` in `useAIStore-DRa7CkEN.js`.
-3. Copy the EXACT new substring (including leading/trailing punctuation as in the original `FROM`) into the anchor constant.
-4. Re-run the anchor check above — each fixed anchor must show exactly one hit in its new target file.
-5. `node --check server.mjs`.
+## H2. `/__supa/*` proxy exposed the Supabase service-role key
+**Status: ✅ FIXED.** `handleSupabaseProxy` gates escalation on
+`const useServiceKey = ADMIN_MODE_READY && isAdminAuthed(req);`. Non-admin callers
+are forwarded with their own `Authorization` header plus the anon key.
 
-**Why it matters:** the dead patches mean (a) demo-mode detection isn't applied, (b) update banner never auto-reloads, (c) Store/Events surfaces still render in community UI, (d) AI key scope not downgraded, (e) crash circuit breaker not active.
+## H3. `/api/update-now` spawned a shell command without auth
+**Status: ✅ FIXED — but NOT with the fix originally prescribed here.**
 
----
+The original prescription was `if (!isAdminAuthed(req)) return 401`. That closes
+the hole but breaks the feature: `ADMIN_MODE_READY` requires
+`ENABLE_ADMIN_MODE=true` **and** a service-role key, which a normal self-hosted
+install has neither of. The button became a permanent 403 with a redirect to a
+login page that was itself disabled.
 
-## H2. `/__supa/*` proxy exposes Supabase SERVICE-ROLE key to any caller
+Current design authorizes on **admin cookie OR loopback**:
 
-**File:** `server.mjs`
-- `handleSupabaseProxy` defined at **5852** (comment at 5848).
-- Proxies `/__supa/*` → forward to Supabase with `apikey` + `Authorization: Bearer` injected at **5860-5861**.
-- When `ADMIN_MODE_READY` (defined **236** = `ENABLE_ADMIN_MODE && !!SUPA_SERVICE_KEY && !!ADMIN_COOKIE_SECRET`), `useServiceKey` is `true` (**5858**) → `authHdr = 'Bearer ' + SUPA_SERVICE_KEY` (**5861**).
-- Key constants: `SUPA_SERVICE_KEY` at **214** (`process.env.SUPABASE_SERVICE_ROLE_KEY || ''`), `ADMIN_COOKIE_SECRET` at **235** (`ADMIN_SECRET || SUPA_SERVICE_KEY`).
-- **No auth check anywhere in the proxy**: it is reachable from the catch-all at **6475** (`handleSupabaseProxy(req, res);`), which runs for every unmatched `/__supa/...` URL regardless of logged-in status.
-- CORS: proxy response sets `access-control-allow-origin: *` at **5920**; static handler also sets `Access-Control-Allow-Origin: *` at **8904**.
-- Client usage e.g. **6168** (`fetch('/__supa/storage/v1/object/public/avatars/...')`).
+- `isLoopbackRequest(req)` returns true only when `req.socket.remoteAddress` is
+  `127.0.0.1`/`::1`, **and** no `x-forwarded-for` / `x-forwarded-host` header is
+  present — any proxy in front means the real client is elsewhere, so we refuse.
+- LAN and remote callers still get 403, with `admin_available` in the body so the
+  UI only offers admin unlock when unlock can actually work.
 
-**Fix (recommended):**
-- In `handleSupabaseProxy` (5852): keep using the user's own `Authorization` header + anon key for ALL callers; ONLY use the service key when the request carries a valid admin cookie/app token (`isAdminAuthed(req)` defined at **239**).
-- i.e. change the `useServiceKey` decision (5858) from `ADMIN_MODE_READY` to `ADMIN_MODE_READY && isAdminAuthed(req)`.
-- Optionally restrict CORS `*` (5920, 8904) to the app origin.
+`isotope update` is a local `git pull`; the operator at the machine is precisely
+who should be allowed to run it.
 
----
+**Additionally**, because `git pull` auto-stashes a dirty tree, a bare POST now
+returns **409 `confirmation_required`** with `dirty_count` when
+`git status --porcelain` is non-empty. `?confirm=1` proceeds. `GET
+/api/update-status` reports `{authorized, admin_available, dirty, dirty_count,
+dirty_files, branch}` so the pill can warn *before* acting. This was added after
+a test run silently stashed 15 modified files.
 
-## H3. Unauthenticated `/api/update-now` spawns shell command
-
-**File:** `server.mjs`, route at **6633** (`if (req.method === 'POST' && adminPath === '/api/update-now')`), body at 6633-6651.
-- Spawns `bash bin/isotope update` detached, no `isAdminAuthed` check — every other `/__admin/*` route checks at **6319** (`if (adminPath.startsWith('/__admin/') && ... && !isAdminAuthed(req))`), but note 6633 uses `adminPath === '/api/update-now'` which doesn't start with `/__admin/`, and there is no explicit auth check.
-- Called from client bundle at **3188** (`fetch('/api/update-now', { method: 'POST', ... })`).
-
-**Fix:** add to 6633: `if (!isAdminAuthed(req)) { res.writeHead(401, {'Content-Type':'application/json'}); res.end(JSON.stringify({ok:false,error:'Unauthorized'})); return; }`
-
----
-
-## H4. Client-side premium escalation via self-PATCH — ✅ DONE (2026-08-10, comment-only)
-
-**Status:** Owner-approved, intentional (self-hosted app revenue model). Documented in `server.mjs` PREMIUM_SCRIPT header comment. NOT removed. RLS policies and `is_premium_user()` remain audited in `sql/` + `verify-security.sql`.
-
-**File:** `server.mjs`, `PREMIUM_SCRIPT` template starts at **2229** (function `upgradeProfile` below it).
-- Injected into HTML; any logged-in user can `PATCH` their own `users` row (`plan_type:'ranker'`, `billing:'active'`, long expiry) using their own JWT via the RPC/`__supa` path. Combined with H2 this is trivially exploitable.
-- Comment (2237-2239) admits intent: "This makes `is_premium_user()` return true in PostgreSQL, so all RLS SELECT/INSERT/UPDATE policies on community tables pass."
-
-**Note for next agent:** If this is intended (self-hosted app), document it, but RLS policies and `is_premium_user()` should still be audited (see `sql/` and `verify-security.sql`). Do NOT silently remove — confirm with owner first.
+## H4. Client-side premium escalation via self-PATCH
+**Status: ✅ ACCEPTED (owner-approved), documented at `server.mjs:2413-2416`.**
+This install intentionally grants itself `plan_type='ranker'`. Not a defect here.
 
 ---
 
-# MEDIUM
+# MEDIUM — all closed
 
 ## M1. Unhandled promise rejections from `readReqBody(...).then(...)`
+**Status: ✅ FIXED.** All eight chains have `.catch()`.
 
-**File:** `server.mjs`. `readReqBody` defined at **5772**. These chains have NO `.catch()`:
-- **6244** — `readReqBody(req, 1*1024*1024).then(({ errors }) => {...})`
-- **6397** — `readReqBody(req, 1024*1024).then((body) => {...})`
-- **6655** — `/__auth/check` — `readReqBody(req).then(({ email, username }) => {...})`
-- **7338** — `/__auth/signup` — `readReqBody(req).then(async ({ username, password }) => {...})` (inner try/catch exists but the outer `.then` chain itself is unguarded; malformed JSON before the callback rejects the outer promise)
-- **7637** — `/__admin/roles` POST — `readReqBody(req).then(async ({ email, role }) => {...})`
-- **7673** — `/__admin/roles` DELETE — `readReqBody(req).then(async ({ id }) => {...})`
-- **8694** — `/__auth/login` primary — `readReqBody(req).then(async ({ username, password }) => {...})`
-- **8757** — admin patch route — `readReqBody(req, 4*1024*1024).then(({ pat, sql }) => {...})`
+## M2. index.html loaded STALE build assets
+**Status: ✅ FIXED.** Now `index-LkPKl--4.css` and `vendor-react-BWKHxYQy.js`.
 
-**Fix:** append `.catch(err => { ...write 400/500 JSON response... })` to each of the 8 chains above (match the style of the `.catch` in the route at 6667-6671).
+## M3. `public/focus-bg-import.js` referenced a stale focusBackground chunk
+**Status: ✅ FIXED.** Now `focusBackground-Dc8Rc9XQ.js`.
 
----
-
-## M2. index.html loads STALE build assets (~800 KB wasted + conflicting CSS)
-
-**File:** `index.html`
-- Line **18**: `<link rel="stylesheet" crossorigin href="/assets/index-CrO6t5EW.css">` (Aug 6 build, 427 KB).
-- Line **19**: `<link rel="stylesheet" crossorigin href="/assets/vendor-katex-ASjZcBK0.css">`.
-- Line **36**: `<link rel="modulepreload" crossorigin href="/assets/vendor-react-BfU3Zn2J.js">` (Aug 6 build).
-- Current build files: `public/assets/index-LkPKl--4.css`, `public/assets/vendor-react-BWKHxYQy.js`, `public/assets/vendor-katex-BSXZKQS3.js` (all exist — verified).
-- SW caches stale CSS via `cacheFirst` → two CSS versions apply to the same page.
-
-**Fix:** update lines 18-19 and 36 to reference the current hashed files (`index-LkPKl--4.css`, `vendor-katex-BSXZKQS3.css` if exists, `vendor-react-BWKHxYQy.js`), or drop them entirely (entry `index-D1Y5F8Lk.js` injects its own CSS + vendor chunk).
-
----
-
-## M3. `public/focus-bg-import.js:15` — stale focusBackground chunk
-
-- Line **15**: `var FOCUS_BG_MODULE = '/assets/focusBackground-t8AknbRg.js';` (OLD build).
-- Current build chunk: `public/assets/focusBackground-Dc8Rc9XQ.js` (exists).
-- Load failure is swallowed by `.catch(() => null)` (~line 77) → focus background silently breaks once old builds are purged.
-
-**Fix:** change line 15 to `/assets/focusBackground-Dc8Rc9XQ.js`, or resolve dynamically from the entry import map.
-
----
-
-## M4. Unguarded `localStorage.removeItem` can abort app boot
-
-**File:** `public/restore-and-launch.js`
-- Line **542** (in `applyCachedCloudSnapshot`): `else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);`
-- Line **622** (in `applyBootstrapSnapshot`): `else localStorage.removeItem(ZUSTAND_ONBOARDING_KEY);`
-- `ZUSTAND_ONBOARDING_KEY` defined line **47** (`'isotope-onboarding'`).
-- Every other storage accessor in the file is guarded with try/catch (e.g. `writeLocalOnboardingComplete`, `writeJson`); these two are not. If storage throws (privacy mode), the async IIFE rejects → `preloadAssets()` (line 872 area) never runs → blank page.
-
-**Fix:** wrap each call, e.g.
-```js
-else { try { localStorage.removeItem(ZUSTAND_ONBOARDING_KEY); } catch (_) {} }
-```
-
----
+## M4. Unguarded `localStorage.removeItem` could abort app boot
+**Status: ✅ FIXED.** Both call sites wrapped in try/catch.
 
 ## M5. `public/manifest.webmanifest` — broken screenshot references
+**Status: ✅ FIXED.** Points at `hero-dashboard.png` / `community.png`, both present.
 
-- Line **1**, `screenshots` array references `/screenshots/pwa-desktop-1.webp` and `/screenshots/pwa-desktop-2.webp`.
-- Only PNGs exist in `screenshots/`: `mobile-dashboard.png`, `mobile-focus.png`, `hero-dashboard.png`, `analytics.png`, etc. — **no `.webp` files** (verified: no `pwa-desktop-*.webp`).
-
-**Fix:** point to existing screenshots, e.g. `/screenshots/hero-dashboard.png` and `/screenshots/community.png` (with `"type":"image/png"`), or generate the `.webp` files.
-
----
-
-## M6. Refresh tokens in plaintext localStorage — ✅ DONE (2026-08-10, comment-only)
-
-**Status:** Owner-approved, documented. Comments added at `public/restore-and-launch.js` saveRefreshedSession (~229) and `public/auth-bridge.js` writeSession (~46). Refresh token NOT moved to httpOnly cookie (would break offline SW session restore). No behavior change.
-
-**File:** `public/restore-and-launch.js`, `saveRefreshedSession` at **223** (body 224-231):
-- Keys written: `SUPABASE_TOKEN_KEY` (= `isotope-auth-token`), `sb-{SUPA_REF}-auth-token`, `isotope-last-jwt`, `isotope-last-rt` (raw refresh token, line **228**), `isotope-last-session-raw`.
-- Same pattern in `public/auth-bridge.js` `writeSession` (~43-47).
-- localStorage is readable by any XSS and by the SW scope; stolen refresh token = long-lived session.
-
-**Fix (if in scope):** stop persisting the refresh token (`isotope-last-rt`), or move session to httpOnly cookie via the server; at minimum gate with a comment and confirm with owner (this is common for client-side Supabase apps).
+## M6. Refresh tokens in plaintext localStorage
+**Status: ✅ ACCEPTED (owner-approved), comment-only.**
 
 ---
 
 # LOW
 
-## L1. Dead builds accumulate in `public/assets` (~18 MB total) — ✅ DONE (2026-08-10)
+## L1. Dead builds accumulating in `public/assets`
+**Status: ✅ FIXED (2026-08-10).**
 
-**Status:** Purged. 177 dead chunks (9.9MB) moved to `~/.cache/opencode/tmp/purged-assets/<ts>/` (backup, not git). Keep set = served graph (121, via graph2.cjs) ∪ sw.js lists (31) ∪ server ABS patched files (23) = 131 files. Post-purge: server restarts clean (0 ENOENT), all 23 patched bundles 200 + `node --check` OK. NOTE: problems.md keep-list below is STALE (lists old-build chunks like CommunityHub-gANxZssO/sessionSync/SingleGroup/useInvites/useLeaderboard/FocusStore/EventsCalendar — these are ONLY referenced by old builds; kept anyway because sw.js lists them + server ABS consts exist). Regenerate with `~/.cache/opencode/tmp/graph2.cjs` for future purges.
+## L2. Duplicate entry in `public/sw.js` `RUNTIME_PATCHED_ASSET_PATHS`
+**Status: ✅ FIXED (2026-08-10).** See also L7 — the two sets drifted again later
+and are now checked by an invariant.
 
-Verified leftover builds: `index-qd2KF3Jd.js`, `index-BPYJFSVW.js`, `App-pJGjDiPw.js`, `App-Bcp_57Ks.js`, `App-DIpgIc18.js`, `vendor-react-BfU3Zn2J.js`, `vendor-react-0f7xbcAh.js`, `vendor-charts-*` (4), plus `public/assets/sw.js` (workbox, unreferenced) and `public/workbox-1d81fbea.js`.
-Verified leftover builds: `index-qd2KF3Jd.js`, `index-BPYJFSVW.js`, `App-pJGjDiPw.js`, `App-Bcp_57Ks.js`, `App-DIpgIc18.js`, `vendor-react-BfU3Zn2J.js`, `vendor-react-0f7xbcAh.js`, `vendor-charts-*` (4), plus `public/assets/sw.js` (workbox, unreferenced) and `public/workbox-1d81fbea.js`.
-Served graph (keep these): `index-D1Y5F8Lk.js` + its import list: `marketing-core-DzcTqL0l.js`, `vendor-react-BWKHxYQy.js`, `vendor-router-C2sFoTjv.js`, `vendor-sentry-C0ZzGV-C.js`, `Landing-30Ourhwi.js`, `TodayFeature-BDMr9GlA.js`, `FocusTimerLanding-DwoxLp8t.js`, `TasksFeature-Ih8sP5NE.js`, `ExamPlannerFeature-jR31fGos.js`, `SyllabusFeature-BEN3Gt09.js`, `StudyFeature-MNsr-gPu.js`, `AnalyticsFeature-D58mar4z.js`, `StudyGroupsFeature-DINDKvkz.js`, `About-BynUj5GR.js`, `Privacy-2wg91W65.js`, `Terms-12mtllDS.js`, `PublicMarketingApp-DRuHEFFn.js`, `App-CQ9mV4wu.js`, and (from App-CQ9mV4wu.js) `useAuthStore-Aw1au7RF.js`, `FocusTimerLanding-DwoxLp8t.js`, `Focus-B4gLsWoP.js`, `Community-CEnEgsrd.js`, `PWAManager-CUuXr3sv.js`, plus lazy chunks `CommunityHub-gANxZssO.js`, `CommunityVisuals-mHr4KGyg.js`, `communityApi-Ccw5N_9O.js`, `Dashboard-Dzf-IC_a.js`, `sessionSync-mloIEnTd.js`, `SettingsLayout-DkuooNHv.js`, `useSyncStore-Di0wBMnH.js`, `AppAccessGate-DzNuNpuU.js`, `useInvites-D9RLFwf8.js`, `useLeaderboard-BpvH5FXA.js`, `SingleGroup-DU1IhoNK.js`, `Auth-D0Y8CB1f.js`, `Onboarding-C0svxOgT.js`, `useAIStore-DRa7CkEN.js`.
-**⚠ Do NOT purge old builds until H1 anchors are re-pointed to new files** — old files are currently the only match for broken anchors.
-**Fix:** after fixing H1, delete all other `.js`/`.css` not in the served graph.
+## L3. Dead duplicate `public/manifest.json`
+**Status: ✅ FIXED (2026-08-10).** Deleted; `manifest.webmanifest` is canonical.
 
-## L2. Duplicate entry in `public/sw.js` `RUNTIME_PATCHED_ASSET_PATHS` — ✅ DONE (2026-08-10)
-Lines **76** and **83**: `'/assets/useSyncStore-Di0wBMnH.js'` appears twice — deduped.
+## L4. Hardcoded fallback Supabase creds in source — OPEN (accepted)
+`server.mjs:180-181` — `DEFAULT_SUPABASE_URL` and `DEFAULT_SUPABASE_ANON_KEY`.
+Anon-scope only and deliberate: they let a downloaded copy reach shared cloud sync
+with no setup. Low risk.
 
-## L3. Dead duplicate manifest `public/manifest.json` — ✅ DONE (2026-08-10)
-**Status:** Deleted (git-tracked; 0 references anywhere; referenced 6 non-existent icons). `manifest.webmanifest` is canonical (linked from index.html line 17). Webmanifest theme_color `#7c3aed` kept (runtime meta theme is `#f97316`, separate concern).
+Note the secondary finding in the original entry **is fixed**:
+`ADMIN_COOKIE_SECRET` no longer falls back to the service key. It is now
+`ADMIN_SECRET || crypto.randomBytes(32).toString('hex')` (`server.mjs:241`), so an
+unconfigured install gets a random per-boot secret instead of reusing a credential.
 
-Not referenced anywhere (index.html line 20 uses `manifest.webmanifest` only). References 6 missing icons (lines 14,20,26,32,38,50): `icon-72x72.png`, `icon-96x96.png`, `icon-128x128.png`, `icon-144x144.png`, `icon-152x152.png`, `icon-384x384.png`. Different `theme_color` (#8b5cf6 vs #7c3aed).
+## L5. `/api/ai-config` discloses which AI providers are configured — OPEN (minor)
+`server.mjs:6839-6843` returns `{gemini: bool, groq: bool}` unauthenticated. No key
+material. Restrict to authenticated callers if it ever matters.
 
-## L4. Hardcoded fallback Supabase creds in source
-**File:** `server.mjs` lines **177-178**: `DEFAULT_SUPABASE_URL = "https://vteqquoqvksshmfhuepu.supabase.co"` and `DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOi..."` (anon JWT, exp 2095). Anon-only so low risk, but flagged. Also `ADMIN_COOKIE_SECRET = ADMIN_SECRET || SUPA_SERVICE_KEY` (**235**) — service key doubles as admin cookie HMAC secret; prefer a dedicated `ADMIN_SECRET`.
+## L6. `POST /__errors` is an unauthenticated append-only log sink — OPEN (minor)
+`server.mjs:6600`. Appends caller-supplied JSON to
+`~/.isotope/logs/browser-errors.log`. 1 MB cap per request, but no rate limit and
+no ceiling on total file size. Local-only surface; worth a cap if the server is
+ever LAN-exposed.
 
-## L5. `/api/ai-config` discloses configured AI providers
-`server.mjs` **6481-6483**: returns `{ gemini: !!GEMINI_API_KEY, groq: !!GROQ_API_KEY }` with no auth. Minor — restrict to authenticated users if desired.
+## L7. Two copies of `RUNTIME_PATCHED_ASSET_PATHS` — OPEN (structural)
+The set lives in both `server.mjs` and `public/sw.js` and must stay identical; they
+have drifted twice. Both are correct and in sync as of 2026-08-27 (25 entries), and
+the stale `/assets/PWAManager-CUuXr3sv.js` entry is gone from `server.mjs`.
+
+The failure mode is quiet and expensive: a serve-time-patched asset missing from
+the set matches `isHashedStaticAsset()` and ships
+`Cache-Control: public, max-age=31536000, immutable`, so browsers pin the
+*unpatched* body for a year. This is what produced the recurring community black
+screens. Mitigated — `sw.js` cache names now include a `BUILD_TOKEN` digest of
+VERSION + `server.mjs` mtime, so editing a patch rotates the cache — but a single
+generated source of truth would remove the class entirely.
 
 ---
 
 # CHECKED / CLEAN
-- No TODO/FIXME/HACK markers anywhere.
-- No SQL string-concatenation injection (params are `encodeURIComponent`-escaped, e.g. 6661).
-- All 22 registered bundle target files exist (server.mjs `*_BUNDLE_ABS` constants).
-- `node --check server.mjs` passes.
-- `pwa-local.js`, `update-checker.js`, `boot-recovery.js`: storage guarded, no XSS vectors in banners.
-- `src/components` (shadcn/ui scaffold): no missing keys, no hooks-in-conditionals; only `dangerouslySetInnerHTML` is `src/components/ui/chart.tsx:79` (component config only).
+- No TODO/FIXME/HACK markers.
+- No SQL string-concatenation injection. `community_discover_groups` was
+  parameterised with `quote_literal()` and escaped LIKE operands.
+- All 27 `*_BUNDLE_ABS` / `*_ABS` target files exist.
+- Both `RUNTIME_PATCHED_ASSET_PATHS` sets identical, and every `*_ABS` asset the
+  server patches is present in them.
+- `node --check` clean across `server.mjs`, `public/sw.js`, `server/backup-manager.mjs`,
+  both `public/sync/*`, the 7 runtime glue scripts, and all 17 `scripts/*.mjs`.
+- `bash -n` clean across all 9 shell scripts.
+- `test:auth-bridge`, `prove-runtime-glue`, `validate-docs` (34 checks, 0 errors),
+  and the CI backup-normalizer smoke all pass.
+- Dollar-quote delimiters balanced in every `*.sql` and `sql/*.sql` (now gated in
+  `schema-lint.yml` — a stray `$$;` in `isotope-complete.sql` had been silently
+  truncating every function after line 1305).
+- `pwa-local.js`, `update-checker.js`, `boot-recovery.js`: storage guarded, no XSS
+  vectors in banners.
+- `src/components` (shadcn/ui scaffold): no missing keys, no hooks in conditionals;
+  the only `dangerouslySetInnerHTML` is `src/components/ui/chart.tsx:79`
+  (component config only).
 
 # SCAFFOLD NOTE (not a shipped app issue)
-- `src/` is an unbuildable scaffold: `package.json` has zero dependencies and no build script; `tsconfig.json` extends `"../../tsconfig.base.json"` and references `"../../lib/api-client-react"` — neither exists. The real app is the prebuilt bundles in `public/assets/` booted by `public/restore-and-launch.js`.
+`src/` is a Vite/React shadcn scaffold. The app actually served is the pre-built
+bundle set in `public/assets/`, patched at serve time by `server.mjs`. Editing
+`src/` has no effect on what users get.

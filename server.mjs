@@ -146,7 +146,6 @@ const RUNTIME_PATCHED_ASSET_PATHS = new Set([
   '/assets/CommunityHub-gANxZssO.js',
   '/assets/FocusStore-D5cRXSIr.js',
   '/assets/EventsCalendar-COHF8nOK.js',
-  '/assets/PWAManager-CUuXr3sv.js',
   '/assets/usePWA-BOujtGOv.js',
   '/assets/Dashboard-Dzf-IC_a.js',
   '/assets/Study-BXfkiHvM.js',
@@ -5966,6 +5965,21 @@ async function bootstrapUserRows({ userId, email = '', displayName = '', userJwt
       status: 'offline',
       last_seen: now,
     }, userJwt, { 'Prefer': 'resolution=ignore-duplicates,return=minimal' }).catch(() => null),
+    // user_points and community_enrollments used to be seeded ONLY by
+    // runStartupBackfills(), which is gated behind ADMIN_MODE_READY. On a normal
+    // install (ENABLE_ADMIN_MODE=false) that gate never opens, so these rows were
+    // never created and the leaderboard and community features silently saw a
+    // partial user set. Both tables have own-row RLS insert policies, so the user
+    // can create their own row with their own JWT — no service key needed.
+    supaRestAsUser('POST', '/rest/v1/user_points?on_conflict=user_id', {
+      user_id: userId,
+      points: 0,
+      lifetime_points: 0,
+      updated_at: now,
+    }, userJwt, { 'Prefer': 'resolution=ignore-duplicates,return=minimal' }).catch(() => null),
+    supaRestAsUser('POST', '/rest/v1/community_enrollments?on_conflict=user_id', {
+      user_id: userId,
+    }, userJwt, { 'Prefer': 'resolution=ignore-duplicates,return=minimal' }).catch(() => null),
   ]);
 }
 
@@ -9894,70 +9908,58 @@ async function runStartupBackfills() {
       return;
     }
 
-    // 3. Seed user_points for any user missing a row
-    const r3 = await supaRest('GET', 'user_points', 'select=user_id&limit=2000');
-    let existingPoints = new Set();
-    try { JSON.parse(r3.body.replace(/\n/g,'')).forEach(r => existingPoints.add(r.user_id)); } catch {}
+    // Seed a satellite table with one row per user that does not have one.
+    // `supaRest` resolves (never rejects) on failure, so the status has to be
+    // checked explicitly — otherwise a rejected POST still logged "Seeded N".
+    const seedMissing = async (label, table, selectCol, buildRow) => {
+      const read = await supaRest('GET', table, `select=${selectCol}&limit=2000`);
+      if (read.status < 200 || read.status >= 300) {
+        console.warn(`[Startup] ${label}: read failed (HTTP ${read.status}) — skipped`);
+        return;
+      }
+      const have = new Set();
+      try {
+        const parsed = JSON.parse(read.body.replace(/\n/g, ''));
+        if (Array.isArray(parsed)) parsed.forEach(r => have.add(r[selectCol]));
+      } catch (e) {
+        console.warn(`[Startup] ${label}: could not parse existing rows — skipped`);
+        return;
+      }
+      const missing = users.filter(u => !have.has(u.id));
+      if (missing.length === 0) {
+        console.log(`[Startup] ${label}: already complete (${have.size} row(s))`);
+        return;
+      }
+      const write = await supaRest('POST', table, null, missing.map(buildRow));
+      if (write.status >= 200 && write.status < 300) {
+        console.log(`[Startup] ${label}: seeded ${missing.length} user(s)`);
+      } else {
+        console.warn(`[Startup] ${label}: seeding ${missing.length} user(s) failed — HTTP ${write.status} ${String(write.body || '').slice(0, 200)}`);
+      }
+    };
 
-    const missingPoints = users.filter(u => !existingPoints.has(u.id));
-    if (missingPoints.length > 0) {
-      const rows = missingPoints.map(u => ({ user_id: u.id, points: 0, lifetime_points: 0 }));
-      await supaRest('POST', 'user_points', null, rows);
-      console.log('[Startup] Seeded user_points for', missingPoints.length, 'user(s)');
-    }
+    // 3. user_points
+    await seedMissing('user_points', 'user_points', 'user_id',
+      u => ({ user_id: u.id, points: 0, lifetime_points: 0 }));
 
-    // 4. Seed user_stats_summary for any user missing a row
-    const r4 = await supaRest('GET', 'user_stats_summary', 'select=user_id&limit=2000');
-    let existingStats = new Set();
-    try { JSON.parse(r4.body.replace(/\n/g,'')).forEach(r => existingStats.add(r.user_id)); } catch {}
-
-    const missingStats = users.filter(u => !existingStats.has(u.id));
-    if (missingStats.length > 0) {
-      const rows = missingStats.map(u => ({
+    // 4. user_stats_summary
+    await seedMissing('user_stats_summary', 'user_stats_summary', 'user_id',
+      u => ({
         user_id: u.id, total_study_seconds: 0,
         streak_days: 0, max_streak_days: 0, session_count: 0,
       }));
-      await supaRest('POST', 'user_stats_summary', null, rows);
-      console.log('[Startup] Seeded user_stats_summary for', missingStats.length, 'user(s)');
-    }
 
-    // 5. Seed user_profiles for any user missing a row
-    const r5 = await supaRest('GET', 'user_profiles', 'select=user_id&limit=2000');
-    let existingProfiles = new Set();
-    try { JSON.parse(r5.body.replace(/\n/g,'')).forEach(r => existingProfiles.add(r.user_id)); } catch {}
+    // 5. user_profiles
+    await seedMissing('user_profiles', 'user_profiles', 'user_id',
+      u => ({ user_id: u.id, profile_data: {} }));
 
-    const missingProfiles = users.filter(u => !existingProfiles.has(u.id));
-    if (missingProfiles.length > 0) {
-      const rows = missingProfiles.map(u => ({ user_id: u.id, profile_data: {} }));
-      await supaRest('POST', 'user_profiles', null, rows);
-      console.log('[Startup] Seeded user_profiles for', missingProfiles.length, 'user(s)');
-    }
-
-    // 6. Seed user_points for any user missing a row
-    const r6 = await supaRest('GET', 'user_points', 'select=user_id&limit=2000');
-    let existingPointsSet = new Set();
-    try { JSON.parse(r6.body.replace(/\n/g,'')).forEach(r => existingPointsSet.add(r.user_id)); } catch {}
-    const missingPointsRows = users.filter(u => !existingPointsSet.has(u.id));
-    if (missingPointsRows.length > 0) {
-      const rows = missingPointsRows.map(u => ({ user_id: u.id, points: 0, lifetime_points: 0 }));
-      await supaRest('POST', 'user_points', null, rows);
-      console.log('[Startup] Seeded user_points for', missingPointsRows.length, 'user(s)');
-    }
-
-    // 7. Enroll all users into community
-    const r7 = await supaRest('GET', 'community_enrollments', 'select=user_id&limit=2000');
-    let existingEnrolled = new Set();
-    try { JSON.parse(r7.body.replace(/\n/g,'')).forEach(r => existingEnrolled.add(r.user_id)); } catch {}
-    const missingEnrolled = users.filter(u => !existingEnrolled.has(u.id));
-    if (missingEnrolled.length > 0) {
-      const rows = missingEnrolled.map(u => ({ user_id: u.id }));
-      await supaRest('POST', 'community_enrollments', null, rows);
-      console.log('[Startup] Enrolled', missingEnrolled.length, 'user(s) into community');
-    }
+    // 6. community_enrollments
+    await seedMissing('community_enrollments', 'community_enrollments', 'user_id',
+      u => ({ user_id: u.id }));
 
     console.log('[Startup] DML backfills complete');
 
-    // 6. Create admin user if configured and not present
+    // 7. Create admin user if configured and not present
     try {
       if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
         console.log('[Startup] Admin user creation skipped: ADMIN_EMAIL or ADMIN_PASSWORD unset');

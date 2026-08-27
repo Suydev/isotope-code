@@ -229,3 +229,67 @@ jobs:
             fi
           done
           echo "✅ Migration file validation complete"
+
+      # The workflow triggers on any root-level *.sql change, but previously only
+      # isotope-complete.sql and two legacy files were ever executed — so a new
+      # root SQL file produced a green check that proved nothing. These are patch
+      # and repair scripts applied on top of an existing schema, so they run
+      # against the already-populated shim DB with a tolerance, not from scratch.
+      - name: 🔍 Validate root-level patch SQL
+        env:
+          PGPASSWORD: testpass
+        run: |
+          set -euo pipefail
+          CHECKED=0
+          for f in *.sql; do
+            case "$f" in
+              # Executed in full by the dedicated step above.
+              isotope-complete.sql) continue ;;
+              # Covered by the legacy compatibility smoke above.
+              community-patch-v4.sql|performance-patch.sql) continue ;;
+              # Superseded by isotope-complete.sql; kept for old installs only.
+              isotope-schema.sql) continue ;;
+              # Self-documented as a removal patch that drops tables
+              # isotope-complete.sql creates — running it here would corrupt
+              # the shim DB for any later step.
+              events-expansion.sql) continue ;;
+              # Marked in-file as a non-install artifact targeting another project.
+              community-rpcs-test.sql) continue ;;
+            esac
+            [ -f "$f" ] || continue
+            CHECKED=$((CHECKED + 1))
+            echo "Testing $f..."
+            OUT=$(psql -h localhost -U postgres -d isotope_test \
+              -v ON_ERROR_STOP=0 \
+              -f "$f" 2>&1 || true)
+            ERRS=$(printf '%s\n' "$OUT" | grep -c '^ERROR' || true)
+            ERRS=${ERRS:-0}
+            echo "  $f: $ERRS error(s)"
+            if [ "$ERRS" -gt 0 ]; then
+              echo "=== errors in $f ==="
+              printf '%s\n' "$OUT" | grep '^ERROR' | head -20
+              echo "❌ $f failed against the compatibility database"
+              exit 1
+            fi
+          done
+          echo "✅ Validated $CHECKED root-level patch file(s)"
+
+      # Cheap structural check that catches the class of bug where an editing
+      # slip leaves a stray `$$;` and silently truncates every function after it.
+      # `--` comments are stripped first: prose like "DO $$ guards" would
+      # otherwise register as an unpaired delimiter.
+      - name: 🔍 Dollar-quote balance
+        run: |
+          set -euo pipefail
+          FAIL=0
+          for f in *.sql sql/*.sql; do
+            [ -f "$f" ] || continue
+            N=$(sed 's/--.*//' "$f" | grep -o '\$\$' | wc -l | tr -d ' ')
+            if [ $((N % 2)) -ne 0 ]; then
+              echo "::error file=$f::$N \$\$ delimiters outside comments — odd count means an unbalanced dollar-quoted body"
+              FAIL=1
+            else
+              echo "✅ $f ($N)"
+            fi
+          done
+          [ "$FAIL" -eq 0 ] || exit 1

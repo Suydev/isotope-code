@@ -351,10 +351,31 @@ typeof window.__isoGetValidJwt
 | Method | Endpoint | Auth | What it does |
 |--------|----------|------|-------------|
 | `GET` | `/api/health` | None | Returns local server and Supabase health checks |
-| `GET` | `/api/version` | None | Returns package version, local Git SHA, and command metadata |
+| `GET` | `/api/version` | None | Returns package version, local Git SHA, command metadata, and `pwa_cache` (the live service-worker cache name) |
+| `GET` | `/api/ai-config` | None | Returns `{gemini, groq}` booleans — whether each AI key is configured. No key material |
 | `POST` | `/api/restart` | None | Legacy no-op. Returns `isotope update` guidance and never stops the server |
 | `GET` | `/api/check-update` | None | Checks GitHub for a newer version, falling back to SHA when needed |
+| `GET` | `/api/update-status` | None to call | Reports `{authorized, admin_available, dirty, dirty_count, dirty_files, branch}`. Lets the UI warn before an update stashes local work |
+| `POST` | `/api/update-now` | Admin cookie **or** loopback | Runs `isotope update` detached. `409` if the git tree is dirty unless `?confirm=1`; `403` for LAN/remote callers |
+| `GET` | `/api/pip/state` | None | Current Picture-in-Picture timer state |
+| `POST` | `/api/pip/action` | None | Sends a PiP control action (play/pause/etc.) |
 | `GET` | `/api/community-events`, `/api/events*` | None | Removed-feature 404; Events has been removed |
+
+### `/api/update-now` authorization
+
+This does **not** require admin mode. It accepts either a valid admin cookie or a
+loopback request — `req.socket.remoteAddress` of `127.0.0.1`/`::1` with no
+`x-forwarded-for` / `x-forwarded-host` header. `isotope update` is a local
+`git pull`, so the operator at the machine is who should be able to run it;
+gating on `ENABLE_ADMIN_MODE` made the in-app Update button a permanent `403` on
+ordinary self-hosted installs. LAN and remote callers are still rejected, and the
+`403` body carries `admin_available` so the UI only offers admin unlock when
+unlock can actually succeed.
+
+Because `git pull` auto-stashes a dirty tree, a bare `POST` returns `409
+confirmation_required` with `dirty_count` when `git status --porcelain` is
+non-empty. Retry with `?confirm=1` to proceed. Recover stashed work with
+`git stash pop`.
 
 ---
 
@@ -423,15 +444,26 @@ This allows AI features to use server-configured API keys without them appearing
 |----------|----------|---------|---------|
 | `SUPABASE_URL` | Yes | Built-in project | Your Supabase project URL |
 | `SUPABASE_ANON_KEY` | Yes | Built-in key | Public/anon JWT key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Strongly recommended | _(none)_ | Bypasses RLS; needed for community features |
-| `SUPABASE_ACCESS_TOKEN` | Yes (for patch) | _(none)_ | Management API PAT for one-click patch |
+| `SUPABASE_SERVICE_ROLE_KEY` | Owner only | _(none)_ | Bypasses RLS. Required for `ADMIN_MODE_READY` and for startup backfills |
+| `SUPABASE_ACCESS_TOKEN` | Owner only | _(none)_ | Management API PAT. Only needed for one-click SQL apply via `/__admin/patch` |
+| `ENABLE_ADMIN_MODE` | Optional | `false` | Must be `true` (with a service-role key) before any `/__admin/*` route works |
 | `ADMIN_EMAIL` | Optional | _(empty)_ | Supabase admin email for browser unlock and optional bootstrap |
 | `ADMIN_EMAILS` | Optional | _(empty)_ | Comma-separated Supabase admin email allowlist |
 | `ADMIN_PASSWORD` | Optional | _(empty)_ | Admin account password for optional bootstrap |
-| `ADMIN_SECRET` | Optional | _(empty)_ | Local admin unlock secret |
+| `ADMIN_SECRET` | Optional | random per boot | Local admin unlock secret. When unset, the admin cookie HMAC key is a fresh random value each start, so unlock does not persist across restarts |
+| `BROWSER_PROOF_EMAIL` | Optional | `ADMIN_EMAIL` | Existing Supabase user used by `/__admin/browser-proof` |
 | `GROQ_API_KEY` | Optional | _(none)_ | AI text features (Groq/LLaMA) |
 | `GEMINI_API_KEY` | Optional | _(none)_ | AI text features (Gemini) |
+| `GITHUB_OWNER` | Optional | `Suydev` | Update-check repo owner. Override when forking |
+| `GITHUB_REPO` | Optional | `isotope-code` | Update-check repo name |
+| `GITHUB_PAT` | Optional | _(none)_ | Raises the GitHub API rate limit for update checks |
+| `ASSET_CDN_ORIGINS` | Optional | _(empty)_ | Comma-separated origins to recover a missing `/assets/*` file from |
 | `PORT` | Auto | `3000` | HTTP server port (set by the local runtime) |
+| `ISOTOPE_HOME` | Optional | `~/.isotope` | State directory: pid file, port, logs |
+
+Not read by `server.mjs`, despite appearing in `.env.example`: `YEPAPI_KEY`
+(the `/__ai/*` routes it refers to are fenced off at a 404 and have no handler) and
+`SESSION_SECRET` (set by CI and release workflows but never consumed).
 
 Setup env file behavior:
 - `.env` is preferred.
@@ -465,7 +497,14 @@ On first start, the server automatically:
 
 ## 12. Database Schema Architecture
 
-### Core tables (required — in `isotope-schema.sql`)
+**Which SQL file to run:** `isotope-complete.sql` is the authoritative fresh-install
+schema and creates everything listed below — both the core and the community tables.
+It is what `/__admin/schema` serves. `community-patch-v6.sql` is the cumulative
+patch for installs that already have a schema, and is what `/__admin/patch` serves.
+`isotope-schema.sql` (legacy v2) and `community-patch-v4.sql` are kept only so that
+older instructions still resolve; prefer the two files above.
+
+### Core tables
 
 - `public.users` — extended profile, plan_type, coins, gems
 - `public.user_profiles` — JSONB profile blob
@@ -473,7 +512,8 @@ On first start, the server automatically:
 - `public.user_stats_summary` — aggregated study stats
 - `public.daily_user_stats` — per-day study seconds
 - `public.study_sessions_log` — individual focus sessions
-### Community tables (in `community-patch-v4.sql`)
+
+### Community tables
 
 - `public.groups` + `public.group_members` — study groups
 - `public.group_chat_messages` — group realtime chat
@@ -482,6 +522,16 @@ On first start, the server automatically:
 - `public.group_announcements` + `public.group_milestones` — group activity
 - `public.notifications` — user notification inbox
 - `public.user_presence` — realtime online status
+
+### Upgrade-only patches
+
+- `leaderboard-rls-fix.sql` — required on installs created before the leaderboard
+  RLS change. The old `stats_own` `FOR ALL` policy blocked public `SELECT` on
+  `user_stats_summary` and `daily_user_stats`, which made the leaderboard render
+  empty. Fresh installs from `isotope-complete.sql` already have the correct
+  `stats_read_all` policy and do not need it.
+- `performance-patch.sql`, `performance-indexes.sql` — indexes for RLS membership
+  subqueries and leaderboard date sorts.
 
 ### Key architectural decisions
 
@@ -530,14 +580,34 @@ On first start, the server automatically:
 
 | Route | Method | Auth | Description |
 |-------|--------|------|-------------|
-| `/__admin/verify` | GET | ✓ | Full automated test suite (63 tests) |
-| `/__admin/patch` | GET | ✓ | SQL patch manager UI |
+| `/__admin` | GET | — | Redirects to `/__admin/verify` (or login) |
+| `/__admin/login` | GET, POST | — | Unlock form. Accepts `ADMIN_SECRET` or a Supabase admin session; sets the `iso_admin` cookie at `Path=/` |
+| `/__admin/verify` | GET | ✓ | Full automated test suite |
+| `/__admin/patch` | GET | ✓ | SQL patch manager UI (serves `community-patch-v6.sql`) |
 | `/__admin/patch.sql` | GET | ✓ | Raw SQL download |
 | `/__admin/apply-sql` | POST | ✓ | Execute SQL via Management API proxy |
+| `/__admin/schema` | GET | ✓ | Downloads `isotope-complete.sql` |
+| `/__admin/roles` | GET, POST, DELETE | ✓ | Grant and revoke admin roles |
+| `/__admin/sync` | GET | ✓ | Backup diagnostics console |
+| `/__admin/sync/repair-user-backup` | POST | ✓ | Repair a user's backup (supports dry run) |
+| `/__admin/storage` | GET | ✓ | Storage console |
+| `/__admin/storage/cleanup-preview` | POST | ✓ | Preview storage cleanup for a user |
+| `/__admin/storage/cleanup-apply` | POST | ✓ | Apply storage cleanup |
+| `/__admin/browser-proof` | GET | ✓ | Start a real-browser proof run |
+| `/__admin/browser-proof-page` | GET | ✓ | The page the browser executes |
+| `/__admin/browser-proof-status` | GET | ✓ | Poll a proof run's status |
+| `/__admin/browser-proof-result` | POST | run token | Proof callback — **exempt** from admin auth; authorized by per-run token |
 | `/__admin/events*` | Any | ✓ | Removed-feature 404 JSON; Events admin is inactive |
 
-✓ = protected by admin mode and `ADMIN_SECRET`
+✓ = requires `ADMIN_MODE_READY` (`ENABLE_ADMIN_MODE=true` **and** a service-role key)
+plus `isAdminAuthed(req)`, which is satisfied by either a signed `iso_admin` cookie
+or a Supabase login whose email is in `ADMIN_EMAIL`/`ADMIN_EMAILS` or which holds an
+admin row in `user_roles`. `ADMIN_SECRET` is one way to obtain the cookie, not the
+only one.
+
+Note that `/api/update-now` is **not** in this table and does not require admin
+mode — see §7.
 
 ---
 
-_Last updated: v3.1.x — 2026-06-05_
+_Last updated: 2026-08-27_

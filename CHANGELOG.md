@@ -5,6 +5,45 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.4.1] — 2026-08-27 — Stale-asset cache rotation, community fixes, CI correctness
+
+### Fixed (service worker — root cause of recurring stale bundles)
+
+- **Serve-time patch fixes were invisible until the user cleared site data.** `/assets/` is served cache-first, and the SW cache name derived from `VERSION` alone — so editing a bundle patch in `server.mjs` never invalidated the cache. Cache names now carry a build token: `isotope-local-{shell,runtime}-<version>-<sha12>-<buildToken>`, where `buildToken` is a digest of `VERSION` + `server.mjs` mtime, substituted into the new `__ISOTOPE_BUILD_TOKEN__` placeholder. Any patch edit now rotates both caches on the next load. This was the underlying cause of the repeated community black screens.
+- **Four serve-time-patched assets shipped `Cache-Control: immutable`**, pinning unpatched bodies for a year: `Study-BXfkiHvM.js`, `useNotificationStore-BTREori0.js`, `CommunityVisuals-mHr4KGyg.js`, `usePWA-BOujtGOv.js`. Added to `RUNTIME_PATCHED_ASSET_PATHS` in both `server.mjs` and `public/sw.js`; the stale `PWAManager-CUuXr3sv.js` entry was removed so the two sets now match exactly.
+- **`/api/version.pwa_cache` reported a cache name that never existed** — it omitted the build-token suffix. Now built from `currentBuildToken()`.
+- Service worker `GET_VERSION` reply includes `buildToken`.
+
+### Fixed (community)
+
+- **Mobile keyboard closed after every keystroke in community modals.** The shared modal ran its focus-trap effect with dep `[onClose]`, and every call site passes an inline arrow, so `onClose` had a fresh identity on each parent render. The effect re-ran per keystroke and its cleanup ends in `m?.focus()`, moving focus off the input — and Android WebView dismisses the soft keyboard on blur. `onClose` now lives in a ref, the return-focus target is captured once, and the dep array is `[]` so focus is restored only on unmount. Escape and the Tab trap are unchanged. Affects Create a group, Join with code, and Privacy.
+- **Two serve-time patches were silently dead** because their anchors were written against pretty-printed source while the shipped bundles are minified: `STUDY_SYLLABUS_FROM` (`Y.filter((m) => …)` → `Y.filter(m=>…)`) and the Onboarding completion anchor. `StudyPatch` also re-tested `raw.includes(FROM)` after replacing, so it warned even on success — now counts hits instead.
+- Failed critical patches are collected and surface as a banner in served HTML rather than only appearing in a log.
+- `community_get_group` returns `members`; the ambiguous `text` overload was dropped. `community_discover_groups` parameterised with `quote_literal()` and escaped LIKE operands. Leaderboard RLS allows public `SELECT` on stats with own-row writes only.
+
+### Fixed (in-app updater)
+
+- **The Update button was a permanent `403` on any install with `ENABLE_ADMIN_MODE=false`** — which is the default. `/api/update-now` was admin-only, but `ADMIN_MODE_READY` additionally requires a service-role key, so ordinary self-hosted installs could never satisfy it, and the pill redirected to a login page that was itself disabled. The endpoint now accepts an admin cookie **or** a loopback request (`127.0.0.1`/`::1` with no `x-forwarded-*` header). LAN and remote callers are still rejected.
+- **`isotope update` runs `git pull`, which auto-stashes local modifications.** A bare `POST` now returns `409 confirmation_required` with `dirty_count`, and the pill shows a confirmation naming the file count before retrying with `?confirm=1`. New `GET /api/update-status` reports `{authorized, admin_available, dirty, dirty_count, dirty_files, branch}`.
+- The pill reports the server's actual reason instead of assuming an auth failure, and only offers admin unlock when unlock can succeed.
+
+### Fixed (CI)
+
+- **`regenerate-release.yml` failed on every release** — it required `public/index.html`, which does not exist; the SPA shell is at the repo root. The step is `test -f || exit 1`.
+- **`ci.yml` never syntax-checked `public/sw.js`** despite it being hand-edited with substituted placeholders. Now checked both raw and substituted, along with the seven runtime glue scripts, plus an assertion that every `__ISOTOPE_*__` placeholder the SW declares is one `server.mjs` actually replaces.
+- **`schema-lint.yml` triggered on root-level `*.sql` but never executed those files**, so a new root SQL file produced a green check that proved nothing. Root patch files are now run against the compatibility shim, with documented exclusions.
+- Added a dollar-quote balance gate. It immediately caught a stray `$$;` in `isotope-complete.sql` that had been silently truncating every function defined after line 1305.
+- `community-patch-v6.sql` (served live by `/__admin/patch`) and `leaderboard-rls-fix.sql` added to the required-files list.
+
+### Documentation
+
+- `problems.md` rewritten: the 2026-08-09 backlog (H1–H4, M1–M6, L1–L3) is closed. It had been presenting fixed items as open, and its H3 prescription would have re-broken the Update button.
+- `ADMIN.md`: API table gained `/api/update-status`, `/api/update-now`, `/api/ai-config` and the PiP routes; the `/__admin/*` table went from 5 routes to all 20; env-var table completed; the `isotope-schema.sql` vs `community-patch-v4.sql` vs `community-patch-v6.sql` contradiction resolved.
+- `agents/AGENTS.md` and `docs/BUG_FIXES.md`: SW cache-name format corrected.
+- `package.json` version aligned to `VERSION` (3.4.1); `docs/index.html` hero updated from v3.3.9.
+
+---
+
 ## [3.4.0] — 2026-08-13 — Performance: lazy asset loading, offline cache fix, gzip HTML
 
 ### Fixed (offline cache — critical)

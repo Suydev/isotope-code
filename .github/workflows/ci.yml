@@ -232,6 +232,8 @@ jobs:
             bin/isotope.ps1
             isotope-complete.sql
             community-patch-v4.sql
+            community-patch-v6.sql
+            leaderboard-rls-fix.sql
             sql/006_security_policy_cleanup.sql
             sql/backup_manifests.sql
             sql/verify-security.sql

@@ -45,3 +45,18 @@ Run order for fresh setup:
 3. `sql/verify-security.sql` for verification queries
 
 `isotope-complete.sql` now includes `sync_items` and `backup_manifests` for fresh installs.
+
+### Upgrade-only patches
+
+These are not part of fresh setup. Apply them only to a project that already has a
+schema:
+
+- `leaderboard-rls-fix.sql` — needed if the leaderboard renders empty. The legacy
+  `stats_own` `FOR ALL` policy blocked public `SELECT` on `user_stats_summary` and
+  `daily_user_stats`; this replaces it with a public read policy plus own-row
+  writes. `isotope-complete.sql` already creates the correct `stats_read_all`
+  policy, so fresh installs can skip it.
+- `community-patch-v6.sql` — the cumulative community patch, and what
+  `/__admin/patch` serves. Supersedes `community-patch-v4.sql`.
+- `performance-patch.sql`, `performance-indexes.sql` — indexes for RLS membership
+  subqueries and leaderboard date sorts.
