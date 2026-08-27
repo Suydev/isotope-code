@@ -40,10 +40,16 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: 🚀 Start local server
+        env:
+          # If screenshot Supabase secrets exist, boot against that project so the
+          # injected login session matches the server's project ref. Otherwise use
+          # the inert placeholder (unauthenticated capture).
+          SCREENSHOT_SUPABASE_URL: ${{ secrets.SCREENSHOT_SUPABASE_URL }}
+          SCREENSHOT_SUPABASE_ANON_KEY: ${{ secrets.SCREENSHOT_SUPABASE_ANON_KEY }}
         run: |
           PORT=3000 \
-          SUPABASE_URL=https://placeholder.supabase.co \
-          SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature \
+          SUPABASE_URL="${SCREENSHOT_SUPABASE_URL:-https://placeholder.supabase.co}" \
+          SUPABASE_ANON_KEY="${SCREENSHOT_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature}" \
           SESSION_SECRET=screenshot_ci_secret_not_real \
           node server.mjs &
           echo $! > /tmp/iso.pid
@@ -55,12 +61,27 @@ jobs:
           [ "$STATUS" = "200" ] || { echo "Server failed to start"; exit 1; }
 
       - name: 📷 Capture screenshots
+        env:
+          # Optional: set these repo secrets to capture auth-gated routes signed
+          # in. Without them the step still runs, unauthenticated, and stays green.
+          SHOT_EMAIL: ${{ secrets.SHOT_EMAIL }}
+          SHOT_PASSWORD: ${{ secrets.SHOT_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SCREENSHOT_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SCREENSHOT_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature' }}
         run: |
           sudo apt-get install -y pngquant >/dev/null 2>&1 || true
+          LOGIN_FLAG=""
+          if [ -n "${SHOT_EMAIL:-}" ] && [ -n "${SHOT_PASSWORD:-}" ]; then
+            LOGIN_FLAG="--login"
+            echo "Screenshot login credentials present — capturing signed in"
+          else
+            echo "No SHOT_EMAIL/SHOT_PASSWORD secrets — capturing unauthenticated"
+          fi
           node scripts/capture-screenshots.mjs \
             --server=http://127.0.0.1:3000 \
             --out=screenshots \
             --demo \
+            $LOGIN_FLAG \
             --compress \
             || echo "capture had failures (manifest reflects them)"
           node -e "

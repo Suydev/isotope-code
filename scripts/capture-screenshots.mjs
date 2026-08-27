@@ -17,6 +17,13 @@
  *   --compress       Compress PNGs with pngquant after capture (if available)
  *   --routes=a,b,c   Capture only these route keys
  *   --demo           Seed demo data before capturing (loads ?demo=1)
+ *   --login          Sign in before capturing so auth-gated routes render.
+ *                    Credentials come from the environment, never CLI args:
+ *                      SHOT_EMAIL / SHOT_PASSWORD   (preferred)
+ *                      or ISOTOPE_SHOT_EMAIL / ISOTOPE_SHOT_PASSWORD
+ *                    plus SUPABASE_URL / SUPABASE_ANON_KEY (already in .env).
+ *                    Without valid credentials the script falls back to the
+ *                    unauthenticated behavior and warns — CI stays green.
  * ──────────────────────────────────────────────────────────────────────────────
  */
 
@@ -24,6 +31,8 @@ import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
 import { execSync } from 'child_process';
+import https from 'https';
+import http from 'http';
 
 // ── Config from CLI args ─────────────────────────────────────────────────────
 const args = Object.fromEntries(
@@ -39,7 +48,15 @@ const BASE_URL = args.server || process.env.ISOTOPE_URL || 'http://127.0.0.1:300
 const OUT_DIR  = resolve(args.out || 'screenshots');
 const COMPRESS = !!args.compress;
 const DEMO     = !!args.demo;
+const LOGIN    = !!args.login;
 const ONLY     = args.routes ? args.routes.split(',') : null;
+
+// Screenshot login credentials come from the environment only — never CLI args,
+// never committed. The account is a normal Supabase user dedicated to captures.
+const SHOT_EMAIL = process.env.SHOT_EMAIL || process.env.ISOTOPE_SHOT_EMAIL || '';
+const SHOT_PASSWORD = process.env.SHOT_PASSWORD || process.env.ISOTOPE_SHOT_PASSWORD || '';
+const SUPA_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+const SUPA_ANON = process.env.SUPABASE_ANON_KEY || '';
 
 // ── Viewport sizes ───────────────────────────────────────────────────────────
 const DESKTOP = { width: 1440, height: 1000 };
@@ -141,6 +158,61 @@ function log(msg)  { console.log(`${CYAN}  →${RESET} ${msg}`); }
 function ok(msg)   { console.log(`${GREEN}  ✅ ${msg}${RESET}`); }
 function fail(msg) { console.error(`${RED}  ❌ ${msg}${RESET}`); }
 function warn(msg) { console.warn(`${YELLOW}  ⚠️  ${msg}${RESET}`); }
+
+// Password grant against Supabase, mirroring the auth-bridge storage contract so
+// the app's AUTH_GUARD_SCRIPT treats the context as logged in. Returns the raw
+// session JSON string, or null on any failure (the caller then warns and
+// proceeds unauthenticated).
+function fetchDemoSession() {
+  return new Promise((resolve) => {
+    if (!SHOT_EMAIL || !SHOT_PASSWORD || !SUPA_URL || !SUPA_ANON) {
+      return resolve(null);
+    }
+    let u;
+    try { u = new URL(`${SUPA_URL}/auth/v1/token?grant_type=password`); }
+    catch { return resolve(null); }
+    const body = Buffer.from(JSON.stringify({ email: SHOT_EMAIL, password: SHOT_PASSWORD }));
+    const lib = u.protocol === 'http:' ? http : https;
+    const req = lib.request(u, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_ANON,
+        'Authorization': 'Bearer ' + SUPA_ANON,
+        'Content-Length': String(body.length),
+      },
+    }, (r) => {
+      let d = '';
+      r.on('data', (c) => d += c);
+      r.on('end', () => {
+        try {
+          const j = JSON.parse(d);
+          resolve(j && j.access_token ? d : null);
+        } catch { resolve(null); }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.setTimeout(15000, () => { req.destroy(); resolve(null); });
+    req.write(body);
+    req.end();
+  });
+}
+
+// Playwright init script: plant the session in localStorage before any app code
+// runs, using the same keys auth-bridge.js reads.
+function sessionInitScript(rawSession, supaRef) {
+  return `(function(){try{
+    var raw = ${JSON.stringify(rawSession)};
+    var s = JSON.parse(raw);
+    var tok = s.access_token || (s.session && s.session.access_token) || '';
+    var rt  = s.refresh_token || (s.session && s.session.refresh_token) || '';
+    localStorage.setItem('isotope-auth-token', raw);
+    localStorage.setItem('sb-${supaRef}-auth-token', raw);
+    localStorage.setItem('isotope-last-jwt', tok);
+    localStorage.setItem('isotope-last-rt', rt);
+    localStorage.setItem('isotope-last-session-raw', raw);
+  }catch(e){}})();`;
+}
 
 async function waitForSelector(page, selectors, timeout = 8000) {
   const list = selectors.split(',').map(s => s.trim());
@@ -254,6 +326,20 @@ ok(`Server is up at ${BASE_URL}`);
 
 mkdirSync(OUT_DIR, { recursive: true });
 
+// Optional authenticated capture. Resolve one session up front and reuse it for
+// every context via addInitScript.
+let demoSessionRaw = null;
+let supaRef = '';
+if (LOGIN) {
+  demoSessionRaw = await fetchDemoSession();
+  if (demoSessionRaw) {
+    try { supaRef = new URL(SUPA_URL).hostname.split('.')[0]; } catch {}
+    ok(`Signed in as ${SHOT_EMAIL} — auth-gated routes will render`);
+  } else {
+    warn('--login set but no valid session (need SHOT_EMAIL/SHOT_PASSWORD + SUPABASE_URL/ANON). Falling back to unauthenticated capture.');
+  }
+}
+
 const browser = await chromium.launch({ headless: true });
 
 let successCount = 0;
@@ -267,6 +353,9 @@ for (const route of toCapture) {
     colorScheme: 'dark',
     locale: 'en-IN',
   });
+  if (demoSessionRaw && supaRef) {
+    await context.addInitScript(sessionInitScript(demoSessionRaw, supaRef));
+  }
   const page = await context.newPage();
 
   // Suppress console noise
