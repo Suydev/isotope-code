@@ -29,7 +29,8 @@
     "schema:drift": "node scripts/check-schema-drift.mjs",
     "test:auth-bridge": "node scripts/test-auth-bridge.mjs",
     "test:runtime-glue": "node scripts/prove-runtime-glue.mjs",
-    "test:supabase-sync": "node scripts/prove-supabase-sync.mjs"
+    "test:supabase-sync": "node scripts/prove-supabase-sync.mjs",
+    "sql:quotes": "node scripts/check-dollar-quotes.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

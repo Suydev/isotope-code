@@ -286,20 +286,5 @@ jobs:
 
       # Cheap structural check that catches the class of bug where an editing
       # slip leaves a stray `$$;` and silently truncates every function after it.
-      # `--` comments are stripped first: prose like "DO $$ guards" would
-      # otherwise register as an unpaired delimiter.
       - name: 🔍 Dollar-quote balance
-        run: |
-          set -euo pipefail
-          FAIL=0
-          for f in *.sql sql/*.sql; do
-            [ -f "$f" ] || continue
-            N=$(sed 's/--.*//' "$f" | grep -o '\$\$' | wc -l | tr -d ' ')
-            if [ $((N % 2)) -ne 0 ]; then
-              echo "::error file=$f::$N \$\$ delimiters outside comments — odd count means an unbalanced dollar-quoted body"
-              FAIL=1
-            else
-              echo "✅ $f ($N)"
-            fi
-          done
-          [ "$FAIL" -eq 0 ] || exit 1
+        run: node scripts/check-dollar-quotes.mjs
