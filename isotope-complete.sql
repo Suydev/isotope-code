@@ -2025,6 +2025,7 @@ END;
 $$;
 
 -- purchase_store_item (atomic, coin-deducting)
+CREATE OR REPLACE FUNCTION public.purchase_store_item(p_user_id uuid, p_item_id uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_item  public.store_items%ROWTYPE;
