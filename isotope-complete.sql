@@ -1,1467 +1,1714 @@
--- ============================================================================
--- IsotopeAI — Complete Schema (isotope-complete.sql)
--- ============================================================================
--- Single authoritative SQL file for a fresh Supabase project.
--- Fully idempotent: safe to run multiple times on any existing database.
+-- =============================================================================
+-- IsotopeAI — full portable schema dump (NO user data)
+-- Generated: 2026-08-28 14:56:39 UTC
+-- Project ref: ollsqiutzartjhiuzkbf
+-- Schemas: private, rpc_private, public
 --
--- Tables (25):
---   users, user_profiles, user_points, user_stats_summary, daily_user_stats,
---   study_sessions_log, user_presence, user_onboarding, user_settings,
---   user_roles, sync_items, backup_manifests, user_inventory, notifications,
---   store_items,
---   groups, group_members, group_chat_messages, group_invites,
---   group_announcements, group_milestones, group_challenges,
---   group_challenge_participants,
---   community_events, community_event_attendees
+-- HOW TO RESTORE INTO A FRESH SUPABASE PROJECT:
+--   1. Create a new Supabase project.
+--   2. Open the SQL editor and run this ENTIRE file (it is transactional).
+--   3. (Optional) recreate storage buckets used by the app (e.g. 'avatars').
+--   4. Update .env: SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY
+--      (and SUPABASE_ACCESS_TOKEN) to the new project's values, then restart.
 --
--- Run order: run this file once in Supabase SQL Editor, then
--- run performance-patch.sql for additional index/RLS optimisations.
--- ============================================================================
+-- NOTE: auth.* and storage.* schemas are managed by Supabase and are NOT
+-- included. User data (profiles, groups, sessions, chat, stats) is excluded
+-- intentionally. RLS policies, functions, triggers, indexes and grants are
+-- fully restored so the app works out of the box.
+-- =============================================================================
+BEGIN;
 
--- ── §0. Drop function overloads with return-type drift ───────────────────────
--- PostgreSQL cannot change a function's return type with CREATE OR REPLACE.
--- Drop every overload that may exist from older schema versions first.
-
-DROP FUNCTION IF EXISTS public.get_invite_details(text);
-DROP FUNCTION IF EXISTS public.accept_invite(text);
-DROP FUNCTION IF EXISTS public.get_membership_snapshot();
-DROP FUNCTION IF EXISTS public.get_membership_snapshot(uuid);
-DROP FUNCTION IF EXISTS public.get_membership_snapshot(uuid, uuid);
-DROP FUNCTION IF EXISTS public.get_group_analytics_from_snapshots(uuid);
-DROP FUNCTION IF EXISTS public.get_group_analytics_from_snapshots(uuid, integer);
-DROP FUNCTION IF EXISTS public.get_leaderboard();
-DROP FUNCTION IF EXISTS public.get_leaderboard(text);
-DROP FUNCTION IF EXISTS public.get_leaderboard(text, integer);
-DROP FUNCTION IF EXISTS public.get_leaderboard(text, integer, integer);
-DROP FUNCTION IF EXISTS public.get_group_leaderboard(uuid);
-DROP FUNCTION IF EXISTS public.get_group_leaderboard(uuid, integer);
-DROP FUNCTION IF EXISTS public.finish_session_sync(uuid, text, integer, uuid, text, text, timestamptz);
-DROP FUNCTION IF EXISTS public.finish_session_sync(uuid, text, integer, text, text, uuid);
-DROP FUNCTION IF EXISTS public.finish_session_sync(uuid, text, integer, uuid, text, text, text);
-DROP FUNCTION IF EXISTS public.get_event_attendees(uuid);
-DROP FUNCTION IF EXISTS public.is_premium_user();
-DROP FUNCTION IF EXISTS public.is_premium_user(uuid);
-
--- ── §1. Core user tables ──────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS public.users (
-  id              uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email           text,
-  name            text,
-  username        text,
-  avatar_url      text,
-  plan_type       text        NOT NULL DEFAULT 'ranker',
-  billing_status  text        NOT NULL DEFAULT 'active',
-  coins           integer     NOT NULL DEFAULT 0,
-  gems            integer     NOT NULL DEFAULT 0,
-  plan_expires_at timestamptz          DEFAULT '2099-12-31 23:59:59+00',
-  access_ends_at  timestamptz          DEFAULT '2099-12-31 23:59:59+00',
-  created_at      timestamptz NOT NULL DEFAULT now(),
-  updated_at      timestamptz NOT NULL DEFAULT now()
+CREATE SCHEMA IF NOT EXISTS "private";
+GRANT USAGE ON SCHEMA "private" TO authenticated;
+GRANT USAGE ON SCHEMA "private" TO service_role;
+GRANT USAGE ON SCHEMA "private" TO anon;
+CREATE SCHEMA IF NOT EXISTS "rpc_private";
+GRANT USAGE ON SCHEMA "rpc_private" TO anon;
+GRANT USAGE ON SCHEMA "rpc_private" TO authenticated;
+GRANT USAGE ON SCHEMA "rpc_private" TO service_role;
+CREATE SCHEMA IF NOT EXISTS "public";
+GRANT USAGE ON SCHEMA "public" TO anon;
+GRANT USAGE ON SCHEMA "public" TO authenticated;
+GRANT USAGE ON SCHEMA "public" TO service_role;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "plpgsql";
+CREATE EXTENSION IF NOT EXISTS "supabase_vault";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE TABLE IF NOT EXISTS "public"."backup_manifests" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "bucket" text not null,
+  "path" text not null,
+  "kind" text not null,
+  "content_hash" text not null,
+  "size_bytes" bigint not null,
+  "collection_counts" jsonb not null default '{}'::jsonb,
+  "exported_at" timestamp with time zone,
+  "selected_as_best" boolean not null default false,
+  "score" integer not null default 0,
+  "created_at" timestamp with time zone not null default now(),
+  "updated_at" timestamp with time zone not null default now()
 );
-
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS username        text;
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS avatar_url      text;
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS coins           integer     NOT NULL DEFAULT 0;
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS gems            integer     NOT NULL DEFAULT 0;
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS plan_expires_at timestamptz          DEFAULT '2099-12-31 23:59:59+00';
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS access_ends_at  timestamptz          DEFAULT '2099-12-31 23:59:59+00';
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at      timestamptz NOT NULL DEFAULT now();
-DO $$ BEGIN
-  ALTER TABLE public.users ALTER COLUMN plan_type    SET DEFAULT 'ranker'; EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
-DO $$ BEGIN
-  ALTER TABLE public.users ALTER COLUMN billing_status SET DEFAULT 'active'; EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
-
-CREATE TABLE IF NOT EXISTS public.user_profiles (
-  user_id      uuid        PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
-  profile_data jsonb       NOT NULL DEFAULT '{}',
-  updated_at   timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS "public"."buddy_invites" (
+  "id" uuid not null default gen_random_uuid(),
+  "token" text not null,
+  "inviter_id" uuid not null,
+  "max_uses" integer default 1,
+  "uses_count" integer default 0,
+  "expires_at" timestamp with time zone,
+  "created_at" timestamp with time zone default now()
 );
-ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS profile_data jsonb       NOT NULL DEFAULT '{}';
-ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS updated_at   timestamptz NOT NULL DEFAULT now();
-
-CREATE TABLE IF NOT EXISTS public.user_points (
-  user_id        uuid    PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
-  points         integer NOT NULL DEFAULT 0,
-  lifetime_points integer NOT NULL DEFAULT 0,
-  updated_at     timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS "public"."community_device_tokens" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "token" text not null,
+  "platform" text not null default 'web'::text,
+  "created_at" timestamp with time zone not null default now()
 );
-ALTER TABLE public.user_points ADD COLUMN IF NOT EXISTS points          integer     NOT NULL DEFAULT 0;
-ALTER TABLE public.user_points ADD COLUMN IF NOT EXISTS lifetime_points integer     NOT NULL DEFAULT 0;
-ALTER TABLE public.user_points ADD COLUMN IF NOT EXISTS updated_at      timestamptz NOT NULL DEFAULT now();
-
-CREATE TABLE IF NOT EXISTS public.user_stats_summary (
-  user_id             uuid    PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
-  total_study_seconds bigint  NOT NULL DEFAULT 0,
-  total_hours         numeric NOT NULL DEFAULT 0,
-  weekly_hours        numeric NOT NULL DEFAULT 0,
-  monthly_hours       numeric NOT NULL DEFAULT 0,
-  streak_days         integer NOT NULL DEFAULT 0,
-  max_streak_days     integer NOT NULL DEFAULT 0,
-  current_streak      integer NOT NULL DEFAULT 0,
-  longest_streak      integer NOT NULL DEFAULT 0,
-  session_count       integer NOT NULL DEFAULT 0,
-  total_sessions      integer NOT NULL DEFAULT 0,
-  last_session_at     timestamptz,
-  last_study_date     date,
-  updated_at          timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS "public"."community_enrollments" (
+  "user_id" uuid not null,
+  "enrolled" boolean not null default true,
+  "day_offset_hours" integer not null default 0,
+  "privacy" jsonb not null default '{}'::jsonb,
+  "quiet_hours" jsonb not null default '{}'::jsonb,
+  "onboarded" boolean not null default false,
+  "created_at" timestamp with time zone not null default now(),
+  "updated_at" timestamp with time zone not null default now()
 );
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS total_study_seconds bigint  NOT NULL DEFAULT 0;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS streak_days         integer NOT NULL DEFAULT 0;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS max_streak_days     integer NOT NULL DEFAULT 0;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS session_count       integer NOT NULL DEFAULT 0;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS last_study_date     date;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS updated_at          timestamptz NOT NULL DEFAULT now();
-
--- Drop if GENERATED (computed), then re-add as plain columns JS can read/write
-DO $$ DECLARE v boolean; BEGIN
-  SELECT (is_generated='ALWAYS') INTO v FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='user_stats_summary' AND column_name='total_hours';
-  IF v IS TRUE THEN ALTER TABLE public.user_stats_summary DROP COLUMN total_hours; END IF;
-END $$;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS total_hours    numeric NOT NULL DEFAULT 0;
-
-DO $$ DECLARE v boolean; BEGIN
-  SELECT (is_generated='ALWAYS') INTO v FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='user_stats_summary' AND column_name='weekly_hours';
-  IF v IS TRUE THEN ALTER TABLE public.user_stats_summary DROP COLUMN weekly_hours; END IF;
-END $$;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS weekly_hours   numeric NOT NULL DEFAULT 0;
-
-DO $$ DECLARE v boolean; BEGIN
-  SELECT (is_generated='ALWAYS') INTO v FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='user_stats_summary' AND column_name='monthly_hours';
-  IF v IS TRUE THEN ALTER TABLE public.user_stats_summary DROP COLUMN monthly_hours; END IF;
-END $$;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS monthly_hours  numeric NOT NULL DEFAULT 0;
-
-DO $$ DECLARE v boolean; BEGIN
-  SELECT (is_generated='ALWAYS') INTO v FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='user_stats_summary' AND column_name='current_streak';
-  IF v IS TRUE THEN ALTER TABLE public.user_stats_summary DROP COLUMN current_streak; END IF;
-END $$;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS current_streak integer NOT NULL DEFAULT 0;
-
-DO $$ DECLARE v boolean; BEGIN
-  SELECT (is_generated='ALWAYS') INTO v FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='user_stats_summary' AND column_name='longest_streak';
-  IF v IS TRUE THEN ALTER TABLE public.user_stats_summary DROP COLUMN longest_streak; END IF;
-END $$;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS longest_streak integer NOT NULL DEFAULT 0;
-
-DO $$ DECLARE v boolean; BEGIN
-  SELECT (is_generated='ALWAYS') INTO v FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='user_stats_summary' AND column_name='total_sessions';
-  IF v IS TRUE THEN ALTER TABLE public.user_stats_summary DROP COLUMN total_sessions; END IF;
-END $$;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS total_sessions integer NOT NULL DEFAULT 0;
-ALTER TABLE public.user_stats_summary ADD COLUMN IF NOT EXISTS last_session_at timestamptz;
-
-CREATE TABLE IF NOT EXISTS public.daily_user_stats (
-  user_id         uuid   NOT NULL,
-  date            date   NOT NULL,
-  seconds_studied bigint NOT NULL DEFAULT 0,
-  PRIMARY KEY (user_id, date)
+CREATE TABLE IF NOT EXISTS "public"."community_event_attendees" (
+  "event_id" uuid not null,
+  "user_id" uuid not null,
+  "joined_at" timestamp with time zone not null default now()
 );
-ALTER TABLE public.daily_user_stats ADD COLUMN IF NOT EXISTS seconds_studied bigint NOT NULL DEFAULT 0;
-
-CREATE TABLE IF NOT EXISTS public.study_sessions_log (
-  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id          uuid        NOT NULL,
-  duration_minutes integer     NOT NULL DEFAULT 0,
-  started_at       timestamptz NOT NULL DEFAULT now(),
-  ended_at         timestamptz NOT NULL DEFAULT now(),
-  subject          text,
-  notes            text,
-  created_at       timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS "public"."community_events" (
+  "id" uuid not null default gen_random_uuid(),
+  "title" text not null default ''::text,
+  "event_type" text not null default 'webinar'::text,
+  "description" text,
+  "host" text,
+  "start_time" timestamp with time zone not null default now(),
+  "end_time" timestamp with time zone,
+  "image_gradient" text not null default 'from-purple-600 to-blue-500'::text,
+  "image_url" text,
+  "tags" text[] not null default '{}'::text[],
+  "max_attendees" integer,
+  "attendee_count" integer not null default 0,
+  "is_featured" boolean not null default false,
+  "is_active" boolean not null default true,
+  "updated_at" timestamp with time zone not null default now(),
+  "created_at" timestamp with time zone not null default now(),
+  "creator_id" uuid,
+  "host_user_id" uuid
 );
-ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS duration_minutes integer     NOT NULL DEFAULT 0;
-ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS started_at       timestamptz NOT NULL DEFAULT now();
-ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS ended_at         timestamptz NOT NULL DEFAULT now();
-
-CREATE TABLE IF NOT EXISTS public.user_presence (
-  user_id         uuid        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  status          text        NOT NULL DEFAULT 'offline',
-  current_subject text,
-  last_seen       timestamptz NOT NULL DEFAULT now(),
-  updated_at      timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS "public"."community_friends" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "friend_id" uuid not null,
+  "status" text not null default 'pending'::text,
+  "accepted_at" timestamp with time zone,
+  "created_at" timestamp with time zone not null default now(),
+  "updated_at" timestamp with time zone not null default now()
 );
-
-CREATE TABLE IF NOT EXISTS public.user_onboarding (
-  user_id      uuid PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
-  completed    boolean     NOT NULL DEFAULT false,
-  completed_at timestamptz,
-  data         jsonb       NOT NULL DEFAULT '{}',
-  source       text        NOT NULL DEFAULT 'profile',
-  updated_at   timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS "public"."community_join_requests" (
+  "id" uuid not null default gen_random_uuid(),
+  "group_id" uuid not null,
+  "user_id" uuid not null,
+  "status" text not null default 'pending'::text,
+  "created_at" timestamp with time zone not null default now()
 );
-ALTER TABLE public.user_onboarding ADD COLUMN IF NOT EXISTS data jsonb NOT NULL DEFAULT '{}';
-
-CREATE TABLE IF NOT EXISTS public.user_settings (
-  user_id    uuid        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  settings   jsonb       NOT NULL DEFAULT '{}',
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS "public"."community_reports" (
+  "id" uuid not null default gen_random_uuid(),
+  "reporter_user_id" uuid not null,
+  "target_type" text not null,
+  "target_id" uuid not null,
+  "reason" text,
+  "created_at" timestamp with time zone not null default now()
 );
-
-CREATE TABLE IF NOT EXISTS public.user_roles (
-  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role       text        NOT NULL DEFAULT 'user',
-  granted_by uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
-  granted_at timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS "public"."community_start_alerts" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "target_type" text not null,
+  "target_id" uuid not null,
+  "enabled" boolean not null default true,
+  "quiet_hours_enabled" boolean not null default false,
+  "quiet_start" time without time zone,
+  "quiet_end" time without time zone,
+  "updated_at" timestamp with time zone not null default now()
 );
-CREATE UNIQUE INDEX IF NOT EXISTS idx_user_roles_user_role ON public.user_roles(user_id, role);
-
-CREATE TABLE IF NOT EXISTS public.backup_manifests (
-  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id          uuid        NOT NULL,
-  bucket           text        NOT NULL,
-  path             text        NOT NULL,
-  kind             text        NOT NULL,
-  content_hash     text        NOT NULL,
-  size_bytes       bigint      NOT NULL DEFAULT 0,
-  collection_counts jsonb      NOT NULL DEFAULT '{}',
-  exported_at      timestamptz,
-  selected_as_best boolean     NOT NULL DEFAULT false,
-  score            integer     NOT NULL DEFAULT 0,
-  created_at       timestamptz NOT NULL DEFAULT now(),
-  updated_at       timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT backup_manifests_path_user_prefix
-    CHECK (split_part(path, '/', 1) = user_id::text)
+CREATE TABLE IF NOT EXISTS "public"."daily_logs" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "date" date not null default CURRENT_DATE,
+  "sleep_hours" numeric,
+  "sleep_quality" integer,
+  "mood" integer,
+  "energy_level" integer,
+  "questions_solved" integer default 0,
+  "questions_attempted" integer default 0,
+  "questions_target" integer default 0,
+  "questions_by_subject" jsonb default '{}'::jsonb,
+  "notes" text,
+  "created_at" timestamp with time zone default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "device_id" text
 );
-CREATE UNIQUE INDEX IF NOT EXISTS backup_manifests_bucket_path_idx
-  ON public.backup_manifests(bucket, path);
-CREATE INDEX IF NOT EXISTS backup_manifests_user_score_idx
-  ON public.backup_manifests(user_id, selected_as_best DESC, score DESC, updated_at DESC);
-
-CREATE TABLE IF NOT EXISTS public.sync_items (
-  id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id        uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  entity         text        NOT NULL,
-  entity_id      text        NOT NULL,
-  operation      text        NOT NULL,
-  remote_path    text,
-  bucket         text,
-  content_hash   text,
-  payload_size   bigint,
-  version        integer     NOT NULL DEFAULT 1,
-  status         text        NOT NULL DEFAULT 'pending',
-  last_error     text,
-  deleted_at     timestamptz,
-  created_at     timestamptz NOT NULL DEFAULT now(),
-  updated_at     timestamptz NOT NULL DEFAULT now(),
-  last_synced_at timestamptz,
-  CONSTRAINT sync_items_user_entity_id_unique UNIQUE (user_id, entity, entity_id)
+CREATE TABLE IF NOT EXISTS "public"."daily_user_stats" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid,
+  "date" date not null,
+  "seconds_studied" integer default 0,
+  "created_at" timestamp with time zone default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "version" integer not null default 1,
+  "content_hash" text,
+  "last_synced_at" timestamp with time zone
 );
-CREATE INDEX IF NOT EXISTS sync_items_user_id_idx ON public.sync_items(user_id);
-CREATE INDEX IF NOT EXISTS sync_items_status_idx ON public.sync_items(user_id, status);
-CREATE INDEX IF NOT EXISTS sync_items_entity_idx ON public.sync_items(user_id, entity, entity_id);
-
-CREATE TABLE IF NOT EXISTS public.notifications (
-  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  type       text        NOT NULL DEFAULT 'system',
-  title      text        NOT NULL DEFAULT '',
-  body       text        NOT NULL DEFAULT '',
-  data       jsonb       NOT NULL DEFAULT '{}',
-  read_at    timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS "public"."exams" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "title" text not null,
+  "date" timestamp with time zone,
+  "target_score" numeric,
+  "total_marks" integer,
+  "syllabus_ids" jsonb default '[]'::jsonb,
+  "chapter_ids" jsonb default '[]'::jsonb,
+  "priority" text default 'medium'::text,
+  "is_d_day" boolean default false,
+  "preparation_progress" numeric default 0,
+  "daily_study_goal" integer,
+  "total_prep_time" integer,
+  "linked_mock_test_ids" jsonb default '[]'::jsonb,
+  "milestones" jsonb default '[]'::jsonb,
+  "revision_schedule" jsonb,
+  "result" jsonb,
+  "analysis" jsonb,
+  "created_at" timestamp with time zone default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "type" text default 'exam'::text,
+  "reminders" jsonb default '[]'::jsonb
 );
-
--- ── §3. Store / economy tables ────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS public.store_items (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  name        text        NOT NULL DEFAULT '',
-  description text,
-  price       integer     NOT NULL DEFAULT 0,
-  currency    text        NOT NULL DEFAULT 'coins',
-  category    text        NOT NULL DEFAULT 'theme',
-  image       text,
-  active      boolean     NOT NULL DEFAULT true,
-  created_at  timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS "public"."focus_sessions" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "subject_ids" jsonb default '[]'::jsonb,
+  "chapter_ids" jsonb default '[]'::jsonb,
+  "topic_ids" jsonb default '[]'::jsonb,
+  "task_ids" jsonb default '[]'::jsonb,
+  "subject" text,
+  "subject_id" uuid,
+  "topic" text,
+  "duration" integer default 0,
+  "planned_duration" integer default 0,
+  "start_time" timestamp with time zone default now(),
+  "end_time" timestamp with time zone,
+  "type" text default 'focus'::text,
+  "task_type" text,
+  "session_type" text default 'focus'::text,
+  "description" text,
+  "mode" text default 'normal'::text,
+  "time_allocation" jsonb,
+  "allocation_strategy" text,
+  "pause_logs" jsonb default '[]'::jsonb,
+  "total_pause_time" integer default 0,
+  "interruptions" integer default 0,
+  "efficiency" numeric default 0,
+  "productivity_rating" integer,
+  "notes" text,
+  "completed_task_ids" jsonb default '[]'::jsonb,
+  "questions_attempted" integer default 0,
+  "questions_correct" integer default 0,
+  "questions_incorrect" integer default 0,
+  "questions_skipped" integer default 0,
+  "target_questions" integer default 0,
+  "questions_by_subject" jsonb default '{}'::jsonb,
+  "questions_by_chapter" jsonb default '{}'::jsonb,
+  "completed" boolean default false,
+  "created_at" timestamp with time zone default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "duration_minutes" integer,
+  "device_id" text,
+  "time_allocation_synced" boolean default false
 );
-ALTER TABLE public.store_items ADD COLUMN IF NOT EXISTS description text;
-ALTER TABLE public.store_items ADD COLUMN IF NOT EXISTS price       integer NOT NULL DEFAULT 0;
-ALTER TABLE public.store_items ADD COLUMN IF NOT EXISTS currency    text    NOT NULL DEFAULT 'coins';
-ALTER TABLE public.store_items ADD COLUMN IF NOT EXISTS category    text    NOT NULL DEFAULT 'theme';
-ALTER TABLE public.store_items ADD COLUMN IF NOT EXISTS image       text;
-ALTER TABLE public.store_items ADD COLUMN IF NOT EXISTS active      boolean NOT NULL DEFAULT true;
-
-CREATE TABLE IF NOT EXISTS public.user_inventory (
-  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      uuid        NOT NULL,
-  item_id      uuid        NOT NULL,
-  equipped     boolean     NOT NULL DEFAULT false,
-  purchased_at timestamptz NOT NULL DEFAULT now(),
-  created_at   timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, item_id)
+CREATE TABLE IF NOT EXISTS "public"."group_announcements" (
+  "id" uuid not null default gen_random_uuid(),
+  "group_id" uuid,
+  "content" text,
+  "author_id" uuid,
+  "pinned" boolean default false,
+  "created_at" timestamp with time zone default now()
 );
-ALTER TABLE public.user_inventory ADD COLUMN IF NOT EXISTS equipped     boolean     NOT NULL DEFAULT false;
-ALTER TABLE public.user_inventory ADD COLUMN IF NOT EXISTS purchased_at timestamptz NOT NULL DEFAULT now();
-
--- ── §4. Group tables ──────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS public.groups (
-  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  name         text        NOT NULL DEFAULT '',
-  description  text,
-  cover_url    text,
-  logo_url     text,
-  category     text,
-  slug         text,
-  owner_id     uuid,
-  member_count integer     NOT NULL DEFAULT 0,
-  max_members  integer     NOT NULL DEFAULT 100,
-  is_public    boolean     NOT NULL DEFAULT true,
-  is_active    boolean     NOT NULL DEFAULT true,
-  visibility   text        NOT NULL DEFAULT 'public',
-  settings     jsonb       NOT NULL DEFAULT '{}',
-  icon_url     text,
-  exam         text,
-  target_year  integer,
-  subjects     text[],
-  join_policy  text        NOT NULL DEFAULT 'request',
-  visual_key   integer     NOT NULL DEFAULT 0,
-  timezone_offset integer  NOT NULL DEFAULT 0,
-  daily_start  timestamptz,
-  last_activity timestamptz,
-  deleted_at   timestamptz,
-  created_at   timestamptz NOT NULL DEFAULT now(),
-  updated_at   timestamptz NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS "public"."group_challenge_participants" (
+  "id" uuid not null default gen_random_uuid(),
+  "challenge_id" uuid,
+  "user_id" uuid,
+  "progress" numeric default 0,
+  "completed" boolean default false,
+  "completed_at" timestamp with time zone,
+  "joined_at" timestamp with time zone not null default now()
 );
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS cover_url    text;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS logo_url     text;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS category     text;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS slug         text;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS member_count integer     NOT NULL DEFAULT 0;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS owner_id     uuid;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS max_members  integer     NOT NULL DEFAULT 100;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS is_active    boolean     NOT NULL DEFAULT true;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS updated_at   timestamptz NOT NULL DEFAULT now();
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS deleted_at   timestamptz;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS settings     jsonb       NOT NULL DEFAULT '{}';
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS visibility   text        NOT NULL DEFAULT 'public';
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS is_public    boolean;
-
--- Community group columns. These are referenced by community_get_group,
--- community_discover_groups and community_update_group, but were never in the
--- CREATE TABLE above — so a fresh install produced
--- `ERROR: column "visual_key" does not exist` the first time an RPC body was
--- parsed. Types match the live project exactly.
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS icon_url        text;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS exam            text;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS target_year     integer;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS subjects        text[];
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS join_policy     text        NOT NULL DEFAULT 'request';
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS visual_key      integer     NOT NULL DEFAULT 0;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS timezone_offset integer     NOT NULL DEFAULT 0;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS daily_start     timestamptz;
-ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS last_activity   timestamptz;
-DO $$
-BEGIN
-  UPDATE public.groups SET is_public = (visibility NOT IN ('private','invite_only')) WHERE is_public IS NULL;
-  UPDATE public.groups SET is_public = true WHERE is_public IS NULL;
-  ALTER TABLE public.groups ALTER COLUMN is_public SET NOT NULL;
-  ALTER TABLE public.groups ALTER COLUMN is_public SET DEFAULT true;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
-
--- Full-text search column
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='groups' AND column_name='fts'
-  ) THEN
-    ALTER TABLE public.groups ADD COLUMN fts tsvector GENERATED ALWAYS AS (
-      to_tsvector('english',
-        coalesce(name,'') || ' ' || coalesce(description,'') || ' ' || coalesce(category,'')
-      )
-    ) STORED;
+CREATE TABLE IF NOT EXISTS "public"."group_challenges" (
+  "id" uuid not null default gen_random_uuid(),
+  "group_id" uuid,
+  "title" text,
+  "description" text,
+  "goal_type" text,
+  "goal_value" numeric,
+  "start_time" timestamp with time zone,
+  "end_time" timestamp with time zone,
+  "created_by" uuid,
+  "is_active" boolean default true,
+  "created_at" timestamp with time zone default now()
+);
+CREATE TABLE IF NOT EXISTS "public"."group_chat_messages" (
+  "id" uuid not null default gen_random_uuid(),
+  "group_id" uuid,
+  "author_id" uuid,
+  "content" text,
+  "pinned" boolean default false,
+  "created_at" timestamp with time zone default now(),
+  "user_id" uuid,
+  "message_type" text not null default 'text'::text,
+  "reply_to_id" uuid,
+  "deleted_at" timestamp with time zone
+);
+CREATE TABLE IF NOT EXISTS "public"."group_invites" (
+  "id" uuid not null default gen_random_uuid(),
+  "group_id" uuid,
+  "token" text,
+  "created_by" uuid,
+  "max_uses" integer,
+  "uses_count" integer default 0,
+  "expires_at" timestamp with time zone,
+  "created_at" timestamp with time zone default now(),
+  "invite_code" text
+);
+CREATE TABLE IF NOT EXISTS "public"."group_members" (
+  "id" uuid not null default gen_random_uuid(),
+  "group_id" uuid,
+  "user_id" uuid,
+  "role" text default 'member'::text,
+  "joined_at" timestamp with time zone default now(),
+  "is_super_admin" boolean not null default false,
+  "left_at" timestamp with time zone,
+  "updated_at" timestamp with time zone default now()
+);
+CREATE TABLE IF NOT EXISTS "public"."group_milestones" (
+  "id" uuid not null default gen_random_uuid(),
+  "group_id" uuid,
+  "milestone_type" text,
+  "earned_at" timestamp with time zone default now()
+);
+CREATE TABLE IF NOT EXISTS "public"."groups" (
+  "id" uuid not null default gen_random_uuid(),
+  "name" text not null,
+  "description" text,
+  "cover_url" text,
+  "logo_url" text,
+  "category" text,
+  "slug" text,
+  "member_count" integer default 0,
+  "owner_id" uuid,
+  "is_public" boolean not null default true,
+  "settings" jsonb default '{}'::jsonb,
+  "created_at" timestamp with time zone default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "fts" tsvector generated always as (to_tsvector('english'::regconfig, ((((COALESCE(name, ''::text) || ' '::text) || COALESCE(description, ''::text)) || ' '::text) || COALESCE(category, ''::text)))) stored,
+  "visibility" text,
+  "max_members" integer not null default 100,
+  "is_active" boolean not null default true,
+  "icon_url" text,
+  "exam" text,
+  "target_year" integer,
+  "subjects" text[],
+  "join_policy" text not null default 'request'::text,
+  "visual_key" integer not null default 0,
+  "timezone_offset" integer not null default 0,
+  "daily_start" timestamp with time zone,
+  "last_activity" timestamp with time zone
+);
+CREATE TABLE IF NOT EXISTS "public"."habits" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "name" text not null,
+  "icon" text,
+  "completed" boolean default false,
+  "streak" integer default 0,
+  "longest_streak" integer default 0,
+  "frequency" text default 'daily'::text,
+  "target_days" jsonb default '[]'::jsonb,
+  "completion_history" jsonb default '[]'::jsonb,
+  "last_completed_date" date,
+  "created_at" timestamp with time zone default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone
+);
+CREATE TABLE IF NOT EXISTS "public"."mock_tests" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "name" text not null,
+  "test_type" text default 'mock'::text,
+  "date" timestamp with time zone,
+  "time" text,
+  "categories" jsonb default '[]'::jsonb,
+  "environment" text,
+  "duration" integer,
+  "total_questions" integer default 0,
+  "expected_difficulty" text,
+  "paper_url" text,
+  "subject_performance" jsonb default '{}'::jsonb,
+  "total_marks" integer default 0,
+  "scored_marks" numeric default 0,
+  "percentage" numeric default 0,
+  "rank" integer,
+  "target_score" numeric,
+  "preparation_time" integer,
+  "confidence_level" integer,
+  "notes" text,
+  "enable_mistake_tracking" boolean default true,
+  "enable_takeaway_collection" boolean default true,
+  "enable_review_reminders" boolean default true,
+  "syllabus_covered" jsonb default '[]'::jsonb,
+  "chapters_covered" jsonb default '[]'::jsonb,
+  "mistakes" jsonb default '[]'::jsonb,
+  "takeaways" jsonb default '[]'::jsonb,
+  "status" text default 'pending'::text,
+  "completed_at" timestamp with time zone,
+  "analyzed_at" timestamp with time zone,
+  "created_at" timestamp with time zone default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "exam_id" uuid,
+  "device_id" text
+);
+CREATE TABLE IF NOT EXISTS "public"."notifications" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "type" text not null default 'system'::text,
+  "title" text not null default ''::text,
+  "body" text not null default ''::text,
+  "data" jsonb not null default '{}'::jsonb,
+  "read_at" timestamp with time zone,
+  "created_at" timestamp with time zone not null default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "version" integer not null default 1,
+  "content_hash" text,
+  "last_synced_at" timestamp with time zone
+);
+CREATE TABLE IF NOT EXISTS "public"."store_items" (
+  "id" uuid not null default gen_random_uuid(),
+  "name" text not null default ''::text,
+  "description" text,
+  "price" integer not null default 0,
+  "currency" text not null default 'coins'::text,
+  "category" text not null default 'theme'::text,
+  "image" text,
+  "active" boolean not null default true,
+  "created_at" timestamp with time zone not null default now()
+);
+CREATE TABLE IF NOT EXISTS "public"."study_sessions_log" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid,
+  "duration_minutes" numeric,
+  "ended_at" timestamp with time zone,
+  "subject" text,
+  "created_at" timestamp with time zone default now(),
+  "started_at" timestamp with time zone not null default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "version" integer not null default 1,
+  "content_hash" text,
+  "last_synced_at" timestamp with time zone,
+  "device_id" text,
+  "notes" text
+);
+CREATE TABLE IF NOT EXISTS "public"."subjects" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "name" text not null,
+  "color" text,
+  "gradient" text,
+  "icon" text,
+  "chapters" jsonb default '[]'::jsonb,
+  "exam_template_id" text,
+  "exam_name" text,
+  "is_custom" boolean default false,
+  "topics" jsonb default '[]'::jsonb,
+  "syllabus_config" jsonb default '{}'::jsonb,
+  "created_at" timestamp with time zone default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "study_time" numeric
+);
+CREATE TABLE IF NOT EXISTS "public"."sync_items" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "entity" text not null,
+  "entity_id" text not null,
+  "operation" text not null,
+  "remote_path" text,
+  "bucket" text,
+  "content_hash" text,
+  "payload_size" bigint,
+  "version" integer not null default 1,
+  "status" text not null default 'pending'::text,
+  "last_error" text,
+  "deleted_at" timestamp with time zone,
+  "created_at" timestamp with time zone not null default now(),
+  "updated_at" timestamp with time zone not null default now(),
+  "last_synced_at" timestamp with time zone
+);
+CREATE TABLE IF NOT EXISTS "public"."tasks" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "title" text not null,
+  "subject" text,
+  "subject_id" uuid,
+  "chapter_id" text,
+  "topic_id" text,
+  "status" text default 'pending'::text,
+  "priority" text default 'medium'::text,
+  "due_date" timestamp with time zone,
+  "effort" text,
+  "energy" text,
+  "energy_level" text,
+  "description" text,
+  "subtasks" jsonb default '[]'::jsonb,
+  "linked_session_ids" jsonb default '[]'::jsonb,
+  "focus_session_ids" jsonb default '[]'::jsonb,
+  "total_focus_time" integer default 0,
+  "completed_in_session" boolean default false,
+  "completed_at" timestamp with time zone,
+  "created_at" timestamp with time zone default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "device_id" text,
+  "estimated_time" integer,
+  "is_recurring" boolean default false,
+  "recurring_config" jsonb,
+  "parent_task_id" uuid,
+  "is_recurring_instance" boolean default false
+);
+CREATE TABLE IF NOT EXISTS "public"."tests" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "title" text not null,
+  "date" timestamp with time zone,
+  "total_marks" integer default 0,
+  "scored_marks" numeric default 0,
+  "percentage" numeric default 0,
+  "subjects" jsonb default '[]'::jsonb,
+  "subject_id" uuid,
+  "analysis" jsonb,
+  "mistakes" jsonb default '[]'::jsonb,
+  "created_at" timestamp with time zone default now(),
+  "updated_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "device_id" text
+);
+CREATE TABLE IF NOT EXISTS "public"."user_display_profiles" (
+  "id" uuid not null,
+  "username" text,
+  "name" text,
+  "avatar_url" text,
+  "updated_at" timestamp with time zone not null default now()
+);
+CREATE TABLE IF NOT EXISTS "public"."user_inventory" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "item_id" uuid not null,
+  "equipped" boolean not null default false,
+  "purchased_at" timestamp with time zone not null default now(),
+  "created_at" timestamp with time zone not null default now()
+);
+CREATE TABLE IF NOT EXISTS "public"."user_onboarding" (
+  "user_id" uuid not null,
+  "completed" boolean not null default false,
+  "completed_at" timestamp with time zone,
+  "source" text not null default 'profile'::text,
+  "updated_at" timestamp with time zone not null default now(),
+  "data" jsonb not null default '{}'::jsonb
+);
+CREATE TABLE IF NOT EXISTS "public"."user_points" (
+  "user_id" uuid not null,
+  "points" integer default 0,
+  "lifetime_points" integer default 0,
+  "updated_at" timestamp with time zone default now()
+);
+CREATE TABLE IF NOT EXISTS "public"."user_presence" (
+  "user_id" uuid not null,
+  "status" text not null default 'offline'::text,
+  "current_subject" text,
+  "last_seen" timestamp with time zone not null default now(),
+  "updated_at" timestamp with time zone not null default now(),
+  "state" text,
+  "is_online" boolean not null default false,
+  "last_beat_at" timestamp with time zone,
+  "session_started_at" timestamp with time zone,
+  "total_seconds" bigint not null default 0,
+  "subject_id" uuid,
+  "subject_name" text,
+  "task_id" uuid,
+  "task_title" text
+);
+CREATE TABLE IF NOT EXISTS "public"."user_profiles" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "profile_data" jsonb default '{}'::jsonb,
+  "updated_at" timestamp with time zone default now(),
+  "created_at" timestamp with time zone default now(),
+  "deleted_at" timestamp with time zone,
+  "version" integer not null default 1,
+  "content_hash" text,
+  "last_synced_at" timestamp with time zone,
+  "device_id" text,
+  "handle" text,
+  "display_name" text
+);
+CREATE TABLE IF NOT EXISTS "public"."user_roles" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "role" text not null default 'user'::text,
+  "granted_by" uuid,
+  "granted_at" timestamp with time zone not null default now()
+);
+CREATE TABLE IF NOT EXISTS "public"."user_settings" (
+  "user_id" uuid not null,
+  "settings" jsonb not null default '{}'::jsonb,
+  "created_at" timestamp with time zone not null default now(),
+  "updated_at" timestamp with time zone not null default now(),
+  "deleted_at" timestamp with time zone,
+  "version" integer not null default 1,
+  "content_hash" text,
+  "last_synced_at" timestamp with time zone,
+  "device_id" text
+);
+CREATE TABLE IF NOT EXISTS "public"."user_stats_summary" (
+  "user_id" uuid not null,
+  "total_hours" numeric default 0,
+  "weekly_hours" numeric default 0,
+  "monthly_hours" numeric default 0,
+  "current_streak" integer default 0,
+  "longest_streak" integer default 0,
+  "total_sessions" integer default 0,
+  "last_session_at" timestamp with time zone,
+  "updated_at" timestamp with time zone default now(),
+  "total_study_seconds" bigint not null default 0,
+  "streak_days" integer not null default 0,
+  "max_streak_days" integer not null default 0,
+  "session_count" integer not null default 0,
+  "last_study_date" date
+);
+CREATE TABLE IF NOT EXISTS "public"."user_tours" (
+  "id" uuid not null default gen_random_uuid(),
+  "user_id" uuid not null,
+  "tour_key" text not null,
+  "completed" boolean not null default false,
+  "completed_at" timestamp with time zone,
+  "dismissed" boolean not null default false,
+  "dismissed_at" timestamp with time zone,
+  "step_reached" integer not null default 0,
+  "created_at" timestamp with time zone not null default now(),
+  "updated_at" timestamp with time zone not null default now()
+);
+CREATE TABLE IF NOT EXISTS "public"."users" (
+  "id" uuid not null,
+  "email" text,
+  "name" text,
+  "avatar_url" text,
+  "plan_type" text default 'ranker'::text,
+  "billing_status" text default 'active'::text,
+  "plan_expires_at" timestamp with time zone,
+  "access_ends_at" timestamp with time zone,
+  "created_at" timestamp with time zone default now(),
+  "updated_at" timestamp with time zone default now(),
+  "username" text,
+  "coins" integer not null default 0,
+  "gems" integer not null default 0,
+  "deleted_at" timestamp with time zone,
+  "version" integer not null default 1,
+  "content_hash" text,
+  "last_synced_at" timestamp with time zone,
+  "device_id" text,
+  "access_source" text
+);
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'backup_manifests_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."backup_manifests" ADD CONSTRAINT "backup_manifests_pkey" PRIMARY KEY (id);
   END IF;
-END $$;
-
-CREATE TABLE IF NOT EXISTS public.group_members (
-  id        uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id  uuid        NOT NULL,
-  user_id   uuid        NOT NULL,
-  role      text        NOT NULL DEFAULT 'member',
-  joined_at timestamptz NOT NULL DEFAULT now(),
-  is_super_admin boolean NOT NULL DEFAULT false
-);
-ALTER TABLE public.group_members ADD COLUMN IF NOT EXISTS role          text        NOT NULL DEFAULT 'member';
-ALTER TABLE public.group_members ADD COLUMN IF NOT EXISTS joined_at     timestamptz NOT NULL DEFAULT now();
-ALTER TABLE public.group_members ADD COLUMN IF NOT EXISTS is_super_admin boolean    NOT NULL DEFAULT false;
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid='public.group_members'::regclass AND conname='group_members_group_id_user_id_key'
-  ) THEN
-    ALTER TABLE public.group_members ADD CONSTRAINT group_members_group_id_user_id_key UNIQUE (group_id, user_id);
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'buddy_invites_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."buddy_invites" ADD CONSTRAINT "buddy_invites_pkey" PRIMARY KEY (id);
   END IF;
-END $$;
-
--- Helper: _is_group_member must be created after public.group_members exists,
--- but before RLS policies use it.
--- SECURITY DEFINER prevents RLS infinite-recursion when group_members policies
--- reference the group_members table themselves.
-CREATE OR REPLACE FUNCTION public._is_group_member(gid uuid, uid uuid)
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT EXISTS(SELECT 1 FROM public.group_members WHERE group_id = gid AND user_id = uid);
-$$;
-GRANT EXECUTE ON FUNCTION public._is_group_member(uuid, uuid) TO anon, authenticated, service_role;
-
-CREATE TABLE IF NOT EXISTS public.group_chat_messages (
-  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id     uuid        NOT NULL,
-  user_id      uuid,
-  content      text        NOT NULL DEFAULT '',
-  message_type text        NOT NULL DEFAULT 'text',
-  reply_to_id  uuid,
-  deleted_at   timestamptz,
-  created_at   timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.group_chat_messages ADD COLUMN IF NOT EXISTS user_id      uuid;
-ALTER TABLE public.group_chat_messages ADD COLUMN IF NOT EXISTS message_type text        NOT NULL DEFAULT 'text';
-ALTER TABLE public.group_chat_messages ADD COLUMN IF NOT EXISTS reply_to_id  uuid;
-ALTER TABLE public.group_chat_messages ADD COLUMN IF NOT EXISTS deleted_at   timestamptz;
--- Backfill user_id from sender_id if it exists
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='group_chat_messages' AND column_name='sender_id'
-  ) THEN
-    UPDATE public.group_chat_messages SET user_id = sender_id WHERE user_id IS NULL AND sender_id IS NOT NULL;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_device_tokens_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_device_tokens" ADD CONSTRAINT "community_device_tokens_pkey" PRIMARY KEY (id);
   END IF;
-END $$;
-
-CREATE TABLE IF NOT EXISTS public.group_invites (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id    uuid        NOT NULL,
-  token       text,
-  invite_code text,
-  created_by  uuid,
-  max_uses    integer,
-  uses_count  integer     NOT NULL DEFAULT 0,
-  expires_at  timestamptz,
-  created_at  timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.group_invites ADD COLUMN IF NOT EXISTS created_by uuid;
-ALTER TABLE public.group_invites ADD COLUMN IF NOT EXISTS max_uses   integer;
-ALTER TABLE public.group_invites ADD COLUMN IF NOT EXISTS uses_count integer     NOT NULL DEFAULT 0;
-ALTER TABLE public.group_invites ADD COLUMN IF NOT EXISTS expires_at timestamptz;
-ALTER TABLE public.group_invites ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
--- Ensure 'token' is a plain writable column (not GENERATED)
-DO $$
-DECLARE v_is_gen boolean;
-BEGIN
-  SELECT (is_generated='ALWAYS') INTO v_is_gen FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='group_invites' AND column_name='token';
-  IF v_is_gen IS TRUE THEN
-    ALTER TABLE public.group_invites DROP COLUMN token;
-    ALTER TABLE public.group_invites ADD COLUMN token text;
-    BEGIN
-      UPDATE public.group_invites SET token = invite_code WHERE token IS NULL AND invite_code IS NOT NULL;
-    EXCEPTION WHEN OTHERS THEN NULL;
-    END;
-  ELSIF v_is_gen IS NULL THEN
-    ALTER TABLE public.group_invites ADD COLUMN token text;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_enrollments_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_enrollments" ADD CONSTRAINT "community_enrollments_pkey" PRIMARY KEY (user_id);
   END IF;
-END $$;
-ALTER TABLE public.group_invites ADD COLUMN IF NOT EXISTS invite_code text;
-UPDATE public.group_invites SET invite_code = token     WHERE invite_code IS NULL AND token IS NOT NULL;
-UPDATE public.group_invites SET token       = invite_code WHERE token IS NULL AND invite_code IS NOT NULL;
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid='public.group_invites'::regclass AND conname='group_invites_token_key'
-  ) THEN
-    ALTER TABLE public.group_invites ADD CONSTRAINT group_invites_token_key UNIQUE (token);
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_event_attendees_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_event_attendees" ADD CONSTRAINT "community_event_attendees_pkey" PRIMARY KEY (event_id, user_id);
   END IF;
-END $$;
-
-CREATE TABLE IF NOT EXISTS public.group_announcements (
-  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id   uuid        NOT NULL,
-  author_id  uuid,
-  content    text        NOT NULL DEFAULT '',
-  pinned     boolean     NOT NULL DEFAULT false,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.group_announcements ADD COLUMN IF NOT EXISTS author_id  uuid;
-ALTER TABLE public.group_announcements ADD COLUMN IF NOT EXISTS content    text        NOT NULL DEFAULT '';
-ALTER TABLE public.group_announcements ADD COLUMN IF NOT EXISTS pinned     boolean     NOT NULL DEFAULT false;
-ALTER TABLE public.group_announcements ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
-
-CREATE TABLE IF NOT EXISTS public.group_milestones (
-  id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id       uuid,
-  milestone_type text        NOT NULL DEFAULT '',
-  earned_at      timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.group_milestones ADD COLUMN IF NOT EXISTS group_id       uuid;
-ALTER TABLE public.group_milestones ADD COLUMN IF NOT EXISTS milestone_type text        NOT NULL DEFAULT '';
-ALTER TABLE public.group_milestones ADD COLUMN IF NOT EXISTS earned_at      timestamptz NOT NULL DEFAULT now();
-
-CREATE TABLE IF NOT EXISTS public.group_challenges (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id    uuid        NOT NULL,
-  title       text        NOT NULL DEFAULT '',
-  description text,
-  goal_type   text        NOT NULL DEFAULT 'hours',
-  goal_value  numeric     NOT NULL DEFAULT 0,
-  start_time  timestamptz NOT NULL DEFAULT now(),
-  end_time    timestamptz,
-  created_by  uuid,
-  is_active   boolean     NOT NULL DEFAULT true,
-  created_at  timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.group_challenges ADD COLUMN IF NOT EXISTS title       text        NOT NULL DEFAULT '';
-ALTER TABLE public.group_challenges ADD COLUMN IF NOT EXISTS description text;
-ALTER TABLE public.group_challenges ADD COLUMN IF NOT EXISTS goal_type   text        NOT NULL DEFAULT 'hours';
-ALTER TABLE public.group_challenges ADD COLUMN IF NOT EXISTS goal_value  numeric     NOT NULL DEFAULT 0;
-ALTER TABLE public.group_challenges ADD COLUMN IF NOT EXISTS start_time  timestamptz NOT NULL DEFAULT now();
-ALTER TABLE public.group_challenges ADD COLUMN IF NOT EXISTS end_time    timestamptz;
-ALTER TABLE public.group_challenges ADD COLUMN IF NOT EXISTS created_by  uuid;
-ALTER TABLE public.group_challenges ADD COLUMN IF NOT EXISTS is_active   boolean     NOT NULL DEFAULT true;
-ALTER TABLE public.group_challenges ADD COLUMN IF NOT EXISTS created_at  timestamptz NOT NULL DEFAULT now();
-
-CREATE TABLE IF NOT EXISTS public.group_challenge_participants (
-  challenge_id uuid        NOT NULL,
-  user_id      uuid        NOT NULL,
-  progress     numeric     NOT NULL DEFAULT 0,
-  completed    boolean     NOT NULL DEFAULT false,
-  completed_at timestamptz,
-  joined_at    timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (challenge_id, user_id)
-);
-ALTER TABLE public.group_challenge_participants ADD COLUMN IF NOT EXISTS progress     numeric     NOT NULL DEFAULT 0;
-ALTER TABLE public.group_challenge_participants ADD COLUMN IF NOT EXISTS completed    boolean     NOT NULL DEFAULT false;
-ALTER TABLE public.group_challenge_participants ADD COLUMN IF NOT EXISTS completed_at timestamptz;
-ALTER TABLE public.group_challenge_participants ADD COLUMN IF NOT EXISTS joined_at    timestamptz NOT NULL DEFAULT now();
-
--- ── §5. Community / events tables ────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS public.community_events (
-  id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  title          text        NOT NULL DEFAULT '',
-  event_type     text        NOT NULL DEFAULT 'webinar',
-  description    text,
-  host           text,
-  start_time     timestamptz NOT NULL DEFAULT now(),
-  end_time       timestamptz,
-  image_gradient text        NOT NULL DEFAULT 'from-purple-600 to-blue-500',
-  image_url      text,
-  tags           text[]      NOT NULL DEFAULT '{}',
-  max_attendees  integer,
-  attendee_count integer     NOT NULL DEFAULT 0,
-  is_featured    boolean     NOT NULL DEFAULT false,
-  is_active      boolean     NOT NULL DEFAULT true,
-  updated_at     timestamptz NOT NULL DEFAULT now(),
-  created_at     timestamptz NOT NULL DEFAULT now(),
-  creator_id     uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
-  host_user_id   uuid        REFERENCES auth.users(id) ON DELETE SET NULL
-);
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS title          text        NOT NULL DEFAULT '';
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS event_type     text        NOT NULL DEFAULT 'webinar';
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS description    text;
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS host           text;
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS start_time     timestamptz NOT NULL DEFAULT now();
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS end_time       timestamptz;
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS image_gradient text        NOT NULL DEFAULT 'from-purple-600 to-blue-500';
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS image_url      text;
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS tags           text[]      NOT NULL DEFAULT '{}';
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS max_attendees  integer;
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS attendee_count integer     NOT NULL DEFAULT 0;
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS is_featured    boolean     NOT NULL DEFAULT false;
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS is_active      boolean     NOT NULL DEFAULT true;
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS updated_at     timestamptz NOT NULL DEFAULT now();
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS creator_id     uuid        REFERENCES auth.users(id) ON DELETE SET NULL;
-ALTER TABLE public.community_events ADD COLUMN IF NOT EXISTS host_user_id   uuid        REFERENCES auth.users(id) ON DELETE SET NULL;
-
-CREATE TABLE IF NOT EXISTS public.community_event_attendees (
-  event_id  uuid        NOT NULL REFERENCES public.community_events(id) ON DELETE CASCADE,
-  user_id   uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  joined_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (event_id, user_id)
-);
-ALTER TABLE public.community_event_attendees ADD COLUMN IF NOT EXISTS joined_at timestamptz NOT NULL DEFAULT now();
-DO $$ BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conrelid='public.community_event_attendees'::regclass AND conname='cea_event_user_unique'
-  ) THEN
-    ALTER TABLE public.community_event_attendees ADD CONSTRAINT cea_event_user_unique UNIQUE (event_id, user_id);
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_events_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_events" ADD CONSTRAINT "community_events_pkey" PRIMARY KEY (id);
   END IF;
-END $$;
-
--- ── §5b. Column reconciliation — live-DB columns missing from the CREATE TABLEs
--- Every statement below was generated from information_schema on the production
--- project, so types, defaults and nullability match exactly.
---
--- Why this section exists: the CREATE TABLE blocks above drifted behind the live
--- schema. Because §11 RPC bodies reference these columns, a fresh install failed
--- at the first one Postgres parsed (`ERROR: column "visual_key" does not exist`)
--- and ON_ERROR_STOP=1 masked the other nine tables. Keep this section in sync —
--- `scripts/check-schema-drift.mjs` fails CI when it drifts again.
-
--- Sync-engine bookkeeping. The sync engine resolves conflicts on version +
--- content_hash and treats deleted_at as a tombstone; without these, cloud sync
--- silently degrades to last-write-wins on a fresh install.
-ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
-ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
-ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS content_hash   text;
-ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
-ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS device_id      text;
-ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS access_source  text;
-
-ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS id             uuid        DEFAULT gen_random_uuid() NOT NULL;
-ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS created_at     timestamptz DEFAULT now();
-ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
-ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
-ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS content_hash   text;
-ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
-ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS device_id      text;
-ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS handle         text;
-ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS display_name   text;
-
-ALTER TABLE public.user_settings      ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
-ALTER TABLE public.user_settings      ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
-ALTER TABLE public.user_settings      ADD COLUMN IF NOT EXISTS content_hash   text;
-ALTER TABLE public.user_settings      ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
-ALTER TABLE public.user_settings      ADD COLUMN IF NOT EXISTS device_id      text;
-
-ALTER TABLE public.notifications      ADD COLUMN IF NOT EXISTS updated_at     timestamptz DEFAULT now();
-ALTER TABLE public.notifications      ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
-ALTER TABLE public.notifications      ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
-ALTER TABLE public.notifications      ADD COLUMN IF NOT EXISTS content_hash   text;
-ALTER TABLE public.notifications      ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
-
-ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS updated_at     timestamptz DEFAULT now();
-ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
-ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
-ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS content_hash   text;
-ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
-ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS device_id      text;
-
-ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS id             uuid        DEFAULT gen_random_uuid() NOT NULL;
-ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS created_at     timestamptz DEFAULT now();
-ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS updated_at     timestamptz DEFAULT now();
-ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
-ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
-ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS content_hash   text;
-ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
-
--- Community presence / heartbeat. community_heartbeat() writes every one of
--- these; without them the whole "who is studying now" surface is inert.
-ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS state              text;
-ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS is_online          boolean     DEFAULT false NOT NULL;
-ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS last_beat_at       timestamptz;
-ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS session_started_at timestamptz;
-ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS total_seconds      bigint      DEFAULT 0 NOT NULL;
-ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS subject_id         uuid;
-ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS subject_name       text;
-ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS task_id            uuid;
-ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS task_title         text;
-
--- Group tables.
-ALTER TABLE public.group_members      ADD COLUMN IF NOT EXISTS left_at        timestamptz;
-ALTER TABLE public.group_members      ADD COLUMN IF NOT EXISTS updated_at     timestamptz DEFAULT now();
-ALTER TABLE public.group_chat_messages ADD COLUMN IF NOT EXISTS author_id     uuid;
-ALTER TABLE public.group_chat_messages ADD COLUMN IF NOT EXISTS pinned        boolean     DEFAULT false;
-ALTER TABLE public.group_challenge_participants ADD COLUMN IF NOT EXISTS id   uuid        DEFAULT gen_random_uuid() NOT NULL;
-
--- ── §6. Cascade FK constraints ────────────────────────────────────────────────
-
-ALTER TABLE public.group_chat_messages DROP CONSTRAINT IF EXISTS group_chat_messages_group_id_fkey;
-ALTER TABLE public.group_chat_messages ADD CONSTRAINT group_chat_messages_group_id_fkey
-  FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
-ALTER TABLE public.group_members DROP CONSTRAINT IF EXISTS group_members_group_id_fkey;
-ALTER TABLE public.group_members ADD CONSTRAINT group_members_group_id_fkey
-  FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
-ALTER TABLE public.group_challenge_participants DROP CONSTRAINT IF EXISTS group_challenge_participants_challenge_id_fkey;
-ALTER TABLE public.group_challenge_participants ADD CONSTRAINT group_challenge_participants_challenge_id_fkey
-  FOREIGN KEY (challenge_id) REFERENCES public.group_challenges(id) ON DELETE CASCADE;
-
--- ── §7. All indexes ───────────────────────────────────────────────────────────
-
--- users
--- (primary key covers id lookup; add any extra user indexes here)
-
--- user_profiles
-CREATE INDEX IF NOT EXISTS idx_profiles_user_id    ON public.user_profiles (user_id);
-
--- user_points
-CREATE INDEX IF NOT EXISTS idx_points_user_id      ON public.user_points (user_id);
-CREATE INDEX IF NOT EXISTS idx_points_points       ON public.user_points (points DESC);
-CREATE INDEX IF NOT EXISTS idx_points_lifetime     ON public.user_points (lifetime_points DESC);
-
--- user_stats_summary
-CREATE INDEX IF NOT EXISTS idx_stats_user_id       ON public.user_stats_summary (user_id);
-CREATE INDEX IF NOT EXISTS idx_stats_total_hours   ON public.user_stats_summary (total_hours DESC);
-CREATE INDEX IF NOT EXISTS idx_stats_weekly_hours  ON public.user_stats_summary (weekly_hours DESC);
-CREATE INDEX IF NOT EXISTS idx_stats_hrs_v8        ON public.user_stats_summary (total_hours DESC);
-
--- daily_user_stats
-CREATE INDEX IF NOT EXISTS idx_daily_user_date     ON public.daily_user_stats (user_id, date DESC);
-CREATE INDEX IF NOT EXISTS idx_daily_stats_v8      ON public.daily_user_stats (user_id, date DESC);
-CREATE INDEX IF NOT EXISTS idx_daily_user_date_minutes ON public.daily_user_stats (user_id, date DESC) INCLUDE (seconds_studied);
-
--- study_sessions_log
-CREATE INDEX IF NOT EXISTS idx_sessions_user_id    ON public.study_sessions_log (user_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON public.study_sessions_log (started_at DESC);
-CREATE INDEX IF NOT EXISTS idx_sessions_u_v8       ON public.study_sessions_log (user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_sessions_user_started ON public.study_sessions_log (user_id, started_at DESC);
-
--- user_presence
-CREATE INDEX IF NOT EXISTS idx_presence_status     ON public.user_presence (status);
-CREATE INDEX IF NOT EXISTS idx_presence_last_seen  ON public.user_presence (last_seen DESC);
-CREATE INDEX IF NOT EXISTS idx_presence_updated_at ON public.user_presence (updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_presence_s_v8       ON public.user_presence (status, last_seen DESC);
-
--- user_onboarding
-CREATE INDEX IF NOT EXISTS idx_user_onboarding_completed ON public.user_onboarding (completed);
-
--- user_roles
-CREATE INDEX IF NOT EXISTS idx_user_roles_u        ON public.user_roles (user_id);
-
--- notifications
-CREATE INDEX IF NOT EXISTS idx_notif_user_time     ON public.notifications (user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_notif_unread        ON public.notifications (user_id, read_at) WHERE read_at IS NULL;
-CREATE INDEX IF NOT EXISTS idx_notif_user_ts_v8    ON public.notifications (user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_notif_unread_v8     ON public.notifications (user_id, read_at) WHERE read_at IS NULL;
-
--- store_items
-CREATE INDEX IF NOT EXISTS idx_store_act_v8        ON public.store_items (active, category);
-
--- user_inventory
-CREATE INDEX IF NOT EXISTS idx_inventory_u_v8      ON public.user_inventory (user_id);
-CREATE INDEX IF NOT EXISTS idx_inventory_user      ON public.user_inventory (user_id);
-
--- groups
-CREATE INDEX IF NOT EXISTS idx_groups_fts          ON public.groups USING GIN (fts);
-CREATE INDEX IF NOT EXISTS idx_groups_public       ON public.groups (is_public) WHERE is_public = true;
-CREATE INDEX IF NOT EXISTS idx_groups_slug         ON public.groups (slug) WHERE slug IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_groups_owner        ON public.groups (owner_id);
-CREATE INDEX IF NOT EXISTS idx_groups_active       ON public.groups (is_active) WHERE is_active = true;
-CREATE INDEX IF NOT EXISTS idx_groups_del          ON public.groups (deleted_at) WHERE deleted_at IS NULL;
-
--- group_members
-CREATE INDEX IF NOT EXISTS idx_gm_group            ON public.group_members (group_id);
-CREATE INDEX IF NOT EXISTS idx_gm_user             ON public.group_members (user_id);
-CREATE INDEX IF NOT EXISTS idx_gm_user_group_covering ON public.group_members (user_id, group_id);
-CREATE INDEX IF NOT EXISTS idx_gmembers_gu_v8      ON public.group_members (group_id, user_id);
-CREATE INDEX IF NOT EXISTS idx_gmembers_u_v8       ON public.group_members (user_id);
-
--- group_chat_messages
-CREATE INDEX IF NOT EXISTS idx_gchat_group_time    ON public.group_chat_messages (group_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_gchat_user          ON public.group_chat_messages (user_id);
-CREATE INDEX IF NOT EXISTS idx_gchat_group_ts      ON public.group_chat_messages (group_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_gchat_user_v8       ON public.group_chat_messages (user_id);
-
--- group_invites
-CREATE INDEX IF NOT EXISTS idx_ginv_token          ON public.group_invites (token);
-CREATE INDEX IF NOT EXISTS idx_ginv_group          ON public.group_invites (group_id);
-CREATE INDEX IF NOT EXISTS idx_ginv_created_by     ON public.group_invites (created_by);
-CREATE INDEX IF NOT EXISTS idx_invites_code_v8     ON public.group_invites (invite_code);
-CREATE INDEX IF NOT EXISTS idx_invites_tok_v8      ON public.group_invites (token);
-
--- group_announcements
-CREATE INDEX IF NOT EXISTS idx_gann_group          ON public.group_announcements (group_id);
-CREATE INDEX IF NOT EXISTS idx_gann_pinned         ON public.group_announcements (group_id, pinned DESC, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_gann_author         ON public.group_announcements (author_id);
-
--- group_milestones
-CREATE INDEX IF NOT EXISTS idx_gmile_group         ON public.group_milestones (group_id);
-
--- group_challenges
-CREATE INDEX IF NOT EXISTS idx_gchall_group        ON public.group_challenges (group_id);
-CREATE INDEX IF NOT EXISTS idx_gchall_created_by   ON public.group_challenges (created_by);
-CREATE INDEX IF NOT EXISTS idx_challenges_g_v8     ON public.group_challenges (group_id, is_active) WHERE is_active = true;
-
--- group_challenge_participants
-CREATE INDEX IF NOT EXISTS idx_gcpart_challenge    ON public.group_challenge_participants (challenge_id);
-CREATE INDEX IF NOT EXISTS idx_gcpart_user         ON public.group_challenge_participants (user_id);
-CREATE INDEX IF NOT EXISTS idx_gcpart_challenge_user ON public.group_challenge_participants (challenge_id, user_id);
-CREATE INDEX IF NOT EXISTS idx_chall_parts_v8      ON public.group_challenge_participants (challenge_id, user_id);
-
--- community_events
-CREATE INDEX IF NOT EXISTS idx_ce_active_time      ON public.community_events (is_active, start_time);
-CREATE INDEX IF NOT EXISTS idx_ce_featured         ON public.community_events (is_featured) WHERE is_featured = true;
-CREATE INDEX IF NOT EXISTS idx_events_active_v8    ON public.community_events (is_active, start_time ASC) WHERE is_active = true;
-
--- community_event_attendees
-CREATE INDEX IF NOT EXISTS idx_cea_event           ON public.community_event_attendees (event_id);
-CREATE INDEX IF NOT EXISTS idx_cea_user            ON public.community_event_attendees (user_id);
-CREATE INDEX IF NOT EXISTS idx_event_att_ev_v8     ON public.community_event_attendees (event_id, user_id);
-
--- ── §8. Views ─────────────────────────────────────────────────────────────────
-
-DROP VIEW IF EXISTS public.community_events_with_counts;
-CREATE VIEW public.community_events_with_counts AS
-  SELECT e.*,
-    COALESCE(a.cnt, 0)::integer AS attendee_count_live
-  FROM public.community_events e
-  LEFT JOIN (
-    SELECT event_id, count(*)::integer AS cnt
-    FROM public.community_event_attendees GROUP BY event_id
-  ) a ON a.event_id = e.id;
-
--- ── §9. Enable Row Level Security on all tables ───────────────────────────────
-
-ALTER TABLE public.users                         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_profiles                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_points                   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_stats_summary            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.daily_user_stats              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.study_sessions_log            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_presence                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_onboarding               ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_settings                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_roles                    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.backup_manifests              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.sync_items                    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.notifications                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.store_items                   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_inventory                ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.groups                        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.group_members                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.group_chat_messages           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.group_invites                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.group_announcements           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.group_milestones              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.group_challenges              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.group_challenge_participants  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.community_events              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.community_event_attendees     ENABLE ROW LEVEL SECURITY;
-
--- ── §10. RLS Policies ─────────────────────────────────────────────────────────
--- Note: server.mjs uses the service_role key which bypasses all RLS.
--- These policies protect direct anon/authenticated client access.
-
-DO $$ BEGIN
-
-  -- users: public read for avatar/username (leaderboard); own row for writes
-  DROP POLICY IF EXISTS users_read_public   ON public.users;
-  DROP POLICY IF EXISTS users_select_display ON public.users;
-  CREATE POLICY users_read_public   ON public.users FOR SELECT USING (true);
-  CREATE POLICY users_select_display ON public.users FOR SELECT USING (true);
-
-  DROP POLICY IF EXISTS users_own ON public.users;
-  CREATE POLICY users_own ON public.users
-    FOR ALL USING (id = (SELECT auth.uid())) WITH CHECK (id = (SELECT auth.uid()));
-
-  -- user_profiles
-  DROP POLICY IF EXISTS profiles_own ON public.user_profiles;
-  CREATE POLICY profiles_own ON public.user_profiles
-    FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
-
-  -- user_points: all read (leaderboard); own write
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='user_points' AND policyname='points_read_all') THEN
-    CREATE POLICY points_read_all ON public.user_points FOR SELECT USING (true);
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_friends_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_friends" ADD CONSTRAINT "community_friends_pkey" PRIMARY KEY (id);
   END IF;
-  DROP POLICY IF EXISTS points_own_write ON public.user_points;
-  CREATE POLICY points_own_write ON public.user_points
-    FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
-
-  -- user_stats_summary: PUBLIC read for leaderboard; own write
-  DROP POLICY IF EXISTS stats_read_all    ON public.user_stats_summary;
-  DROP POLICY IF EXISTS stats_own         ON public.user_stats_summary;
-  DROP POLICY IF EXISTS stats_own_write   ON public.user_stats_summary;
-  DROP POLICY IF EXISTS stats_select_all  ON public.user_stats_summary;
-  CREATE POLICY stats_read_all ON public.user_stats_summary
-    FOR SELECT USING (true);
-  CREATE POLICY stats_own ON public.user_stats_summary
-    FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
-
-  -- daily_user_stats: PUBLIC read for leaderboard/streaks; own write
-  DROP POLICY IF EXISTS daily_own        ON public.daily_user_stats;
-  DROP POLICY IF EXISTS daily_select_all ON public.daily_user_stats;
-  DROP POLICY IF EXISTS daily_read_all   ON public.daily_user_stats;
-  CREATE POLICY daily_read_all ON public.daily_user_stats
-    FOR SELECT USING (true);
-  CREATE POLICY daily_own ON public.daily_user_stats
-    FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
-
-  -- study_sessions_log: own rows
-  DROP POLICY IF EXISTS sessions_own ON public.study_sessions_log;
-  CREATE POLICY sessions_own ON public.study_sessions_log
-    FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
-
-  -- user_presence: authenticated read; own write
-  DROP POLICY IF EXISTS presence_read_auth  ON public.user_presence;
-  DROP POLICY IF EXISTS presence_own_write  ON public.user_presence;
-  CREATE POLICY presence_read_auth ON public.user_presence
-    FOR SELECT USING ((SELECT auth.uid()) IS NOT NULL);
-  CREATE POLICY presence_own_write ON public.user_presence
-    FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
-
-  -- user_onboarding: own rows
-  DROP POLICY IF EXISTS "user_onboarding_select_own" ON public.user_onboarding;
-  DROP POLICY IF EXISTS "user_onboarding_insert_own" ON public.user_onboarding;
-  DROP POLICY IF EXISTS "user_onboarding_update_own" ON public.user_onboarding;
-  CREATE POLICY "user_onboarding_select_own" ON public.user_onboarding FOR SELECT USING (auth.uid() = user_id);
-  CREATE POLICY "user_onboarding_insert_own" ON public.user_onboarding FOR INSERT WITH CHECK (auth.uid() = user_id);
-  CREATE POLICY "user_onboarding_update_own" ON public.user_onboarding FOR UPDATE
-    USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-
-  -- user_settings: own rows
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='user_settings' AND policyname='usettings_own') THEN
-    CREATE POLICY usettings_own ON public.user_settings
-      FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_join_requests_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_join_requests" ADD CONSTRAINT "community_join_requests_pkey" PRIMARY KEY (id);
   END IF;
-
-  -- user_roles: service_role write; own read
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='user_roles' AND policyname='uroles_service_write') THEN
-    CREATE POLICY uroles_service_write ON public.user_roles FOR ALL USING (auth.role() = 'service_role');
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_reports_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_reports" ADD CONSTRAINT "community_reports_pkey" PRIMARY KEY (id);
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='user_roles' AND policyname='uroles_own_read') THEN
-    CREATE POLICY uroles_own_read ON public.user_roles FOR SELECT USING (user_id = (SELECT auth.uid()));
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_start_alerts_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_start_alerts" ADD CONSTRAINT "community_start_alerts_pkey" PRIMARY KEY (id);
   END IF;
-
-  -- backup_manifests: own user rows; service role bypasses RLS
-  DROP POLICY IF EXISTS backup_manifests_select_own ON public.backup_manifests;
-  DROP POLICY IF EXISTS backup_manifests_insert_own ON public.backup_manifests;
-  DROP POLICY IF EXISTS backup_manifests_update_own ON public.backup_manifests;
-  DROP POLICY IF EXISTS backup_manifests_delete_own ON public.backup_manifests;
-  CREATE POLICY backup_manifests_select_own ON public.backup_manifests
-    FOR SELECT USING (user_id = (SELECT auth.uid()));
-  CREATE POLICY backup_manifests_insert_own ON public.backup_manifests
-    FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()) AND split_part(path, '/', 1) = (SELECT auth.uid())::text);
-  CREATE POLICY backup_manifests_update_own ON public.backup_manifests
-    FOR UPDATE USING (user_id = (SELECT auth.uid()))
-    WITH CHECK (user_id = (SELECT auth.uid()) AND split_part(path, '/', 1) = (SELECT auth.uid())::text);
-  CREATE POLICY backup_manifests_delete_own ON public.backup_manifests
-    FOR DELETE USING (user_id = (SELECT auth.uid()));
-
-  -- sync_items: own user rows
-  DROP POLICY IF EXISTS "sync_items_select_own" ON public.sync_items;
-  DROP POLICY IF EXISTS "sync_items_insert_own" ON public.sync_items;
-  DROP POLICY IF EXISTS "sync_items_update_own" ON public.sync_items;
-  DROP POLICY IF EXISTS "sync_items_delete_own" ON public.sync_items;
-  CREATE POLICY "sync_items_select_own" ON public.sync_items
-    FOR SELECT USING (user_id = (SELECT auth.uid()));
-  CREATE POLICY "sync_items_insert_own" ON public.sync_items
-    FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()));
-  CREATE POLICY "sync_items_update_own" ON public.sync_items
-    FOR UPDATE USING (user_id = (SELECT auth.uid()));
-  CREATE POLICY "sync_items_delete_own" ON public.sync_items
-    FOR DELETE USING (user_id = (SELECT auth.uid()));
-
-  -- notifications: own rows
-  DROP POLICY IF EXISTS notif_own ON public.notifications;
-  CREATE POLICY notif_own ON public.notifications
-    FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
-
-  -- store_items: all read
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='store_items' AND policyname='store_read_all') THEN
-    CREATE POLICY store_read_all ON public.store_items FOR SELECT USING (true);
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'daily_logs_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."daily_logs" ADD CONSTRAINT "daily_logs_pkey" PRIMARY KEY (id);
   END IF;
-
-  -- user_inventory: own rows
-  DROP POLICY IF EXISTS inventory_own ON public.user_inventory;
-  CREATE POLICY inventory_own ON public.user_inventory
-    FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
-
-  -- groups: public groups readable; members can read private; owner writes
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='groups' AND policyname='groups_read_public') THEN
-    CREATE POLICY groups_read_public ON public.groups
-      FOR SELECT USING (is_public = true AND deleted_at IS NULL);
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'daily_user_stats_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."daily_user_stats" ADD CONSTRAINT "daily_user_stats_pkey" PRIMARY KEY (id);
   END IF;
-  DROP POLICY IF EXISTS groups_member_read  ON public.groups;
-  DROP POLICY IF EXISTS groups_owner_write  ON public.groups;
-  DROP POLICY IF EXISTS groups_auth_insert  ON public.groups;
-  DROP POLICY IF EXISTS groups_owner_update ON public.groups;
-  DROP POLICY IF EXISTS groups_owner_delete ON public.groups;
-  CREATE POLICY groups_member_read ON public.groups
-    FOR SELECT USING (public._is_group_member(id, (SELECT auth.uid())));
-  CREATE POLICY groups_auth_insert ON public.groups
-    FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-  CREATE POLICY groups_owner_write ON public.groups
-    FOR ALL USING (owner_id = (SELECT auth.uid())) WITH CHECK (owner_id = (SELECT auth.uid()));
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'exams_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."exams" ADD CONSTRAINT "exams_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'focus_sessions_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."focus_sessions" ADD CONSTRAINT "focus_sessions_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_announcements_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_announcements" ADD CONSTRAINT "group_announcements_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_challenge_participants_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_challenge_participants" ADD CONSTRAINT "group_challenge_participants_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_challenges_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_challenges" ADD CONSTRAINT "group_challenges_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_chat_messages_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_chat_messages" ADD CONSTRAINT "group_chat_messages_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_invites_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_invites" ADD CONSTRAINT "group_invites_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_members_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_members" ADD CONSTRAINT "group_members_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_milestones_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_milestones" ADD CONSTRAINT "group_milestones_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'groups_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."groups" ADD CONSTRAINT "groups_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'habits_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."habits" ADD CONSTRAINT "habits_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'mock_tests_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."mock_tests" ADD CONSTRAINT "mock_tests_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notifications_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."notifications" ADD CONSTRAINT "notifications_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'store_items_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."store_items" ADD CONSTRAINT "store_items_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'study_sessions_log_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."study_sessions_log" ADD CONSTRAINT "study_sessions_log_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subjects_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."subjects" ADD CONSTRAINT "subjects_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sync_items_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."sync_items" ADD CONSTRAINT "sync_items_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tasks_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."tasks" ADD CONSTRAINT "tasks_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tests_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."tests" ADD CONSTRAINT "tests_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_display_profiles_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_display_profiles" ADD CONSTRAINT "user_display_profiles_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_inventory_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_inventory" ADD CONSTRAINT "user_inventory_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_onboarding_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_onboarding" ADD CONSTRAINT "user_onboarding_pkey" PRIMARY KEY (user_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_points_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_points" ADD CONSTRAINT "user_points_pkey" PRIMARY KEY (user_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_presence_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_presence" ADD CONSTRAINT "user_presence_pkey" PRIMARY KEY (user_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_profiles_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_profiles" ADD CONSTRAINT "user_profiles_pkey" PRIMARY KEY (user_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_roles_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_roles" ADD CONSTRAINT "user_roles_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_settings_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_settings" ADD CONSTRAINT "user_settings_pkey" PRIMARY KEY (user_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_stats_summary_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_stats_summary" ADD CONSTRAINT "user_stats_summary_pkey" PRIMARY KEY (user_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_tours_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_tours" ADD CONSTRAINT "user_tours_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'users_pkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."users" ADD CONSTRAINT "users_pkey" PRIMARY KEY (id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'buddy_invites_inviter_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."buddy_invites" ADD CONSTRAINT "buddy_invites_inviter_id_fkey" FOREIGN KEY (inviter_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_event_attendees_event_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_event_attendees" ADD CONSTRAINT "community_event_attendees_event_id_fkey" FOREIGN KEY (event_id) REFERENCES community_events(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_event_attendees_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_event_attendees" ADD CONSTRAINT "community_event_attendees_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_events_creator_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_events" ADD CONSTRAINT "community_events_creator_id_fkey" FOREIGN KEY (creator_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_events_host_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_events" ADD CONSTRAINT "community_events_host_user_id_fkey" FOREIGN KEY (host_user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'daily_logs_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."daily_logs" ADD CONSTRAINT "daily_logs_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'daily_user_stats_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."daily_user_stats" ADD CONSTRAINT "daily_user_stats_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'exams_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."exams" ADD CONSTRAINT "exams_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'focus_sessions_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."focus_sessions" ADD CONSTRAINT "focus_sessions_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_announcements_author_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_announcements" ADD CONSTRAINT "group_announcements_author_id_fkey" FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_announcements_group_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_announcements" ADD CONSTRAINT "group_announcements_group_id_fkey" FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_challenge_participants_challenge_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_challenge_participants" ADD CONSTRAINT "group_challenge_participants_challenge_id_fkey" FOREIGN KEY (challenge_id) REFERENCES group_challenges(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_challenge_participants_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_challenge_participants" ADD CONSTRAINT "group_challenge_participants_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_challenges_created_by_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_challenges" ADD CONSTRAINT "group_challenges_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_challenges_group_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_challenges" ADD CONSTRAINT "group_challenges_group_id_fkey" FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_chat_messages_author_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_chat_messages" ADD CONSTRAINT "group_chat_messages_author_id_fkey" FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_chat_messages_group_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_chat_messages" ADD CONSTRAINT "group_chat_messages_group_id_fkey" FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_chat_messages_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_chat_messages" ADD CONSTRAINT "group_chat_messages_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL NOT VALID;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_invites_created_by_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_invites" ADD CONSTRAINT "group_invites_created_by_fkey" FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_invites_group_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_invites" ADD CONSTRAINT "group_invites_group_id_fkey" FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_members_group_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_members" ADD CONSTRAINT "group_members_group_id_fkey" FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_members_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_members" ADD CONSTRAINT "group_members_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_milestones_group_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_milestones" ADD CONSTRAINT "group_milestones_group_id_fkey" FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'groups_owner_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."groups" ADD CONSTRAINT "groups_owner_id_fkey" FOREIGN KEY (owner_id) REFERENCES auth.users(id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'habits_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."habits" ADD CONSTRAINT "habits_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'mock_tests_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."mock_tests" ADD CONSTRAINT "mock_tests_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'notifications_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."notifications" ADD CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'study_sessions_log_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."study_sessions_log" ADD CONSTRAINT "study_sessions_log_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subjects_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."subjects" ADD CONSTRAINT "subjects_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sync_items_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."sync_items" ADD CONSTRAINT "sync_items_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tasks_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."tasks" ADD CONSTRAINT "tasks_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tests_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."tests" ADD CONSTRAINT "tests_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_display_profiles_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_display_profiles" ADD CONSTRAINT "user_display_profiles_id_fkey" FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_onboarding_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_onboarding" ADD CONSTRAINT "user_onboarding_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_points_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_points" ADD CONSTRAINT "user_points_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_presence_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_presence" ADD CONSTRAINT "user_presence_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_profiles_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_profiles" ADD CONSTRAINT "user_profiles_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_roles_granted_by_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_roles" ADD CONSTRAINT "user_roles_granted_by_fkey" FOREIGN KEY (granted_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_roles_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_roles" ADD CONSTRAINT "user_roles_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_settings_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_settings" ADD CONSTRAINT "user_settings_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_stats_summary_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_stats_summary" ADD CONSTRAINT "user_stats_summary_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_tours_user_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_tours" ADD CONSTRAINT "user_tours_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'users_id_fkey' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."users" ADD CONSTRAINT "users_id_fkey" FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'buddy_invites_token_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."buddy_invites" ADD CONSTRAINT "buddy_invites_token_key" UNIQUE (token);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_device_tokens_user_id_token_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_device_tokens" ADD CONSTRAINT "community_device_tokens_user_id_token_key" UNIQUE (user_id, token);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_join_requests_group_id_user_id_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_join_requests" ADD CONSTRAINT "community_join_requests_group_id_user_id_key" UNIQUE (group_id, user_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'community_start_alerts_user_id_target_type_target_id_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."community_start_alerts" ADD CONSTRAINT "community_start_alerts_user_id_target_type_target_id_key" UNIQUE (user_id, target_type, target_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'daily_user_stats_user_id_date_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."daily_user_stats" ADD CONSTRAINT "daily_user_stats_user_id_date_key" UNIQUE (user_id, date);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'gcp_challenge_user_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_challenge_participants" ADD CONSTRAINT "gcp_challenge_user_key" UNIQUE (challenge_id, user_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_challenge_participants_challenge_id_user_id_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_challenge_participants" ADD CONSTRAINT "group_challenge_participants_challenge_id_user_id_key" UNIQUE (challenge_id, user_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_invites_invite_code_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_invites" ADD CONSTRAINT "group_invites_invite_code_key" UNIQUE (invite_code);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_invites_token_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_invites" ADD CONSTRAINT "group_invites_token_key" UNIQUE (token);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'group_members_group_id_user_id_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."group_members" ADD CONSTRAINT "group_members_group_id_user_id_key" UNIQUE (group_id, user_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'groups_slug_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."groups" ADD CONSTRAINT "groups_slug_key" UNIQUE (slug);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'groups_slug_unique' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."groups" ADD CONSTRAINT "groups_slug_unique" UNIQUE (slug);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sync_items_user_entity_id_unique' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."sync_items" ADD CONSTRAINT "sync_items_user_entity_id_unique" UNIQUE (user_id, entity, entity_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_inventory_user_id_item_id_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_inventory" ADD CONSTRAINT "user_inventory_user_id_item_id_key" UNIQUE (user_id, item_id);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_roles_user_id_role_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_roles" ADD CONSTRAINT "user_roles_user_id_role_key" UNIQUE (user_id, role);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_tours_user_id_tour_key_key' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."user_tours" ADD CONSTRAINT "user_tours_user_id_tour_key_key" UNIQUE (user_id, tour_key);
+  END IF;
+END $iso_c$;
+DO $iso_c$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'backup_manifests_path_user_prefix' AND connamespace = 'public'::regnamespace) THEN
+    ALTER TABLE ONLY "public"."backup_manifests" ADD CONSTRAINT "backup_manifests_path_user_prefix" CHECK ((split_part(path, '/'::text, 1) = (user_id)::text));
+  END IF;
+END $iso_c$;
+CREATE UNIQUE INDEX IF NOT EXISTS backup_manifests_bucket_path_idx ON public.backup_manifests USING btree (bucket, path);
+CREATE INDEX IF NOT EXISTS backup_manifests_user_score_idx ON public.backup_manifests USING btree (user_id, selected_as_best DESC, score DESC, updated_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS groups_slug_active_unique ON public.groups USING btree (slug) WHERE ((deleted_at IS NULL) AND (slug IS NOT NULL));
+CREATE INDEX IF NOT EXISTS idx_ce_active_time ON public.community_events USING btree (is_active, start_time);
+CREATE INDEX IF NOT EXISTS idx_ce_featured ON public.community_events USING btree (is_featured) WHERE (is_featured = true);
+CREATE INDEX IF NOT EXISTS idx_cea_event ON public.community_event_attendees USING btree (event_id);
+CREATE INDEX IF NOT EXISTS idx_cea_user ON public.community_event_attendees USING btree (user_id);
+CREATE INDEX IF NOT EXISTS idx_challenges_g_v8 ON public.group_challenges USING btree (group_id, is_active) WHERE (is_active = true);
+CREATE INDEX IF NOT EXISTS idx_community_events_creator_id ON public.community_events USING btree (creator_id);
+CREATE INDEX IF NOT EXISTS idx_community_events_host_user_id ON public.community_events USING btree (host_user_id);
+CREATE INDEX IF NOT EXISTS idx_daily_user_date ON public.daily_user_stats USING btree (user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_user_date_minutes ON public.daily_user_stats USING btree (user_id, date DESC) INCLUDE (seconds_studied);
+CREATE INDEX IF NOT EXISTS idx_events_active_v8 ON public.community_events USING btree (is_active, start_time) WHERE (is_active = true);
+CREATE INDEX IF NOT EXISTS idx_gann_author ON public.group_announcements USING btree (author_id);
+CREATE INDEX IF NOT EXISTS idx_gann_group ON public.group_announcements USING btree (group_id);
+CREATE INDEX IF NOT EXISTS idx_gann_pinned ON public.group_announcements USING btree (group_id, pinned DESC, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_gchall_created_by ON public.group_challenges USING btree (created_by);
+CREATE INDEX IF NOT EXISTS idx_gchall_group ON public.group_challenges USING btree (group_id);
+CREATE INDEX IF NOT EXISTS idx_gchat_author_id ON public.group_chat_messages USING btree (author_id);
+CREATE INDEX IF NOT EXISTS idx_gchat_group_time ON public.group_chat_messages USING btree (group_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_gchat_user ON public.group_chat_messages USING btree (user_id);
+CREATE INDEX IF NOT EXISTS idx_gcpart_challenge ON public.group_challenge_participants USING btree (challenge_id);
+CREATE INDEX IF NOT EXISTS idx_gcpart_user ON public.group_challenge_participants USING btree (user_id);
+CREATE INDEX IF NOT EXISTS idx_ginv_created_by ON public.group_invites USING btree (created_by);
+CREATE INDEX IF NOT EXISTS idx_ginv_group ON public.group_invites USING btree (group_id);
+CREATE INDEX IF NOT EXISTS idx_ginv_token ON public.group_invites USING btree (token);
+CREATE INDEX IF NOT EXISTS idx_gm_group ON public.group_members USING btree (group_id);
+CREATE INDEX IF NOT EXISTS idx_gm_user ON public.group_members USING btree (user_id);
+CREATE INDEX IF NOT EXISTS idx_gm_user_group_covering ON public.group_members USING btree (user_id, group_id);
+CREATE INDEX IF NOT EXISTS idx_gmile_group ON public.group_milestones USING btree (group_id);
+CREATE INDEX IF NOT EXISTS idx_groups_active ON public.groups USING btree (is_active) WHERE (is_active = true);
+CREATE INDEX IF NOT EXISTS idx_groups_category ON public.groups USING btree (category) WHERE (deleted_at IS NULL);
+CREATE INDEX IF NOT EXISTS idx_groups_created ON public.groups USING btree (created_at DESC) WHERE (deleted_at IS NULL);
+CREATE INDEX IF NOT EXISTS idx_groups_del ON public.groups USING btree (deleted_at) WHERE (deleted_at IS NULL);
+CREATE INDEX IF NOT EXISTS idx_groups_fts ON public.groups USING gin (fts);
+CREATE INDEX IF NOT EXISTS idx_groups_is_public ON public.groups USING btree (is_public) WHERE (deleted_at IS NULL);
+CREATE INDEX IF NOT EXISTS idx_groups_owner ON public.groups USING btree (owner_id);
+CREATE INDEX IF NOT EXISTS idx_groups_public ON public.groups USING btree (is_public) WHERE (is_public = true);
+CREATE INDEX IF NOT EXISTS idx_groups_slug ON public.groups USING btree (slug) WHERE (slug IS NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_slug_unique ON public.groups USING btree (slug) WHERE (slug IS NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_notif_unread ON public.notifications USING btree (user_id, read_at) WHERE (read_at IS NULL);
+CREATE INDEX IF NOT EXISTS idx_notif_user_time ON public.notifications USING btree (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_points_lifetime ON public.user_points USING btree (lifetime_points DESC);
+CREATE INDEX IF NOT EXISTS idx_points_points ON public.user_points USING btree (points DESC);
+CREATE INDEX IF NOT EXISTS idx_points_user_id ON public.user_points USING btree (user_id);
+CREATE INDEX IF NOT EXISTS idx_presence_last_seen ON public.user_presence USING btree (last_seen DESC);
+CREATE INDEX IF NOT EXISTS idx_presence_s_v8 ON public.user_presence USING btree (status, last_seen DESC);
+CREATE INDEX IF NOT EXISTS idx_presence_status ON public.user_presence USING btree (status);
+CREATE INDEX IF NOT EXISTS idx_presence_updated_at ON public.user_presence USING btree (updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.user_profiles USING btree (user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON public.study_sessions_log USING btree (started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sessions_u_v8 ON public.study_sessions_log USING btree (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON public.study_sessions_log USING btree (user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_started ON public.study_sessions_log USING btree (user_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_stats_total_hours ON public.user_stats_summary USING btree (total_hours DESC);
+CREATE INDEX IF NOT EXISTS idx_stats_user_id ON public.user_stats_summary USING btree (user_id);
+CREATE INDEX IF NOT EXISTS idx_stats_weekly_hours ON public.user_stats_summary USING btree (weekly_hours DESC);
+CREATE INDEX IF NOT EXISTS idx_store_act_v8 ON public.store_items USING btree (active, category);
+CREATE INDEX IF NOT EXISTS idx_uroles_granted_by ON public.user_roles USING btree (granted_by);
+CREATE INDEX IF NOT EXISTS idx_user_onboarding_completed ON public.user_onboarding USING btree (completed);
+CREATE INDEX IF NOT EXISTS idx_user_roles_role ON public.user_roles USING btree (role);
+CREATE INDEX IF NOT EXISTS idx_users_plan_type ON public.users USING btree (plan_type);
+CREATE INDEX IF NOT EXISTS idx_users_username ON public.users USING btree (username);
+CREATE INDEX IF NOT EXISTS sync_items_status_idx ON public.sync_items USING btree (user_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_community_friends_pair ON public.community_friends USING btree (LEAST(user_id, friend_id), GREATEST(user_id, friend_id));
+CREATE UNIQUE INDEX IF NOT EXISTS ux_profiles_handle ON public.user_profiles USING btree (lower(handle)) WHERE (handle IS NOT NULL);
+CREATE OR REPLACE FUNCTION "private"."can_manage_group"(p_group_id uuid, p_user_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
-  -- group_members
-  DROP POLICY IF EXISTS gm_read         ON public.group_members;
-  DROP POLICY IF EXISTS gm_read_members ON public.group_members;
-  DROP POLICY IF EXISTS gm_own_write    ON public.group_members;
-  DROP POLICY IF EXISTS gm_insert       ON public.group_members;
-  DROP POLICY IF EXISTS gm_own_delete   ON public.group_members;
-  DROP POLICY IF EXISTS gm_owner_update ON public.group_members;
-  CREATE POLICY gm_read_members ON public.group_members
-    FOR SELECT USING (user_id = (SELECT auth.uid()) OR public._is_group_member(group_id, (SELECT auth.uid())));
-  CREATE POLICY gm_own_write ON public.group_members
-    FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
-  CREATE POLICY gm_insert ON public.group_members
-    FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-  -- group_chat_messages (CRITICAL: uses user_id not sender_id)
-  DROP POLICY IF EXISTS gchat_read        ON public.group_chat_messages;
-  DROP POLICY IF EXISTS gchat_read_members ON public.group_chat_messages;
-  DROP POLICY IF EXISTS gchat_send        ON public.group_chat_messages;
-  DROP POLICY IF EXISTS gchat_insert      ON public.group_chat_messages;
-  DROP POLICY IF EXISTS gchat_delete_own  ON public.group_chat_messages;
-  CREATE POLICY gchat_read_members ON public.group_chat_messages
-    FOR SELECT USING (public._is_group_member(group_id, (SELECT auth.uid())));
-  CREATE POLICY gchat_send ON public.group_chat_messages
-    FOR INSERT WITH CHECK (
-      user_id = (SELECT auth.uid())
-      AND group_id = ANY (
-        SELECT group_id FROM public.group_members WHERE user_id = (SELECT auth.uid())
-      )
+  select
+    exists (
+      select 1
+      from public.groups g
+      where g.id = p_group_id
+        and g.owner_id = p_user_id
+    )
+    or exists (
+      select 1
+      from public.group_members gm
+      where gm.group_id = p_group_id
+        and gm.user_id = p_user_id
+        and gm.role in ('owner', 'admin', 'moderator')
     );
-  CREATE POLICY gchat_delete_own ON public.group_chat_messages
-    FOR UPDATE USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "private"."is_group_member"(p_group_id uuid, p_user_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
-  -- group_invites
-  DROP POLICY IF EXISTS ginv_read   ON public.group_invites;
-  DROP POLICY IF EXISTS ginv_create ON public.group_invites;
-  DROP POLICY IF EXISTS ginv_delete ON public.group_invites;
-  CREATE POLICY ginv_read ON public.group_invites
-    FOR SELECT USING (
-      group_id = ANY (SELECT group_id FROM public.group_members WHERE user_id = (SELECT auth.uid()))
-      OR created_by = (SELECT auth.uid())
-    );
-  CREATE POLICY ginv_create ON public.group_invites
-    FOR INSERT WITH CHECK (
-      created_by = (SELECT auth.uid())
-      AND group_id IN (
-        SELECT group_id FROM public.group_members
-        WHERE user_id = (SELECT auth.uid()) AND role IN ('admin','moderator')
-      )
-    );
-  CREATE POLICY ginv_delete ON public.group_invites
-    FOR DELETE USING (created_by = (SELECT auth.uid()));
 
-  -- group_announcements
-  DROP POLICY IF EXISTS gann_read  ON public.group_announcements;
-  DROP POLICY IF EXISTS gann_write ON public.group_announcements;
-  CREATE POLICY gann_read ON public.group_announcements
-    FOR SELECT USING (public._is_group_member(group_id, (SELECT auth.uid())));
-  CREATE POLICY gann_write ON public.group_announcements
-    FOR ALL USING (author_id = (SELECT auth.uid())) WITH CHECK (author_id = (SELECT auth.uid()));
+  select exists (
+    select 1
+    from public.group_members gm
+    where gm.group_id = p_group_id
+      and gm.user_id = p_user_id
+  );
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "rpc_private"."accept_invite"(p_code text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
-  -- group_milestones
-  DROP POLICY IF EXISTS gmile_read ON public.group_milestones;
-  CREATE POLICY gmile_read ON public.group_milestones
-    FOR SELECT USING (public._is_group_member(group_id, (SELECT auth.uid())));
 
-  -- group_challenges
-  DROP POLICY IF EXISTS gchall_read   ON public.group_challenges;
-  DROP POLICY IF EXISTS gchall_insert ON public.group_challenges;
-  DROP POLICY IF EXISTS gchall_update ON public.group_challenges;
-  DROP POLICY IF EXISTS gchall_write  ON public.group_challenges;
-  CREATE POLICY gchall_read ON public.group_challenges
-    FOR SELECT USING (public._is_group_member(group_id, (SELECT auth.uid())));
-  CREATE POLICY gchall_write ON public.group_challenges
-    FOR ALL USING (created_by = (SELECT auth.uid())) WITH CHECK (created_by = (SELECT auth.uid()));
+declare
+  v_invite public.group_invites%rowtype;
+  v_group_slug text;
+  v_uid uuid := (select auth.uid());
+  v_inserted boolean := false;
+begin
+  if v_uid is null then
+    return jsonb_build_object('success', false, 'error', 'Not authenticated');
+  end if;
 
-  -- group_challenge_participants
-  DROP POLICY IF EXISTS gcpart_own          ON public.group_challenge_participants;
-  DROP POLICY IF EXISTS gcpart_read         ON public.group_challenge_participants;
-  DROP POLICY IF EXISTS gcpart_read_members ON public.group_challenge_participants;
-  CREATE POLICY gcpart_own ON public.group_challenge_participants
-    FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
-  CREATE POLICY gcpart_read_members ON public.group_challenge_participants
-    FOR SELECT USING (
-      user_id = (SELECT auth.uid())
-      OR challenge_id IN (
-        SELECT gch.id FROM public.group_challenges gch
-        JOIN public.group_members gm ON gm.group_id = gch.group_id
-        WHERE gm.user_id = (SELECT auth.uid())
-      )
-    );
+  select gi.*
+  into v_invite
+  from public.group_invites gi
+  where gi.token = p_code or gi.invite_code = p_code
+  order by gi.created_at desc nulls last
+  limit 1
+  for update;
 
-  -- community_events: active public read; service_role writes
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='community_events' AND policyname='ce_read_public') THEN
-    CREATE POLICY ce_read_public ON public.community_events FOR SELECT USING (is_active = true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='community_events' AND policyname='ce_service_write') THEN
-    CREATE POLICY ce_service_write ON public.community_events FOR ALL USING (auth.role() = 'service_role');
-  END IF;
+  if not found then
+    return jsonb_build_object('success', false, 'error', 'Invite not found');
+  end if;
+  if v_invite.expires_at is not null and v_invite.expires_at <= now() then
+    return jsonb_build_object('success', false, 'error', 'Invite has expired');
+  end if;
+  if v_invite.max_uses is not null
+     and coalesce(v_invite.uses_count, 0) >= v_invite.max_uses then
+    return jsonb_build_object('success', false, 'error', 'Invite has reached maximum uses');
+  end if;
 
-  -- community_event_attendees: authenticated read; own write
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='community_event_attendees' AND policyname='cea_read_auth') THEN
-    CREATE POLICY cea_read_auth ON public.community_event_attendees FOR SELECT USING (auth.role() = 'authenticated');
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='community_event_attendees' AND policyname='cea_own') THEN
-    CREATE POLICY cea_own ON public.community_event_attendees
-      FOR ALL USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
-  END IF;
+  insert into public.group_members (group_id, user_id, role)
+  values (v_invite.group_id, v_uid, 'member')
+  on conflict (group_id, user_id) do nothing;
+  v_inserted := found;
 
-END $$;
+  if v_inserted then
+    update public.group_invites
+    set uses_count = coalesce(uses_count, 0) + 1,
+        invite_code = coalesce(invite_code, token),
+        token = coalesce(token, invite_code)
+    where id = v_invite.id;
+  end if;
 
--- ── §11. RPCs ─────────────────────────────────────────────────────────────────
+  select g.slug
+  into v_group_slug
+  from public.groups g
+  where g.id = v_invite.group_id;
 
--- is_premium_user: always true (all plans unlocked)
-CREATE OR REPLACE FUNCTION public.is_premium_user()
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER AS $$ SELECT true; $$;
-CREATE OR REPLACE FUNCTION public.is_premium_user(uid uuid)
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER AS $$ SELECT true; $$;
+  return jsonb_build_object(
+    'success', true,
+    'ok', true,
+    'group_id', v_invite.group_id,
+    'group_slug', coalesce(v_group_slug, v_invite.group_id::text),
+    'slug', coalesce(v_group_slug, v_invite.group_id::text),
+    'already_member', not v_inserted
+  );
+end;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "rpc_private"."get_invite_details"(p_code text)
+ RETURNS TABLE(group_id uuid, group_slug text, group_name text, description text, member_count bigint, is_valid boolean)
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
--- get_my_group_ids: used by RLS policies (avoids repeated subqueries)
-CREATE OR REPLACE FUNCTION public.get_my_group_ids()
-RETURNS uuid[] LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
-  SELECT ARRAY(SELECT group_id FROM public.group_members WHERE user_id = (SELECT auth.uid()));
-$$;
 
--- get_invite_details
-CREATE OR REPLACE FUNCTION public.get_invite_details(p_code text)
-RETURNS TABLE (group_id uuid, group_name text, description text, member_count bigint, is_valid boolean)
-LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT
+  select
     g.id,
+    g.slug,
     g.name,
     g.description,
-    COUNT(gm.user_id),
-    ((gi.expires_at IS NULL OR gi.expires_at > now())
-     AND (gi.max_uses IS NULL OR gi.uses_count < gi.max_uses))
-  FROM public.group_invites gi
-  JOIN  public.groups g         ON g.id      = gi.group_id
-  LEFT JOIN public.group_members gm ON gm.group_id = g.id
-  WHERE (gi.token = p_code OR gi.invite_code = p_code)
-    AND (g.is_active = true OR g.is_active IS NULL)
-    AND g.deleted_at IS NULL
-  GROUP BY g.id, g.name, g.description, gi.expires_at, gi.max_uses, gi.uses_count;
-$$;
+    count(gm.user_id),
+    (
+      (gi.expires_at is null or gi.expires_at > now())
+      and (gi.max_uses is null or coalesce(gi.uses_count, 0) < gi.max_uses)
+    )
+  from public.group_invites gi
+  join public.groups g on g.id = gi.group_id
+  left join public.group_members gm on gm.group_id = g.id
+  where (gi.token = p_code or gi.invite_code = p_code)
+    and (g.is_active = true or g.is_active is null)
+    and g.deleted_at is null
+  group by g.id, g.slug, g.name, g.description,
+           gi.expires_at, gi.max_uses, gi.uses_count;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "rpc_private"."join_community_event"(p_event_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
--- accept_invite
-CREATE OR REPLACE FUNCTION public.accept_invite(p_code text)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+
+declare
+  v_uid uuid := (select auth.uid());
+  v_evt public.community_events%rowtype;
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok', false, 'error', 'Not authenticated');
+  end if;
+
+  select *
+  into v_evt
+  from public.community_events
+  where id = p_event_id
+    and is_active = true;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'Event not found or inactive');
+  end if;
+
+  insert into public.community_event_attendees (event_id, user_id)
+  values (p_event_id, v_uid)
+  on conflict (event_id, user_id) do nothing;
+
+  update public.community_events
+  set attendee_count = (
+    select count(*)
+    from public.community_event_attendees
+    where event_id = p_event_id
+  )
+  where id = p_event_id;
+
+  return jsonb_build_object('ok', true);
+end;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "rpc_private"."leave_community_event"(p_event_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
+
+
+declare
+  v_uid uuid := (select auth.uid());
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok', false, 'error', 'Not authenticated');
+  end if;
+
+  delete from public.community_event_attendees
+  where event_id = p_event_id
+    and user_id = v_uid;
+
+  update public.community_events
+  set attendee_count = (
+    select count(*)
+    from public.community_event_attendees
+    where event_id = p_event_id
+  )
+  where id = p_event_id;
+
+  return jsonb_build_object('ok', true);
+end;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "rpc_private"."purchase_store_item"(p_user_id uuid, p_item_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
+
+
+declare
+  v_item public.store_items%rowtype;
+  v_points integer;
+begin
+  if p_user_id is null
+     or (
+       (select auth.role()) <> 'service_role'
+       and (
+         (select auth.uid()) is null
+         or p_user_id is distinct from (select auth.uid())
+       )
+     ) then
+    return jsonb_build_object('ok', false, 'error', 'not_authorized');
+  end if;
+
+  select *
+  into v_item
+  from public.store_items
+  where id = p_item_id
+    and active = true
+    and price >= 0
+  for update;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'item_not_found');
+  end if;
+
+  if exists (
+    select 1
+    from public.user_inventory
+    where user_id = p_user_id
+      and item_id = p_item_id
+  ) then
+    return jsonb_build_object('ok', false, 'error', 'already_owned');
+  end if;
+
+  update public.user_points
+  set points = points - v_item.price
+  where user_id = p_user_id
+    and points >= v_item.price
+  returning points into v_points;
+  if not found then
+    return jsonb_build_object('ok', false, 'error', 'insufficient_coins');
+  end if;
+
+  insert into public.user_inventory (user_id, item_id, equipped, purchased_at)
+  values (p_user_id, p_item_id, false, now());
+
+  return jsonb_build_object('ok', true, 'coins_remaining', v_points);
+end;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_auto_add_group_owner"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
+
+
+     BEGIN
+       INSERT INTO public.group_members(group_id, user_id, role, joined_at)
+       VALUES (NEW.id, NEW.owner_id, 'owner', now())
+       ON CONFLICT (group_id, user_id) DO NOTHING;
+       RETURN NEW;
+     END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_auto_add_super_admin"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
+
+
+  BEGIN
+    -- Only if the admin user exists and isn't already a member
+    IF EXISTS (SELECT 1 FROM public.users WHERE id = '223465cf-a1fd-454c-8346-0fb04357faf0') THEN
+      INSERT INTO public.group_members (group_id, user_id, role, is_super_admin, joined_at)
+      VALUES (NEW.id, '223465cf-a1fd-454c-8346-0fb04357faf0', 'admin', true, now())
+      ON CONFLICT (group_id, user_id) DO UPDATE SET role = 'admin', is_super_admin = true;
+    END IF;
+    RETURN NEW;
+  END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_ensure_community_enrollment"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+BEGIN
+  INSERT INTO public.community_enrollments (user_id)
+  VALUES (NEW.id)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_ensure_onboarding_complete"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+ BEGIN INSERT INTO public.user_onboarding (user_id, completed, completed_at, data) VALUES (NEW.id, true, now(), '{}'::jsonb) ON CONFLICT (user_id) DO NOTHING; RETURN NEW; END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_ensure_stats_summary"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+BEGIN
+  INSERT INTO public.user_stats_summary (user_id, total_hours, weekly_hours, monthly_hours, total_sessions, current_streak)
+  VALUES (NEW.id, 0, 0, 0, 0, 0)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_ensure_user_points"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+BEGIN
+  INSERT INTO public.user_points (user_id, points, lifetime_points)
+  VALUES (NEW.id, 0, 0)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_ensure_user_profile"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+BEGIN
+  INSERT INTO public.user_profiles (user_id, profile_data)
+  VALUES (NEW.id, '{}'::jsonb)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_has_group_role"(gid uuid, uid uuid, allowed_roles text[])
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.group_members gm
+    WHERE gm.group_id = gid
+      AND gm.user_id = uid
+      AND gm.role = ANY(allowed_roles)
+  );
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_is_group_member"(gid uuid, uid uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
+  SELECT EXISTS (SELECT 1 FROM public.group_members WHERE group_id = gid AND user_id = uid);
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_sync_group_member_count"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE public.groups SET member_count = member_count + 1, updated_at = now()
+    WHERE id = NEW.group_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.groups SET member_count = GREATEST(0, member_count - 1), updated_at = now()
+    WHERE id = OLD.group_id;
+  END IF;
+  RETURN NULL;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."accept_invite"(p_code text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
 DECLARE
   v_invite public.group_invites%ROWTYPE;
   v_uid    uuid := auth.uid();
+  v_slug   text;
 BEGIN
-  IF v_uid IS NULL THEN RETURN jsonb_build_object('success', false, 'error', 'Not authenticated'); END IF;
-  SELECT * INTO v_invite FROM public.group_invites WHERE token = p_code OR invite_code = p_code LIMIT 1;
-  IF NOT FOUND THEN RETURN jsonb_build_object('success', false, 'error', 'Invite not found'); END IF;
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT * INTO v_invite
+  FROM public.group_invites
+  WHERE token = p_code OR invite_code = p_code
+  LIMIT 1;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Invite not found');
+  END IF;
   IF v_invite.expires_at IS NOT NULL AND v_invite.expires_at < now() THEN
     RETURN jsonb_build_object('success', false, 'error', 'Invite has expired');
   END IF;
   IF v_invite.max_uses IS NOT NULL AND v_invite.uses_count >= v_invite.max_uses THEN
     RETURN jsonb_build_object('success', false, 'error', 'Invite has reached maximum uses');
   END IF;
-  INSERT INTO public.group_members (group_id, user_id, role) VALUES (v_invite.group_id, v_uid, 'member')
-    ON CONFLICT (group_id, user_id) DO NOTHING;
-  UPDATE public.group_invites SET
+  INSERT INTO public.group_members (group_id, user_id, role)
+  VALUES (v_invite.group_id, v_uid, 'member')
+  ON CONFLICT (group_id, user_id) DO NOTHING;
+  UPDATE public.group_invites
+  SET
     uses_count  = uses_count + 1,
     invite_code = COALESCE(invite_code, token),
     token       = COALESCE(token, invite_code)
   WHERE id = v_invite.id;
-  RETURN jsonb_build_object('success', true, 'group_id', v_invite.group_id);
-END;
-$$;
+  SELECT g.slug INTO v_slug FROM public.groups g WHERE g.id = v_invite.group_id;
+  RETURN jsonb_build_object('success', true, 'group_id', v_invite.group_id, 'group_slug', v_slug);
+END
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."check_user_role"(p_user_id uuid, p_role text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
--- get_membership_snapshot (handles both p_user_id and target_user_id callers)
-CREATE OR REPLACE FUNCTION public.get_membership_snapshot(
-  p_user_id      uuid DEFAULT NULL,
-  target_user_id uuid DEFAULT NULL
-)
-RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT jsonb_build_object(
-    'user_id',         u.id,
-    'plan_type',       u.plan_type,
-    'plan_expires_at', u.plan_expires_at,
-    'is_premium',      true,
-    'points',          COALESCE(up.points, 0),
-    'lifetime_points', COALESCE(up.lifetime_points, 0),
-    'billing_status',  'active',
-    'access_ends_at',  '2099-12-31T23:59:59Z'
-  )
-  FROM public.users u
-  LEFT JOIN public.user_points up ON up.user_id = u.id
-  WHERE u.id = COALESCE(p_user_id, target_user_id);
-$$;
 
--- get_group_analytics_from_snapshots
-CREATE OR REPLACE FUNCTION public.get_group_analytics_from_snapshots(p_group_id uuid, p_days integer DEFAULT 7)
-RETURNS TABLE(study_date date, total_seconds bigint, member_count bigint)
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT d.date,
-    COALESCE(SUM(d.seconds_studied), 0) AS total_seconds,
-    COUNT(DISTINCT d.user_id) AS member_count
-  FROM public.daily_user_stats d
-  JOIN public.group_members gm ON gm.user_id = d.user_id AND gm.group_id = p_group_id
-  WHERE d.date >= CURRENT_DATE - (p_days - 1)
-  GROUP BY d.date ORDER BY d.date ASC;
-$$;
+    SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = p_user_id AND role = p_role);
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."cleanup_old_notifications"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
--- get_leaderboard
-CREATE OR REPLACE FUNCTION public.get_leaderboard(
-  p_period text DEFAULT 'weekly', p_limit integer DEFAULT 50, p_offset integer DEFAULT 0
-)
-RETURNS TABLE (
-  rank bigint, user_id uuid, username text, name text, avatar_url text,
-  total_hours numeric, weekly_hours numeric, monthly_hours numeric,
-  total_sessions integer, current_streak integer, last_session_at timestamptz, score numeric
-)
-LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
+
 BEGIN
-  RETURN QUERY
-  SELECT
-    ROW_NUMBER() OVER (ORDER BY
-      CASE p_period WHEN 'monthly' THEN s.monthly_hours ELSE s.weekly_hours END DESC NULLS LAST,
-      s.total_hours DESC NULLS LAST
-    ) AS rank,
-    s.user_id, u.username, u.name, u.avatar_url,
-    COALESCE(s.total_hours,   0),
-    COALESCE(s.weekly_hours,  0),
-    COALESCE(s.monthly_hours, 0),
-    COALESCE(s.total_sessions, 0)::integer,
-    COALESCE(s.current_streak, 0)::integer,
-    s.last_session_at,
-    COALESCE(CASE p_period WHEN 'monthly' THEN s.monthly_hours ELSE s.weekly_hours END, 0) AS score
-  FROM public.user_stats_summary s
-  JOIN public.users u ON u.id = s.user_id
-  ORDER BY score DESC NULLS LAST, s.total_hours DESC NULLS LAST
-  LIMIT p_limit OFFSET p_offset;
+  DELETE FROM public.notifications
+  WHERE user_id=NEW.user_id AND created_at < now() - interval '90 days';
+  RETURN NEW;
 END;
-$$;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_bootstrap_profile"(p_display_name text, p_handle text DEFAULT NULL::text, p_day_offset_hours integer DEFAULT 0)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- get_group_leaderboard (points-based — matches JS client)
-CREATE OR REPLACE FUNCTION public.get_group_leaderboard(p_group_id uuid, p_limit integer DEFAULT 20)
-RETURNS TABLE (rank bigint, user_id uuid, username text, name text, avatar_url text, points integer)
-LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT
-    ROW_NUMBER() OVER (ORDER BY COALESCE(up.points, 0) DESC) AS rank,
-    gm.user_id, u.username, u.name, u.avatar_url,
-    COALESCE(up.points, 0) AS points
-  FROM public.group_members gm
-  JOIN public.users u             ON u.id      = gm.user_id
-  LEFT JOIN public.user_points up ON up.user_id = gm.user_id
-  WHERE gm.group_id = p_group_id
-  ORDER BY COALESCE(up.points, 0) DESC
-  LIMIT p_limit;
-$$;
-
--- finish_session_sync (canonical, single overload)
-CREATE OR REPLACE FUNCTION public.finish_session_sync(
-  p_session_id       uuid        DEFAULT NULL,
-  p_action           text        DEFAULT 'complete',
-  p_duration_minutes integer     DEFAULT 0,
-  p_group_id         uuid        DEFAULT NULL,
-  p_session_type     text        DEFAULT 'focus',
-  p_notes            text        DEFAULT NULL,
-  p_ended_at         timestamptz DEFAULT NULL
-) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid       uuid    := auth.uid();
-  v_today     date    := CURRENT_DATE;
-  v_secs      bigint;
-  v_hrs       numeric;
-  v_row_count bigint;
-  v_was_found boolean;
-BEGIN
-  IF v_uid IS NULL THEN RETURN jsonb_build_object('error', 'Not authenticated'); END IF;
-  IF p_action = 'delete' THEN
-    DELETE FROM public.study_sessions_log WHERE id = p_session_id AND user_id = v_uid;
-    v_was_found := FOUND;
-    RETURN jsonb_build_object('already_absent', NOT v_was_found,
-      'affected_group_ids', CASE WHEN p_group_id IS NOT NULL THEN jsonb_build_array(p_group_id) ELSE '[]'::jsonb END,
-      'challenge_updates', '[]'::jsonb);
-  END IF;
-  v_secs := GREATEST(0, p_duration_minutes) * 60;
-  v_hrs  := round(p_duration_minutes::numeric / 60, 4);
-  IF p_session_id IS NOT NULL THEN
-    INSERT INTO public.study_sessions_log (id, user_id, duration_minutes, ended_at)
-    VALUES (p_session_id, v_uid, p_duration_minutes, COALESCE(p_ended_at, now()))
-    ON CONFLICT (id) DO NOTHING;
-    GET DIAGNOSTICS v_row_count = ROW_COUNT;
-    IF v_row_count = 0 THEN
-      RETURN jsonb_build_object('already_processed', true,
-        'affected_group_ids', '[]'::jsonb, 'challenge_updates', '[]'::jsonb);
-    END IF;
-  END IF;
-  INSERT INTO public.daily_user_stats (user_id, date, seconds_studied)
-  VALUES (v_uid, v_today, v_secs)
-  ON CONFLICT (user_id, date) DO UPDATE
-    SET seconds_studied = daily_user_stats.seconds_studied + EXCLUDED.seconds_studied;
-  INSERT INTO public.user_stats_summary
-    (user_id, total_study_seconds, total_hours, weekly_hours, monthly_hours,
-     session_count, total_sessions, last_session_at, last_study_date, updated_at)
-  VALUES (v_uid, v_secs, v_hrs, v_hrs, v_hrs, 1, 1, COALESCE(p_ended_at, now()), v_today, now())
-  ON CONFLICT (user_id) DO UPDATE SET
-    total_study_seconds = user_stats_summary.total_study_seconds + v_secs,
-    total_hours         = round((user_stats_summary.total_study_seconds + v_secs)::numeric / 3600, 2),
-    weekly_hours        = user_stats_summary.weekly_hours  + v_hrs,
-    monthly_hours       = user_stats_summary.monthly_hours + v_hrs,
-    session_count       = user_stats_summary.session_count  + 1,
-    total_sessions      = user_stats_summary.total_sessions + 1,
-    last_session_at     = COALESCE(p_ended_at, now()),
-    last_study_date     = v_today,
-    updated_at          = now();
-  RETURN jsonb_build_object('already_processed', false,
-    'affected_group_ids', CASE WHEN p_group_id IS NOT NULL THEN jsonb_build_array(p_group_id) ELSE '[]'::jsonb END,
-    'challenge_updates', '[]'::jsonb);
-END;
-$$;
-
--- Community events RPCs
-CREATE OR REPLACE FUNCTION public.join_community_event(p_event_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_uid uuid := auth.uid(); v_evt public.community_events%ROWTYPE;
-BEGIN
-  IF v_uid IS NULL THEN RETURN jsonb_build_object('ok', false, 'error', 'Not authenticated'); END IF;
-  SELECT * INTO v_evt FROM public.community_events WHERE id = p_event_id;
-  IF NOT FOUND OR NOT v_evt.is_active THEN
-    RETURN jsonb_build_object('ok', false, 'error', 'Event not found or inactive');
-  END IF;
-  INSERT INTO public.community_event_attendees (event_id, user_id) VALUES (p_event_id, v_uid)
-    ON CONFLICT (event_id, user_id) DO NOTHING;
-  UPDATE public.community_events
-    SET attendee_count = (SELECT COUNT(*) FROM public.community_event_attendees WHERE event_id = p_event_id)
-  WHERE id = p_event_id;
-  RETURN jsonb_build_object('ok', true);
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.leave_community_event(p_event_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_uid uuid := auth.uid();
-BEGIN
-  IF v_uid IS NULL THEN RETURN jsonb_build_object('ok', false, 'error', 'Not authenticated'); END IF;
-  DELETE FROM public.community_event_attendees WHERE event_id = p_event_id AND user_id = v_uid;
-  UPDATE public.community_events
-    SET attendee_count = (SELECT COUNT(*) FROM public.community_event_attendees WHERE event_id = p_event_id)
-  WHERE id = p_event_id;
-  RETURN jsonb_build_object('ok', true);
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.create_community_event(
-  p_title text, p_event_type text DEFAULT 'webinar', p_description text DEFAULT NULL,
-  p_host text DEFAULT NULL, p_start_time timestamptz DEFAULT now(), p_end_time timestamptz DEFAULT NULL,
-  p_image_gradient text DEFAULT 'from-purple-600 to-blue-500', p_image_url text DEFAULT NULL,
-  p_tags text[] DEFAULT '{}', p_max_attendees integer DEFAULT NULL,
-  p_is_featured boolean DEFAULT false, p_is_active boolean DEFAULT true
-) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_id uuid;
-BEGIN
-  IF p_title IS NULL OR trim(p_title) = '' THEN RETURN jsonb_build_object('ok', false, 'error', 'title is required'); END IF;
-  INSERT INTO public.community_events
-    (title, event_type, description, host, start_time, end_time, image_gradient, image_url,
-     tags, max_attendees, is_featured, is_active, attendee_count, updated_at)
-  VALUES
-    (trim(p_title), p_event_type, p_description, p_host, p_start_time, p_end_time,
-     p_image_gradient, p_image_url, COALESCE(p_tags,'{}'), p_max_attendees,
-     p_is_featured, p_is_active, 0, now())
-  RETURNING id INTO v_id;
-  RETURN jsonb_build_object('ok', true, 'id', v_id);
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.update_community_event(
-  p_id uuid, p_title text DEFAULT NULL, p_event_type text DEFAULT NULL,
-  p_description text DEFAULT NULL, p_host text DEFAULT NULL,
-  p_start_time timestamptz DEFAULT NULL, p_end_time timestamptz DEFAULT NULL,
-  p_image_gradient text DEFAULT NULL, p_image_url text DEFAULT NULL,
-  p_tags text[] DEFAULT NULL, p_max_attendees integer DEFAULT NULL,
-  p_is_featured boolean DEFAULT NULL, p_is_active boolean DEFAULT NULL
-) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE v_found boolean;
-BEGIN
-  SELECT EXISTS(SELECT 1 FROM public.community_events WHERE id = p_id) INTO v_found;
-  IF NOT v_found THEN RETURN jsonb_build_object('ok', false, 'error', 'Event not found'); END IF;
-  UPDATE public.community_events SET
-    title          = COALESCE(p_title,          title),
-    event_type     = COALESCE(p_event_type,     event_type),
-    description    = COALESCE(p_description,    description),
-    host           = COALESCE(p_host,           host),
-    start_time     = COALESCE(p_start_time,     start_time),
-    end_time       = COALESCE(p_end_time,       end_time),
-    image_gradient = COALESCE(p_image_gradient, image_gradient),
-    image_url      = COALESCE(p_image_url,      image_url),
-    tags           = COALESCE(p_tags,           tags),
-    max_attendees  = COALESCE(p_max_attendees,  max_attendees),
-    is_featured    = COALESCE(p_is_featured,    is_featured),
-    is_active      = COALESCE(p_is_active,      is_active),
-    updated_at     = now()
-  WHERE id = p_id;
-  RETURN jsonb_build_object('ok', true);
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.delete_community_event(p_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  DELETE FROM public.community_events WHERE id = p_id;
-  RETURN jsonb_build_object('ok', true, 'deleted', FOUND);
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.get_event_attendees(p_event_id uuid)
-RETURNS TABLE(user_id uuid, username text, name text, avatar_url text, joined_at timestamptz)
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT cea.user_id, u.username, u.name, u.avatar_url, cea.joined_at
-  FROM public.community_event_attendees cea
-  LEFT JOIN public.users u ON u.id = cea.user_id
-  WHERE cea.event_id = p_event_id ORDER BY cea.joined_at ASC;
-$$;
-
--- community_heartbeat — receives periodic heartbeat from client during community session
--- p_state: 'active' | 'idle' | 'away'
--- p_subject_id: optional subject UUID the user is currently viewing
--- p_subject_name: optional subject name for display
--- p_task_id: optional task UUID being worked on
--- p_task_title: optional task title for display
--- p_session_started_at: session start timestamp (ISO string)
-CREATE OR REPLACE FUNCTION public.community_heartbeat(
-  p_state             text,
-  p_subject_id        uuid DEFAULT NULL,
-  p_subject_name      text DEFAULT NULL,
-  p_task_id           uuid DEFAULT NULL,
-  p_task_title        text DEFAULT NULL,
-  p_session_started_at timestamptz DEFAULT NULL
-)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-  v_now timestamptz := now();
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('ok', false, 'error', 'Not authenticated');
-  END IF;
-
-  -- Update or insert presence record
-  INSERT INTO public.user_presence (user_id, status, last_seen, subject_id, subject_name, task_id, task_title, session_started_at)
-  VALUES (auth.uid(), p_state, now(), p_subject_id, p_subject_name, p_task_id, p_task_title, p_session_started_at)
-  ON CONFLICT (user_id) DO UPDATE SET
-    status = EXCLUDED.status,
-    last_seen = EXCLUDED.last_seen,
-    subject_id = EXCLUDED.subject_id,
-    subject_name = EXCLUDED.subject_name,
-    task_id = EXCLUDED.task_id,
-    task_title = EXCLUDED.task_title,
-    session_started_at = COALESCE(user_presence.session_started_at, EXCLUDED.session_started_at),
-    updated_at = now();
-
-  RETURN jsonb_build_object('ok', true);
-EXCEPTION WHEN OTHERS THEN
-  RETURN jsonb_build_object('ok', false, 'error', SQLERRM);
-END;
-$$;
-
--- community_is_enrolled
-CREATE OR REPLACE FUNCTION public.community_is_enrolled()
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_profiles up
-    WHERE up.user_id = auth.uid()
-    AND (up.profile_data->>'community_enrolled')::boolean = true
-  );
-$$;
-
--- community_bootstrap_profile
-CREATE OR REPLACE FUNCTION public.community_bootstrap_profile(
-  p_display_name text,
-  p_handle       text DEFAULT NULL,
-  p_day_offset_hours integer DEFAULT 0
-)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_uid uuid := auth.uid();
 BEGIN
@@ -1492,20 +1739,15 @@ BEGIN
   WHERE user_id = v_uid;
   RETURN jsonb_build_object('success', true);
 END;
-$$;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_create_group"(p_name text, p_description text DEFAULT NULL::text, p_exam text DEFAULT NULL::text, p_target_year integer DEFAULT NULL::integer, p_subjects text[] DEFAULT '{}'::text[], p_visibility text DEFAULT 'public'::text, p_join_policy text DEFAULT 'open'::text, p_timezone_offset_minutes integer DEFAULT 0)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- community_create_group
-CREATE OR REPLACE FUNCTION public.community_create_group(
-  p_name text,
-  p_description text DEFAULT NULL,
-  p_exam text DEFAULT NULL,
-  p_target_year integer DEFAULT NULL,
-  p_subjects text[] DEFAULT '{}',
-  p_visibility text DEFAULT 'public',
-  p_join_policy text DEFAULT 'open',
-  p_timezone_offset_minutes integer DEFAULT 0
-)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_uid uuid := auth.uid();
   v_group_id uuid;
@@ -1534,16 +1776,186 @@ BEGIN
     'role', 'owner'
   ));
 END;
-$$;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_create_invite"(p_type text, p_target_id uuid DEFAULT NULL::uuid, p_days integer DEFAULT 7)
+ RETURNS text
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- community_get_group
-CREATE OR REPLACE FUNCTION public.community_get_group(p_group_id uuid, p_period text DEFAULT 'weekly')
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+declare
+  code text;
+  group_exists boolean;
+  is_owner boolean;
+  user_exists boolean;
+begin
+  if p_target_id is null then
+    raise exception 'A valid invite target is required.';
+  end if;
+
+  if p_type = 'buddy' then
+    if p_target_id <> auth.uid() then
+      raise exception 'Buddy invite links can only be created for your own account.';
+    end if;
+    select exists(select 1 from public.user_profiles where user_id = auth.uid())
+      into user_exists;
+    if not user_exists then
+      raise exception 'Finish setting up your profile first, then try again.';
+    end if;
+    select substr(md5(random()::text || clock_timestamp()::text), 1, 8) into code;
+    insert into public.buddy_invites (inviter_id, token, max_uses, expires_at, created_at)
+    values (auth.uid(), code, 1, now() + (coalesce(p_days, 7) * interval '1 day'), now());
+    return code;
+  end if;
+
+  select exists(select 1 from public.groups where id = p_target_id and deleted_at is null) into group_exists;
+  if not group_exists then
+    raise exception 'This group no longer exists. Refresh and try again.';
+  end if;
+  select exists(select 1 from public.group_members where group_id = p_target_id and user_id = auth.uid() and role in ('owner','admin'))
+     or exists(select 1 from public.groups where id = p_target_id and owner_id = auth.uid())
+  into is_owner;
+  if not is_owner then
+    raise exception 'Only group owners or admins can create invite links.';
+  end if;
+  select substr(md5(random()::text || clock_timestamp()::text), 1, 8) into code;
+  insert into public.group_invites (group_id, token, created_by, max_uses, expires_at, created_at)
+  values (p_target_id, code, auth.uid(), 1, now() + (coalesce(p_days, 7) * interval '1 day'), now());
+  return code;
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_delete_group"(p_group_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
 DECLARE
   v_uid uuid := auth.uid();
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  IF v_role != 'owner' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Only owner can delete');
+  END IF;
+  UPDATE public.groups SET deleted_at = now() WHERE id = p_group_id;
+  RETURN jsonb_build_object('success', true);
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_discover_groups"(p_query text DEFAULT ''::text, p_exam text DEFAULT NULL::text, p_target_year integer DEFAULT NULL::integer, p_subject text DEFAULT NULL::text, p_has_space boolean DEFAULT NULL::boolean, p_join_policy text DEFAULT NULL::text, p_limit integer DEFAULT 20, p_offset integer DEFAULT 0)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+  WITH page AS (
+    SELECT
+      g.id,
+      g.name,
+      -- Prefer the stored slug; derive one only when it is absent.
+      COALESCE(
+        NULLIF(g.slug, ''),
+        trim(both '-' from regexp_replace(lower(g.name), '[^a-z0-9]+', '-', 'g'))
+      )                                              AS slug,
+      g.description,
+      g.exam,
+      g.target_year,
+      COALESCE(g.subjects, ARRAY[]::text[])          AS subjects,
+      COALESCE(g.join_policy, 'request')             AS join_policy,
+      g.visibility,
+      COALESCE(g.visual_key, 0)                      AS visual_key,
+      COALESCE(g.max_members, 30)                    AS max_members,
+      -- member_count is maintained by trg_sync_member_count; recount only if
+      -- it is NULL so this stays O(1) per row in the normal case.
+      COALESCE(
+        g.member_count,
+        (SELECT count(*) FROM public.group_members gm WHERE gm.group_id = g.id)
+      )::int                                         AS member_count,
+      -- activeNow: members seen in the last 5 minutes. Was hardcoded 0.
+      (
+        SELECT count(*)
+        FROM public.group_members gm2
+        JOIN public.user_presence up ON up.user_id = gm2.user_id
+        WHERE gm2.group_id = g.id
+          AND COALESCE(up.last_beat_at, up.last_seen) > now() - interval '5 minutes'
+          AND COALESCE(up.state, up.status, '') NOT IN ('offline', 'idle')
+      )::int                                         AS active_now,
+      g.created_at
+    FROM public.groups g
+    WHERE g.deleted_at IS NULL
+      AND COALESCE(g.is_active, true) IS TRUE
+      -- Private groups must not surface in Discover.
+      AND COALESCE(g.visibility, 'public') <> 'private'
+      AND (
+        p_query IS NULL OR p_query = ''
+        OR g.name ILIKE '%' || p_query || '%'
+        OR COALESCE(g.description, '') ILIKE '%' || p_query || '%'
+      )
+      AND (p_exam IS NULL OR g.exam = p_exam)
+      AND (p_target_year IS NULL OR g.target_year = p_target_year)
+      AND (p_subject IS NULL OR p_subject = ANY(COALESCE(g.subjects, ARRAY[]::text[])))
+      AND (p_join_policy IS NULL OR COALESCE(g.join_policy, 'request') = p_join_policy)
+      AND (
+        p_has_space IS NOT TRUE
+        OR COALESCE(
+             g.member_count,
+             (SELECT count(*) FROM public.group_members gm3 WHERE gm3.group_id = g.id)
+           ) < COALESCE(g.max_members, 30)
+      )
+    -- LIMIT/OFFSET belong here, on ROWS, not on the aggregate below.
+    ORDER BY g.last_activity DESC NULLS LAST, g.created_at DESC
+    LIMIT  LEAST(GREATEST(COALESCE(p_limit, 20), 1), 50)
+    OFFSET GREATEST(COALESCE(p_offset, 0), 0)
+  )
+  SELECT jsonb_build_object(
+    'success', true,
+    'data', COALESCE(
+      (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'id',          page.id,
+            'name',        page.name,
+            'slug',        page.slug,
+            'description', page.description,
+            'exam',        page.exam,
+            'targetYear',  page.target_year,
+            'subjects',    to_jsonb(page.subjects),
+            'joinPolicy',  page.join_policy,
+            'visibility',  page.visibility,
+            'visualKey',   page.visual_key,
+            'memberCount', page.member_count,
+            'maxMembers',  page.max_members,
+            'activeNow',   page.active_now
+          )
+          ORDER BY page.created_at DESC
+        )
+        FROM page
+      ),
+      '[]'::jsonb
+    )
+  );
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_get_group"(p_group_id uuid, p_period text DEFAULT 'week'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+DECLARE
   v_group RECORD;
 BEGIN
-  SELECT * INTO v_group FROM public.groups WHERE id = p_group_id AND (deleted_at IS NULL);
+  SELECT * INTO v_group FROM public.groups WHERE id = p_group_id AND deleted_at IS NULL;
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Group not found');
   END IF;
@@ -1562,15 +1974,207 @@ BEGIN
       'memberCount', (SELECT COUNT(*) FROM public.group_members WHERE group_id = v_group.id),
       'activeNow', 0,
       'visualKey', v_group.visual_key,
-      'role', (SELECT role FROM public.group_members WHERE group_id = v_group.id AND user_id = auth.uid())
+      'role', (SELECT role FROM public.group_members WHERE group_id = v_group.id AND user_id = auth.uid()),
+      'members', COALESCE((
+        SELECT jsonb_agg(jsonb_build_object(
+          'id', gm.user_id,
+          'name', COALESCE(u.username, u.name, 'Unknown'),
+          'avatar', u.avatar_url,
+          'role', gm.role,
+          'minutes', COALESCE(us.total_study_seconds / 60, 0),
+          'status', 'idle'
+        ))
+        FROM public.group_members gm
+        LEFT JOIN public.users u ON u.id = gm.user_id
+        LEFT JOIN public.user_stats_summary us ON us.user_id = gm.user_id
+        WHERE gm.group_id = v_group.id
+      ), '[]'::jsonb)
     )
   );
 END;
-$$;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_get_group_messages"(p_group_id text, p_limit integer DEFAULT 50)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- community_join_group
-CREATE OR REPLACE FUNCTION public.community_join_group(p_group_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+declare
+  uid uuid := auth.uid();
+  gid uuid;
+begin
+  if uid is null then return null; end if;
+
+  begin
+    gid := p_group_id::uuid;
+  exception when others then
+    select g.id into gid from public.groups g
+     where g.slug = p_group_id and g.deleted_at is null;
+  end;
+
+  if gid is null then return null; end if;
+
+  if not exists (
+    select 1 from public.group_members a
+     where a.group_id = gid and a.user_id = uid and a.left_at is null
+  ) then
+    return null;
+  end if;
+
+  return jsonb_build_object(
+    'messages', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', m.id,
+        'groupId', m.group_id,
+        'authorId', m.user_id,
+        'authorName', coalesce(pf.display_name, pf.handle, pf.profile_data->>'name', ''),
+        'authorHandle', pf.handle,
+        'authorAvatar', coalesce(pf.profile_data->>'avatar', pf.profile_data->>'avatarUrl', ''),
+        'content', m.content,
+        'messageType', m.message_type,
+        'replyToId', m.reply_to_id,
+        'pinned', m.pinned,
+        'createdAt', m.created_at
+      ) order by m.created_at asc)
+      from (
+        select * from public.group_chat_messages
+         where group_id = gid and deleted_at is null
+         order by created_at desc
+         limit p_limit
+      ) m
+      left join public.user_profiles pf on pf.user_id = m.user_id
+    ), '[]'::jsonb)
+  );
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_get_overview"()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+  SELECT jsonb_build_object(
+    'stats', jsonb_build_object(
+      'totalGroups', (SELECT COUNT(*) FROM public.groups WHERE deleted_at IS NULL),
+      'totalMembers', (SELECT COUNT(DISTINCT user_id) FROM public.group_members),
+      'totalMessages', 0
+    ),
+    'groups', (SELECT jsonb_agg(jsonb_build_object(
+      'id', id, 'name', name, 'slug', lower(regexp_replace(name, '[^a-z0-9]+', '-', 'g')),
+      'memberCount', (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id),
+      'activeNow', 0, 'visualKey', visual_key, 'exam', exam
+    )) FROM public.groups g WHERE deleted_at IS NULL)
+  );
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_get_privacy"()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+declare
+  priv jsonb;
+begin
+  select coalesce(privacy, '{}'::jsonb) into priv
+  from public.community_enrollments where user_id = auth.uid();
+  if priv = '{}'::jsonb then return null; end if;
+  return jsonb_build_object(
+    'scope', coalesce(nullif(priv->>'scope', ''), 'global'),
+    'targetId', coalesce(priv->>'targetId', ''),
+    'shareLiveStatus', coalesce((priv->>'shareLiveStatus')::boolean, (priv->>'share_live_status')::boolean, true),
+    'shareCurrentSubject', coalesce((priv->>'shareCurrentSubject')::boolean, (priv->>'share_current_subject')::boolean, true),
+    'shareCurrentTask', coalesce((priv->>'shareCurrentTask')::boolean, (priv->>'share_current_task')::boolean, true),
+    'shareTasks', coalesce((priv->>'shareTasks')::boolean, (priv->>'share_tasks')::boolean, true),
+    'shareExactTime', coalesce((priv->>'shareExactTime')::boolean, (priv->>'share_exact_time')::boolean, true),
+    'shareSubjectBreakdown', coalesce((priv->>'shareSubjectBreakdown')::boolean, (priv->>'share_subject_breakdown')::boolean, true),
+    'shareQuestionCounts', coalesce((priv->>'shareQuestionCounts')::boolean, (priv->>'share_question_counts')::boolean, true),
+    'shareStreak', coalesce((priv->>'shareStreak')::boolean, (priv->>'share_streak')::boolean, true),
+    'allowStartNotifications', coalesce((priv->>'allowStartNotifications')::boolean, (priv->>'allow_start_notifications')::boolean, false),
+    'stealthMode', coalesce((priv->>'stealthMode')::boolean, (priv->>'stealth_mode')::boolean, false)
+  );
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_get_start_alert"(p_target_type text, p_target_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+declare
+  res jsonb;
+begin
+  select jsonb_build_object(
+    'enabled', a.enabled,
+    'quiet_hours_enabled', a.quiet_hours_enabled,
+    'quiet_start', a.quiet_start,
+    'quiet_end', a.quiet_end
+  ) into res
+  from public.community_start_alerts a
+  where a.user_id = auth.uid() and a.target_type = p_target_type and a.target_id = p_target_id;
+  return res;
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_heartbeat"(p_state text, p_subject_id uuid DEFAULT NULL::uuid, p_subject_name text DEFAULT NULL::text, p_task_id uuid DEFAULT NULL::uuid, p_task_title text DEFAULT NULL::text, p_session_started_at timestamp with time zone DEFAULT NULL::timestamp with time zone)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+DECLARE
+  v_uid uuid := auth.uid();
+  v_now timestamptz := now();
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Not authenticated');
+  END IF;
+
+  -- Update or insert presence record
+  INSERT INTO public.user_presence (user_id, status, last_seen, subject_id, subject_name, task_id, task_title, session_started_at)
+  VALUES (auth.uid(), p_state, now(), p_subject_id, p_subject_name, p_task_id, p_task_title, p_session_started_at)
+  ON CONFLICT (user_id) DO UPDATE SET
+    status = EXCLUDED.status,
+    last_seen = EXCLUDED.last_seen,
+    subject_id = EXCLUDED.subject_id,
+    subject_name = EXCLUDED.subject_name,
+    task_id = EXCLUDED.task_id,
+    task_title = EXCLUDED.task_title,
+    session_started_at = COALESCE(user_presence.session_started_at, EXCLUDED.session_started_at),
+    updated_at = now();
+
+  RETURN jsonb_build_object('ok', true);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('ok', false, 'error', SQLERRM);
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_is_enrolled"()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_profiles up
+    WHERE up.user_id = auth.uid()
+    AND (up.profile_data->>'community_enrolled')::boolean = true
+  );
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_join_group"(p_group_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
 DECLARE
   v_uid uuid := auth.uid();
   v_group RECORD;
@@ -1587,11 +2191,15 @@ BEGIN
   ON CONFLICT (group_id, user_id) DO NOTHING;
   RETURN jsonb_build_object('success', true, 'data', 'joined');
 END;
-$$;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_leave_group"(p_group_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- community_leave_group
-CREATE OR REPLACE FUNCTION public.community_leave_group(p_group_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_uid uuid := auth.uid();
 BEGIN
@@ -1601,11 +2209,442 @@ BEGIN
   DELETE FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
   RETURN jsonb_build_object('success', true);
 END;
-$$;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_preview_invite"(p_token text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- community_update_group
-CREATE OR REPLACE FUNCTION public.community_update_group(p_group_id uuid, p_changes jsonb)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+declare
+  res jsonb;
+begin
+  -- Buddy invite. Requires definer rights: buddy_invites is RLS-enabled with no
+  -- policies, so an invoker-rights read here returns nothing and the whole
+  -- function falls through to report "invalid".
+  select jsonb_build_object(
+    'status', 'valid',
+    'type', 'buddy',
+    'inviterId', b.inviter_id,
+    'name', coalesce(nullif(up.display_name, ''), 'Someone'),
+    'handle', coalesce(up.handle, ''),
+    'avatarUrl', null,
+    'isFull', false
+  ) into res
+  from public.buddy_invites b
+  left join public.user_profiles up on up.user_id = b.inviter_id
+  where b.token = p_token
+    and (b.expires_at is null or b.expires_at > now())
+    and (b.max_uses is null or b.uses_count < b.max_uses)
+  limit 1;
+  if res is not null then
+    return res;
+  end if;
+
+  -- Group invite.
+  select jsonb_build_object(
+    'status', 'valid',
+    'type', 'group',
+    'targetId', g.id,
+    'name', g.name,
+    'exam', coalesce(g.exam, ''),
+    'targetYear', coalesce(g.target_year, 0),
+    'subjects', coalesce(g.subjects, '{}'::text[]),
+    'memberCount', (select count(*) from public.group_members a where a.group_id = g.id and a.left_at is null),
+    'isFull', (select count(*) from public.group_members a where a.group_id = g.id and a.left_at is null) >= 30
+  ) into res
+  from public.group_invites inv
+  join public.groups g on g.id = inv.group_id and g.deleted_at is null
+  where inv.token = p_token
+    and (inv.expires_at is null or inv.expires_at > now())
+    and (inv.max_uses is null or inv.uses_count < inv.max_uses)
+  limit 1;
+  -- Tail kept byte-faithful to the live definition (verified by normalised
+  -- diff) so this migration changes privileges ONLY, not behaviour.
+  if res is null then
+    return jsonb_build_object('status', 'invalid');
+  end if;
+  return res;
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_redeem_invite"(p_token text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+declare
+  inviter uuid;
+  single_use boolean;
+  blocked_exists boolean;
+  gid uuid;
+begin
+  select b.inviter_id, (b.max_uses is not null)
+    into inviter, single_use
+  from public.buddy_invites b
+  where b.token = p_token
+    and (b.expires_at is null or b.expires_at > now())
+    and (b.max_uses is null or b.uses_count < b.max_uses)
+  limit 1;
+  if inviter is not null then
+    if inviter = auth.uid() then
+      raise exception 'invite_invalid';
+    end if;
+    select exists(select 1 from public.community_friends
+      where status = 'blocked'
+        and ((user_id = inviter and friend_id = auth.uid())
+          or (user_id = auth.uid() and friend_id = inviter)))
+      into blocked_exists;
+    if blocked_exists then
+      raise exception 'invite_blocked';
+    end if;
+    delete from public.community_friends
+     where (user_id = inviter and friend_id = auth.uid())
+        or (user_id = auth.uid() and friend_id = inviter);
+    insert into public.community_friends (user_id, friend_id, status, accepted_at, created_at, updated_at)
+    values (inviter, auth.uid(), 'accepted', now(), now(), now());
+    if single_use then
+      update public.buddy_invites set uses_count = max_uses, created_at = now() where token = p_token;
+    else
+      update public.buddy_invites set uses_count = uses_count + 1 where token = p_token;
+    end if;
+    return jsonb_build_object('status', 'joined', 'type', 'buddy', 'group_id', null, 'groupId', null);
+  end if;
+
+  select inv.group_id, (inv.max_uses is not null) into gid, single_use
+  from public.group_invites inv
+  where inv.token = p_token
+    and (inv.expires_at is null or inv.expires_at > now())
+    and (inv.max_uses is null or inv.uses_count < inv.max_uses)
+  limit 1;
+  if gid is null then raise exception 'invite_invalid'; end if;
+
+  insert into public.group_members (group_id, user_id, role, joined_at)
+  values (gid, auth.uid(), 'member', now())
+  on conflict (group_id, user_id) do update set left_at = null;
+
+  if single_use then
+    update public.group_invites set uses_count = max_uses, created_at = now()
+     where token = p_token;
+  else
+    update public.group_invites set uses_count = uses_count + 1 where token = p_token;
+  end if;
+  return jsonb_build_object('status', 'joined', 'type', 'group', 'group_id', gid, 'groupId', gid);
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_register_device_token"(p_token text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+begin
+  insert into public.community_device_tokens (user_id, token, platform)
+  values (auth.uid(), p_token, 'web')
+  on conflict (user_id, token) do nothing;
+  return jsonb_build_object('ok', true);
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_remove_buddy"(p_other_user uuid, p_block boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+begin
+  delete from public.community_friends
+   where (user_id = auth.uid() and friend_id = p_other_user)
+      or (user_id = p_other_user and friend_id = auth.uid());
+  if p_block then
+    insert into public.community_friends (user_id, friend_id, status)
+    values (auth.uid(), p_other_user, 'blocked')
+    on conflict do nothing;
+  end if;
+  return jsonb_build_object('ok', true);
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_remove_group_member"(p_group_id uuid, p_user_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+DECLARE
+  v_uid uuid := auth.uid();
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  IF v_role NOT IN ('owner', 'admin') THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Insufficient permissions');
+  END IF;
+  DELETE FROM public.group_members WHERE group_id = p_group_id AND user_id = p_user_id;
+  RETURN jsonb_build_object('success', true);
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_request_buddy"(p_handle text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+declare
+  uid uuid := auth.uid();
+  fid uuid;
+  cid uuid;
+begin
+  select user_id into fid from public.user_profiles where lower(handle) = lower(p_handle) limit 1;
+  if fid is null then raise exception 'user_not_found'; end if;
+  if fid = uid then raise exception 'cannot_be_self'; end if;
+  begin
+    insert into public.community_friends (user_id, friend_id, status, created_at, updated_at)
+    values (uid, fid, 'pending', now(), now())
+    returning id into cid;
+  exception when unique_violation then
+    null;
+  end;
+  select id into cid from public.community_friends
+   where (user_id = uid and friend_id = fid)
+      or (user_id = fid and friend_id = uid)
+   limit 1;
+  return cid;
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_respond_buddy"(p_connection_id uuid, p_accept boolean)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+begin
+  update public.community_friends
+     set status = case when p_accept then 'accepted' else 'rejected' end,
+         accepted_at = case when p_accept then coalesce(accepted_at, now()) end,
+         updated_at = now()
+   where id = p_connection_id and (friend_id = auth.uid() or user_id = auth.uid())
+     and status = 'pending';
+  return jsonb_build_object('ok', true);
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_respond_join_request"(p_request_id uuid, p_accept boolean)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+declare
+  gid uuid; uid uuid;
+begin
+  select jr.group_id, jr.user_id into gid, uid
+    from public.community_join_requests jr where jr.id = p_request_id and jr.status = 'pending';
+  if gid is null then raise exception 'request_not_found'; end if;
+  if not exists (select 1 from public.group_members gm
+                 where gm.group_id = gid and gm.user_id = auth.uid()
+                   and gm.role in ('owner','coowner') and gm.left_at is null) then
+    raise exception 'not_allowed';
+  end if;
+  update public.community_join_requests set status = case when p_accept then 'accepted' else 'rejected' end
+   where id = p_request_id;
+  if p_accept then
+    insert into public.group_members (group_id, user_id, role, joined_at)
+    values (gid, uid, 'member', now())
+    on conflict (group_id, user_id) do update set left_at = null;
+  end if;
+  return jsonb_build_object('ok', true);
+end;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_save_privacy"(p_settings jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+begin
+  insert into public.community_enrollments (user_id, privacy, onboarded, updated_at)
+  values (auth.uid(), coalesce(p_settings, '{}'::jsonb), true, now())
+  on conflict (user_id) do update set
+    privacy = excluded.privacy,
+    onboarded = true,
+    updated_at = now();
+  return jsonb_build_object('ok', true);
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_send_group_message"(p_group_id text, p_content text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+declare
+  uid uuid := auth.uid();
+  gid uuid;
+  mid uuid;
+begin
+  if uid is null or nullif(trim(p_content), '') is null then
+    return jsonb_build_object('ok', false);
+  end if;
+
+  begin
+    gid := p_group_id::uuid;
+  exception when others then
+    select g.id into gid from public.groups g
+     where g.slug = p_group_id and g.deleted_at is null;
+  end;
+
+  if gid is null then return jsonb_build_object('ok', false); end if;
+
+  if not exists (
+    select 1 from public.group_members a
+     where a.group_id = gid and a.user_id = uid and a.left_at is null
+  ) then
+    return jsonb_build_object('ok', false);
+  end if;
+
+  insert into public.group_chat_messages (group_id, user_id, content, message_type)
+  values (gid, uid, left(trim(p_content), 2000), 'text')
+  returning id into mid;
+
+  return jsonb_build_object('ok', true, 'messageId', mid);
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_set_group_role"(p_group_id uuid, p_user_id uuid, p_role text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+DECLARE
+  v_uid uuid := auth.uid();
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  IF v_role != 'owner' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Only owner can set roles');
+  END IF;
+  UPDATE public.group_members
+  SET role = p_role
+  WHERE group_id = p_group_id AND user_id = p_user_id;
+  RETURN jsonb_build_object('success', true);
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_set_start_alert"(p_target_type text, p_target_id uuid, p_enabled boolean DEFAULT true, p_quiet_hours_enabled boolean DEFAULT false, p_quiet_start time without time zone DEFAULT NULL::time without time zone, p_quiet_end time without time zone DEFAULT NULL::time without time zone, p_timezone_offset_minutes integer DEFAULT 0)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+begin
+  insert into public.community_start_alerts
+    (user_id, target_type, target_id, enabled, quiet_hours_enabled, quiet_start, quiet_end, updated_at)
+  values (auth.uid(), p_target_type, p_target_id,
+          coalesce(p_enabled, true), coalesce(p_quiet_hours_enabled, false),
+          p_quiet_start, p_quiet_end, now())
+  on conflict (user_id, target_type, target_id) do update set
+    enabled = coalesce(p_enabled, community_start_alerts.enabled),
+    quiet_hours_enabled = coalesce(p_quiet_hours_enabled, community_start_alerts.quiet_hours_enabled),
+    quiet_start = coalesce(p_quiet_start, community_start_alerts.quiet_start),
+    quiet_end = coalesce(p_quiet_end, community_start_alerts.quiet_end),
+    updated_at = now();
+  return jsonb_build_object('ok', true);
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_submit_report"(p_target_type text, p_target_id uuid, p_reason text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+begin
+  insert into public.community_reports (reporter_user_id, target_type, target_id, reason)
+  values (auth.uid(), p_target_type, p_target_id, coalesce(p_reason, ''));
+  return jsonb_build_object('ok', true);
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_sync_quiet_hours"(p_enabled boolean DEFAULT false, p_start time without time zone DEFAULT NULL::time without time zone, p_end time without time zone DEFAULT NULL::time without time zone, p_timezone_offset_minutes integer DEFAULT 0)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+begin
+  insert into public.community_enrollments (user_id, quiet_hours, onboarded, updated_at)
+  values (auth.uid(), jsonb_build_object(
+    'enabled', coalesce(p_enabled, false),
+    'start', to_char(p_start, 'HH24:MI'),
+    'end', to_char(p_end, 'HH24:MI'),
+    'timezoneOffsetMinutes', coalesce(p_timezone_offset_minutes, 0)
+  ), true, now())
+  on conflict (user_id) do update set
+    quiet_hours = excluded.quiet_hours,
+    updated_at = now();
+  return jsonb_build_object('ok', true);
+end
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_transfer_group"(p_group_id uuid, p_new_owner uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+DECLARE
+  v_uid uuid := auth.uid();
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  IF v_role != 'owner' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Only owner can transfer');
+  END IF;
+  UPDATE public.group_members SET role = 'owner' WHERE group_id = p_group_id AND user_id = p_new_owner;
+  UPDATE public.group_members SET role = 'admin' WHERE group_id = p_group_id AND user_id = v_uid;
+  RETURN jsonb_build_object('success', true);
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."community_update_group"(p_group_id uuid, p_changes jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
 DECLARE
   v_uid uuid := auth.uid();
   v_role text;
@@ -1630,471 +2669,360 @@ BEGIN
   WHERE id = p_group_id;
   RETURN jsonb_build_object('success', true);
 END;
-$$;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."create_community_event"(p_title text, p_event_type text DEFAULT 'webinar'::text, p_description text DEFAULT NULL::text, p_host text DEFAULT NULL::text, p_start_time timestamp with time zone DEFAULT now(), p_end_time timestamp with time zone DEFAULT NULL::timestamp with time zone, p_image_gradient text DEFAULT 'from-purple-600 to-blue-500'::text, p_image_url text DEFAULT NULL::text, p_tags text[] DEFAULT '{}'::text[], p_max_attendees integer DEFAULT NULL::integer, p_is_featured boolean DEFAULT false, p_is_active boolean DEFAULT true)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- community_remove_group_member
-CREATE OR REPLACE FUNCTION public.community_remove_group_member(p_group_id uuid, p_user_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+
+DECLARE v_id uuid;
+BEGIN
+  IF p_title IS NULL OR trim(p_title) = '' THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'title is required');
+  END IF;
+  INSERT INTO public.community_events
+    (title, event_type, description, host, start_time, end_time, image_gradient, image_url,
+     tags, max_attendees, is_featured, is_active, attendee_count, updated_at)
+  VALUES
+    (trim(p_title), p_event_type, p_description, p_host, p_start_time, p_end_time,
+     p_image_gradient, p_image_url, COALESCE(p_tags,'{}'), p_max_attendees,
+     p_is_featured, p_is_active, 0, now())
+  RETURNING id INTO v_id;
+  RETURN jsonb_build_object('ok', true, 'id', v_id);
+END
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."delete_community_event"(p_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
+BEGIN
+  DELETE FROM public.community_events WHERE id = p_id;
+  RETURN jsonb_build_object('ok', true, 'deleted', FOUND);
+END
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."delete_community_group"(p_group_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
 DECLARE
   v_uid uuid := auth.uid();
-  v_role text;
 BEGIN
   IF v_uid IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
   END IF;
-  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
-  IF v_role NOT IN ('owner', 'admin') THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Insufficient permissions');
+  IF NOT EXISTS (
+    SELECT 1 FROM public.group_members
+    WHERE group_id = p_group_id AND user_id = v_uid AND role = 'owner'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Only the group owner can delete this group');
   END IF;
-  DELETE FROM public.group_members WHERE group_id = p_group_id AND user_id = p_user_id;
+
+  -- Cascade delete all group-owned data
+  DELETE FROM public.group_challenge_participants
+    WHERE challenge_id IN (SELECT id FROM public.group_challenges WHERE group_id = p_group_id);
+  DELETE FROM public.group_challenges       WHERE group_id = p_group_id;
+  DELETE FROM public.group_announcements    WHERE group_id = p_group_id;
+  DELETE FROM public.group_milestones       WHERE group_id = p_group_id;
+  DELETE FROM public.group_chat_messages    WHERE group_id = p_group_id;
+  DELETE FROM public.group_invites          WHERE group_id = p_group_id;
+  DELETE FROM public.group_members          WHERE group_id = p_group_id;
+  DELETE FROM public.groups                 WHERE id       = p_group_id;
+
   RETURN jsonb_build_object('success', true);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END;
-$$;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."expire_stale_presence"()
+ RETURNS void
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
--- community_set_group_role
-CREATE OR REPLACE FUNCTION public.community_set_group_role(p_group_id uuid, p_user_id uuid, p_role text)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-  v_role text;
+
 BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
-  IF v_role != 'owner' THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Only owner can set roles');
-  END IF;
-  UPDATE public.group_members
-  SET role = p_role
-  WHERE group_id = p_group_id AND user_id = p_user_id;
-  RETURN jsonb_build_object('success', true);
-END;
-$$;
-
--- community_transfer_group
-CREATE OR REPLACE FUNCTION public.community_transfer_group(p_group_id uuid, p_new_owner uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-  v_role text;
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
-  IF v_role != 'owner' THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Only owner can transfer');
-  END IF;
-  UPDATE public.group_members SET role = 'owner' WHERE group_id = p_group_id AND user_id = p_new_owner;
-  UPDATE public.group_members SET role = 'admin' WHERE group_id = p_group_id AND user_id = v_uid;
-  RETURN jsonb_build_object('success', true);
-END;
-$$;
-
--- community_delete_group
-CREATE OR REPLACE FUNCTION public.community_delete_group(p_group_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-  v_role text;
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
-  IF v_role != 'owner' THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Only owner can delete');
-  END IF;
-  UPDATE public.groups SET deleted_at = now() WHERE id = p_group_id;
-  RETURN jsonb_build_object('success', true);
-END;
-$$;
-
--- community_get_overview
-CREATE OR REPLACE FUNCTION public.community_get_overview()
-RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT jsonb_build_object(
-    'stats', jsonb_build_object(
-      'totalGroups', (SELECT COUNT(*) FROM public.groups WHERE deleted_at IS NULL),
-      'totalMembers', (SELECT COUNT(DISTINCT user_id) FROM public.group_members),
-      'totalMessages', 0
-    ),
-    'groups', (SELECT jsonb_agg(jsonb_build_object(
-      'id', id, 'name', name, 'slug', lower(regexp_replace(name, '[^a-z0-9]+', '-', 'g')),
-      'memberCount', (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id),
-      'activeNow', 0, 'visualKey', visual_key, 'exam', exam
-    )) FROM public.groups g WHERE deleted_at IS NULL)
-  );
-$$;
-
--- community_discover_groups
-CREATE OR REPLACE FUNCTION public.community_discover_groups(
-  p_query text DEFAULT '', p_exam text DEFAULT NULL, p_target_year integer DEFAULT NULL,
-  p_subject text DEFAULT NULL, p_has_space boolean DEFAULT NULL, p_join_policy text DEFAULT NULL,
-  p_limit integer DEFAULT 20, p_offset integer DEFAULT 0
-)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_sql text;
-BEGIN
-  v_sql := 'SELECT jsonb_agg(jsonb_build_object(
-    ''id'', id, ''name'', name, ''slug'', lower(regexp_replace(name, ''[^a-z0-9]+'', ''-'', ''g'')),
-    ''memberCount'', (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id),
-    ''activeNow'', 0, ''visualKey'', visual_key, ''exam'', exam, ''targetYear'', target_year
-  )) FROM public.groups g WHERE deleted_at IS NULL';
-  IF p_query IS NOT NULL AND p_query != '' THEN
-    v_sql := v_sql || ' AND (g.name ILIKE ''%' || replace(p_query, '''', '''''') || '%'' OR g.description ILIKE ''%' || replace(p_query, '''', '''''') || '%'')';
-  END IF;
-  IF p_exam IS NOT NULL THEN v_sql := v_sql || ' AND g.exam = ' || quote_literal(p_exam); END IF;
-  IF p_target_year IS NOT NULL THEN v_sql := v_sql || ' AND g.target_year = ' || p_target_year::text; END IF;
-  IF p_subject IS NOT NULL THEN v_sql := v_sql || ' AND ' || quote_literal(p_subject) || ' = ANY(g.subjects)'; END IF;
-  IF p_has_space THEN v_sql := v_sql || ' AND (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id) < 30'; END IF;
-  IF p_join_policy IS NOT NULL THEN v_sql := v_sql || ' AND g.join_policy = ' || quote_literal(p_join_policy); END IF;
-  v_sql := v_sql || ' ORDER BY g.created_at DESC LIMIT ' || p_limit::text || ' OFFSET ' || p_offset::text;
-  RETURN (SELECT jsonb_build_object('success', true, 'data', COALESCE((SELECT v_sql::jsonb), '[]'::jsonb)));
-END;
-$$;
-
--- community_create_invite
-CREATE OR REPLACE FUNCTION public.community_create_invite(
-  p_type text,
-  p_target_id uuid,
-  p_days integer DEFAULT 7
-)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-  v_code text;
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  v_code := encode(gen_random_bytes(16), 'base64url');
-  INSERT INTO public.group_invites (group_id, token, invite_code, created_by, expires_at, max_uses)
-  VALUES (p_target_id, v_code, substr(v_code, 1, 8), v_uid, now() + (p_days || ' days')::interval, 1)
-  ON CONFLICT (token) DO UPDATE SET token = EXCLUDED.token
-  RETURNING token INTO v_code;
-  RETURN jsonb_build_object('success', true, 'data', v_code);
-END;
-$$;
-
--- community_preview_invite
-CREATE OR REPLACE FUNCTION public.community_preview_invite(p_token text)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_invite RECORD;
-BEGIN
-  SELECT gi.*, g.name, g.exam, g.target_year, g.subjects, g.visibility, g.join_policy,
-    (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id) AS member_count
-  INTO v_invite
-  FROM public.group_invites gi
-  JOIN public.groups g ON g.id = gi.group_id
-  WHERE gi.token = p_token OR gi.invite_code = p_token
-  LIMIT 1;
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Invite not found');
-  END IF;
-  RETURN jsonb_build_object('success', true, 'data', jsonb_build_object(
-    'status', CASE WHEN (v_invite.expires_at IS NULL OR v_invite.expires_at > now()) AND (v_invite.max_uses IS NULL OR v_invite.uses_count < v_invite.max_uses) THEN 'valid' ELSE 'expired' END,
-    'type', 'group',
-    'targetId', v_invite.group_id,
-    'name', v_invite.name,
-    'exam', v_invite.exam,
-    'targetYear', v_invite.target_year,
-    'subjects', v_invite.subjects,
-    'memberCount', v_invite.member_count,
-    'isFull', (SELECT COUNT(*) FROM public.group_members WHERE group_id = v_invite.group_id) >= 30
-  ));
-END;
-$$;
-
--- community_redeem_invite
-CREATE OR REPLACE FUNCTION public.community_redeem_invite(p_token text)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-  v_invite RECORD;
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  SELECT * INTO v_invite FROM public.group_invites WHERE token = p_token OR invite_code = p_token LIMIT 1;
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Invite not found');
-  END IF;
-  IF v_invite.expires_at IS NOT NULL AND v_invite.expires_at < now() THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Invite has expired');
-  END IF;
-  IF v_invite.max_uses IS NOT NULL AND v_invite.uses_count >= v_invite.max_uses THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Invite has reached maximum uses');
-  END IF;
-  INSERT INTO public.group_members (group_id, user_id, role)
-  VALUES (v_invite.group_id, v_uid, 'member')
-  ON CONFLICT (group_id, user_id) DO NOTHING;
-  UPDATE public.group_invites SET
-    uses_count = uses_count + 1,
-    invite_code = COALESCE(invite_code, token),
-    token = COALESCE(token, invite_code)
-  WHERE id = v_invite.id;
-  RETURN jsonb_build_object('success', true, 'data', jsonb_build_object(
-    'type', 'group',
-    'groupId', v_invite.group_id
-  ));
-END;
-$$;
-
--- community_request_buddy
-CREATE OR REPLACE FUNCTION public.community_request_buddy(p_handle text)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-  v_target uuid;
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  SELECT id INTO v_target FROM public.users WHERE username = p_handle LIMIT 1;
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('success', false, 'error', 'User not found');
-  END IF;
-  IF v_target = v_uid THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Cannot buddy yourself');
-  END IF;
-  INSERT INTO public.community_friends (user_id, friend_id, status)
-  VALUES (v_uid, v_target, 'pending')
-  ON CONFLICT (user_id, friend_id) DO UPDATE SET status = 'pending';
-  RETURN jsonb_build_object('success', true, 'data', 'demo-request');
-END;
-$$;
-
--- community_respond_buddy
-CREATE OR REPLACE FUNCTION public.community_respond_buddy(p_connection_id uuid, p_accept boolean)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  -- Note: community_friends uses (user_id, friend_id) as PK, connection_id is a stand-in
-  IF p_accept THEN
-    UPDATE public.community_friends SET status = 'accepted' WHERE friend_id = v_uid AND user_id = p_connection_id;
-  ELSE
-    DELETE FROM public.community_friends WHERE friend_id = v_uid AND user_id = p_connection_id;
-  END IF;
-  RETURN jsonb_build_object('success', true);
-END;
-$$;
-
--- community_remove_buddy
-CREATE OR REPLACE FUNCTION public.community_remove_buddy(p_other_user uuid, p_block boolean DEFAULT false)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  DELETE FROM public.community_friends
-  WHERE (user_id = v_uid AND friend_id = p_other_user)
-     OR (user_id = p_other_user AND friend_id = v_uid);
-  IF p_block THEN
-    -- Could add to a block list table if it exists
-    NULL;
-  END IF;
-  RETURN jsonb_build_object('success', true);
-END;
-$$;
-
--- community_get_privacy
-CREATE OR REPLACE FUNCTION public.community_get_privacy()
-RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT jsonb_build_object(
-    'scope', 'global',
-    'targetId', '',
-    'shareLiveStatus', COALESCE((SELECT (profile_data->>'shareLiveStatus')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
-    'shareCurrentSubject', COALESCE((SELECT (profile_data->>'shareCurrentSubject')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
-    'shareCurrentTask', COALESCE((SELECT (profile_data->>'shareCurrentTask')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
-    'shareTasks', COALESCE((SELECT (profile_data->>'shareTasks')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
-    'shareExactTime', COALESCE((SELECT (profile_data->>'shareExactTime')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
-    'shareSubjectBreakdown', COALESCE((SELECT (profile_data->>'shareSubjectBreakdown')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
-    'shareQuestionCounts', COALESCE((SELECT (profile_data->>'shareQuestionCounts')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
-    'shareStreak', COALESCE((SELECT (profile_data->>'shareStreak')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), true),
-    'allowStartNotifications', COALESCE((SELECT (profile_data->>'allowStartNotifications')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), false),
-    'stealthMode', COALESCE((SELECT (profile_data->>'stealthMode')::boolean FROM public.user_profiles WHERE user_id = auth.uid()), false)
-  );
-$$;
-
--- community_save_privacy
-CREATE OR REPLACE FUNCTION public.community_save_privacy(p_settings jsonb)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  UPDATE public.user_profiles
-  SET profile_data = jsonb_set(
-    COALESCE(profile_data, '{}'),
-    '{shareLiveStatus}',
-    to_jsonb(COALESCE((p_settings->>'shareLiveStatus')::boolean, true))
-  ),
-  profile_data = jsonb_set(profile_data, '{shareCurrentSubject}', to_jsonb(COALESCE((p_settings->>'shareCurrentSubject')::boolean, true))),
-  profile_data = jsonb_set(profile_data, '{shareCurrentTask}', to_jsonb(COALESCE((p_settings->>'shareCurrentTask')::boolean, true))),
-  profile_data = jsonb_set(profile_data, '{shareTasks}', to_jsonb(COALESCE((p_settings->>'shareTasks')::boolean, true))),
-  profile_data = jsonb_set(profile_data, '{shareExactTime}', to_jsonb(COALESCE((p_settings->>'shareExactTime')::boolean, true))),
-  profile_data = jsonb_set(profile_data, '{shareSubjectBreakdown}', to_jsonb(COALESCE((p_settings->>'shareSubjectBreakdown')::boolean, true))),
-  profile_data = jsonb_set(profile_data, '{shareQuestionCounts}', to_jsonb(COALESCE((p_settings->>'shareQuestionCounts')::boolean, true))),
-  profile_data = jsonb_set(profile_data, '{shareStreak}', to_jsonb(COALESCE((p_settings->>'shareStreak')::boolean, true))),
-  profile_data = jsonb_set(profile_data, '{allowStartNotifications}', to_jsonb(COALESCE((p_settings->>'allowStartNotifications')::boolean, false))),
-  profile_data = jsonb_set(profile_data, '{stealthMode}', to_jsonb(COALESCE((p_settings->>'stealthMode')::boolean, false)))
-  WHERE user_id = auth.uid();
-  RETURN jsonb_build_object('success', true);
-END;
-$$;
-
--- community_get_start_alert
-CREATE OR REPLACE FUNCTION public.community_get_start_alert(p_target_type text, p_target_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-  v_alert RECORD;
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('ok', false, 'enabled', false);
-  END IF;
-  SELECT * INTO v_alert FROM public.community_start_alerts
-  WHERE user_id = v_uid AND target_type = p_target_type AND target_id = p_target_id
-  LIMIT 1;
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('ok', true, 'enabled', false);
-  END IF;
-  RETURN jsonb_build_object(
-    'ok', true, 'enabled', v_alert.enabled,
-    'quietHours', jsonb_build_object('enabled', v_alert.quiet_hours_enabled, 'start', v_invite.quiet_start, 'end', v_invite.quiet_end)
-  );
-END;
-$$;
-
--- community_set_start_alert
-CREATE OR REPLACE FUNCTION public.community_set_start_alert(
-  p_target_type text, p_target_id uuid,
-  p_enabled boolean,
-  p_quiet_hours_enabled boolean DEFAULT false,
-  p_quiet_start time DEFAULT '22:00',
-  p_quiet_end time DEFAULT '07:00',
-  p_timezone_offset_minutes integer DEFAULT 0
-)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  INSERT INTO public.community_start_alerts (user_id, target_type, target_id, enabled, quiet_hours_enabled, quiet_start, quiet_end, timezone_offset_minutes)
-  VALUES (auth.uid(), p_target_type, p_target_id, p_enabled, p_quiet_hours_enabled, p_quiet_start, p_quiet_end, p_timezone_offset_minutes)
-  ON CONFLICT (user_id, target_type, target_id) DO UPDATE SET
-    enabled = EXCLUDED.enabled,
-    quiet_hours_enabled = EXCLUDED.quiet_hours_enabled,
-    quiet_start = EXCLUDED.quiet_start,
-    quiet_end = EXCLUDED.quiet_end,
-    timezone_offset_minutes = EXCLUDED.timezone_offset_minutes,
-    updated_at = now();
-  RETURN jsonb_build_object('success', true);
-END;
-$$;
-
--- community_submit_report
-CREATE OR REPLACE FUNCTION public.community_submit_report(
-  p_target_type text, p_target_id uuid, p_reason text
-)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_uid uuid := auth.uid();
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
-  END IF;
-  INSERT INTO public.community_reports (reporter_id, target_type, target_id, reason)
-  VALUES (v_uid, p_target_type, p_target_id, p_reason);
-  RETURN jsonb_build_object('success', true);
-END;
-$$;
-
--- purchase_store_item (atomic, coin-deducting)
-CREATE OR REPLACE FUNCTION public.purchase_store_item(p_user_id uuid, p_item_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  v_item  public.store_items%ROWTYPE;
-  v_pts   integer;
-  v_owned boolean;
-BEGIN
-  SELECT * INTO v_item FROM public.store_items WHERE id = p_item_id AND active = true;
-  IF NOT FOUND THEN RETURN jsonb_build_object('ok', false, 'error', 'item_not_found'); END IF;
-  SELECT EXISTS(SELECT 1 FROM public.user_inventory WHERE user_id = p_user_id AND item_id = p_item_id) INTO v_owned;
-  IF v_owned THEN RETURN jsonb_build_object('ok', false, 'error', 'already_owned'); END IF;
-  SELECT COALESCE(points, 0) INTO v_pts FROM public.user_points WHERE user_id = p_user_id;
-  IF v_pts < v_item.price THEN RETURN jsonb_build_object('ok', false, 'error', 'insufficient_coins'); END IF;
-  UPDATE public.user_points SET points = points - v_item.price WHERE user_id = p_user_id;
-  INSERT INTO public.user_inventory (user_id, item_id, equipped, purchased_at)
-    VALUES (p_user_id, p_item_id, false, now());
-  RETURN jsonb_build_object('ok', true, 'coins_remaining', v_pts - v_item.price);
-END;
-$$;
-
--- expire_stale_presence
-CREATE OR REPLACE FUNCTION public.expire_stale_presence()
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  UPDATE public.user_presence SET status = 'offline'
+  UPDATE public.user_presence SET status='offline'
   WHERE status != 'offline' AND last_seen < now() - interval '2 minutes';
 END;
-$$;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."finish_session_sync"(p_session_id uuid, p_action text DEFAULT 'complete'::text, p_duration_minutes integer DEFAULT 0, p_group_id uuid DEFAULT NULL::uuid, p_session_type text DEFAULT 'focus'::text, p_notes text DEFAULT NULL::text, p_ended_at timestamp with time zone DEFAULT NULL::timestamp with time zone)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- ── §12. GRANT EXECUTE ────────────────────────────────────────────────────────
 
-GRANT EXECUTE ON FUNCTION public.is_premium_user()                                                     TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.is_premium_user(uuid)                                                 TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public._is_group_member(uuid, uuid)                                          TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.get_my_group_ids()                                                    TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.get_invite_details(text)                                              TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.accept_invite(text)                                                   TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.get_membership_snapshot(uuid, uuid)                                   TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.get_group_analytics_from_snapshots(uuid, integer)                     TO authenticated, anon, service_role;
-GRANT EXECUTE ON FUNCTION public.get_leaderboard(text, integer, integer)                               TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.get_group_leaderboard(uuid, integer)                                  TO authenticated, anon, service_role;
-GRANT EXECUTE ON FUNCTION public.finish_session_sync(uuid, text, integer, uuid, text, text, timestamptz) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.join_community_event(uuid)                                            TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.leave_community_event(uuid)                                           TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.create_community_event(text, text, text, text, timestamptz, timestamptz, text, text, text[], integer, boolean, boolean) TO service_role;
-GRANT EXECUTE ON FUNCTION public.update_community_event(uuid, text, text, text, text, timestamptz, timestamptz, text, text, text[], integer, boolean, boolean) TO service_role;
-GRANT EXECUTE ON FUNCTION public.delete_community_event(uuid)                                          TO service_role;
-GRANT EXECUTE ON FUNCTION public.community_heartbeat(text, uuid, text, uuid, text, timestamptz) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_is_enrolled() TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_bootstrap_profile(text, text, integer) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_create_group(text, text, text, integer, text[], text, text, integer) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_get_group(uuid, text) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_join_group(uuid) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_leave_group(uuid) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_update_group(uuid, jsonb) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_remove_group_member(uuid, uuid) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_set_group_role(uuid, uuid, text) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_transfer_group(uuid, uuid) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_delete_group(uuid) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.community_get_overview() TO authenticated, anon, service_role;
-GRANT EXECUTE ON FUNCTION public.community_discover_groups(text, text, integer, text, boolean, text, integer, integer) TO authenticated, anon, service_role;
-GRANT EXECUTE ON FUNCTION public.get_event_attendees(uuid)                                             TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.purchase_store_item(uuid, uuid)                                       TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.expire_stale_presence()                                               TO service_role;
+DECLARE
+  v_uid       uuid    := auth.uid();
+  v_today     date    := CURRENT_DATE;
+  v_secs      bigint;
+  v_hrs       numeric;
+  v_row_count bigint;
+  v_was_found boolean;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('error', 'Not authenticated');
+  END IF;
+  IF p_action = 'delete' THEN
+    DELETE FROM public.study_sessions_log WHERE id = p_session_id AND user_id = v_uid;
+    v_was_found := FOUND;
+    RETURN jsonb_build_object(
+      'already_absent',     NOT v_was_found,
+      'affected_group_ids', CASE WHEN p_group_id IS NOT NULL THEN jsonb_build_array(p_group_id) ELSE '[]'::jsonb END,
+      'challenge_updates',  '[]'::jsonb
+    );
+  END IF;
+  v_secs := GREATEST(0, p_duration_minutes) * 60;
+  v_hrs  := round(p_duration_minutes::numeric / 60, 4);
+  INSERT INTO public.study_sessions_log
+    (id, user_id, duration_minutes, started_at, ended_at, subject, notes)
+  VALUES (
+    p_session_id, v_uid, p_duration_minutes,
+    COALESCE(p_ended_at, now()) - (p_duration_minutes || ' minutes')::interval,
+    COALESCE(p_ended_at, now()),
+    p_session_type, p_notes
+  )
+  ON CONFLICT (id) DO NOTHING;
+  GET DIAGNOSTICS v_row_count = ROW_COUNT;
+  IF v_row_count = 0 THEN
+    RETURN jsonb_build_object(
+      'already_processed',  true,
+      'affected_group_ids', '[]'::jsonb,
+      'challenge_updates',  '[]'::jsonb
+    );
+  END IF;
+  INSERT INTO public.daily_user_stats (user_id, date, seconds_studied)
+  VALUES (v_uid, v_today, v_secs)
+  ON CONFLICT (user_id, date) DO UPDATE
+    SET seconds_studied = daily_user_stats.seconds_studied + EXCLUDED.seconds_studied;
+  INSERT INTO public.user_stats_summary
+    (user_id, total_study_seconds, total_hours, weekly_hours, monthly_hours,
+     session_count, total_sessions, last_session_at, last_study_date, updated_at)
+  VALUES
+    (v_uid, v_secs, v_hrs, v_hrs, v_hrs, 1, 1, COALESCE(p_ended_at, now()), v_today, now())
+  ON CONFLICT (user_id) DO UPDATE SET
+    total_study_seconds = user_stats_summary.total_study_seconds + v_secs,
+    total_hours         = round((user_stats_summary.total_study_seconds + v_secs)::numeric / 3600, 2),
+    weekly_hours        = user_stats_summary.weekly_hours  + v_hrs,
+    monthly_hours       = user_stats_summary.monthly_hours + v_hrs,
+    session_count       = user_stats_summary.session_count  + 1,
+    total_sessions      = user_stats_summary.total_sessions + 1,
+    last_session_at     = COALESCE(p_ended_at, now()),
+    last_study_date     = v_today,
+    updated_at          = now();
+  RETURN jsonb_build_object(
+    'already_processed',  false,
+    'affected_group_ids', CASE WHEN p_group_id IS NOT NULL THEN jsonb_build_array(p_group_id) ELSE '[]'::jsonb END,
+    'challenge_updates',  '[]'::jsonb
+  );
+END
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."get_event_attendees"(p_event_id uuid)
+ RETURNS TABLE(user_id uuid, username text, name text, joined_at timestamp with time zone)
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- ── §13. Triggers ─────────────────────────────────────────────────────────────
 
--- handle_new_user: seeds all user satellite rows on signup
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+  SELECT cea.user_id, u.username, u.name, cea.joined_at
+  FROM   public.community_event_attendees cea
+  LEFT JOIN public.users u ON u.id = cea.user_id
+  WHERE  cea.event_id = p_event_id
+  ORDER  BY cea.joined_at ASC;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."get_group_analytics_from_snapshots"(p_group_id uuid, p_days integer DEFAULT 7)
+ RETURNS TABLE(date date, total_seconds bigint, active_members bigint)
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
+  SELECT
+    d.date,
+    COALESCE(SUM(d.seconds_studied), 0)::bigint,
+    COUNT(DISTINCT d.user_id)::bigint
+  FROM public.daily_user_stats d
+  JOIN public.group_members gm ON gm.user_id = d.user_id AND gm.group_id = p_group_id
+  WHERE d.date >= (CURRENT_DATE - (p_days - 1))
+  GROUP BY d.date
+  ORDER BY d.date;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."get_group_leaderboard"(p_group_id uuid, p_limit integer DEFAULT 20)
+ RETURNS TABLE(rank bigint, user_id uuid, username text, name text, avatar_url text, points integer)
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
+  SELECT
+    ROW_NUMBER() OVER (ORDER BY COALESCE(up.points,0) DESC),
+    gm.user_id,
+    u.username,
+    u.name,
+    u.avatar_url,
+    COALESCE(up.points, 0)
+  FROM public.group_members gm
+  JOIN public.users u             ON u.id       = gm.user_id
+  LEFT JOIN public.user_points up ON up.user_id = gm.user_id
+  WHERE gm.group_id = p_group_id
+  ORDER BY COALESCE(up.points,0) DESC
+  LIMIT p_limit;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."get_invite_details"(p_code text)
+ RETURNS TABLE(group_id uuid, group_name text, group_slug text, group_description text, group_cover_url text, group_logo_url text, group_member_count bigint, inviter_username text, inviter_avatar_url text, is_valid boolean)
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
+  SELECT
+    g.id,
+    g.name,
+    g.slug,
+    g.description,
+    g.cover_url,
+    g.logo_url,
+    COUNT(DISTINCT gm.user_id),
+    up.handle,
+    up.profile_data ->> 'avatarUrl',
+    (
+      (gi.expires_at IS NULL OR gi.expires_at > now())
+      AND (gi.max_uses IS NULL OR gi.uses_count < gi.max_uses)
+    )
+  FROM public.group_invites gi
+  JOIN public.groups g ON g.id = gi.group_id
+  LEFT JOIN public.group_members gm ON gm.group_id = g.id AND gm.left_at IS NULL
+  LEFT JOIN public.user_profiles up ON up.user_id = gi.created_by
+  WHERE (gi.token = p_code OR gi.invite_code = p_code)
+    AND (g.is_active = true OR g.is_active IS NULL)
+    AND g.deleted_at IS NULL
+  GROUP BY g.id, g.name, g.slug, g.description, g.cover_url, g.logo_url, up.handle, up.profile_data, gi.expires_at, gi.max_uses, gi.uses_count;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."get_leaderboard"(p_period text DEFAULT 'weekly'::text, p_limit integer DEFAULT 50, p_offset integer DEFAULT 0)
+ RETURNS TABLE(rank bigint, user_id uuid, username text, name text, avatar_url text, total_hours numeric, weekly_hours numeric, monthly_hours numeric, total_sessions integer, current_streak integer, last_session_at timestamp with time zone, score numeric)
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+  SELECT
+    ROW_NUMBER() OVER (
+      ORDER BY
+        CASE p_period
+          WHEN 'monthly' THEN COALESCE(s.monthly_hours, 0)
+          ELSE                COALESCE(s.weekly_hours, 0)
+        END DESC,
+        COALESCE(s.total_hours, 0) DESC
+    ) AS rank,
+    u.id AS user_id,
+    u.username,
+    u."name",
+    u.avatar_url,
+    COALESCE(s.total_hours, 0)   AS total_hours,
+    COALESCE(s.weekly_hours, 0)  AS weekly_hours,
+    COALESCE(s.monthly_hours, 0) AS monthly_hours,
+    COALESCE(s.total_sessions, 0)::integer AS total_sessions,
+    COALESCE(s.current_streak, 0)::integer AS current_streak,
+    s.last_session_at,
+    COALESCE(
+      CASE p_period WHEN 'monthly' THEN s.monthly_hours ELSE s.weekly_hours END, 0
+    ) AS score
+  FROM public.users u
+  LEFT JOIN public.user_stats_summary s ON s.user_id = u.id
+  ORDER BY
+    CASE p_period
+      WHEN 'monthly' THEN COALESCE(s.monthly_hours, 0)
+      ELSE                COALESCE(s.weekly_hours, 0)
+    END DESC,
+    COALESCE(s.total_hours, 0) DESC
+  LIMIT p_limit
+  OFFSET p_offset;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."get_membership_snapshot"(p_user_id uuid DEFAULT NULL::uuid, target_user_id uuid DEFAULT NULL::uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
+  select jsonb_build_object(
+    'user_id',          u.id,
+    'effective_plan',   coalesce(u.plan_type, 'free'),
+    'plan_type',        coalesce(u.plan_type, 'free'),
+    'plan_expires_at',  u.plan_expires_at,
+    'access_source',    coalesce(u.access_source, 'free'),
+    'access_ends_at',   u.access_ends_at,
+    'billing_status',   coalesce(u.billing_status, 'free'),
+    'cancel_at_period_end', coalesce(false, false),
+    'portal_eligible',      coalesce(false, false),
+    'is_premium',       (coalesce(u.plan_type,'free') <> 'free'),
+    'points',           coalesce(up.points, 0),
+    'lifetime_points',  coalesce(up.lifetime_points, 0)
+  )
+  from public.users u
+  left join public.user_points up on up.user_id = u.id
+  where u.id = coalesce(p_user_id, target_user_id);
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."get_my_group_ids"()
+ RETURNS uuid[]
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
+
+ SELECT ARRAY(SELECT group_id FROM public.group_members WHERE user_id = (SELECT auth.uid()));
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."get_my_role"()
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
+
+
+    SELECT role FROM public.user_roles
+    WHERE user_id = auth.uid()
+    ORDER BY CASE role WHEN 'admin' THEN 1 WHEN 'moderator' THEN 2 ELSE 3 END LIMIT 1;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."handle_new_user"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
 DECLARE
   v_username text;
   v_name     text;
@@ -2111,352 +3039,250 @@ BEGIN
   VALUES (NEW.id, v_email, v_name, v_username, 'ranker', 'active', '2099-12-31 23:59:59+00', '2099-12-31 23:59:59+00')
   ON CONFLICT (id) DO UPDATE SET
     username        = EXCLUDED.username,
-    -- plan_type is intentionally excluded: preserve the existing value so a
-    -- manual upgrade to 'premium' is not silently overwritten on re-trigger.
+    name            = COALESCE(EXCLUDED.name, users.name),
+    plan_type       = 'ranker',
     billing_status  = 'active',
     plan_expires_at = '2099-12-31 23:59:59+00',
     access_ends_at  = '2099-12-31 23:59:59+00',
     updated_at      = now();
-  INSERT INTO public.user_profiles    (user_id, profile_data)                              VALUES (NEW.id, '{}')        ON CONFLICT (user_id) DO NOTHING;
-  INSERT INTO public.user_onboarding  (user_id, completed, source)                         VALUES (NEW.id, false, 'signup') ON CONFLICT (user_id) DO NOTHING;
-  INSERT INTO public.user_points      (user_id, points, lifetime_points)                   VALUES (NEW.id, 0, 0)        ON CONFLICT (user_id) DO NOTHING;
+  INSERT INTO public.user_profiles (user_id, profile_data) VALUES (NEW.id, '{}') ON CONFLICT (user_id) DO NOTHING;
+  INSERT INTO public.user_points (user_id, points, lifetime_points) VALUES (NEW.id, 0, 0) ON CONFLICT (user_id) DO NOTHING;
   INSERT INTO public.user_stats_summary (user_id, total_study_seconds, streak_days, max_streak_days, session_count)
-    VALUES (NEW.id, 0, 0, 0, 0)                                                                                         ON CONFLICT (user_id) DO NOTHING;
-  INSERT INTO public.user_presence    (user_id, status, last_seen)                         VALUES (NEW.id, 'offline', now()) ON CONFLICT (user_id) DO NOTHING;
-  INSERT INTO public.user_settings    (user_id, settings)                                  VALUES (NEW.id, '{}')        ON CONFLICT (user_id) DO NOTHING;
+    VALUES (NEW.id, 0, 0, 0, 0) ON CONFLICT (user_id) DO NOTHING;
+  INSERT INTO public.user_presence (user_id, status, last_seen) VALUES (NEW.id, 'offline', now()) ON CONFLICT (user_id) DO NOTHING;
   RETURN NEW;
-END;
-$$;
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+END
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."is_premium_user"()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
--- sync_user_onboarding_from_profile
-CREATE OR REPLACE FUNCTION public.sync_user_onboarding_from_profile()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+ SELECT true;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."is_premium_user"(uid uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+ SELECT true;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."join_community_event"(p_event_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
 DECLARE
-  v_done         boolean;
-  v_completed_at timestamptz;
+  v_uid uuid := auth.uid();
+  v_evt public.community_events%ROWTYPE;
 BEGIN
-  v_done := COALESCE((NEW.profile_data->>'isOnboarded')::boolean, false);
-  IF v_done THEN
-    v_completed_at := COALESCE(NULLIF(NEW.profile_data->>'onboardingCompletedAt', '')::timestamptz, now());
-  ELSE
-    v_completed_at := NULL;
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Not authenticated');
   END IF;
-  INSERT INTO public.user_onboarding (user_id, completed, completed_at, source, updated_at)
-  VALUES (NEW.user_id, v_done, v_completed_at, 'profile', now())
-  ON CONFLICT (user_id) DO UPDATE SET
-    completed    = EXCLUDED.completed,
-    completed_at = COALESCE(EXCLUDED.completed_at, public.user_onboarding.completed_at),
-    source       = EXCLUDED.source,
-    updated_at   = now();
-  RETURN NEW;
-END;
-$$;
-DROP TRIGGER IF EXISTS tr_sync_user_onboarding_from_profile ON public.user_profiles;
-CREATE TRIGGER tr_sync_user_onboarding_from_profile
-  AFTER INSERT OR UPDATE OF profile_data ON public.user_profiles
-  FOR EACH ROW EXECUTE FUNCTION public.sync_user_onboarding_from_profile();
+  SELECT * INTO v_evt FROM public.community_events WHERE id = p_event_id;
+  IF NOT FOUND OR NOT v_evt.is_active THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Event not found or inactive');
+  END IF;
+  INSERT INTO public.community_event_attendees (event_id, user_id)
+  VALUES (p_event_id, v_uid)
+  ON CONFLICT (event_id, user_id) DO NOTHING;
+  UPDATE public.community_events
+    SET attendee_count = (SELECT COUNT(*) FROM public.community_event_attendees WHERE event_id = p_event_id)
+  WHERE id = p_event_id;
+  RETURN jsonb_build_object('ok', true);
+END
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."join_community_group"(p_group_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- cleanup_old_notifications
-CREATE OR REPLACE FUNCTION public.cleanup_old_notifications()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+
+DECLARE
+  v_uid   uuid := auth.uid();
+  v_group public.groups%ROWTYPE;
 BEGIN
-  DELETE FROM public.notifications WHERE user_id = NEW.user_id AND created_at < now() - interval '90 days';
-  RETURN NEW;
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+
+  SELECT * INTO v_group FROM public.groups
+  WHERE id = p_group_id AND deleted_at IS NULL;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Group not found');
+  END IF;
+  IF NOT v_group.is_public THEN
+    RETURN jsonb_build_object('success', false, 'error', 'This group is invite-only');
+  END IF;
+  IF v_group.member_count >= v_group.max_members THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Group is full');
+  END IF;
+  IF public._is_group_member(p_group_id, v_uid) THEN
+    RETURN jsonb_build_object('success', true, 'already_member', true);
+  END IF;
+
+  INSERT INTO public.group_members (group_id, user_id, role, joined_at)
+  VALUES (p_group_id, v_uid, 'member', now())
+  ON CONFLICT (group_id, user_id) DO NOTHING;
+
+  UPDATE public.groups SET member_count = member_count + 1, updated_at = now()
+  WHERE id = p_group_id AND member_count < max_members;
+
+  RETURN jsonb_build_object('success', true, 'group_id', p_group_id);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END;
-$$;
-DROP TRIGGER IF EXISTS tr_cleanup_old_notifications ON public.notifications;
-CREATE TRIGGER tr_cleanup_old_notifications
-  AFTER INSERT ON public.notifications
-  FOR EACH ROW EXECUTE FUNCTION public.cleanup_old_notifications();
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."leave_community_event"(p_event_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- ── §13b. user_tours — persistent tour/guide state per user ──────────────────
--- Stores which onboarding tours/guided walkthroughs a user has completed or
--- dismissed. Prevents tours from repeating on every login.
--- Tour keys match the keys used in the compiled React tour store.
 
-CREATE TABLE IF NOT EXISTS public.user_tours (
-  id            uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id       uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  tour_key      text NOT NULL,
-  completed     boolean NOT NULL DEFAULT false,
-  completed_at  timestamptz,
-  dismissed     boolean NOT NULL DEFAULT false,
-  dismissed_at  timestamptz,
-  step_reached  integer NOT NULL DEFAULT 0,
-  created_at    timestamptz NOT NULL DEFAULT now(),
-  updated_at    timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(user_id, tour_key)
-);
-
-ALTER TABLE public.user_tours ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "user_tours_own" ON public.user_tours;
-CREATE POLICY "user_tours_own" ON public.user_tours
-  FOR ALL TO authenticated
-  USING  (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE OR REPLACE FUNCTION public.set_user_tours_updated_at()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
-
-DROP TRIGGER IF EXISTS trg_user_tours_updated_at ON public.user_tours;
-CREATE TRIGGER trg_user_tours_updated_at
-  BEFORE UPDATE ON public.user_tours
-  FOR EACH ROW EXECUTE FUNCTION public.set_user_tours_updated_at();
-
--- ── §14. Storage buckets ──────────────────────────────────────────────────────
-
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES
-  ('avatars',      'avatars',      true,  5242880,  ARRAY['image/png','image/jpeg','image/webp','image/gif']),
-  ('user-content', 'user-content', false, 52428800, NULL),
-  ('notes',        'notes',        false, 52428800, NULL)
-ON CONFLICT (id) DO UPDATE SET
-  public             = EXCLUDED.public,
-  file_size_limit    = EXCLUDED.file_size_limit,
-  allowed_mime_types = EXCLUDED.allowed_mime_types;
-
-DROP POLICY IF EXISTS "avatars_public_read"          ON storage.objects;
-DROP POLICY IF EXISTS "avatars_user_insert_own"      ON storage.objects;
-DROP POLICY IF EXISTS "avatars_user_update_own"      ON storage.objects;
-DROP POLICY IF EXISTS "avatars_user_delete_own"      ON storage.objects;
-DROP POLICY IF EXISTS "private_content_owner_read"   ON storage.objects;
-DROP POLICY IF EXISTS "private_content_owner_insert" ON storage.objects;
-DROP POLICY IF EXISTS "private_content_owner_update" ON storage.objects;
-DROP POLICY IF EXISTS "private_content_owner_delete" ON storage.objects;
-
-CREATE POLICY "avatars_public_read" ON storage.objects
-  FOR SELECT TO public USING (bucket_id = 'avatars');
-CREATE POLICY "avatars_user_insert_own" ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
-CREATE POLICY "avatars_user_update_own" ON storage.objects FOR UPDATE TO authenticated
-  USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1])
-  WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
-CREATE POLICY "avatars_user_delete_own" ON storage.objects FOR DELETE TO authenticated
-  USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
-CREATE POLICY "private_content_owner_read" ON storage.objects FOR SELECT TO authenticated
-  USING (bucket_id IN ('user-content','notes') AND auth.uid()::text = (storage.foldername(name))[1]);
-CREATE POLICY "private_content_owner_insert" ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id IN ('user-content','notes') AND auth.uid()::text = (storage.foldername(name))[1]);
-CREATE POLICY "private_content_owner_update" ON storage.objects FOR UPDATE TO authenticated
-  USING (bucket_id IN ('user-content','notes') AND auth.uid()::text = (storage.foldername(name))[1])
-  WITH CHECK (bucket_id IN ('user-content','notes') AND auth.uid()::text = (storage.foldername(name))[1]);
-CREATE POLICY "private_content_owner_delete" ON storage.objects FOR DELETE TO authenticated
-  USING (bucket_id IN ('user-content','notes') AND auth.uid()::text = (storage.foldername(name))[1]);
-
--- ── §15. Supabase Realtime — publish key tables ───────────────────────────────
-
-DO $$ BEGIN
-  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.group_chat_messages;        EXCEPTION WHEN OTHERS THEN NULL; END;
-  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.user_presence;              EXCEPTION WHEN OTHERS THEN NULL; END;
-  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;              EXCEPTION WHEN OTHERS THEN NULL; END;
-  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.community_events;           EXCEPTION WHEN OTHERS THEN NULL; END;
-  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.community_event_attendees;  EXCEPTION WHEN OTHERS THEN NULL; END;
-  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.groups;                     EXCEPTION WHEN OTHERS THEN NULL; END;
-  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.group_members;              EXCEPTION WHEN OTHERS THEN NULL; END;
-  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.user_settings;              EXCEPTION WHEN OTHERS THEN NULL; END;
-  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.user_tours;               EXCEPTION WHEN OTHERS THEN NULL; END;
-END $$;
-
--- ── §16. Backfill existing users into satellite tables ────────────────────────
-
-INSERT INTO public.user_points (user_id, points, lifetime_points)
-  SELECT id, 0, 0 FROM public.users
-  WHERE NOT EXISTS (SELECT 1 FROM public.user_points WHERE user_id = users.id)
-  ON CONFLICT (user_id) DO NOTHING;
-
-INSERT INTO public.user_stats_summary (user_id, total_study_seconds, streak_days, max_streak_days, session_count)
-  SELECT id, 0, 0, 0, 0 FROM public.users
-  WHERE NOT EXISTS (SELECT 1 FROM public.user_stats_summary WHERE user_id = users.id)
-  ON CONFLICT (user_id) DO NOTHING;
-
-INSERT INTO public.user_profiles (user_id, profile_data)
-  SELECT id, '{}' FROM public.users
-  WHERE NOT EXISTS (SELECT 1 FROM public.user_profiles WHERE user_id = users.id)
-  ON CONFLICT (user_id) DO NOTHING;
-
-INSERT INTO public.user_presence (user_id, status, last_seen)
-  SELECT id, 'offline', now() FROM public.users
-  WHERE NOT EXISTS (SELECT 1 FROM public.user_presence WHERE user_id = users.id)
-  ON CONFLICT (user_id) DO NOTHING;
-
-INSERT INTO public.user_settings (user_id, settings)
-  SELECT id, '{}' FROM public.users
-  WHERE NOT EXISTS (SELECT 1 FROM public.user_settings WHERE user_id = users.id)
-  ON CONFLICT (user_id) DO NOTHING;
-
-INSERT INTO public.user_onboarding (user_id, completed, source)
-  SELECT id, false, 'backfill' FROM public.users
-  WHERE NOT EXISTS (SELECT 1 FROM public.user_onboarding WHERE user_id = users.id)
-  ON CONFLICT (user_id) DO NOTHING;
-
--- Backfill onboarding from profile_data
-INSERT INTO public.user_onboarding (user_id, completed, completed_at, source, updated_at)
-SELECT
-  up.user_id,
-  COALESCE((up.profile_data->>'isOnboarded')::boolean, false),
-  CASE WHEN COALESCE((up.profile_data->>'isOnboarded')::boolean, false)
-       THEN COALESCE(NULLIF(up.profile_data->>'onboardingCompletedAt', '')::timestamptz, now())
-       ELSE NULL END,
-  'backfill', now()
-FROM public.user_profiles up
-ON CONFLICT (user_id) DO UPDATE SET
-  completed    = EXCLUDED.completed,
-  completed_at = COALESCE(EXCLUDED.completed_at, public.user_onboarding.completed_at),
-  updated_at   = now();
-
--- ── §17. Seed: default community events ──────────────────────────────────────
--- Idempotent: WHERE NOT EXISTS guard skips existing events by title.
-
-INSERT INTO public.community_events
-  (title, event_type, description, host, start_time, end_time, image_gradient, tags, max_attendees, is_featured, is_active)
-SELECT v.title, v.event_type, v.description, v.host,
-       v.start_time::timestamptz, v.end_time::timestamptz,
-       v.image_gradient, v.tags::text[], v.max_attendees, v.is_featured, true
-FROM (VALUES
-  ('JEE Advanced Strategy Session',
-   'webinar',
-   'Expert breakdown of JEE Advanced paper pattern, high-weightage topics, and last-minute revision strategy.',
-   'Prof. Anupam Gupta',
-   (now() + interval '3 days')::text, (now() + interval '3 days' + interval '2 hours')::text,
-   'from-violet-600 to-indigo-500', '{JEE,Strategy,Physics,Chemistry,Maths}', 500, true),
-  ('NEET Biology Deep Dive',
-   'workshop',
-   'Intensive workshop: Genetics, Ecology, Human Physiology — the chapters that decide NEET ranks.',
-   'Dr. Priya Sharma',
-   (now() + interval '5 days')::text, (now() + interval '5 days' + interval '3 hours')::text,
-   'from-emerald-600 to-teal-500', '{NEET,Biology,Genetics,Ecology}', 300, true),
-  ('Physics Problem-Solving Workshop',
-   'workshop',
-   'Live problem solving for Mechanics, Electrostatics and Modern Physics. Bring your toughest doubts.',
-   'IIT Alumni Study Group',
-   (now() + interval '7 days')::text, (now() + interval '7 days' + interval '2 hours')::text,
-   'from-blue-600 to-cyan-500', '{Physics,Mechanics,Electrostatics,JEE}', 200, false),
-  ('Weekly Community Study Session',
-   'study_session',
-   'Join 200+ students for a focused 2-hour session with Pomodoro timer and live leaderboard.',
-   'IsotopeAI Community',
-   (now() + interval '1 day')::text, (now() + interval '1 day' + interval '2 hours')::text,
-   'from-purple-600 to-pink-500', '{Community,Focus,Leaderboard}', NULL, true),
-  ('Chemistry Organic Reaction Masterclass',
-   'webinar',
-   'Complete walkthrough of Name Reactions, Mechanisms and shortcuts for Organic Chemistry.',
-   'Dr. Rahul Verma',
-   (now() + interval '10 days')::text, (now() + interval '10 days' + interval '2 hours')::text,
-   'from-orange-600 to-amber-500', '{Chemistry,Organic,JEE,NEET}', 400, false),
-  ('Mathematics Integration & Calculus Sprint',
-   'workshop',
-   'Speed math for Integration, Differential Equations and limits — shortcuts that save 5+ minutes.',
-   'Ishaan Arora (IIT Bombay 2023)',
-   (now() + interval '14 days')::text, (now() + interval '14 days' + interval '90 minutes')::text,
-   'from-rose-600 to-red-500', '{Maths,Calculus,JEE,Integration}', 250, false)
-) AS v(title, event_type, description, host, start_time, end_time, image_gradient, tags, max_attendees, is_featured)
-WHERE NOT EXISTS (SELECT 1 FROM public.community_events ce WHERE ce.title = v.title);
-
--- ── §18. Live-DB trigger functions (in DB but not previously in schema file) ──
--- These functions exist in the live Supabase project (confirmed via pg_proc audit).
--- Documented here so a fresh install produces an identical DB to the live instance.
-
--- §18a. handle_new_user_profile — secondary signup trigger that ensures
--- user_profiles and user_settings rows exist. Complements handle_new_user().
-CREATE OR REPLACE FUNCTION public.handle_new_user_profile()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_uid uuid := auth.uid();
 BEGIN
-  INSERT INTO public.user_profiles (user_id, profile_data)
-  VALUES (NEW.id, jsonb_build_object(
-    'display_name', COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
-    'avatar_url', COALESCE(NEW.raw_user_meta_data->>'avatar_url', ''),
-    'bio', ''
-  ))
-  ON CONFLICT (user_id) DO NOTHING;
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'Not authenticated');
+  END IF;
+  DELETE FROM public.community_event_attendees WHERE event_id = p_event_id AND user_id = v_uid;
+  UPDATE public.community_events
+    SET attendee_count = (SELECT COUNT(*) FROM public.community_event_attendees WHERE event_id = p_event_id)
+  WHERE id = p_event_id;
+  RETURN jsonb_build_object('ok', true);
+END
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."leave_community_group"(p_group_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
-  INSERT INTO public.user_settings (user_id, settings)
-  VALUES (NEW.id, '{}'::jsonb)
-  ON CONFLICT (user_id) DO NOTHING;
 
-  RETURN NEW;
-END; $$;
+DECLARE
+  v_uid  uuid := auth.uid();
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
 
-DROP TRIGGER IF EXISTS trg_handle_new_user_profile ON auth.users;
-CREATE TRIGGER trg_handle_new_user_profile
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_profile();
+  SELECT role INTO v_role FROM public.group_members
+  WHERE group_id = p_group_id AND user_id = v_uid;
 
--- §18b. rls_auto_enable — event trigger: automatically enables RLS on every
--- new public table created during migrations, preventing accidental open tables.
-CREATE OR REPLACE FUNCTION public.rls_auto_enable()
-RETURNS event_trigger LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = pg_catalog AS $$
-DECLARE cmd record;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not a member of this group');
+  END IF;
+  IF v_role = 'owner' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Owner cannot leave; delete the group or transfer ownership first');
+  END IF;
+
+  DELETE FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  UPDATE public.groups SET member_count = GREATEST(0, member_count - 1), updated_at = now()
+  WHERE id = p_group_id;
+
+  RETURN jsonb_build_object('success', true);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."purchase_store_item"(p_user_id uuid, p_item_id uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ VOLATILE
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
+
+
+  select rpc_private.purchase_store_item(p_user_id, p_item_id);
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."rls_auto_enable"()
+ RETURNS event_trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
+
+
+DECLARE
+  cmd record;
 BEGIN
   FOR cmd IN
-    SELECT * FROM pg_event_trigger_ddl_commands()
+    SELECT *
+    FROM pg_event_trigger_ddl_commands()
     WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
       AND object_type IN ('table','partitioned table')
   LOOP
-    IF cmd.schema_name IS NOT NULL
-      AND cmd.schema_name IN ('public')
-      AND cmd.schema_name NOT LIKE 'pg_%'
-      AND cmd.schema_name NOT IN ('information_schema')
-    THEN
+     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN
       BEGIN
-        EXECUTE format('ALTER TABLE IF EXISTS %s ENABLE ROW LEVEL SECURITY', cmd.object_identity);
-      EXCEPTION WHEN OTHERS THEN NULL;
+        EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);
+        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;
+      EXCEPTION
+        WHEN OTHERS THEN
+          RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;
       END;
-    END IF;
+     ELSE
+        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;
+     END IF;
   END LOOP;
-END; $$;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."set_group_slug_from_name"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
-DROP EVENT TRIGGER IF EXISTS rls_auto_enable;
--- Kept on ONE line on purpose: schema-lint.yml strips cloud-only statements with
--- a line-based `grep -v`, so a multi-line CREATE EVENT TRIGGER would lose only
--- its first line and leave `WHEN TAG IN (…) EXECUTE FUNCTION …` orphaned
--- ("syntax error at or near WHEN"). Event triggers need superuser and exist only
--- on the real project, never in the CI shim.
-CREATE EVENT TRIGGER rls_auto_enable ON ddl_command_end WHEN TAG IN ('CREATE TABLE','CREATE TABLE AS','SELECT INTO') EXECUTE FUNCTION public.rls_auto_enable();
 
--- §18c. set_group_slug_from_name — BEFORE INSERT trigger on public.groups.
--- Auto-generates a URL-safe slug from the group name when none is supplied.
-CREATE OR REPLACE FUNCTION public.set_group_slug_from_name()
-RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
   IF NEW.slug IS NULL THEN
-    NEW.slug := lower(regexp_replace(COALESCE(NEW.name,''), '[^a-zA-Z0-9]+', '-', 'g'));
-    IF NEW.slug = '' THEN NEW.slug := NULL; END IF;
+    NEW.slug := lower(regexp_replace(coalesce(NEW.name,''), '[^a-zA-Z0-9]+', '-', 'g'));
+    IF NEW.slug = '' THEN
+      NEW.slug := NULL;
+    END IF;
   END IF;
   RETURN NEW;
-END; $$;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."set_user_tours_updated_at"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
-DROP TRIGGER IF EXISTS trg_set_group_slug ON public.groups;
-CREATE TRIGGER trg_set_group_slug
-  BEFORE INSERT ON public.groups
-  FOR EACH ROW EXECUTE FUNCTION public.set_group_slug_from_name();
 
--- §18d. sync_group_visibility — BEFORE INSERT OR UPDATE on public.groups.
--- Keeps is_public in sync when a visibility text column is set.
-CREATE OR REPLACE FUNCTION public.sync_group_visibility()
-RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
-BEGIN
-  IF NEW.visibility IS NULL THEN RETURN NEW; END IF;
-  NEW.is_public := lower(trim(NEW.visibility)) IN ('public','true','t','1','yes','y');
-  RETURN NEW;
-END; $$;
+  BEGIN NEW.updated_at = now(); RETURN NEW; END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."sync_group_member_count"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
-DROP TRIGGER IF EXISTS trg_sync_group_visibility ON public.groups;
-CREATE TRIGGER trg_sync_group_visibility
-  BEFORE INSERT OR UPDATE ON public.groups
-  FOR EACH ROW EXECUTE FUNCTION public.sync_group_visibility();
 
--- §18e. sync_group_member_count — AFTER INSERT/DELETE on public.group_members.
--- Keeps groups.member_count accurate without expensive COUNT(*) queries.
-CREATE OR REPLACE FUNCTION public.sync_group_member_count()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = public AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.groups SET member_count = member_count + 1 WHERE id = NEW.group_id;
@@ -2464,84 +3290,1661 @@ BEGIN
     UPDATE public.groups SET member_count = GREATEST(member_count - 1, 0) WHERE id = OLD.group_id;
   END IF;
   RETURN NULL;
-END; $$;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."sync_group_visibility"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
-DROP TRIGGER IF EXISTS trg_sync_member_count ON public.group_members;
-CREATE TRIGGER trg_sync_member_count
-  AFTER INSERT OR DELETE ON public.group_members
-  FOR EACH ROW EXECUTE FUNCTION public.sync_group_member_count();
 
--- §18f. create_community_group — RPC wrapper for group creation.
--- Handles slug generation and inserts the creator as owner atomically.
--- NOTE: frontend uses direct .from("groups").insert() — this RPC is an
--- alternative path useful for server-side / admin scripts.
-CREATE OR REPLACE FUNCTION public.create_community_group(
-  p_name        text,
-  p_description text    DEFAULT NULL,
-  p_category    text    DEFAULT 'community',
-  p_is_public   boolean DEFAULT true,
-  p_slug        text    DEFAULT NULL,
-  p_logo_url    text    DEFAULT NULL,
-  p_cover_url   text    DEFAULT NULL,
-  p_settings    jsonb   DEFAULT '{}'
-)
-RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = public AS $$
-DECLARE
-  v_group_id uuid;
-  v_uid      uuid := auth.uid();
 BEGIN
-  IF v_uid IS NULL THEN RAISE EXCEPTION 'Not authenticated'; END IF;
-
-  IF p_slug IS NULL THEN
-    p_slug := lower(regexp_replace(COALESCE(p_name,''), '[^a-zA-Z0-9]+', '-', 'g'));
-    IF p_slug = '' THEN p_slug := NULL; END IF;
+  -- Normalize common strings
+  IF NEW.visibility IS NULL THEN
+    -- if visibility omitted, keep is_public as-is
+    RETURN NEW;
   END IF;
 
-  INSERT INTO public.groups (name, description, category, is_public, slug, logo_url, cover_url, owner_id, settings)
-  VALUES (p_name, p_description, p_category, COALESCE(p_is_public, true), p_slug, p_logo_url, p_cover_url, v_uid, COALESCE(p_settings, '{}'))
-  RETURNING id INTO v_group_id;
+  NEW.is_public := lower(trim(NEW.visibility)) IN ('public','true','t','1','yes','y');
+  RETURN NEW;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."sync_user_display_profile"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
-  INSERT INTO public.group_members (group_id, user_id, role)
-  VALUES (v_group_id, v_uid, 'owner')
-  ON CONFLICT (group_id, user_id) DO UPDATE SET role = EXCLUDED.role;
 
-  RETURN v_group_id;
-END; $$;
+begin
+  if tg_op = 'DELETE' then
+    delete from public.user_display_profiles where id = old.id;
+    return old;
+  end if;
+  insert into public.user_display_profiles (id, username, name, avatar_url, updated_at)
+  values (new.id, new.username, new.name, new.avatar_url, coalesce(new.updated_at, now()))
+  on conflict (id) do update set
+    username = excluded.username,
+    name = excluded.name,
+    avatar_url = excluded.avatar_url,
+    updated_at = excluded.updated_at;
+  return new;
+end;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."sync_user_onboarding_from_profile"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO '""""""'
+ AS $iso_fn$
 
--- §18g. check_user_role — simple role membership check used by admin middleware.
-CREATE OR REPLACE FUNCTION public.check_user_role(p_user_id uuid, p_role text)
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public AS $$
-  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = p_user_id AND role = p_role);
-$$;
 
--- §18h. get_my_role — returns the highest-priority role for the calling user.
-CREATE OR REPLACE FUNCTION public.get_my_role()
-RETURNS text LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public AS $$
-  SELECT role FROM public.user_roles
-  WHERE user_id = auth.uid()
-  ORDER BY CASE role WHEN 'admin' THEN 1 WHEN 'moderator' THEN 2 ELSE 3 END
-  LIMIT 1;
-$$;
+DECLARE
+  v_done boolean;
+  v_completed_at timestamptz;
+BEGIN
+  v_done := COALESCE((NEW.profile_data->>'isOnboarded')::boolean, false);
+  IF v_done THEN
+    v_completed_at := COALESCE(
+      NULLIF(NEW.profile_data->>'onboardingCompletedAt', '')::timestamptz,
+      now()
+    );
+  ELSE
+    v_completed_at := NULL;
+  END IF;
 
--- §18 grants
-GRANT EXECUTE ON FUNCTION public.handle_new_user_profile()                                           TO service_role;
-GRANT EXECUTE ON FUNCTION public.set_group_slug_from_name()                                          TO service_role;
-GRANT EXECUTE ON FUNCTION public.sync_group_visibility()                                             TO service_role;
-GRANT EXECUTE ON FUNCTION public.sync_group_member_count()                                           TO service_role;
-GRANT EXECUTE ON FUNCTION public.create_community_group(text,text,text,boolean,text,text,text,jsonb) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.check_user_role(uuid,text)                                         TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.get_my_role()                                                       TO anon, authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.backup_manifests                                      TO authenticated;
-GRANT ALL ON public.backup_manifests                                                                TO service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.sync_items                                            TO authenticated;
-GRANT ALL ON public.sync_items                                                                      TO service_role;
+  INSERT INTO public.user_onboarding(user_id, completed, completed_at, source, updated_at)
+  VALUES (NEW.user_id, v_done, v_completed_at, 'profile', now())
+  ON CONFLICT(user_id) DO UPDATE SET
+    completed    = EXCLUDED.completed,
+    completed_at = COALESCE(EXCLUDED.completed_at, public.user_onboarding.completed_at),
+    source       = EXCLUDED.source,
+    updated_at   = now();
+  RETURN NEW;
+END;
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."update_community_event"(p_id uuid, p_title text DEFAULT NULL::text, p_event_type text DEFAULT NULL::text, p_description text DEFAULT NULL::text, p_host text DEFAULT NULL::text, p_start_time timestamp with time zone DEFAULT NULL::timestamp with time zone, p_end_time timestamp with time zone DEFAULT NULL::timestamp with time zone, p_image_gradient text DEFAULT NULL::text, p_image_url text DEFAULT NULL::text, p_tags text[] DEFAULT NULL::text[], p_max_attendees integer DEFAULT NULL::integer, p_is_featured boolean DEFAULT NULL::boolean, p_is_active boolean DEFAULT NULL::boolean)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
 
--- ── Done ──────────────────────────────────────────────────────────────────────
--- Verify:
---   SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;
---   SELECT policyname, tablename FROM pg_policies WHERE schemaname='public' ORDER BY tablename, policyname;
---   SELECT routine_name FROM information_schema.routines WHERE routine_schema='public' ORDER BY routine_name;
--- ============================================================================
+
+DECLARE v_found boolean;
+BEGIN
+  SELECT EXISTS(SELECT 1 FROM public.community_events WHERE id = p_id) INTO v_found;
+  IF NOT v_found THEN RETURN jsonb_build_object('ok', false, 'error', 'Event not found'); END IF;
+  UPDATE public.community_events SET
+    title          = COALESCE(p_title,          title),
+    event_type     = COALESCE(p_event_type,     event_type),
+    description    = COALESCE(p_description,    description),
+    host           = COALESCE(p_host,           host),
+    start_time     = COALESCE(p_start_time,     start_time),
+    end_time       = COALESCE(p_end_time,       end_time),
+    image_gradient = COALESCE(p_image_gradient, image_gradient),
+    image_url      = COALESCE(p_image_url,      image_url),
+    tags           = COALESCE(p_tags,           tags),
+    max_attendees  = COALESCE(p_max_attendees,  max_attendees),
+    is_featured    = COALESCE(p_is_featured,    is_featured),
+    is_active      = COALESCE(p_is_active,      is_active),
+    updated_at     = now()
+  WHERE id = p_id;
+  RETURN jsonb_build_object('ok', true);
+END
+$iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."update_group_member_role"(p_group_id uuid, p_target_uid uuid, p_new_role text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO 'public'
+ AS $iso_fn$
+
+
+DECLARE
+  v_uid       uuid := auth.uid();
+  v_my_role   text;
+  v_tgt_role  text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
+  END IF;
+  IF p_new_role NOT IN ('member','moderator','admin') THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Invalid role. Allowed: member, moderator, admin');
+  END IF;
+  -- Prevent self-promotion
+  IF v_uid = p_target_uid THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Cannot change your own role');
+  END IF;
+
+  SELECT role INTO v_my_role  FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
+  SELECT role INTO v_tgt_role FROM public.group_members WHERE group_id = p_group_id AND user_id = p_target_uid;
+
+  IF v_my_role IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'You are not a member of this group');
+  END IF;
+  IF v_tgt_role IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Target user is not a member');
+  END IF;
+  IF v_tgt_role = 'owner' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Cannot change the owner''s role');
+  END IF;
+
+  -- Permission checks
+  IF v_my_role = 'owner' THEN
+    NULL; -- owner can set any non-owner role
+  ELSIF v_my_role = 'admin' THEN
+    IF p_new_role NOT IN ('member','moderator') THEN
+      RETURN jsonb_build_object('success', false, 'error', 'Admins can only set member or moderator role');
+    END IF;
+  ELSE
+    RETURN jsonb_build_object('success', false, 'error', 'Only owners and admins can change roles');
+  END IF;
+
+  UPDATE public.group_members SET role = p_new_role
+  WHERE group_id = p_group_id AND user_id = p_target_uid;
+
+  RETURN jsonb_build_object('success', true, 'role', p_new_role);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END;
+$iso_fn$;
+DROP TRIGGER IF EXISTS "sync_user_display_profile" ON "public"."users";
+CREATE TRIGGER sync_user_display_profile AFTER INSERT OR DELETE OR UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION sync_user_display_profile();
+DROP TRIGGER IF EXISTS "tr_cleanup_old_notifications" ON "public"."notifications";
+CREATE TRIGGER tr_cleanup_old_notifications AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION cleanup_old_notifications();
+DROP TRIGGER IF EXISTS "tr_sync_user_onboarding_from_profile" ON "public"."user_profiles";
+CREATE TRIGGER tr_sync_user_onboarding_from_profile AFTER INSERT OR UPDATE OF profile_data ON public.user_profiles FOR EACH ROW EXECUTE FUNCTION sync_user_onboarding_from_profile();
+DROP TRIGGER IF EXISTS "trg_auto_add_owner" ON "public"."groups";
+CREATE TRIGGER trg_auto_add_owner AFTER INSERT ON public.groups FOR EACH ROW EXECUTE FUNCTION _auto_add_group_owner();
+DROP TRIGGER IF EXISTS "trg_auto_add_super_admin" ON "public"."groups";
+CREATE TRIGGER trg_auto_add_super_admin AFTER INSERT ON public.groups FOR EACH ROW EXECUTE FUNCTION _auto_add_super_admin();
+DROP TRIGGER IF EXISTS "trg_ensure_community_enrollment" ON "public"."users";
+CREATE TRIGGER trg_ensure_community_enrollment AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION _ensure_community_enrollment();
+DROP TRIGGER IF EXISTS "trg_ensure_onboarding" ON "public"."users";
+CREATE TRIGGER trg_ensure_onboarding AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION _ensure_onboarding_complete();
+DROP TRIGGER IF EXISTS "trg_ensure_stats" ON "public"."users";
+CREATE TRIGGER trg_ensure_stats AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION _ensure_stats_summary();
+DROP TRIGGER IF EXISTS "trg_ensure_user_points" ON "public"."users";
+CREATE TRIGGER trg_ensure_user_points AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION _ensure_user_points();
+DROP TRIGGER IF EXISTS "trg_ensure_user_profile" ON "public"."users";
+CREATE TRIGGER trg_ensure_user_profile AFTER INSERT ON public.users FOR EACH ROW EXECUTE FUNCTION _ensure_user_profile();
+DROP TRIGGER IF EXISTS "trg_set_group_slug" ON "public"."groups";
+CREATE TRIGGER trg_set_group_slug BEFORE INSERT ON public.groups FOR EACH ROW EXECUTE FUNCTION set_group_slug_from_name();
+DROP TRIGGER IF EXISTS "trg_sync_group_visibility" ON "public"."groups";
+CREATE TRIGGER trg_sync_group_visibility BEFORE INSERT OR UPDATE OF visibility ON public.groups FOR EACH ROW EXECUTE FUNCTION sync_group_visibility();
+DROP TRIGGER IF EXISTS "trg_sync_member_count" ON "public"."group_members";
+CREATE TRIGGER trg_sync_member_count AFTER INSERT OR DELETE ON public.group_members FOR EACH ROW EXECUTE FUNCTION _sync_group_member_count();
+DROP TRIGGER IF EXISTS "trg_user_tours_updated_at" ON "public"."user_tours";
+CREATE TRIGGER trg_user_tours_updated_at BEFORE UPDATE ON public.user_tours FOR EACH ROW EXECUTE FUNCTION set_user_tours_updated_at();
+ALTER TABLE "public"."backup_manifests" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."buddy_invites" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."community_device_tokens" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."community_enrollments" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."community_event_attendees" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."community_events" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."community_friends" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."community_join_requests" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."community_reports" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."community_start_alerts" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."daily_logs" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."daily_user_stats" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."exams" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."focus_sessions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."group_announcements" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."group_challenge_participants" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."group_challenges" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."group_chat_messages" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."group_invites" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."group_members" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."group_milestones" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."groups" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."habits" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."mock_tests" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."notifications" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."store_items" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."study_sessions_log" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."subjects" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."sync_items" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."tasks" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."tests" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."user_display_profiles" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."user_inventory" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."user_onboarding" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."user_points" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."user_presence" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."user_profiles" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."user_roles" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."user_settings" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."user_stats_summary" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."user_tours" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."users" ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "backup_manifests_auth_policy" ON "public"."backup_manifests";
+CREATE POLICY "backup_manifests_auth_policy" ON "public"."backup_manifests" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "backup_manifests_delete_own" ON "public"."backup_manifests";
+CREATE POLICY "backup_manifests_delete_own" ON "public"."backup_manifests" AS PERMISSIVE FOR DELETE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "backup_manifests_insert_own" ON "public"."backup_manifests";
+CREATE POLICY "backup_manifests_insert_own" ON "public"."backup_manifests" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) AND (split_part(path, '/'::text, 1) = (( SELECT auth.uid() AS uid))::text)));
+DROP POLICY IF EXISTS "backup_manifests_select_own" ON "public"."backup_manifests";
+CREATE POLICY "backup_manifests_select_own" ON "public"."backup_manifests" AS PERMISSIVE FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "backup_manifests_update_own" ON "public"."backup_manifests";
+CREATE POLICY "backup_manifests_update_own" ON "public"."backup_manifests" AS PERMISSIVE FOR UPDATE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) AND (split_part(path, '/'::text, 1) = (( SELECT auth.uid() AS uid))::text)));
+DROP POLICY IF EXISTS "community_device_tokens_auth_policy" ON "public"."community_device_tokens";
+CREATE POLICY "community_device_tokens_auth_policy" ON "public"."community_device_tokens" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "community_tokens_own" ON "public"."community_device_tokens";
+CREATE POLICY "community_tokens_own" ON "public"."community_device_tokens" AS PERMISSIVE FOR SELECT  USING ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "community_enrollments_auth_policy" ON "public"."community_enrollments";
+CREATE POLICY "community_enrollments_auth_policy" ON "public"."community_enrollments" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "community_enrollments_own" ON "public"."community_enrollments";
+CREATE POLICY "community_enrollments_own" ON "public"."community_enrollments" AS PERMISSIVE FOR SELECT  USING ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "cea_own" ON "public"."community_event_attendees";
+CREATE POLICY "cea_own" ON "public"."community_event_attendees" AS PERMISSIVE FOR ALL  USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+DROP POLICY IF EXISTS "cea_read_auth" ON "public"."community_event_attendees";
+CREATE POLICY "cea_read_auth" ON "public"."community_event_attendees" AS PERMISSIVE FOR SELECT  USING ((auth.role() = 'authenticated'::text));
+DROP POLICY IF EXISTS "community_event_attendees_auth_policy" ON "public"."community_event_attendees";
+CREATE POLICY "community_event_attendees_auth_policy" ON "public"."community_event_attendees" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "event_attendees_delete_own" ON "public"."community_event_attendees";
+CREATE POLICY "event_attendees_delete_own" ON "public"."community_event_attendees" AS PERMISSIVE FOR DELETE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "event_attendees_insert_own" ON "public"."community_event_attendees";
+CREATE POLICY "event_attendees_insert_own" ON "public"."community_event_attendees" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "event_attendees_read_active" ON "public"."community_event_attendees";
+CREATE POLICY "event_attendees_read_active" ON "public"."community_event_attendees" AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM community_events ce
+  WHERE ((ce.id = community_event_attendees.event_id) AND (ce.is_active = true)))));
+DROP POLICY IF EXISTS "ce_read_public" ON "public"."community_events";
+CREATE POLICY "ce_read_public" ON "public"."community_events" AS PERMISSIVE FOR SELECT  USING ((is_active = true));
+DROP POLICY IF EXISTS "ce_service_write" ON "public"."community_events";
+CREATE POLICY "ce_service_write" ON "public"."community_events" AS PERMISSIVE FOR ALL  USING ((auth.role() = 'service_role'::text));
+DROP POLICY IF EXISTS "community_events_auth_policy" ON "public"."community_events";
+CREATE POLICY "community_events_auth_policy" ON "public"."community_events" AS PERMISSIVE FOR ALL  USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
+DROP POLICY IF EXISTS "community_events_read_active" ON "public"."community_events";
+CREATE POLICY "community_events_read_active" ON "public"."community_events" AS PERMISSIVE FOR SELECT TO anon, authenticated USING ((is_active = true));
+DROP POLICY IF EXISTS "community_friends_auth_policy" ON "public"."community_friends";
+CREATE POLICY "community_friends_auth_policy" ON "public"."community_friends" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "community_friends_own" ON "public"."community_friends";
+CREATE POLICY "community_friends_own" ON "public"."community_friends" AS PERMISSIVE FOR SELECT  USING (((auth.uid() = user_id) OR (auth.uid() = friend_id)));
+DROP POLICY IF EXISTS "community_join_requests_auth_policy" ON "public"."community_join_requests";
+CREATE POLICY "community_join_requests_auth_policy" ON "public"."community_join_requests" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "community_requests_own" ON "public"."community_join_requests";
+CREATE POLICY "community_requests_own" ON "public"."community_join_requests" AS PERMISSIVE FOR SELECT  USING ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "community_reports_auth_policy" ON "public"."community_reports";
+CREATE POLICY "community_reports_auth_policy" ON "public"."community_reports" AS PERMISSIVE FOR ALL  USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
+DROP POLICY IF EXISTS "community_reports_insert" ON "public"."community_reports";
+CREATE POLICY "community_reports_insert" ON "public"."community_reports" AS PERMISSIVE FOR INSERT  WITH CHECK ((auth.uid() = reporter_user_id));
+DROP POLICY IF EXISTS "community_start_alerts_auth_policy" ON "public"."community_start_alerts";
+CREATE POLICY "community_start_alerts_auth_policy" ON "public"."community_start_alerts" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "community_start_own" ON "public"."community_start_alerts";
+CREATE POLICY "community_start_own" ON "public"."community_start_alerts" AS PERMISSIVE FOR SELECT  USING ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "daily_logs_user_policy" ON "public"."daily_logs";
+CREATE POLICY "daily_logs_user_policy" ON "public"."daily_logs" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "daily_delete_own" ON "public"."daily_user_stats";
+CREATE POLICY "daily_delete_own" ON "public"."daily_user_stats" AS PERMISSIVE FOR DELETE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "daily_insert_own" ON "public"."daily_user_stats";
+CREATE POLICY "daily_insert_own" ON "public"."daily_user_stats" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "daily_own" ON "public"."daily_user_stats";
+CREATE POLICY "daily_own" ON "public"."daily_user_stats" AS PERMISSIVE FOR ALL  USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "daily_read_all" ON "public"."daily_user_stats";
+CREATE POLICY "daily_read_all" ON "public"."daily_user_stats" AS PERMISSIVE FOR SELECT  USING (true);
+DROP POLICY IF EXISTS "daily_read_authenticated" ON "public"."daily_user_stats";
+CREATE POLICY "daily_read_authenticated" ON "public"."daily_user_stats" AS PERMISSIVE FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "daily_update_own" ON "public"."daily_user_stats";
+CREATE POLICY "daily_update_own" ON "public"."daily_user_stats" AS PERMISSIVE FOR UPDATE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "daily_user_stats_auth_policy" ON "public"."daily_user_stats";
+CREATE POLICY "daily_user_stats_auth_policy" ON "public"."daily_user_stats" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "exams_user_policy" ON "public"."exams";
+CREATE POLICY "exams_user_policy" ON "public"."exams" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "focus_sessions_user_policy" ON "public"."focus_sessions";
+CREATE POLICY "focus_sessions_user_policy" ON "public"."focus_sessions" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "announcements_read_public" ON "public"."group_announcements";
+CREATE POLICY "announcements_read_public" ON "public"."group_announcements" AS PERMISSIVE FOR SELECT  USING ((EXISTS ( SELECT 1
+   FROM groups g
+  WHERE ((g.id = group_announcements.group_id) AND (g.is_public = true) AND (g.is_active = true)))));
+DROP POLICY IF EXISTS "gann_read" ON "public"."group_announcements";
+CREATE POLICY "gann_read" ON "public"."group_announcements" AS PERMISSIVE FOR SELECT  USING (_is_group_member(group_id, auth.uid()));
+DROP POLICY IF EXISTS "gann_write" ON "public"."group_announcements";
+CREATE POLICY "gann_write" ON "public"."group_announcements" AS PERMISSIVE FOR ALL  USING ((author_id = auth.uid())) WITH CHECK ((author_id = auth.uid()));
+DROP POLICY IF EXISTS "group_announcements_auth_policy" ON "public"."group_announcements";
+CREATE POLICY "group_announcements_auth_policy" ON "public"."group_announcements" AS PERMISSIVE FOR ALL  USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
+DROP POLICY IF EXISTS "group_announcements_delete_managers" ON "public"."group_announcements";
+CREATE POLICY "group_announcements_delete_managers" ON "public"."group_announcements" AS PERMISSIVE FOR DELETE TO anon, authenticated USING (((author_id = ( SELECT auth.uid() AS uid)) AND private.can_manage_group(group_id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "group_announcements_insert_managers" ON "public"."group_announcements";
+CREATE POLICY "group_announcements_insert_managers" ON "public"."group_announcements" AS PERMISSIVE FOR INSERT TO anon, authenticated WITH CHECK (((author_id = ( SELECT auth.uid() AS uid)) AND private.can_manage_group(group_id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "group_announcements_read_members" ON "public"."group_announcements";
+CREATE POLICY "group_announcements_read_members" ON "public"."group_announcements" AS PERMISSIVE FOR SELECT TO anon, authenticated USING (private.is_group_member(group_id, ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "group_announcements_update_managers" ON "public"."group_announcements";
+CREATE POLICY "group_announcements_update_managers" ON "public"."group_announcements" AS PERMISSIVE FOR UPDATE TO anon, authenticated USING (((author_id = ( SELECT auth.uid() AS uid)) AND private.can_manage_group(group_id, ( SELECT auth.uid() AS uid)))) WITH CHECK (((author_id = ( SELECT auth.uid() AS uid)) AND private.can_manage_group(group_id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "challenge_participants_delete_own" ON "public"."group_challenge_participants";
+CREATE POLICY "challenge_participants_delete_own" ON "public"."group_challenge_participants" AS PERMISSIVE FOR DELETE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "challenge_participants_insert_own" ON "public"."group_challenge_participants";
+CREATE POLICY "challenge_participants_insert_own" ON "public"."group_challenge_participants" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "challenge_participants_read_members" ON "public"."group_challenge_participants";
+CREATE POLICY "challenge_participants_read_members" ON "public"."group_challenge_participants" AS PERMISSIVE FOR SELECT TO anon, authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) OR (EXISTS ( SELECT 1
+   FROM group_challenges gc
+  WHERE ((gc.id = group_challenge_participants.challenge_id) AND private.is_group_member(gc.group_id, ( SELECT auth.uid() AS uid)))))));
+DROP POLICY IF EXISTS "challenge_participants_update_own" ON "public"."group_challenge_participants";
+CREATE POLICY "challenge_participants_update_own" ON "public"."group_challenge_participants" AS PERMISSIVE FOR UPDATE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "gcpart_own" ON "public"."group_challenge_participants";
+CREATE POLICY "gcpart_own" ON "public"."group_challenge_participants" AS PERMISSIVE FOR ALL  USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+DROP POLICY IF EXISTS "gcpart_read" ON "public"."group_challenge_participants";
+CREATE POLICY "gcpart_read" ON "public"."group_challenge_participants" AS PERMISSIVE FOR SELECT  USING ((challenge_id IN ( SELECT gc.id
+   FROM group_challenges gc
+  WHERE _is_group_member(gc.group_id, auth.uid()))));
+DROP POLICY IF EXISTS "group_challenge_participants_auth_policy" ON "public"."group_challenge_participants";
+CREATE POLICY "group_challenge_participants_auth_policy" ON "public"."group_challenge_participants" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "gchall_insert" ON "public"."group_challenges";
+CREATE POLICY "gchall_insert" ON "public"."group_challenges" AS PERMISSIVE FOR INSERT  WITH CHECK (((created_by = auth.uid()) AND _is_group_member(group_id, auth.uid())));
+DROP POLICY IF EXISTS "gchall_read" ON "public"."group_challenges";
+CREATE POLICY "gchall_read" ON "public"."group_challenges" AS PERMISSIVE FOR SELECT  USING (_is_group_member(group_id, auth.uid()));
+DROP POLICY IF EXISTS "gchall_update" ON "public"."group_challenges";
+CREATE POLICY "gchall_update" ON "public"."group_challenges" AS PERMISSIVE FOR UPDATE  USING ((created_by = auth.uid()));
+DROP POLICY IF EXISTS "group_challenges_auth_policy" ON "public"."group_challenges";
+CREATE POLICY "group_challenges_auth_policy" ON "public"."group_challenges" AS PERMISSIVE FOR ALL  USING ((auth.uid() = created_by)) WITH CHECK ((auth.uid() = created_by));
+DROP POLICY IF EXISTS "group_challenges_delete_managers" ON "public"."group_challenges";
+CREATE POLICY "group_challenges_delete_managers" ON "public"."group_challenges" AS PERMISSIVE FOR DELETE TO anon, authenticated USING (((created_by = ( SELECT auth.uid() AS uid)) AND private.can_manage_group(group_id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "group_challenges_insert_managers" ON "public"."group_challenges";
+CREATE POLICY "group_challenges_insert_managers" ON "public"."group_challenges" AS PERMISSIVE FOR INSERT TO anon, authenticated WITH CHECK (((created_by = ( SELECT auth.uid() AS uid)) AND private.can_manage_group(group_id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "group_challenges_update_managers" ON "public"."group_challenges";
+CREATE POLICY "group_challenges_update_managers" ON "public"."group_challenges" AS PERMISSIVE FOR UPDATE TO anon, authenticated USING (((created_by = ( SELECT auth.uid() AS uid)) AND private.can_manage_group(group_id, ( SELECT auth.uid() AS uid)))) WITH CHECK (((created_by = ( SELECT auth.uid() AS uid)) AND private.can_manage_group(group_id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "gchat_insert" ON "public"."group_chat_messages";
+CREATE POLICY "gchat_insert" ON "public"."group_chat_messages" AS PERMISSIVE FOR INSERT  WITH CHECK (((user_id = auth.uid()) AND _is_group_member(group_id, auth.uid())));
+DROP POLICY IF EXISTS "gchat_read" ON "public"."group_chat_messages";
+CREATE POLICY "gchat_read" ON "public"."group_chat_messages" AS PERMISSIVE FOR SELECT  USING (_is_group_member(group_id, auth.uid()));
+DROP POLICY IF EXISTS "group_chat_insert_own" ON "public"."group_chat_messages";
+CREATE POLICY "group_chat_insert_own" ON "public"."group_chat_messages" AS PERMISSIVE FOR INSERT TO anon, authenticated WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) AND private.is_group_member(group_id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "group_chat_messages_auth_policy" ON "public"."group_chat_messages";
+CREATE POLICY "group_chat_messages_auth_policy" ON "public"."group_chat_messages" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "group_chat_read_members" ON "public"."group_chat_messages";
+CREATE POLICY "group_chat_read_members" ON "public"."group_chat_messages" AS PERMISSIVE FOR SELECT TO anon, authenticated USING (private.is_group_member(group_id, ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "group_chat_update_own" ON "public"."group_chat_messages";
+CREATE POLICY "group_chat_update_own" ON "public"."group_chat_messages" AS PERMISSIVE FOR UPDATE TO anon, authenticated USING (((user_id = ( SELECT auth.uid() AS uid)) AND private.is_group_member(group_id, ( SELECT auth.uid() AS uid)))) WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) AND private.is_group_member(group_id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "ginv_create" ON "public"."group_invites";
+CREATE POLICY "ginv_create" ON "public"."group_invites" AS PERMISSIVE FOR INSERT  WITH CHECK (((created_by = ( SELECT auth.uid() AS uid)) AND (group_id IN ( SELECT group_members.group_id
+   FROM group_members
+  WHERE ((group_members.user_id = ( SELECT auth.uid() AS uid)) AND (group_members.role = ANY (ARRAY['owner'::text, 'admin'::text, 'moderator'::text])))))));
+DROP POLICY IF EXISTS "ginv_delete" ON "public"."group_invites";
+CREATE POLICY "ginv_delete" ON "public"."group_invites" AS PERMISSIVE FOR DELETE  USING (((created_by = ( SELECT auth.uid() AS uid)) OR (group_id IN ( SELECT group_members.group_id
+   FROM group_members
+  WHERE ((group_members.user_id = ( SELECT auth.uid() AS uid)) AND (group_members.role = ANY (ARRAY['owner'::text, 'admin'::text])))))));
+DROP POLICY IF EXISTS "ginv_read" ON "public"."group_invites";
+CREATE POLICY "ginv_read" ON "public"."group_invites" AS PERMISSIVE FOR SELECT  USING (((group_id IN ( SELECT group_members.group_id
+   FROM group_members
+  WHERE (group_members.user_id = ( SELECT auth.uid() AS uid)))) OR (created_by = ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "group_invites_auth_policy" ON "public"."group_invites";
+CREATE POLICY "group_invites_auth_policy" ON "public"."group_invites" AS PERMISSIVE FOR ALL  USING ((auth.uid() = created_by)) WITH CHECK ((auth.uid() = created_by));
+DROP POLICY IF EXISTS "group_invites_delete_managers" ON "public"."group_invites";
+CREATE POLICY "group_invites_delete_managers" ON "public"."group_invites" AS PERMISSIVE FOR DELETE TO anon, authenticated USING (((created_by = ( SELECT auth.uid() AS uid)) OR private.can_manage_group(group_id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "group_invites_insert_managers" ON "public"."group_invites";
+CREATE POLICY "group_invites_insert_managers" ON "public"."group_invites" AS PERMISSIVE FOR INSERT TO anon, authenticated WITH CHECK (((created_by = ( SELECT auth.uid() AS uid)) AND private.can_manage_group(group_id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "group_invites_read_managers" ON "public"."group_invites";
+CREATE POLICY "group_invites_read_managers" ON "public"."group_invites" AS PERMISSIVE FOR SELECT TO anon, authenticated USING (((created_by = ( SELECT auth.uid() AS uid)) OR private.can_manage_group(group_id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "gm_delete_admin" ON "public"."group_members";
+CREATE POLICY "gm_delete_admin" ON "public"."group_members" AS PERMISSIVE FOR DELETE  USING (((auth.uid() IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM group_members gm2
+  WHERE ((gm2.group_id = group_members.group_id) AND (gm2.user_id = auth.uid()) AND (gm2.role = ANY (ARRAY['admin'::text, 'owner'::text])))))));
+DROP POLICY IF EXISTS "gm_delete_self" ON "public"."group_members";
+CREATE POLICY "gm_delete_self" ON "public"."group_members" AS PERMISSIVE FOR DELETE  USING (((auth.uid() IS NOT NULL) AND (user_id = auth.uid())));
+DROP POLICY IF EXISTS "gm_insert" ON "public"."group_members";
+CREATE POLICY "gm_insert" ON "public"."group_members" AS PERMISSIVE FOR INSERT  WITH CHECK ((auth.role() = 'authenticated'::text));
+DROP POLICY IF EXISTS "gm_insert_owner_self" ON "public"."group_members";
+CREATE POLICY "gm_insert_owner_self" ON "public"."group_members" AS PERMISSIVE FOR INSERT  WITH CHECK (((auth.uid() IS NOT NULL) AND (user_id = auth.uid()) AND (role = 'owner'::text) AND (EXISTS ( SELECT 1
+   FROM groups g
+  WHERE ((g.id = group_members.group_id) AND (g.owner_id = auth.uid()))))));
+DROP POLICY IF EXISTS "gm_join_public_group" ON "public"."group_members";
+CREATE POLICY "gm_join_public_group" ON "public"."group_members" AS PERMISSIVE FOR INSERT  WITH CHECK (((auth.uid() IS NOT NULL) AND (user_id = auth.uid()) AND (role = 'member'::text) AND (EXISTS ( SELECT 1
+   FROM groups g
+  WHERE ((g.id = group_members.group_id) AND (g.is_public = true) AND (g.is_active = true))))));
+DROP POLICY IF EXISTS "gm_join_via_invite" ON "public"."group_members";
+CREATE POLICY "gm_join_via_invite" ON "public"."group_members" AS PERMISSIVE FOR INSERT  WITH CHECK (((auth.uid() IS NOT NULL) AND (user_id = auth.uid()) AND (role = 'member'::text) AND (EXISTS ( SELECT 1
+   FROM group_invites gi
+  WHERE ((gi.group_id = group_members.group_id) AND ((gi.expires_at IS NULL) OR (gi.expires_at > now())) AND ((gi.max_uses IS NULL) OR (gi.uses_count < gi.max_uses)))))));
+DROP POLICY IF EXISTS "gm_own_delete" ON "public"."group_members";
+CREATE POLICY "gm_own_delete" ON "public"."group_members" AS PERMISSIVE FOR DELETE  USING ((user_id = auth.uid()));
+DROP POLICY IF EXISTS "gm_owner_update" ON "public"."group_members";
+CREATE POLICY "gm_owner_update" ON "public"."group_members" AS PERMISSIVE FOR UPDATE  USING (((user_id = auth.uid()) OR (group_id IN ( SELECT groups.id
+   FROM groups
+  WHERE (groups.owner_id = auth.uid())))));
+DROP POLICY IF EXISTS "gm_read" ON "public"."group_members";
+CREATE POLICY "gm_read" ON "public"."group_members" AS PERMISSIVE FOR SELECT  USING ((auth.role() = 'authenticated'::text));
+DROP POLICY IF EXISTS "gm_self_delete" ON "public"."group_members";
+CREATE POLICY "gm_self_delete" ON "public"."group_members" AS PERMISSIVE FOR DELETE TO authenticated USING ((user_id = auth.uid()));
+DROP POLICY IF EXISTS "gm_update_own_row" ON "public"."group_members";
+CREATE POLICY "gm_update_own_row" ON "public"."group_members" AS PERMISSIVE FOR UPDATE  USING (((auth.uid() IS NOT NULL) AND (user_id = auth.uid()))) WITH CHECK (((auth.uid() IS NOT NULL) AND (user_id = auth.uid())));
+DROP POLICY IF EXISTS "group_members_auth_policy" ON "public"."group_members";
+CREATE POLICY "group_members_auth_policy" ON "public"."group_members" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "gmile_read" ON "public"."group_milestones";
+CREATE POLICY "gmile_read" ON "public"."group_milestones" AS PERMISSIVE FOR SELECT  USING (_is_group_member(group_id, auth.uid()));
+DROP POLICY IF EXISTS "group_milestones_auth_policy" ON "public"."group_milestones";
+CREATE POLICY "group_milestones_auth_policy" ON "public"."group_milestones" AS PERMISSIVE FOR ALL  USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
+DROP POLICY IF EXISTS "group_milestones_read_members" ON "public"."group_milestones";
+CREATE POLICY "group_milestones_read_members" ON "public"."group_milestones" AS PERMISSIVE FOR SELECT TO anon, authenticated USING (private.is_group_member(group_id, ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "groups_auth_insert" ON "public"."groups";
+CREATE POLICY "groups_auth_insert" ON "public"."groups" AS PERMISSIVE FOR INSERT  WITH CHECK ((auth.role() = 'authenticated'::text));
+DROP POLICY IF EXISTS "groups_auth_policy" ON "public"."groups";
+CREATE POLICY "groups_auth_policy" ON "public"."groups" AS PERMISSIVE FOR ALL  USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "groups_delete_own" ON "public"."groups";
+CREATE POLICY "groups_delete_own" ON "public"."groups" AS PERMISSIVE FOR DELETE TO authenticated USING ((owner_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "groups_insert_own" ON "public"."groups";
+CREATE POLICY "groups_insert_own" ON "public"."groups" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((owner_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "groups_member_read" ON "public"."groups";
+CREATE POLICY "groups_member_read" ON "public"."groups" AS PERMISSIVE FOR SELECT  USING ((id IN ( SELECT group_members.group_id
+   FROM group_members
+  WHERE (group_members.user_id = auth.uid()))));
+DROP POLICY IF EXISTS "groups_owner_delete" ON "public"."groups";
+CREATE POLICY "groups_owner_delete" ON "public"."groups" AS PERMISSIVE FOR DELETE  USING ((owner_id = auth.uid()));
+DROP POLICY IF EXISTS "groups_owner_update" ON "public"."groups";
+CREATE POLICY "groups_owner_update" ON "public"."groups" AS PERMISSIVE FOR UPDATE  USING ((owner_id = auth.uid())) WITH CHECK ((owner_id = auth.uid()));
+DROP POLICY IF EXISTS "groups_read_authenticated" ON "public"."groups";
+CREATE POLICY "groups_read_authenticated" ON "public"."groups" AS PERMISSIVE FOR SELECT TO anon, authenticated USING ((((is_public = true) AND (is_active = true) AND (deleted_at IS NULL)) OR private.is_group_member(id, ( SELECT auth.uid() AS uid))));
+DROP POLICY IF EXISTS "groups_read_public" ON "public"."groups";
+CREATE POLICY "groups_read_public" ON "public"."groups" AS PERMISSIVE FOR SELECT TO anon USING (((is_public = true) AND (is_active = true) AND (deleted_at IS NULL)));
+DROP POLICY IF EXISTS "groups_update_own" ON "public"."groups";
+CREATE POLICY "groups_update_own" ON "public"."groups" AS PERMISSIVE FOR UPDATE TO authenticated USING ((owner_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((owner_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "groups_update_owner" ON "public"."groups";
+CREATE POLICY "groups_update_owner" ON "public"."groups" AS PERMISSIVE FOR UPDATE  USING (((auth.uid() IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM group_members gm
+  WHERE ((gm.group_id = groups.id) AND (gm.user_id = auth.uid()) AND (gm.role = ANY (ARRAY['admin'::text, 'owner'::text])))))));
+DROP POLICY IF EXISTS "habits_user_policy" ON "public"."habits";
+CREATE POLICY "habits_user_policy" ON "public"."habits" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "mock_tests_user_policy" ON "public"."mock_tests";
+CREATE POLICY "mock_tests_user_policy" ON "public"."mock_tests" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "notif_own" ON "public"."notifications";
+CREATE POLICY "notif_own" ON "public"."notifications" AS PERMISSIVE FOR ALL  USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+DROP POLICY IF EXISTS "notifications_own" ON "public"."notifications";
+CREATE POLICY "notifications_own" ON "public"."notifications" AS PERMISSIVE FOR ALL TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "notifications_user_policy" ON "public"."notifications";
+CREATE POLICY "notifications_user_policy" ON "public"."notifications" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "store_items_read" ON "public"."store_items";
+CREATE POLICY "store_items_read" ON "public"."store_items" AS PERMISSIVE FOR SELECT TO anon, authenticated USING ((active = true));
+DROP POLICY IF EXISTS "store_read_all" ON "public"."store_items";
+CREATE POLICY "store_read_all" ON "public"."store_items" AS PERMISSIVE FOR SELECT  USING (true);
+DROP POLICY IF EXISTS "sessions_own" ON "public"."study_sessions_log";
+CREATE POLICY "sessions_own" ON "public"."study_sessions_log" AS PERMISSIVE FOR ALL TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "study_sessions_log_auth_policy" ON "public"."study_sessions_log";
+CREATE POLICY "study_sessions_log_auth_policy" ON "public"."study_sessions_log" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "subjects_user_policy" ON "public"."subjects";
+CREATE POLICY "subjects_user_policy" ON "public"."subjects" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "sync_items_auth_policy" ON "public"."sync_items";
+CREATE POLICY "sync_items_auth_policy" ON "public"."sync_items" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "sync_items_own" ON "public"."sync_items";
+CREATE POLICY "sync_items_own" ON "public"."sync_items" AS PERMISSIVE FOR ALL TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "tasks_user_policy" ON "public"."tasks";
+CREATE POLICY "tasks_user_policy" ON "public"."tasks" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "tests_user_policy" ON "public"."tests";
+CREATE POLICY "tests_user_policy" ON "public"."tests" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "user_display_profiles_read" ON "public"."user_display_profiles";
+CREATE POLICY "user_display_profiles_read" ON "public"."user_display_profiles" AS PERMISSIVE FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "inventory_own" ON "public"."user_inventory";
+CREATE POLICY "inventory_own" ON "public"."user_inventory" AS PERMISSIVE FOR ALL TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "user_inventory_auth_policy" ON "public"."user_inventory";
+CREATE POLICY "user_inventory_auth_policy" ON "public"."user_inventory" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "onboarding_own" ON "public"."user_onboarding";
+CREATE POLICY "onboarding_own" ON "public"."user_onboarding" AS PERMISSIVE FOR ALL TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "user_onboarding_user_policy" ON "public"."user_onboarding";
+CREATE POLICY "user_onboarding_user_policy" ON "public"."user_onboarding" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "points_insert_own" ON "public"."user_points";
+CREATE POLICY "points_insert_own" ON "public"."user_points" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "points_own_write" ON "public"."user_points";
+CREATE POLICY "points_own_write" ON "public"."user_points" AS PERMISSIVE FOR ALL  USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+DROP POLICY IF EXISTS "points_read_all" ON "public"."user_points";
+CREATE POLICY "points_read_all" ON "public"."user_points" AS PERMISSIVE FOR SELECT  USING (true);
+DROP POLICY IF EXISTS "points_read_authenticated" ON "public"."user_points";
+CREATE POLICY "points_read_authenticated" ON "public"."user_points" AS PERMISSIVE FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "points_update_own" ON "public"."user_points";
+CREATE POLICY "points_update_own" ON "public"."user_points" AS PERMISSIVE FOR UPDATE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "user_points_auth_policy" ON "public"."user_points";
+CREATE POLICY "user_points_auth_policy" ON "public"."user_points" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "presence_delete_own" ON "public"."user_presence";
+CREATE POLICY "presence_delete_own" ON "public"."user_presence" AS PERMISSIVE FOR DELETE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "presence_insert_own" ON "public"."user_presence";
+CREATE POLICY "presence_insert_own" ON "public"."user_presence" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "presence_own_write" ON "public"."user_presence";
+CREATE POLICY "presence_own_write" ON "public"."user_presence" AS PERMISSIVE FOR ALL  USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+DROP POLICY IF EXISTS "presence_read_auth" ON "public"."user_presence";
+CREATE POLICY "presence_read_auth" ON "public"."user_presence" AS PERMISSIVE FOR SELECT  USING ((auth.role() = 'authenticated'::text));
+DROP POLICY IF EXISTS "presence_read_authenticated" ON "public"."user_presence";
+CREATE POLICY "presence_read_authenticated" ON "public"."user_presence" AS PERMISSIVE FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "presence_update_own" ON "public"."user_presence";
+CREATE POLICY "presence_update_own" ON "public"."user_presence" AS PERMISSIVE FOR UPDATE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "user_presence_user_policy" ON "public"."user_presence";
+CREATE POLICY "user_presence_user_policy" ON "public"."user_presence" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "profiles_own" ON "public"."user_profiles";
+CREATE POLICY "profiles_own" ON "public"."user_profiles" AS PERMISSIVE FOR ALL TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "user_profiles_user_policy" ON "public"."user_profiles";
+CREATE POLICY "user_profiles_user_policy" ON "public"."user_profiles" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "roles_read_own" ON "public"."user_roles";
+CREATE POLICY "roles_read_own" ON "public"."user_roles" AS PERMISSIVE FOR SELECT TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "settings_own" ON "public"."user_settings";
+CREATE POLICY "settings_own" ON "public"."user_settings" AS PERMISSIVE FOR ALL TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "user_settings_user_policy" ON "public"."user_settings";
+CREATE POLICY "user_settings_user_policy" ON "public"."user_settings" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "stats_delete_own" ON "public"."user_stats_summary";
+CREATE POLICY "stats_delete_own" ON "public"."user_stats_summary" AS PERMISSIVE FOR DELETE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "stats_insert_own" ON "public"."user_stats_summary";
+CREATE POLICY "stats_insert_own" ON "public"."user_stats_summary" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "stats_own" ON "public"."user_stats_summary";
+CREATE POLICY "stats_own" ON "public"."user_stats_summary" AS PERMISSIVE FOR ALL  USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "stats_read_all" ON "public"."user_stats_summary";
+CREATE POLICY "stats_read_all" ON "public"."user_stats_summary" AS PERMISSIVE FOR SELECT  USING (true);
+DROP POLICY IF EXISTS "stats_read_authenticated" ON "public"."user_stats_summary";
+CREATE POLICY "stats_read_authenticated" ON "public"."user_stats_summary" AS PERMISSIVE FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "stats_update_own" ON "public"."user_stats_summary";
+CREATE POLICY "stats_update_own" ON "public"."user_stats_summary" AS PERMISSIVE FOR UPDATE TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "user_stats_summary_user_policy" ON "public"."user_stats_summary";
+CREATE POLICY "user_stats_summary_user_policy" ON "public"."user_stats_summary" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "user_tours_auth_policy" ON "public"."user_tours";
+CREATE POLICY "user_tours_auth_policy" ON "public"."user_tours" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+DROP POLICY IF EXISTS "user_tours_own" ON "public"."user_tours";
+CREATE POLICY "user_tours_own" ON "public"."user_tours" AS PERMISSIVE FOR ALL TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "users_insert_own" ON "public"."users";
+CREATE POLICY "users_insert_own" ON "public"."users" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "users_insert_policy" ON "public"."users";
+CREATE POLICY "users_insert_policy" ON "public"."users" AS PERMISSIVE FOR INSERT  WITH CHECK ((auth.uid() = id));
+DROP POLICY IF EXISTS "users_own" ON "public"."users";
+CREATE POLICY "users_own" ON "public"."users" AS PERMISSIVE FOR ALL  USING ((id = auth.uid())) WITH CHECK ((id = auth.uid()));
+DROP POLICY IF EXISTS "users_read_member_profiles" ON "public"."users";
+CREATE POLICY "users_read_member_profiles" ON "public"."users" AS PERMISSIVE FOR SELECT TO authenticated USING ((deleted_at IS NULL));
+DROP POLICY IF EXISTS "users_read_public" ON "public"."users";
+CREATE POLICY "users_read_public" ON "public"."users" AS PERMISSIVE FOR SELECT  USING (true);
+DROP POLICY IF EXISTS "users_select_own" ON "public"."users";
+CREATE POLICY "users_select_own" ON "public"."users" AS PERMISSIVE FOR SELECT TO authenticated USING ((id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "users_select_policy" ON "public"."users";
+CREATE POLICY "users_select_policy" ON "public"."users" AS PERMISSIVE FOR SELECT  USING ((auth.uid() = id));
+DROP POLICY IF EXISTS "users_update_own" ON "public"."users";
+CREATE POLICY "users_update_own" ON "public"."users" AS PERMISSIVE FOR UPDATE TO authenticated USING ((id = ( SELECT auth.uid() AS uid))) WITH CHECK ((id = ( SELECT auth.uid() AS uid)));
+DROP POLICY IF EXISTS "users_update_policy" ON "public"."users";
+CREATE POLICY "users_update_policy" ON "public"."users" AS PERMISSIVE FOR UPDATE  USING ((auth.uid() = id)) WITH CHECK ((auth.uid() = id));
+GRANT DELETE ON TABLE "public"."backup_manifests" TO anon;
+GRANT INSERT ON TABLE "public"."backup_manifests" TO anon;
+GRANT MAINTAIN ON TABLE "public"."backup_manifests" TO anon;
+GRANT REFERENCES ON TABLE "public"."backup_manifests" TO anon;
+GRANT SELECT ON TABLE "public"."backup_manifests" TO anon;
+GRANT TRIGGER ON TABLE "public"."backup_manifests" TO anon;
+GRANT TRUNCATE ON TABLE "public"."backup_manifests" TO anon;
+GRANT UPDATE ON TABLE "public"."backup_manifests" TO anon;
+GRANT DELETE ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT INSERT ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT SELECT ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT UPDATE ON TABLE "public"."backup_manifests" TO authenticated;
+GRANT DELETE ON TABLE "public"."backup_manifests" TO service_role;
+GRANT INSERT ON TABLE "public"."backup_manifests" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."backup_manifests" TO service_role;
+GRANT REFERENCES ON TABLE "public"."backup_manifests" TO service_role;
+GRANT SELECT ON TABLE "public"."backup_manifests" TO service_role;
+GRANT TRIGGER ON TABLE "public"."backup_manifests" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."backup_manifests" TO service_role;
+GRANT UPDATE ON TABLE "public"."backup_manifests" TO service_role;
+GRANT DELETE ON TABLE "public"."buddy_invites" TO anon;
+GRANT INSERT ON TABLE "public"."buddy_invites" TO anon;
+GRANT MAINTAIN ON TABLE "public"."buddy_invites" TO anon;
+GRANT REFERENCES ON TABLE "public"."buddy_invites" TO anon;
+GRANT SELECT ON TABLE "public"."buddy_invites" TO anon;
+GRANT TRIGGER ON TABLE "public"."buddy_invites" TO anon;
+GRANT TRUNCATE ON TABLE "public"."buddy_invites" TO anon;
+GRANT UPDATE ON TABLE "public"."buddy_invites" TO anon;
+GRANT DELETE ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT INSERT ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT SELECT ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT UPDATE ON TABLE "public"."buddy_invites" TO authenticated;
+GRANT DELETE ON TABLE "public"."buddy_invites" TO service_role;
+GRANT INSERT ON TABLE "public"."buddy_invites" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."buddy_invites" TO service_role;
+GRANT REFERENCES ON TABLE "public"."buddy_invites" TO service_role;
+GRANT SELECT ON TABLE "public"."buddy_invites" TO service_role;
+GRANT TRIGGER ON TABLE "public"."buddy_invites" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."buddy_invites" TO service_role;
+GRANT UPDATE ON TABLE "public"."buddy_invites" TO service_role;
+GRANT DELETE ON TABLE "public"."community_device_tokens" TO anon;
+GRANT INSERT ON TABLE "public"."community_device_tokens" TO anon;
+GRANT MAINTAIN ON TABLE "public"."community_device_tokens" TO anon;
+GRANT REFERENCES ON TABLE "public"."community_device_tokens" TO anon;
+GRANT SELECT ON TABLE "public"."community_device_tokens" TO anon;
+GRANT TRIGGER ON TABLE "public"."community_device_tokens" TO anon;
+GRANT TRUNCATE ON TABLE "public"."community_device_tokens" TO anon;
+GRANT UPDATE ON TABLE "public"."community_device_tokens" TO anon;
+GRANT DELETE ON TABLE "public"."community_device_tokens" TO authenticated;
+GRANT INSERT ON TABLE "public"."community_device_tokens" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."community_device_tokens" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."community_device_tokens" TO authenticated;
+GRANT SELECT ON TABLE "public"."community_device_tokens" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."community_device_tokens" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."community_device_tokens" TO authenticated;
+GRANT UPDATE ON TABLE "public"."community_device_tokens" TO authenticated;
+GRANT DELETE ON TABLE "public"."community_device_tokens" TO service_role;
+GRANT INSERT ON TABLE "public"."community_device_tokens" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."community_device_tokens" TO service_role;
+GRANT REFERENCES ON TABLE "public"."community_device_tokens" TO service_role;
+GRANT SELECT ON TABLE "public"."community_device_tokens" TO service_role;
+GRANT TRIGGER ON TABLE "public"."community_device_tokens" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."community_device_tokens" TO service_role;
+GRANT UPDATE ON TABLE "public"."community_device_tokens" TO service_role;
+GRANT DELETE ON TABLE "public"."community_enrollments" TO anon;
+GRANT INSERT ON TABLE "public"."community_enrollments" TO anon;
+GRANT MAINTAIN ON TABLE "public"."community_enrollments" TO anon;
+GRANT REFERENCES ON TABLE "public"."community_enrollments" TO anon;
+GRANT SELECT ON TABLE "public"."community_enrollments" TO anon;
+GRANT TRIGGER ON TABLE "public"."community_enrollments" TO anon;
+GRANT TRUNCATE ON TABLE "public"."community_enrollments" TO anon;
+GRANT UPDATE ON TABLE "public"."community_enrollments" TO anon;
+GRANT DELETE ON TABLE "public"."community_enrollments" TO authenticated;
+GRANT INSERT ON TABLE "public"."community_enrollments" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."community_enrollments" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."community_enrollments" TO authenticated;
+GRANT SELECT ON TABLE "public"."community_enrollments" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."community_enrollments" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."community_enrollments" TO authenticated;
+GRANT UPDATE ON TABLE "public"."community_enrollments" TO authenticated;
+GRANT DELETE ON TABLE "public"."community_enrollments" TO service_role;
+GRANT INSERT ON TABLE "public"."community_enrollments" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."community_enrollments" TO service_role;
+GRANT REFERENCES ON TABLE "public"."community_enrollments" TO service_role;
+GRANT SELECT ON TABLE "public"."community_enrollments" TO service_role;
+GRANT TRIGGER ON TABLE "public"."community_enrollments" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."community_enrollments" TO service_role;
+GRANT UPDATE ON TABLE "public"."community_enrollments" TO service_role;
+GRANT DELETE ON TABLE "public"."community_event_attendees" TO anon;
+GRANT INSERT ON TABLE "public"."community_event_attendees" TO anon;
+GRANT MAINTAIN ON TABLE "public"."community_event_attendees" TO anon;
+GRANT REFERENCES ON TABLE "public"."community_event_attendees" TO anon;
+GRANT SELECT ON TABLE "public"."community_event_attendees" TO anon;
+GRANT TRIGGER ON TABLE "public"."community_event_attendees" TO anon;
+GRANT TRUNCATE ON TABLE "public"."community_event_attendees" TO anon;
+GRANT UPDATE ON TABLE "public"."community_event_attendees" TO anon;
+GRANT DELETE ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT INSERT ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT SELECT ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT UPDATE ON TABLE "public"."community_event_attendees" TO authenticated;
+GRANT DELETE ON TABLE "public"."community_event_attendees" TO service_role;
+GRANT INSERT ON TABLE "public"."community_event_attendees" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."community_event_attendees" TO service_role;
+GRANT REFERENCES ON TABLE "public"."community_event_attendees" TO service_role;
+GRANT SELECT ON TABLE "public"."community_event_attendees" TO service_role;
+GRANT TRIGGER ON TABLE "public"."community_event_attendees" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."community_event_attendees" TO service_role;
+GRANT UPDATE ON TABLE "public"."community_event_attendees" TO service_role;
+GRANT DELETE ON TABLE "public"."community_events" TO anon;
+GRANT INSERT ON TABLE "public"."community_events" TO anon;
+GRANT MAINTAIN ON TABLE "public"."community_events" TO anon;
+GRANT REFERENCES ON TABLE "public"."community_events" TO anon;
+GRANT SELECT ON TABLE "public"."community_events" TO anon;
+GRANT TRIGGER ON TABLE "public"."community_events" TO anon;
+GRANT TRUNCATE ON TABLE "public"."community_events" TO anon;
+GRANT UPDATE ON TABLE "public"."community_events" TO anon;
+GRANT DELETE ON TABLE "public"."community_events" TO authenticated;
+GRANT INSERT ON TABLE "public"."community_events" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."community_events" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."community_events" TO authenticated;
+GRANT SELECT ON TABLE "public"."community_events" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."community_events" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."community_events" TO authenticated;
+GRANT UPDATE ON TABLE "public"."community_events" TO authenticated;
+GRANT DELETE ON TABLE "public"."community_events" TO service_role;
+GRANT INSERT ON TABLE "public"."community_events" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."community_events" TO service_role;
+GRANT REFERENCES ON TABLE "public"."community_events" TO service_role;
+GRANT SELECT ON TABLE "public"."community_events" TO service_role;
+GRANT TRIGGER ON TABLE "public"."community_events" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."community_events" TO service_role;
+GRANT UPDATE ON TABLE "public"."community_events" TO service_role;
+GRANT DELETE ON TABLE "public"."community_friends" TO anon;
+GRANT INSERT ON TABLE "public"."community_friends" TO anon;
+GRANT MAINTAIN ON TABLE "public"."community_friends" TO anon;
+GRANT REFERENCES ON TABLE "public"."community_friends" TO anon;
+GRANT SELECT ON TABLE "public"."community_friends" TO anon;
+GRANT TRIGGER ON TABLE "public"."community_friends" TO anon;
+GRANT TRUNCATE ON TABLE "public"."community_friends" TO anon;
+GRANT UPDATE ON TABLE "public"."community_friends" TO anon;
+GRANT DELETE ON TABLE "public"."community_friends" TO authenticated;
+GRANT INSERT ON TABLE "public"."community_friends" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."community_friends" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."community_friends" TO authenticated;
+GRANT SELECT ON TABLE "public"."community_friends" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."community_friends" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."community_friends" TO authenticated;
+GRANT UPDATE ON TABLE "public"."community_friends" TO authenticated;
+GRANT DELETE ON TABLE "public"."community_friends" TO service_role;
+GRANT INSERT ON TABLE "public"."community_friends" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."community_friends" TO service_role;
+GRANT REFERENCES ON TABLE "public"."community_friends" TO service_role;
+GRANT SELECT ON TABLE "public"."community_friends" TO service_role;
+GRANT TRIGGER ON TABLE "public"."community_friends" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."community_friends" TO service_role;
+GRANT UPDATE ON TABLE "public"."community_friends" TO service_role;
+GRANT DELETE ON TABLE "public"."community_join_requests" TO anon;
+GRANT INSERT ON TABLE "public"."community_join_requests" TO anon;
+GRANT MAINTAIN ON TABLE "public"."community_join_requests" TO anon;
+GRANT REFERENCES ON TABLE "public"."community_join_requests" TO anon;
+GRANT SELECT ON TABLE "public"."community_join_requests" TO anon;
+GRANT TRIGGER ON TABLE "public"."community_join_requests" TO anon;
+GRANT TRUNCATE ON TABLE "public"."community_join_requests" TO anon;
+GRANT UPDATE ON TABLE "public"."community_join_requests" TO anon;
+GRANT DELETE ON TABLE "public"."community_join_requests" TO authenticated;
+GRANT INSERT ON TABLE "public"."community_join_requests" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."community_join_requests" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."community_join_requests" TO authenticated;
+GRANT SELECT ON TABLE "public"."community_join_requests" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."community_join_requests" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."community_join_requests" TO authenticated;
+GRANT UPDATE ON TABLE "public"."community_join_requests" TO authenticated;
+GRANT DELETE ON TABLE "public"."community_join_requests" TO service_role;
+GRANT INSERT ON TABLE "public"."community_join_requests" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."community_join_requests" TO service_role;
+GRANT REFERENCES ON TABLE "public"."community_join_requests" TO service_role;
+GRANT SELECT ON TABLE "public"."community_join_requests" TO service_role;
+GRANT TRIGGER ON TABLE "public"."community_join_requests" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."community_join_requests" TO service_role;
+GRANT UPDATE ON TABLE "public"."community_join_requests" TO service_role;
+GRANT DELETE ON TABLE "public"."community_reports" TO anon;
+GRANT INSERT ON TABLE "public"."community_reports" TO anon;
+GRANT MAINTAIN ON TABLE "public"."community_reports" TO anon;
+GRANT REFERENCES ON TABLE "public"."community_reports" TO anon;
+GRANT SELECT ON TABLE "public"."community_reports" TO anon;
+GRANT TRIGGER ON TABLE "public"."community_reports" TO anon;
+GRANT TRUNCATE ON TABLE "public"."community_reports" TO anon;
+GRANT UPDATE ON TABLE "public"."community_reports" TO anon;
+GRANT DELETE ON TABLE "public"."community_reports" TO authenticated;
+GRANT INSERT ON TABLE "public"."community_reports" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."community_reports" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."community_reports" TO authenticated;
+GRANT SELECT ON TABLE "public"."community_reports" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."community_reports" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."community_reports" TO authenticated;
+GRANT UPDATE ON TABLE "public"."community_reports" TO authenticated;
+GRANT DELETE ON TABLE "public"."community_reports" TO service_role;
+GRANT INSERT ON TABLE "public"."community_reports" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."community_reports" TO service_role;
+GRANT REFERENCES ON TABLE "public"."community_reports" TO service_role;
+GRANT SELECT ON TABLE "public"."community_reports" TO service_role;
+GRANT TRIGGER ON TABLE "public"."community_reports" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."community_reports" TO service_role;
+GRANT UPDATE ON TABLE "public"."community_reports" TO service_role;
+GRANT DELETE ON TABLE "public"."community_start_alerts" TO anon;
+GRANT INSERT ON TABLE "public"."community_start_alerts" TO anon;
+GRANT MAINTAIN ON TABLE "public"."community_start_alerts" TO anon;
+GRANT REFERENCES ON TABLE "public"."community_start_alerts" TO anon;
+GRANT SELECT ON TABLE "public"."community_start_alerts" TO anon;
+GRANT TRIGGER ON TABLE "public"."community_start_alerts" TO anon;
+GRANT TRUNCATE ON TABLE "public"."community_start_alerts" TO anon;
+GRANT UPDATE ON TABLE "public"."community_start_alerts" TO anon;
+GRANT DELETE ON TABLE "public"."community_start_alerts" TO authenticated;
+GRANT INSERT ON TABLE "public"."community_start_alerts" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."community_start_alerts" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."community_start_alerts" TO authenticated;
+GRANT SELECT ON TABLE "public"."community_start_alerts" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."community_start_alerts" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."community_start_alerts" TO authenticated;
+GRANT UPDATE ON TABLE "public"."community_start_alerts" TO authenticated;
+GRANT DELETE ON TABLE "public"."community_start_alerts" TO service_role;
+GRANT INSERT ON TABLE "public"."community_start_alerts" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."community_start_alerts" TO service_role;
+GRANT REFERENCES ON TABLE "public"."community_start_alerts" TO service_role;
+GRANT SELECT ON TABLE "public"."community_start_alerts" TO service_role;
+GRANT TRIGGER ON TABLE "public"."community_start_alerts" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."community_start_alerts" TO service_role;
+GRANT UPDATE ON TABLE "public"."community_start_alerts" TO service_role;
+GRANT DELETE ON TABLE "public"."daily_logs" TO anon;
+GRANT INSERT ON TABLE "public"."daily_logs" TO anon;
+GRANT MAINTAIN ON TABLE "public"."daily_logs" TO anon;
+GRANT REFERENCES ON TABLE "public"."daily_logs" TO anon;
+GRANT SELECT ON TABLE "public"."daily_logs" TO anon;
+GRANT TRIGGER ON TABLE "public"."daily_logs" TO anon;
+GRANT TRUNCATE ON TABLE "public"."daily_logs" TO anon;
+GRANT UPDATE ON TABLE "public"."daily_logs" TO anon;
+GRANT DELETE ON TABLE "public"."daily_logs" TO authenticated;
+GRANT INSERT ON TABLE "public"."daily_logs" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."daily_logs" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."daily_logs" TO authenticated;
+GRANT SELECT ON TABLE "public"."daily_logs" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."daily_logs" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."daily_logs" TO authenticated;
+GRANT UPDATE ON TABLE "public"."daily_logs" TO authenticated;
+GRANT DELETE ON TABLE "public"."daily_logs" TO service_role;
+GRANT INSERT ON TABLE "public"."daily_logs" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."daily_logs" TO service_role;
+GRANT REFERENCES ON TABLE "public"."daily_logs" TO service_role;
+GRANT SELECT ON TABLE "public"."daily_logs" TO service_role;
+GRANT TRIGGER ON TABLE "public"."daily_logs" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."daily_logs" TO service_role;
+GRANT UPDATE ON TABLE "public"."daily_logs" TO service_role;
+GRANT DELETE ON TABLE "public"."daily_user_stats" TO anon;
+GRANT INSERT ON TABLE "public"."daily_user_stats" TO anon;
+GRANT MAINTAIN ON TABLE "public"."daily_user_stats" TO anon;
+GRANT REFERENCES ON TABLE "public"."daily_user_stats" TO anon;
+GRANT SELECT ON TABLE "public"."daily_user_stats" TO anon;
+GRANT TRIGGER ON TABLE "public"."daily_user_stats" TO anon;
+GRANT TRUNCATE ON TABLE "public"."daily_user_stats" TO anon;
+GRANT UPDATE ON TABLE "public"."daily_user_stats" TO anon;
+GRANT DELETE ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT INSERT ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT SELECT ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT UPDATE ON TABLE "public"."daily_user_stats" TO authenticated;
+GRANT DELETE ON TABLE "public"."daily_user_stats" TO service_role;
+GRANT INSERT ON TABLE "public"."daily_user_stats" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."daily_user_stats" TO service_role;
+GRANT REFERENCES ON TABLE "public"."daily_user_stats" TO service_role;
+GRANT SELECT ON TABLE "public"."daily_user_stats" TO service_role;
+GRANT TRIGGER ON TABLE "public"."daily_user_stats" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."daily_user_stats" TO service_role;
+GRANT UPDATE ON TABLE "public"."daily_user_stats" TO service_role;
+GRANT DELETE ON TABLE "public"."exams" TO anon;
+GRANT INSERT ON TABLE "public"."exams" TO anon;
+GRANT MAINTAIN ON TABLE "public"."exams" TO anon;
+GRANT REFERENCES ON TABLE "public"."exams" TO anon;
+GRANT SELECT ON TABLE "public"."exams" TO anon;
+GRANT TRIGGER ON TABLE "public"."exams" TO anon;
+GRANT TRUNCATE ON TABLE "public"."exams" TO anon;
+GRANT UPDATE ON TABLE "public"."exams" TO anon;
+GRANT DELETE ON TABLE "public"."exams" TO authenticated;
+GRANT INSERT ON TABLE "public"."exams" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."exams" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."exams" TO authenticated;
+GRANT SELECT ON TABLE "public"."exams" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."exams" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."exams" TO authenticated;
+GRANT UPDATE ON TABLE "public"."exams" TO authenticated;
+GRANT DELETE ON TABLE "public"."exams" TO service_role;
+GRANT INSERT ON TABLE "public"."exams" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."exams" TO service_role;
+GRANT REFERENCES ON TABLE "public"."exams" TO service_role;
+GRANT SELECT ON TABLE "public"."exams" TO service_role;
+GRANT TRIGGER ON TABLE "public"."exams" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."exams" TO service_role;
+GRANT UPDATE ON TABLE "public"."exams" TO service_role;
+GRANT DELETE ON TABLE "public"."focus_sessions" TO anon;
+GRANT INSERT ON TABLE "public"."focus_sessions" TO anon;
+GRANT MAINTAIN ON TABLE "public"."focus_sessions" TO anon;
+GRANT REFERENCES ON TABLE "public"."focus_sessions" TO anon;
+GRANT SELECT ON TABLE "public"."focus_sessions" TO anon;
+GRANT TRIGGER ON TABLE "public"."focus_sessions" TO anon;
+GRANT TRUNCATE ON TABLE "public"."focus_sessions" TO anon;
+GRANT UPDATE ON TABLE "public"."focus_sessions" TO anon;
+GRANT DELETE ON TABLE "public"."focus_sessions" TO authenticated;
+GRANT INSERT ON TABLE "public"."focus_sessions" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."focus_sessions" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."focus_sessions" TO authenticated;
+GRANT SELECT ON TABLE "public"."focus_sessions" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."focus_sessions" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."focus_sessions" TO authenticated;
+GRANT UPDATE ON TABLE "public"."focus_sessions" TO authenticated;
+GRANT DELETE ON TABLE "public"."focus_sessions" TO service_role;
+GRANT INSERT ON TABLE "public"."focus_sessions" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."focus_sessions" TO service_role;
+GRANT REFERENCES ON TABLE "public"."focus_sessions" TO service_role;
+GRANT SELECT ON TABLE "public"."focus_sessions" TO service_role;
+GRANT TRIGGER ON TABLE "public"."focus_sessions" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."focus_sessions" TO service_role;
+GRANT UPDATE ON TABLE "public"."focus_sessions" TO service_role;
+GRANT DELETE ON TABLE "public"."group_announcements" TO anon;
+GRANT INSERT ON TABLE "public"."group_announcements" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_announcements" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_announcements" TO anon;
+GRANT SELECT ON TABLE "public"."group_announcements" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_announcements" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_announcements" TO anon;
+GRANT UPDATE ON TABLE "public"."group_announcements" TO anon;
+GRANT DELETE ON TABLE "public"."group_announcements" TO authenticated;
+GRANT INSERT ON TABLE "public"."group_announcements" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_announcements" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_announcements" TO authenticated;
+GRANT SELECT ON TABLE "public"."group_announcements" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_announcements" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_announcements" TO authenticated;
+GRANT UPDATE ON TABLE "public"."group_announcements" TO authenticated;
+GRANT DELETE ON TABLE "public"."group_announcements" TO service_role;
+GRANT INSERT ON TABLE "public"."group_announcements" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."group_announcements" TO service_role;
+GRANT REFERENCES ON TABLE "public"."group_announcements" TO service_role;
+GRANT SELECT ON TABLE "public"."group_announcements" TO service_role;
+GRANT TRIGGER ON TABLE "public"."group_announcements" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."group_announcements" TO service_role;
+GRANT UPDATE ON TABLE "public"."group_announcements" TO service_role;
+GRANT DELETE ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT INSERT ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT SELECT ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT UPDATE ON TABLE "public"."group_challenge_participants" TO anon;
+GRANT DELETE ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT INSERT ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT SELECT ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT UPDATE ON TABLE "public"."group_challenge_participants" TO authenticated;
+GRANT DELETE ON TABLE "public"."group_challenge_participants" TO service_role;
+GRANT INSERT ON TABLE "public"."group_challenge_participants" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."group_challenge_participants" TO service_role;
+GRANT REFERENCES ON TABLE "public"."group_challenge_participants" TO service_role;
+GRANT SELECT ON TABLE "public"."group_challenge_participants" TO service_role;
+GRANT TRIGGER ON TABLE "public"."group_challenge_participants" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."group_challenge_participants" TO service_role;
+GRANT UPDATE ON TABLE "public"."group_challenge_participants" TO service_role;
+GRANT DELETE ON TABLE "public"."group_challenges" TO anon;
+GRANT INSERT ON TABLE "public"."group_challenges" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_challenges" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_challenges" TO anon;
+GRANT SELECT ON TABLE "public"."group_challenges" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_challenges" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_challenges" TO anon;
+GRANT UPDATE ON TABLE "public"."group_challenges" TO anon;
+GRANT DELETE ON TABLE "public"."group_challenges" TO authenticated;
+GRANT INSERT ON TABLE "public"."group_challenges" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_challenges" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_challenges" TO authenticated;
+GRANT SELECT ON TABLE "public"."group_challenges" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_challenges" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_challenges" TO authenticated;
+GRANT UPDATE ON TABLE "public"."group_challenges" TO authenticated;
+GRANT DELETE ON TABLE "public"."group_challenges" TO service_role;
+GRANT INSERT ON TABLE "public"."group_challenges" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."group_challenges" TO service_role;
+GRANT REFERENCES ON TABLE "public"."group_challenges" TO service_role;
+GRANT SELECT ON TABLE "public"."group_challenges" TO service_role;
+GRANT TRIGGER ON TABLE "public"."group_challenges" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."group_challenges" TO service_role;
+GRANT UPDATE ON TABLE "public"."group_challenges" TO service_role;
+GRANT DELETE ON TABLE "public"."group_chat_messages" TO anon;
+GRANT INSERT ON TABLE "public"."group_chat_messages" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_chat_messages" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_chat_messages" TO anon;
+GRANT SELECT ON TABLE "public"."group_chat_messages" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_chat_messages" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_chat_messages" TO anon;
+GRANT UPDATE ON TABLE "public"."group_chat_messages" TO anon;
+GRANT DELETE ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT INSERT ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT SELECT ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT UPDATE ON TABLE "public"."group_chat_messages" TO authenticated;
+GRANT DELETE ON TABLE "public"."group_chat_messages" TO service_role;
+GRANT INSERT ON TABLE "public"."group_chat_messages" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."group_chat_messages" TO service_role;
+GRANT REFERENCES ON TABLE "public"."group_chat_messages" TO service_role;
+GRANT SELECT ON TABLE "public"."group_chat_messages" TO service_role;
+GRANT TRIGGER ON TABLE "public"."group_chat_messages" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."group_chat_messages" TO service_role;
+GRANT UPDATE ON TABLE "public"."group_chat_messages" TO service_role;
+GRANT DELETE ON TABLE "public"."group_invites" TO anon;
+GRANT INSERT ON TABLE "public"."group_invites" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_invites" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_invites" TO anon;
+GRANT SELECT ON TABLE "public"."group_invites" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_invites" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_invites" TO anon;
+GRANT UPDATE ON TABLE "public"."group_invites" TO anon;
+GRANT DELETE ON TABLE "public"."group_invites" TO authenticated;
+GRANT INSERT ON TABLE "public"."group_invites" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_invites" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_invites" TO authenticated;
+GRANT SELECT ON TABLE "public"."group_invites" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_invites" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_invites" TO authenticated;
+GRANT UPDATE ON TABLE "public"."group_invites" TO authenticated;
+GRANT DELETE ON TABLE "public"."group_invites" TO service_role;
+GRANT INSERT ON TABLE "public"."group_invites" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."group_invites" TO service_role;
+GRANT REFERENCES ON TABLE "public"."group_invites" TO service_role;
+GRANT SELECT ON TABLE "public"."group_invites" TO service_role;
+GRANT TRIGGER ON TABLE "public"."group_invites" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."group_invites" TO service_role;
+GRANT UPDATE ON TABLE "public"."group_invites" TO service_role;
+GRANT DELETE ON TABLE "public"."group_members" TO anon;
+GRANT INSERT ON TABLE "public"."group_members" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_members" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_members" TO anon;
+GRANT SELECT ON TABLE "public"."group_members" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_members" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_members" TO anon;
+GRANT UPDATE ON TABLE "public"."group_members" TO anon;
+GRANT DELETE ON TABLE "public"."group_members" TO authenticated;
+GRANT INSERT ON TABLE "public"."group_members" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_members" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_members" TO authenticated;
+GRANT SELECT ON TABLE "public"."group_members" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_members" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_members" TO authenticated;
+GRANT UPDATE ON TABLE "public"."group_members" TO authenticated;
+GRANT DELETE ON TABLE "public"."group_members" TO service_role;
+GRANT INSERT ON TABLE "public"."group_members" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."group_members" TO service_role;
+GRANT REFERENCES ON TABLE "public"."group_members" TO service_role;
+GRANT SELECT ON TABLE "public"."group_members" TO service_role;
+GRANT TRIGGER ON TABLE "public"."group_members" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."group_members" TO service_role;
+GRANT UPDATE ON TABLE "public"."group_members" TO service_role;
+GRANT DELETE ON TABLE "public"."group_milestones" TO anon;
+GRANT INSERT ON TABLE "public"."group_milestones" TO anon;
+GRANT MAINTAIN ON TABLE "public"."group_milestones" TO anon;
+GRANT REFERENCES ON TABLE "public"."group_milestones" TO anon;
+GRANT SELECT ON TABLE "public"."group_milestones" TO anon;
+GRANT TRIGGER ON TABLE "public"."group_milestones" TO anon;
+GRANT TRUNCATE ON TABLE "public"."group_milestones" TO anon;
+GRANT UPDATE ON TABLE "public"."group_milestones" TO anon;
+GRANT DELETE ON TABLE "public"."group_milestones" TO authenticated;
+GRANT INSERT ON TABLE "public"."group_milestones" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."group_milestones" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."group_milestones" TO authenticated;
+GRANT SELECT ON TABLE "public"."group_milestones" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."group_milestones" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."group_milestones" TO authenticated;
+GRANT UPDATE ON TABLE "public"."group_milestones" TO authenticated;
+GRANT DELETE ON TABLE "public"."group_milestones" TO service_role;
+GRANT INSERT ON TABLE "public"."group_milestones" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."group_milestones" TO service_role;
+GRANT REFERENCES ON TABLE "public"."group_milestones" TO service_role;
+GRANT SELECT ON TABLE "public"."group_milestones" TO service_role;
+GRANT TRIGGER ON TABLE "public"."group_milestones" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."group_milestones" TO service_role;
+GRANT UPDATE ON TABLE "public"."group_milestones" TO service_role;
+GRANT DELETE ON TABLE "public"."groups" TO anon;
+GRANT INSERT ON TABLE "public"."groups" TO anon;
+GRANT MAINTAIN ON TABLE "public"."groups" TO anon;
+GRANT REFERENCES ON TABLE "public"."groups" TO anon;
+GRANT SELECT ON TABLE "public"."groups" TO anon;
+GRANT TRIGGER ON TABLE "public"."groups" TO anon;
+GRANT TRUNCATE ON TABLE "public"."groups" TO anon;
+GRANT UPDATE ON TABLE "public"."groups" TO anon;
+GRANT DELETE ON TABLE "public"."groups" TO authenticated;
+GRANT INSERT ON TABLE "public"."groups" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."groups" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."groups" TO authenticated;
+GRANT SELECT ON TABLE "public"."groups" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."groups" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."groups" TO authenticated;
+GRANT UPDATE ON TABLE "public"."groups" TO authenticated;
+GRANT DELETE ON TABLE "public"."groups" TO service_role;
+GRANT INSERT ON TABLE "public"."groups" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."groups" TO service_role;
+GRANT REFERENCES ON TABLE "public"."groups" TO service_role;
+GRANT SELECT ON TABLE "public"."groups" TO service_role;
+GRANT TRIGGER ON TABLE "public"."groups" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."groups" TO service_role;
+GRANT UPDATE ON TABLE "public"."groups" TO service_role;
+GRANT DELETE ON TABLE "public"."habits" TO anon;
+GRANT INSERT ON TABLE "public"."habits" TO anon;
+GRANT MAINTAIN ON TABLE "public"."habits" TO anon;
+GRANT REFERENCES ON TABLE "public"."habits" TO anon;
+GRANT SELECT ON TABLE "public"."habits" TO anon;
+GRANT TRIGGER ON TABLE "public"."habits" TO anon;
+GRANT TRUNCATE ON TABLE "public"."habits" TO anon;
+GRANT UPDATE ON TABLE "public"."habits" TO anon;
+GRANT DELETE ON TABLE "public"."habits" TO authenticated;
+GRANT INSERT ON TABLE "public"."habits" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."habits" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."habits" TO authenticated;
+GRANT SELECT ON TABLE "public"."habits" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."habits" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."habits" TO authenticated;
+GRANT UPDATE ON TABLE "public"."habits" TO authenticated;
+GRANT DELETE ON TABLE "public"."habits" TO service_role;
+GRANT INSERT ON TABLE "public"."habits" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."habits" TO service_role;
+GRANT REFERENCES ON TABLE "public"."habits" TO service_role;
+GRANT SELECT ON TABLE "public"."habits" TO service_role;
+GRANT TRIGGER ON TABLE "public"."habits" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."habits" TO service_role;
+GRANT UPDATE ON TABLE "public"."habits" TO service_role;
+GRANT DELETE ON TABLE "public"."mock_tests" TO anon;
+GRANT INSERT ON TABLE "public"."mock_tests" TO anon;
+GRANT MAINTAIN ON TABLE "public"."mock_tests" TO anon;
+GRANT REFERENCES ON TABLE "public"."mock_tests" TO anon;
+GRANT SELECT ON TABLE "public"."mock_tests" TO anon;
+GRANT TRIGGER ON TABLE "public"."mock_tests" TO anon;
+GRANT TRUNCATE ON TABLE "public"."mock_tests" TO anon;
+GRANT UPDATE ON TABLE "public"."mock_tests" TO anon;
+GRANT DELETE ON TABLE "public"."mock_tests" TO authenticated;
+GRANT INSERT ON TABLE "public"."mock_tests" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."mock_tests" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."mock_tests" TO authenticated;
+GRANT SELECT ON TABLE "public"."mock_tests" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."mock_tests" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."mock_tests" TO authenticated;
+GRANT UPDATE ON TABLE "public"."mock_tests" TO authenticated;
+GRANT DELETE ON TABLE "public"."mock_tests" TO service_role;
+GRANT INSERT ON TABLE "public"."mock_tests" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."mock_tests" TO service_role;
+GRANT REFERENCES ON TABLE "public"."mock_tests" TO service_role;
+GRANT SELECT ON TABLE "public"."mock_tests" TO service_role;
+GRANT TRIGGER ON TABLE "public"."mock_tests" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."mock_tests" TO service_role;
+GRANT UPDATE ON TABLE "public"."mock_tests" TO service_role;
+GRANT DELETE ON TABLE "public"."notifications" TO anon;
+GRANT INSERT ON TABLE "public"."notifications" TO anon;
+GRANT MAINTAIN ON TABLE "public"."notifications" TO anon;
+GRANT REFERENCES ON TABLE "public"."notifications" TO anon;
+GRANT SELECT ON TABLE "public"."notifications" TO anon;
+GRANT TRIGGER ON TABLE "public"."notifications" TO anon;
+GRANT TRUNCATE ON TABLE "public"."notifications" TO anon;
+GRANT UPDATE ON TABLE "public"."notifications" TO anon;
+GRANT DELETE ON TABLE "public"."notifications" TO authenticated;
+GRANT INSERT ON TABLE "public"."notifications" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."notifications" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."notifications" TO authenticated;
+GRANT SELECT ON TABLE "public"."notifications" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."notifications" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."notifications" TO authenticated;
+GRANT UPDATE ON TABLE "public"."notifications" TO authenticated;
+GRANT DELETE ON TABLE "public"."notifications" TO service_role;
+GRANT INSERT ON TABLE "public"."notifications" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."notifications" TO service_role;
+GRANT REFERENCES ON TABLE "public"."notifications" TO service_role;
+GRANT SELECT ON TABLE "public"."notifications" TO service_role;
+GRANT TRIGGER ON TABLE "public"."notifications" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."notifications" TO service_role;
+GRANT UPDATE ON TABLE "public"."notifications" TO service_role;
+GRANT DELETE ON TABLE "public"."store_items" TO anon;
+GRANT INSERT ON TABLE "public"."store_items" TO anon;
+GRANT MAINTAIN ON TABLE "public"."store_items" TO anon;
+GRANT REFERENCES ON TABLE "public"."store_items" TO anon;
+GRANT SELECT ON TABLE "public"."store_items" TO anon;
+GRANT TRIGGER ON TABLE "public"."store_items" TO anon;
+GRANT TRUNCATE ON TABLE "public"."store_items" TO anon;
+GRANT UPDATE ON TABLE "public"."store_items" TO anon;
+GRANT DELETE ON TABLE "public"."store_items" TO authenticated;
+GRANT INSERT ON TABLE "public"."store_items" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."store_items" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."store_items" TO authenticated;
+GRANT SELECT ON TABLE "public"."store_items" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."store_items" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."store_items" TO authenticated;
+GRANT UPDATE ON TABLE "public"."store_items" TO authenticated;
+GRANT DELETE ON TABLE "public"."store_items" TO service_role;
+GRANT INSERT ON TABLE "public"."store_items" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."store_items" TO service_role;
+GRANT REFERENCES ON TABLE "public"."store_items" TO service_role;
+GRANT SELECT ON TABLE "public"."store_items" TO service_role;
+GRANT TRIGGER ON TABLE "public"."store_items" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."store_items" TO service_role;
+GRANT UPDATE ON TABLE "public"."store_items" TO service_role;
+GRANT DELETE ON TABLE "public"."study_sessions_log" TO anon;
+GRANT INSERT ON TABLE "public"."study_sessions_log" TO anon;
+GRANT MAINTAIN ON TABLE "public"."study_sessions_log" TO anon;
+GRANT REFERENCES ON TABLE "public"."study_sessions_log" TO anon;
+GRANT SELECT ON TABLE "public"."study_sessions_log" TO anon;
+GRANT TRIGGER ON TABLE "public"."study_sessions_log" TO anon;
+GRANT TRUNCATE ON TABLE "public"."study_sessions_log" TO anon;
+GRANT UPDATE ON TABLE "public"."study_sessions_log" TO anon;
+GRANT DELETE ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT INSERT ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT SELECT ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT UPDATE ON TABLE "public"."study_sessions_log" TO authenticated;
+GRANT DELETE ON TABLE "public"."study_sessions_log" TO service_role;
+GRANT INSERT ON TABLE "public"."study_sessions_log" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."study_sessions_log" TO service_role;
+GRANT REFERENCES ON TABLE "public"."study_sessions_log" TO service_role;
+GRANT SELECT ON TABLE "public"."study_sessions_log" TO service_role;
+GRANT TRIGGER ON TABLE "public"."study_sessions_log" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."study_sessions_log" TO service_role;
+GRANT UPDATE ON TABLE "public"."study_sessions_log" TO service_role;
+GRANT DELETE ON TABLE "public"."subjects" TO anon;
+GRANT INSERT ON TABLE "public"."subjects" TO anon;
+GRANT MAINTAIN ON TABLE "public"."subjects" TO anon;
+GRANT REFERENCES ON TABLE "public"."subjects" TO anon;
+GRANT SELECT ON TABLE "public"."subjects" TO anon;
+GRANT TRIGGER ON TABLE "public"."subjects" TO anon;
+GRANT TRUNCATE ON TABLE "public"."subjects" TO anon;
+GRANT UPDATE ON TABLE "public"."subjects" TO anon;
+GRANT DELETE ON TABLE "public"."subjects" TO authenticated;
+GRANT INSERT ON TABLE "public"."subjects" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."subjects" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."subjects" TO authenticated;
+GRANT SELECT ON TABLE "public"."subjects" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."subjects" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."subjects" TO authenticated;
+GRANT UPDATE ON TABLE "public"."subjects" TO authenticated;
+GRANT DELETE ON TABLE "public"."subjects" TO service_role;
+GRANT INSERT ON TABLE "public"."subjects" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."subjects" TO service_role;
+GRANT REFERENCES ON TABLE "public"."subjects" TO service_role;
+GRANT SELECT ON TABLE "public"."subjects" TO service_role;
+GRANT TRIGGER ON TABLE "public"."subjects" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."subjects" TO service_role;
+GRANT UPDATE ON TABLE "public"."subjects" TO service_role;
+GRANT DELETE ON TABLE "public"."sync_items" TO anon;
+GRANT INSERT ON TABLE "public"."sync_items" TO anon;
+GRANT MAINTAIN ON TABLE "public"."sync_items" TO anon;
+GRANT REFERENCES ON TABLE "public"."sync_items" TO anon;
+GRANT SELECT ON TABLE "public"."sync_items" TO anon;
+GRANT TRIGGER ON TABLE "public"."sync_items" TO anon;
+GRANT TRUNCATE ON TABLE "public"."sync_items" TO anon;
+GRANT UPDATE ON TABLE "public"."sync_items" TO anon;
+GRANT DELETE ON TABLE "public"."sync_items" TO authenticated;
+GRANT INSERT ON TABLE "public"."sync_items" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."sync_items" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."sync_items" TO authenticated;
+GRANT SELECT ON TABLE "public"."sync_items" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."sync_items" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."sync_items" TO authenticated;
+GRANT UPDATE ON TABLE "public"."sync_items" TO authenticated;
+GRANT DELETE ON TABLE "public"."sync_items" TO service_role;
+GRANT INSERT ON TABLE "public"."sync_items" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."sync_items" TO service_role;
+GRANT REFERENCES ON TABLE "public"."sync_items" TO service_role;
+GRANT SELECT ON TABLE "public"."sync_items" TO service_role;
+GRANT TRIGGER ON TABLE "public"."sync_items" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."sync_items" TO service_role;
+GRANT UPDATE ON TABLE "public"."sync_items" TO service_role;
+GRANT DELETE ON TABLE "public"."tasks" TO anon;
+GRANT INSERT ON TABLE "public"."tasks" TO anon;
+GRANT MAINTAIN ON TABLE "public"."tasks" TO anon;
+GRANT REFERENCES ON TABLE "public"."tasks" TO anon;
+GRANT SELECT ON TABLE "public"."tasks" TO anon;
+GRANT TRIGGER ON TABLE "public"."tasks" TO anon;
+GRANT TRUNCATE ON TABLE "public"."tasks" TO anon;
+GRANT UPDATE ON TABLE "public"."tasks" TO anon;
+GRANT DELETE ON TABLE "public"."tasks" TO authenticated;
+GRANT INSERT ON TABLE "public"."tasks" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."tasks" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."tasks" TO authenticated;
+GRANT SELECT ON TABLE "public"."tasks" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."tasks" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."tasks" TO authenticated;
+GRANT UPDATE ON TABLE "public"."tasks" TO authenticated;
+GRANT DELETE ON TABLE "public"."tasks" TO service_role;
+GRANT INSERT ON TABLE "public"."tasks" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."tasks" TO service_role;
+GRANT REFERENCES ON TABLE "public"."tasks" TO service_role;
+GRANT SELECT ON TABLE "public"."tasks" TO service_role;
+GRANT TRIGGER ON TABLE "public"."tasks" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."tasks" TO service_role;
+GRANT UPDATE ON TABLE "public"."tasks" TO service_role;
+GRANT DELETE ON TABLE "public"."tests" TO anon;
+GRANT INSERT ON TABLE "public"."tests" TO anon;
+GRANT MAINTAIN ON TABLE "public"."tests" TO anon;
+GRANT REFERENCES ON TABLE "public"."tests" TO anon;
+GRANT SELECT ON TABLE "public"."tests" TO anon;
+GRANT TRIGGER ON TABLE "public"."tests" TO anon;
+GRANT TRUNCATE ON TABLE "public"."tests" TO anon;
+GRANT UPDATE ON TABLE "public"."tests" TO anon;
+GRANT DELETE ON TABLE "public"."tests" TO authenticated;
+GRANT INSERT ON TABLE "public"."tests" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."tests" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."tests" TO authenticated;
+GRANT SELECT ON TABLE "public"."tests" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."tests" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."tests" TO authenticated;
+GRANT UPDATE ON TABLE "public"."tests" TO authenticated;
+GRANT DELETE ON TABLE "public"."tests" TO service_role;
+GRANT INSERT ON TABLE "public"."tests" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."tests" TO service_role;
+GRANT REFERENCES ON TABLE "public"."tests" TO service_role;
+GRANT SELECT ON TABLE "public"."tests" TO service_role;
+GRANT TRIGGER ON TABLE "public"."tests" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."tests" TO service_role;
+GRANT UPDATE ON TABLE "public"."tests" TO service_role;
+GRANT DELETE ON TABLE "public"."user_display_profiles" TO anon;
+GRANT INSERT ON TABLE "public"."user_display_profiles" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_display_profiles" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_display_profiles" TO anon;
+GRANT SELECT ON TABLE "public"."user_display_profiles" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_display_profiles" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_display_profiles" TO anon;
+GRANT UPDATE ON TABLE "public"."user_display_profiles" TO anon;
+GRANT DELETE ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT SELECT ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_display_profiles" TO authenticated;
+GRANT DELETE ON TABLE "public"."user_display_profiles" TO service_role;
+GRANT INSERT ON TABLE "public"."user_display_profiles" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."user_display_profiles" TO service_role;
+GRANT REFERENCES ON TABLE "public"."user_display_profiles" TO service_role;
+GRANT SELECT ON TABLE "public"."user_display_profiles" TO service_role;
+GRANT TRIGGER ON TABLE "public"."user_display_profiles" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."user_display_profiles" TO service_role;
+GRANT UPDATE ON TABLE "public"."user_display_profiles" TO service_role;
+GRANT DELETE ON TABLE "public"."user_inventory" TO anon;
+GRANT INSERT ON TABLE "public"."user_inventory" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_inventory" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_inventory" TO anon;
+GRANT SELECT ON TABLE "public"."user_inventory" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_inventory" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_inventory" TO anon;
+GRANT UPDATE ON TABLE "public"."user_inventory" TO anon;
+GRANT DELETE ON TABLE "public"."user_inventory" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_inventory" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_inventory" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_inventory" TO authenticated;
+GRANT SELECT ON TABLE "public"."user_inventory" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_inventory" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_inventory" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_inventory" TO authenticated;
+GRANT DELETE ON TABLE "public"."user_inventory" TO service_role;
+GRANT INSERT ON TABLE "public"."user_inventory" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."user_inventory" TO service_role;
+GRANT REFERENCES ON TABLE "public"."user_inventory" TO service_role;
+GRANT SELECT ON TABLE "public"."user_inventory" TO service_role;
+GRANT TRIGGER ON TABLE "public"."user_inventory" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."user_inventory" TO service_role;
+GRANT UPDATE ON TABLE "public"."user_inventory" TO service_role;
+GRANT DELETE ON TABLE "public"."user_onboarding" TO anon;
+GRANT INSERT ON TABLE "public"."user_onboarding" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_onboarding" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_onboarding" TO anon;
+GRANT SELECT ON TABLE "public"."user_onboarding" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_onboarding" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_onboarding" TO anon;
+GRANT UPDATE ON TABLE "public"."user_onboarding" TO anon;
+GRANT DELETE ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT SELECT ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_onboarding" TO authenticated;
+GRANT DELETE ON TABLE "public"."user_onboarding" TO service_role;
+GRANT INSERT ON TABLE "public"."user_onboarding" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."user_onboarding" TO service_role;
+GRANT REFERENCES ON TABLE "public"."user_onboarding" TO service_role;
+GRANT SELECT ON TABLE "public"."user_onboarding" TO service_role;
+GRANT TRIGGER ON TABLE "public"."user_onboarding" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."user_onboarding" TO service_role;
+GRANT UPDATE ON TABLE "public"."user_onboarding" TO service_role;
+GRANT DELETE ON TABLE "public"."user_points" TO anon;
+GRANT INSERT ON TABLE "public"."user_points" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_points" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_points" TO anon;
+GRANT SELECT ON TABLE "public"."user_points" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_points" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_points" TO anon;
+GRANT UPDATE ON TABLE "public"."user_points" TO anon;
+GRANT DELETE ON TABLE "public"."user_points" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_points" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_points" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_points" TO authenticated;
+GRANT SELECT ON TABLE "public"."user_points" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_points" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_points" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_points" TO authenticated;
+GRANT DELETE ON TABLE "public"."user_points" TO service_role;
+GRANT INSERT ON TABLE "public"."user_points" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."user_points" TO service_role;
+GRANT REFERENCES ON TABLE "public"."user_points" TO service_role;
+GRANT SELECT ON TABLE "public"."user_points" TO service_role;
+GRANT TRIGGER ON TABLE "public"."user_points" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."user_points" TO service_role;
+GRANT UPDATE ON TABLE "public"."user_points" TO service_role;
+GRANT DELETE ON TABLE "public"."user_presence" TO anon;
+GRANT INSERT ON TABLE "public"."user_presence" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_presence" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_presence" TO anon;
+GRANT SELECT ON TABLE "public"."user_presence" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_presence" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_presence" TO anon;
+GRANT UPDATE ON TABLE "public"."user_presence" TO anon;
+GRANT DELETE ON TABLE "public"."user_presence" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_presence" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_presence" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_presence" TO authenticated;
+GRANT SELECT ON TABLE "public"."user_presence" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_presence" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_presence" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_presence" TO authenticated;
+GRANT DELETE ON TABLE "public"."user_presence" TO service_role;
+GRANT INSERT ON TABLE "public"."user_presence" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."user_presence" TO service_role;
+GRANT REFERENCES ON TABLE "public"."user_presence" TO service_role;
+GRANT SELECT ON TABLE "public"."user_presence" TO service_role;
+GRANT TRIGGER ON TABLE "public"."user_presence" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."user_presence" TO service_role;
+GRANT UPDATE ON TABLE "public"."user_presence" TO service_role;
+GRANT DELETE ON TABLE "public"."user_profiles" TO anon;
+GRANT INSERT ON TABLE "public"."user_profiles" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_profiles" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_profiles" TO anon;
+GRANT SELECT ON TABLE "public"."user_profiles" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_profiles" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_profiles" TO anon;
+GRANT UPDATE ON TABLE "public"."user_profiles" TO anon;
+GRANT DELETE ON TABLE "public"."user_profiles" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_profiles" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_profiles" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_profiles" TO authenticated;
+GRANT SELECT ON TABLE "public"."user_profiles" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_profiles" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_profiles" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_profiles" TO authenticated;
+GRANT DELETE ON TABLE "public"."user_profiles" TO service_role;
+GRANT INSERT ON TABLE "public"."user_profiles" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."user_profiles" TO service_role;
+GRANT REFERENCES ON TABLE "public"."user_profiles" TO service_role;
+GRANT SELECT ON TABLE "public"."user_profiles" TO service_role;
+GRANT TRIGGER ON TABLE "public"."user_profiles" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."user_profiles" TO service_role;
+GRANT UPDATE ON TABLE "public"."user_profiles" TO service_role;
+GRANT DELETE ON TABLE "public"."user_roles" TO anon;
+GRANT INSERT ON TABLE "public"."user_roles" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_roles" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_roles" TO anon;
+GRANT SELECT ON TABLE "public"."user_roles" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_roles" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_roles" TO anon;
+GRANT UPDATE ON TABLE "public"."user_roles" TO anon;
+GRANT DELETE ON TABLE "public"."user_roles" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_roles" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_roles" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_roles" TO authenticated;
+GRANT SELECT ON TABLE "public"."user_roles" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_roles" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_roles" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_roles" TO authenticated;
+GRANT DELETE ON TABLE "public"."user_roles" TO service_role;
+GRANT INSERT ON TABLE "public"."user_roles" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."user_roles" TO service_role;
+GRANT REFERENCES ON TABLE "public"."user_roles" TO service_role;
+GRANT SELECT ON TABLE "public"."user_roles" TO service_role;
+GRANT TRIGGER ON TABLE "public"."user_roles" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."user_roles" TO service_role;
+GRANT UPDATE ON TABLE "public"."user_roles" TO service_role;
+GRANT DELETE ON TABLE "public"."user_settings" TO anon;
+GRANT INSERT ON TABLE "public"."user_settings" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_settings" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_settings" TO anon;
+GRANT SELECT ON TABLE "public"."user_settings" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_settings" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_settings" TO anon;
+GRANT UPDATE ON TABLE "public"."user_settings" TO anon;
+GRANT DELETE ON TABLE "public"."user_settings" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_settings" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_settings" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_settings" TO authenticated;
+GRANT SELECT ON TABLE "public"."user_settings" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_settings" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_settings" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_settings" TO authenticated;
+GRANT DELETE ON TABLE "public"."user_settings" TO service_role;
+GRANT INSERT ON TABLE "public"."user_settings" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."user_settings" TO service_role;
+GRANT REFERENCES ON TABLE "public"."user_settings" TO service_role;
+GRANT SELECT ON TABLE "public"."user_settings" TO service_role;
+GRANT TRIGGER ON TABLE "public"."user_settings" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."user_settings" TO service_role;
+GRANT UPDATE ON TABLE "public"."user_settings" TO service_role;
+GRANT DELETE ON TABLE "public"."user_stats_summary" TO anon;
+GRANT INSERT ON TABLE "public"."user_stats_summary" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_stats_summary" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_stats_summary" TO anon;
+GRANT SELECT ON TABLE "public"."user_stats_summary" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_stats_summary" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_stats_summary" TO anon;
+GRANT UPDATE ON TABLE "public"."user_stats_summary" TO anon;
+GRANT DELETE ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT SELECT ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_stats_summary" TO authenticated;
+GRANT DELETE ON TABLE "public"."user_stats_summary" TO service_role;
+GRANT INSERT ON TABLE "public"."user_stats_summary" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."user_stats_summary" TO service_role;
+GRANT REFERENCES ON TABLE "public"."user_stats_summary" TO service_role;
+GRANT SELECT ON TABLE "public"."user_stats_summary" TO service_role;
+GRANT TRIGGER ON TABLE "public"."user_stats_summary" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."user_stats_summary" TO service_role;
+GRANT UPDATE ON TABLE "public"."user_stats_summary" TO service_role;
+GRANT DELETE ON TABLE "public"."user_tours" TO anon;
+GRANT INSERT ON TABLE "public"."user_tours" TO anon;
+GRANT MAINTAIN ON TABLE "public"."user_tours" TO anon;
+GRANT REFERENCES ON TABLE "public"."user_tours" TO anon;
+GRANT SELECT ON TABLE "public"."user_tours" TO anon;
+GRANT TRIGGER ON TABLE "public"."user_tours" TO anon;
+GRANT TRUNCATE ON TABLE "public"."user_tours" TO anon;
+GRANT UPDATE ON TABLE "public"."user_tours" TO anon;
+GRANT DELETE ON TABLE "public"."user_tours" TO authenticated;
+GRANT INSERT ON TABLE "public"."user_tours" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."user_tours" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."user_tours" TO authenticated;
+GRANT SELECT ON TABLE "public"."user_tours" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."user_tours" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."user_tours" TO authenticated;
+GRANT UPDATE ON TABLE "public"."user_tours" TO authenticated;
+GRANT DELETE ON TABLE "public"."user_tours" TO service_role;
+GRANT INSERT ON TABLE "public"."user_tours" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."user_tours" TO service_role;
+GRANT REFERENCES ON TABLE "public"."user_tours" TO service_role;
+GRANT SELECT ON TABLE "public"."user_tours" TO service_role;
+GRANT TRIGGER ON TABLE "public"."user_tours" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."user_tours" TO service_role;
+GRANT UPDATE ON TABLE "public"."user_tours" TO service_role;
+GRANT DELETE ON TABLE "public"."users" TO anon;
+GRANT INSERT ON TABLE "public"."users" TO anon;
+GRANT MAINTAIN ON TABLE "public"."users" TO anon;
+GRANT REFERENCES ON TABLE "public"."users" TO anon;
+GRANT SELECT ON TABLE "public"."users" TO anon;
+GRANT TRIGGER ON TABLE "public"."users" TO anon;
+GRANT TRUNCATE ON TABLE "public"."users" TO anon;
+GRANT UPDATE ON TABLE "public"."users" TO anon;
+GRANT DELETE ON TABLE "public"."users" TO authenticated;
+GRANT INSERT ON TABLE "public"."users" TO authenticated;
+GRANT MAINTAIN ON TABLE "public"."users" TO authenticated;
+GRANT REFERENCES ON TABLE "public"."users" TO authenticated;
+GRANT SELECT ON TABLE "public"."users" TO authenticated;
+GRANT TRIGGER ON TABLE "public"."users" TO authenticated;
+GRANT TRUNCATE ON TABLE "public"."users" TO authenticated;
+GRANT UPDATE ON TABLE "public"."users" TO authenticated;
+GRANT DELETE ON TABLE "public"."users" TO service_role;
+GRANT INSERT ON TABLE "public"."users" TO service_role;
+GRANT MAINTAIN ON TABLE "public"."users" TO service_role;
+GRANT REFERENCES ON TABLE "public"."users" TO service_role;
+GRANT SELECT ON TABLE "public"."users" TO service_role;
+GRANT TRIGGER ON TABLE "public"."users" TO service_role;
+GRANT TRUNCATE ON TABLE "public"."users" TO service_role;
+GRANT UPDATE ON TABLE "public"."users" TO service_role;
+GRANT EXECUTE ON FUNCTION "private"."can_manage_group"(p_group_id uuid, p_user_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "private"."is_group_member"(p_group_id uuid, p_user_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "rpc_private"."accept_invite"(p_code text) TO authenticated;
+GRANT EXECUTE ON FUNCTION "rpc_private"."join_community_event"(p_event_id uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION "rpc_private"."leave_community_event"(p_event_id uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION "rpc_private"."purchase_store_item"(p_user_id uuid, p_item_id uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION "public"."_auto_add_group_owner"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."_auto_add_super_admin"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."_ensure_community_enrollment"() TO service_role;
+GRANT EXECUTE ON FUNCTION "public"."_ensure_onboarding_complete"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."_ensure_stats_summary"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."_ensure_user_points"() TO service_role;
+GRANT EXECUTE ON FUNCTION "public"."_ensure_user_profile"() TO service_role;
+GRANT EXECUTE ON FUNCTION "public"."_has_group_role"(gid uuid, uid uuid, allowed_roles text[]) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."_is_group_member"(gid uuid, uid uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."_sync_group_member_count"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."accept_invite"(p_code text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."check_user_role"(p_user_id uuid, p_role text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."cleanup_old_notifications"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_bootstrap_profile"(p_display_name text, p_handle text, p_day_offset_hours integer) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_create_group"(p_name text, p_description text, p_exam text, p_target_year integer, p_subjects text[], p_visibility text, p_join_policy text, p_timezone_offset_minutes integer) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_create_invite"(p_type text, p_target_id uuid, p_days integer) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_delete_group"(p_group_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_discover_groups"(p_query text, p_exam text, p_target_year integer, p_subject text, p_has_space boolean, p_join_policy text, p_limit integer, p_offset integer) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_get_group"(p_group_id uuid, p_period text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_get_group_messages"(p_group_id text, p_limit integer) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_get_overview"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_get_privacy"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_get_start_alert"(p_target_type text, p_target_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_heartbeat"(p_state text, p_subject_id uuid, p_subject_name text, p_task_id uuid, p_task_title text, p_session_started_at timestamp with time zone) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_is_enrolled"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_join_group"(p_group_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_leave_group"(p_group_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_preview_invite"(p_token text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_redeem_invite"(p_token text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_register_device_token"(p_token text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_remove_buddy"(p_other_user uuid, p_block boolean) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_remove_group_member"(p_group_id uuid, p_user_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_request_buddy"(p_handle text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_respond_buddy"(p_connection_id uuid, p_accept boolean) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_respond_join_request"(p_request_id uuid, p_accept boolean) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_save_privacy"(p_settings jsonb) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_send_group_message"(p_group_id text, p_content text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_set_group_role"(p_group_id uuid, p_user_id uuid, p_role text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_set_start_alert"(p_target_type text, p_target_id uuid, p_enabled boolean, p_quiet_hours_enabled boolean, p_quiet_start time without time zone, p_quiet_end time without time zone, p_timezone_offset_minutes integer) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_submit_report"(p_target_type text, p_target_id uuid, p_reason text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_sync_quiet_hours"(p_enabled boolean, p_start time without time zone, p_end time without time zone, p_timezone_offset_minutes integer) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_transfer_group"(p_group_id uuid, p_new_owner uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."community_update_group"(p_group_id uuid, p_changes jsonb) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."create_community_event"(p_title text, p_event_type text, p_description text, p_host text, p_start_time timestamp with time zone, p_end_time timestamp with time zone, p_image_gradient text, p_image_url text, p_tags text[], p_max_attendees integer, p_is_featured boolean, p_is_active boolean) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."delete_community_event"(p_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."delete_community_group"(p_group_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."expire_stale_presence"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."finish_session_sync"(p_session_id uuid, p_action text, p_duration_minutes integer, p_group_id uuid, p_session_type text, p_notes text, p_ended_at timestamp with time zone) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_event_attendees"(p_event_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_group_analytics_from_snapshots"(p_group_id uuid, p_days integer) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_group_leaderboard"(p_group_id uuid, p_limit integer) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_invite_details"(p_code text) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_leaderboard"(p_period text, p_limit integer, p_offset integer) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_membership_snapshot"(p_user_id uuid, target_user_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_my_group_ids"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."get_my_role"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."handle_new_user"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."is_premium_user"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."is_premium_user"(uid uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."join_community_event"(p_event_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."join_community_group"(p_group_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."leave_community_event"(p_event_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."leave_community_group"(p_group_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."purchase_store_item"(p_user_id uuid, p_item_id uuid) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."rls_auto_enable"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."set_group_slug_from_name"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."set_user_tours_updated_at"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."sync_group_member_count"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."sync_group_visibility"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."sync_user_display_profile"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."sync_user_onboarding_from_profile"() TO anon;
+GRANT EXECUTE ON FUNCTION "public"."update_community_event"(p_id uuid, p_title text, p_event_type text, p_description text, p_host text, p_start_time timestamp with time zone, p_end_time timestamp with time zone, p_image_gradient text, p_image_url text, p_tags text[], p_max_attendees integer, p_is_featured boolean, p_is_active boolean) TO anon;
+GRANT EXECUTE ON FUNCTION "public"."update_group_member_role"(p_group_id uuid, p_target_uid uuid, p_new_role text) TO anon;
+COMMIT;
