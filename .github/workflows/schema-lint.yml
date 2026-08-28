@@ -53,6 +53,16 @@ jobs:
             fi
           done
 
+      # Catches the class of bug where the CREATE TABLEs fall behind the live
+      # project and a fresh install dies on the first missing column an RPC body
+      # references. Skips cleanly (exit 0) when project credentials are absent, so
+      # forks and outside PRs are unaffected.
+      - name: 🔎 Schema drift vs live project
+        env:
+          SUPABASE_URL: ${{ secrets.SCHEMA_CHECK_SUPABASE_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SCHEMA_CHECK_PAT }}
+        run: node scripts/check-schema-drift.mjs
+
       - name: 🔍 Check for dangerous patterns
         run: |
           if [ ! -f isotope-complete.sql ]; then

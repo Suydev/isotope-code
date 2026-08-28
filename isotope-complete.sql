@@ -320,6 +320,15 @@ CREATE TABLE IF NOT EXISTS public.groups (
   is_active    boolean     NOT NULL DEFAULT true,
   visibility   text        NOT NULL DEFAULT 'public',
   settings     jsonb       NOT NULL DEFAULT '{}',
+  icon_url     text,
+  exam         text,
+  target_year  integer,
+  subjects     text[],
+  join_policy  text        NOT NULL DEFAULT 'request',
+  visual_key   integer     NOT NULL DEFAULT 0,
+  timezone_offset integer  NOT NULL DEFAULT 0,
+  daily_start  timestamptz,
+  last_activity timestamptz,
   deleted_at   timestamptz,
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now()
@@ -337,6 +346,21 @@ ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS deleted_at   timestamptz;
 ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS settings     jsonb       NOT NULL DEFAULT '{}';
 ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS visibility   text        NOT NULL DEFAULT 'public';
 ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS is_public    boolean;
+
+-- Community group columns. These are referenced by community_get_group,
+-- community_discover_groups and community_update_group, but were never in the
+-- CREATE TABLE above — so a fresh install produced
+-- `ERROR: column "visual_key" does not exist` the first time an RPC body was
+-- parsed. Types match the live project exactly.
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS icon_url        text;
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS exam            text;
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS target_year     integer;
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS subjects        text[];
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS join_policy     text        NOT NULL DEFAULT 'request';
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS visual_key      integer     NOT NULL DEFAULT 0;
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS timezone_offset integer     NOT NULL DEFAULT 0;
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS daily_start     timestamptz;
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS last_activity   timestamptz;
 DO $$
 BEGIN
   UPDATE public.groups SET is_public = (visibility NOT IN ('private','invite_only')) WHERE is_public IS NULL;
@@ -575,6 +599,82 @@ DO $$ BEGIN
     ALTER TABLE public.community_event_attendees ADD CONSTRAINT cea_event_user_unique UNIQUE (event_id, user_id);
   END IF;
 END $$;
+
+-- ── §5b. Column reconciliation — live-DB columns missing from the CREATE TABLEs
+-- Every statement below was generated from information_schema on the production
+-- project, so types, defaults and nullability match exactly.
+--
+-- Why this section exists: the CREATE TABLE blocks above drifted behind the live
+-- schema. Because §11 RPC bodies reference these columns, a fresh install failed
+-- at the first one Postgres parsed (`ERROR: column "visual_key" does not exist`)
+-- and ON_ERROR_STOP=1 masked the other nine tables. Keep this section in sync —
+-- `scripts/check-schema-drift.mjs` fails CI when it drifts again.
+
+-- Sync-engine bookkeeping. The sync engine resolves conflicts on version +
+-- content_hash and treats deleted_at as a tombstone; without these, cloud sync
+-- silently degrades to last-write-wins on a fresh install.
+ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
+ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
+ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS content_hash   text;
+ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
+ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS device_id      text;
+ALTER TABLE public.users              ADD COLUMN IF NOT EXISTS access_source  text;
+
+ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS id             uuid        DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS created_at     timestamptz DEFAULT now();
+ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
+ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
+ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS content_hash   text;
+ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
+ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS device_id      text;
+ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS handle         text;
+ALTER TABLE public.user_profiles      ADD COLUMN IF NOT EXISTS display_name   text;
+
+ALTER TABLE public.user_settings      ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
+ALTER TABLE public.user_settings      ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
+ALTER TABLE public.user_settings      ADD COLUMN IF NOT EXISTS content_hash   text;
+ALTER TABLE public.user_settings      ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
+ALTER TABLE public.user_settings      ADD COLUMN IF NOT EXISTS device_id      text;
+
+ALTER TABLE public.notifications      ADD COLUMN IF NOT EXISTS updated_at     timestamptz DEFAULT now();
+ALTER TABLE public.notifications      ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
+ALTER TABLE public.notifications      ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
+ALTER TABLE public.notifications      ADD COLUMN IF NOT EXISTS content_hash   text;
+ALTER TABLE public.notifications      ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
+
+ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS updated_at     timestamptz DEFAULT now();
+ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
+ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
+ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS content_hash   text;
+ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
+ALTER TABLE public.study_sessions_log ADD COLUMN IF NOT EXISTS device_id      text;
+
+ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS id             uuid        DEFAULT gen_random_uuid() NOT NULL;
+ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS created_at     timestamptz DEFAULT now();
+ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS updated_at     timestamptz DEFAULT now();
+ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS deleted_at     timestamptz;
+ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS version        integer     DEFAULT 1 NOT NULL;
+ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS content_hash   text;
+ALTER TABLE public.daily_user_stats   ADD COLUMN IF NOT EXISTS last_synced_at timestamptz;
+
+-- Community presence / heartbeat. community_heartbeat() writes every one of
+-- these; without them the whole "who is studying now" surface is inert.
+ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS state              text;
+ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS is_online          boolean     DEFAULT false NOT NULL;
+ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS last_beat_at       timestamptz;
+ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS session_started_at timestamptz;
+ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS total_seconds      bigint      DEFAULT 0 NOT NULL;
+ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS subject_id         uuid;
+ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS subject_name       text;
+ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS task_id            uuid;
+ALTER TABLE public.user_presence      ADD COLUMN IF NOT EXISTS task_title         text;
+
+-- Group tables.
+ALTER TABLE public.group_members      ADD COLUMN IF NOT EXISTS left_at        timestamptz;
+ALTER TABLE public.group_members      ADD COLUMN IF NOT EXISTS updated_at     timestamptz DEFAULT now();
+ALTER TABLE public.group_chat_messages ADD COLUMN IF NOT EXISTS author_id     uuid;
+ALTER TABLE public.group_chat_messages ADD COLUMN IF NOT EXISTS pinned        boolean     DEFAULT false;
+ALTER TABLE public.group_challenge_participants ADD COLUMN IF NOT EXISTS id   uuid        DEFAULT gen_random_uuid() NOT NULL;
 
 -- ── §6. Cascade FK constraints ────────────────────────────────────────────────
 

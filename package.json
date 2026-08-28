@@ -26,6 +26,7 @@
     "backup:prove-restore": "node scripts/prove-new-browser-restore.mjs",
     "storage:cleanup:dry-run": "node scripts/validate-storage-cleanup.mjs --dry-run",
     "security:verify": "node scripts/verify-supabase-security.mjs",
+    "schema:drift": "node scripts/check-schema-drift.mjs",
     "test:auth-bridge": "node scripts/test-auth-bridge.mjs",
     "test:runtime-glue": "node scripts/prove-runtime-glue.mjs",
     "test:supabase-sync": "node scripts/prove-supabase-sync.mjs"
