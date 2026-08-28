@@ -2413,9 +2413,12 @@ BEGIN
 END; $$;
 
 DROP EVENT TRIGGER IF EXISTS rls_auto_enable;
-CREATE EVENT TRIGGER rls_auto_enable ON ddl_command_end
-  WHEN TAG IN ('CREATE TABLE','CREATE TABLE AS','SELECT INTO')
-  EXECUTE FUNCTION public.rls_auto_enable();
+-- Kept on ONE line on purpose: schema-lint.yml strips cloud-only statements with
+-- a line-based `grep -v`, so a multi-line CREATE EVENT TRIGGER would lose only
+-- its first line and leave `WHEN TAG IN (…) EXECUTE FUNCTION …` orphaned
+-- ("syntax error at or near WHEN"). Event triggers need superuser and exist only
+-- on the real project, never in the CI shim.
+CREATE EVENT TRIGGER rls_auto_enable ON ddl_command_end WHEN TAG IN ('CREATE TABLE','CREATE TABLE AS','SELECT INTO') EXECUTE FUNCTION public.rls_auto_enable();
 
 -- §18c. set_group_slug_from_name — BEFORE INSERT trigger on public.groups.
 -- Auto-generates a URL-safe slug from the group name when none is supplied.
