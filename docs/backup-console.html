@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backup console — IsotopeAI docs</title>
+<meta name="description" content="The localhost backup console: a browser UI for schema-only setup and full disaster recovery, with live progress, ETA and errors. Design, data model, safety rules and operations.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://suydev.github.io/isotope-code/backup-console.html">
+<link rel="icon" href="./logo.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Backup console — IsotopeAI">
+<meta property="og:description" content="Browser UI for Supabase schema setup and disaster recovery: detached jobs, live progress, ETA, and error detail.">
+<meta property="og:url" content="https://suydev.github.io/isotope-code/backup-console.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="./assets/site.css">
+</head>
+<body class="docs-page page-open">
+<div class="liquid-bg bg-1" aria-hidden="true"></div>
+<div class="progress" data-progress aria-hidden="true"></div>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="globalbar" data-liquid-ignore>
+  <div class="globalbar-inner">
+    <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
+    <nav class="globalbar-links" aria-label="Sections">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./sync-and-backup.html" aria-current="true">Sync</a>
+      <a href="./community.html">Community</a>
+      <a href="./admin.html">Admin</a>
+      <a href="./troubleshooting.html">Support</a>
+    </nav>
+    <div class="globalbar-right">
+      <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+  </div>
+</div>
+
+<header class="topbar glass">
+  <div class="topbar-inner">
+    <a class="brand" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg><span>IsotopeAI<span class="brand-sub"> / docs</span></span></a>
+    <nav class="nav" aria-label="Primary">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+    </nav>
+    <div class="topbar-actions">
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch to dark theme"><svg data-icon="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></svg><svg data-icon="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+      <a class="icon-btn" href="https://github.com/Suydev/isotope-code" aria-label="View source on GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7 0-.7 0-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1a2.6 2.6 0 0 1 .7-1.6c-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.2-3.1a4 4 0 0 1 .1-3s1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C16.3 3.4 17.3 3.7 17.3 3.7a4 4 0 0 1 .1 3c.8.8 1.2 1.9 1.2 3.1 0 4.7-2.8 5.7-5.5 6 .5.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg></a>
+      <button class="icon-btn nav-toggle" type="button" data-drawer-toggle aria-expanded="false" aria-controls="drawer" aria-label="Open navigation menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Guides</p>
+  <a href="./getting-started.html">Getting started</a>
+  <a href="./configuration.html">Configuration</a>
+  <a href="./supabase-setup.html">Supabase setup</a>
+  <a href="./sync-and-backup.html">Sync &amp; backup</a>
+  <a href="./backup-console.html" aria-current="page">Backup console</a>
+  <a href="./community.html">Community</a>
+  <p class="drawer-label">Reference</p>
+  <a href="./architecture.html">Architecture</a>
+  <a href="./api-reference.html">API reference</a>
+  <a href="./database.html">Database</a>
+  <a href="./cli.html">CLI</a>
+  <a href="./android-apk.html">Android APK</a>
+  <a href="./admin.html">Admin console</a>
+  <p class="drawer-label">Help</p>
+  <a href="./troubleshooting.html">Troubleshooting</a>
+  <a href="./faq.html">FAQ</a>
+  <a href="./contributing.html">Contributing</a>
+  <a href="./changelog.html">Changelog</a>
+  <p class="drawer-label">Legal</p>
+  <a href="./security.html">Security</a>
+  <a href="./privacy.html">Privacy</a>
+  <a href="./terms.html">Terms</a>
+  <a href="./license.html">License</a>
+</div>
+
+<div class="wrap docs">
+
+  <aside class="sidebar glass" aria-label="Documentation">
+    <label class="sr-only" for="navfilter">Filter documentation pages</label>
+    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <div class="sidebar-group">
+      <p>Guides</p>
+      <a href="./getting-started.html">Getting started</a>
+      <a href="./configuration.html">Configuration</a>
+      <a href="./supabase-setup.html">Supabase setup</a>
+      <a href="./sync-and-backup.html">Sync &amp; backup</a>
+      <a href="./backup-console.html" aria-current="page">Backup console</a>
+      <a href="./community.html">Community</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Reference</p>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API reference</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./android-apk.html">Android APK</a>
+      <a href="./admin.html">Admin console</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Help</p>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+      <a href="./faq.html">FAQ</a>
+      <a href="./contributing.html">Contributing</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Legal</p>
+      <a href="./security.html">Security</a>
+      <a href="./privacy.html">Privacy</a>
+      <a href="./terms.html">Terms</a>
+      <a href="./license.html">License</a>
+    </div>
+  </aside>
+
+  <main id="main" class="content">
+        <nav class="breadcrumb" data-enter="1" aria-label="Breadcrumb">
+      <a href="./">Docs</a> <span aria-hidden="true">/</span> <span>Backup console</span>
+    </nav>
+    <h1 data-enter="2">Backup console</h1>
+    <p class="lead" data-enter="3">A localhost web UI for the two jobs that matter when a Supabase
+    project is at stake: standing up a <strong>new empty project</strong> from the committed schema,
+    and <strong>recovering everything</strong> after a project is paused or lost. Jobs run detached, so
+    closing the browser does not stop the work.</p>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <p><span class="note-title">Why this exists</span>The backup scripts already worked from the
+      shell. What they lacked was <em>visibility</em>: a restore of 1772 statements gives no useful
+      feedback in a terminal, and a job that has silently stopped looks identical to one making
+      progress. During development a restore sat frozen at <code>250/1772</code> for thirteen minutes
+      before anyone noticed. The console exists mainly to make that state impossible to miss.</p>
+    </div>
+
+    <h2 class="rise" id="modes">Two modes <a class="anchor" href="#modes" aria-label="Link to this section">#</a></h2>
+    <p>These are deliberately separate buttons rather than one flow with a checkbox. They carry very
+    different consequences, and the safe one should be the easy one.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>Fresh setup</th><th>Full recovery</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Purpose</strong></td><td>New, empty, working project</td><td>Restore a lost or paused project</td></tr>
+          <tr><td><strong>Schema</strong></td><td>Yes — all 42 tables and every column</td><td>Yes</td></tr>
+          <tr><td><strong>RLS policies</strong></td><td>Yes — 153 database + 9 storage</td><td>Yes</td></tr>
+          <tr><td><strong>Functions / RPCs</strong></td><td>Yes — 80</td><td>Yes</td></tr>
+          <tr><td><strong>Indexes, FKs, triggers</strong></td><td>Yes — 66 / 43 / 14</td><td>Yes</td></tr>
+          <tr><td><strong>Grants</strong></td><td>Yes — 1008 table, 79 function</td><td>Yes</td></tr>
+          <tr><td><strong>Storage buckets</strong></td><td>Yes — 3, with size caps and MIME rules</td><td>Yes</td></tr>
+          <tr><td><strong>Auth users</strong></td><td><strong>No</strong></td><td>Yes — with password hashes</td></tr>
+          <tr><td><strong>Table rows</strong></td><td><strong>No</strong></td><td>Yes</td></tr>
+          <tr><td><strong>Storage files</strong></td><td><strong>No</strong></td><td>Yes</td></tr>
+          <tr><td><strong>Unlock step</strong></td><td>None — one click</td><td>Type the target project ref</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>Fresh setup</strong> is the default because it is idempotent and carries no personal
+    data. <strong>Full recovery</strong> writes real user emails and bcrypt password hashes into the
+    target, which is exactly what you want in a disaster and exactly what you do not want by
+    accident.</p>
+
+    <h2 class="rise" id="not-included">What is never included <a class="anchor" href="#not-included" aria-label="Link to this section">#</a></h2>
+    <p>Two categories are structurally absent, not filtered out:</p>
+    <dl class="kv">
+      <dt>Google OAuth keys</dt><dd>The client ID and secret live in Supabase's <em>auth
+      configuration</em>, not in the database. Nothing in the schema dump or the backup tarball
+      touches them. After a restore you must re-enter them in the dashboard, along with the redirect
+      URLs — Google sign-in will not work until you do.</dd>
+      <dt>The <code>auth</code> schema</dt><dd><code>auth.users</code> and friends are owned by
+      GoTrue. They cannot be created from SQL, so the schema file omits them entirely. Full recovery
+      moves users through a separate insert path instead.</dd>
+    </dl>
+
+    <h2 class="rise" id="surviving-reload">Surviving reload and close <a class="anchor" href="#surviving-reload" aria-label="Link to this section">#</a></h2>
+    <p>A restore takes minutes. If progress lived in the web server's memory, closing the tab would
+    be survivable but restarting the server would lose the job — and a crashed server would leave an
+    orphaned child still writing to a database. So all state is on disk:</p>
+    <dl class="kv">
+      <dt><code>backups/.job.json</code></dt><dd>Current job: id, kind, pid, target ref, state, timestamps.</dd>
+      <dt><code>backups/.progress.jsonl</code></dt><dd>Append-only structured events, streamed to the browser.</dd>
+      <dt><code>backups/.job.log</code></dt><dd>Raw child output, shown in the log pane.</dd>
+    </dl>
+    <p>The work happens in a <strong>detached child process</strong>, never inside an HTTP request.
+    Any server instance reattaches by reading those files, and
+    <code>node scripts/job-runner.mjs status</code> reports honestly with no server running at all.</p>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+      <p><span class="note-title">A recorded pid is not proof of life</span>The process may have been
+      killed, or the device rebooted. The runner probes the pid on every read and reconciles a stale
+      <code>running</code> state to <code>orphaned</code>, so the UI never displays a job that is
+      quietly dead.</p>
+    </div>
+
+    <h2 class="rise" id="progress">Progress, ETA and staleness <a class="anchor" href="#progress" aria-label="Link to this section">#</a></h2>
+    <p>The worker appends machine-readable events. The UI reads <em>those</em>, never the
+    human-readable log — parsing prose produces a UI that breaks whenever a message is reworded.</p>
+    <pre><code>{"t":1234,"phase":"schema","done":250,"total":1772,"ok":250,"failed":0}
+{"t":1235,"phase":"schema","level":"error","msg":"42P01 relation … does not exist",
+ "stmt":"ALTER TABLE ONLY \"public\".\"group_members\" ADD CONSTRAINT …"}</code></pre>
+    <p>Each phase reports <code>done</code>, <code>total</code>, <code>failed</code> and
+    <code>skipped</code>. Two derived numbers matter more than the percentage:</p>
+    <dl class="kv">
+      <dt>Rate and ETA</dt><dd>Computed over a <strong>rolling twelve-sample window</strong>, not from
+      job start. Early batches are slower while the connection warms up, so a whole-run average
+      under-reports throughput and gives a pessimistic, drifting ETA.</dd>
+      <dt>Last event age</dt><dd>Seconds since the most recent event. This is the field that
+      distinguishes <em>slow</em> from <em>hung</em>, and the reason the console was worth
+      building.</dd>
+    </dl>
+
+    <h2 class="rise" id="credentials">Credentials <a class="anchor" href="#credentials" aria-label="Link to this section">#</a></h2>
+    <p>You paste <strong>one</strong> secret per project: a Supabase personal access token. The
+    console calls the Management API to fetch that project's <code>anon</code> and
+    <code>service_role</code> keys, so those are never typed or stored by hand.</p>
+    <ul>
+      <li>Credentials reach the worker through its <strong>environment</strong> only.</li>
+      <li><code>.job.json</code> records the project <em>ref</em> — never a key.</li>
+      <li>Nothing is written to <code>.env</code>, and nothing is committed.</li>
+    </ul>
+    <p>The console can also <strong>create a project</strong> from the token: it posts to the
+    Management API, waits for <code>ACTIVE_HEALTHY</code>, then reads the new keys — so a fresh
+    setup needs no dashboard visit at all.</p>
+
+    <div class="note warn glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">Binds to 127.0.0.1 only</span>The console handles service-role keys
+      and shows project refs. On <code>0.0.0.0</code> anything on the same network could read it, so
+      it listens on loopback exclusively. Do not put it behind a tunnel or reverse proxy.</p>
+    </div>
+
+    <h2 class="rise" id="safety">Safety rules <a class="anchor" href="#safety" aria-label="Link to this section">#</a></h2>
+    <p>Every one of these exists because the failure it prevents actually happened during
+    development.</p>
+    <dl class="kv">
+      <dt>Restore refuses to infer its target</dt><dd><code>backup.sh restore</code> once fell through
+      to <code>.backup_env</code> and then <code>.env</code> when <code>--supabase-url</code> was
+      omitted — files that normally hold <em>production</em> credentials. It now errors out rather
+      than guessing.</dd>
+      <dt>Target is echoed before work begins</dt><dd>The resolved URL is printed and shown in the UI,
+      with a warning when it matches the project this checkout normally uses.</dd>
+      <dt>Full recovery needs the ref typed</dt><dd>Restore writes users and every table into
+      whatever it points at. A single click is the wrong shape for that.</dd>
+      <dt>Never probe a live target</dt><dd>Running queries against a project mid-restore creates
+      objects out of order, and every subsequent batch collides and falls back to slow per-statement
+      replay. It looks exactly like a performance problem and is not one.</dd>
+    </dl>
+
+    <h2 class="rise" id="speed">Why it is fast <a class="anchor" href="#speed" aria-label="Link to this section">#</a></h2>
+    <p>Statements are applied in <strong>batches of fifty</strong>, in order. Measured against the
+    Management API, a single statement costs roughly 2200 ms while fifty in one request cost about
+    845 ms, so the schema drops from ~1772 round trips to ~36. Auth users batch similarly, 43 rows
+    into two requests.</p>
+    <p>On a batch failure the batch is <strong>replayed one statement at a time</strong>, so a genuine
+    error still reports with its exact statement. That replay is safe only because every emitted
+    statement is idempotent — <code>CREATE … IF NOT EXISTS</code>, guarded
+    <code>ADD CONSTRAINT</code> blocks, <code>DROP POLICY IF EXISTS</code> — so re-running a
+    partially applied batch cannot corrupt anything.</p>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <p><span class="note-title">Batches are sequential, not parallel</span>Eleven parallel workers
+      would be faster and wrong. The dump is dependency-ordered — tables, then constraints, then
+      functions, then triggers, then policies — so concurrent parts would attempt a foreign key
+      against a table another part had not yet created. Ordering is worth more than the
+      seconds.</p>
+    </div>
+
+    <h2 class="rise" id="verification">Verification <a class="anchor" href="#verification" aria-label="Link to this section">#</a></h2>
+    <p>Every job ends with a verify pass against the target. It checks table existence, per-table row
+    counts, the auth user count, buckets and object counts — and, importantly,
+    <strong>code</strong>:</p>
+    <pre><code>PASS routines 80/80 — all present
+PASS triggers 14/14 — all present
+PASS policies 153/153 — all present
+[verify] RESULT: PASS (94/94 checks passed)</code></pre>
+    <p>The routine, trigger and policy checks were added after a restore reported
+    <em>91/91 checks passed</em> while silently missing most RPCs. Verify was counting rows only, so a
+    database with every table and almost no functions looked perfect. A database that cannot run the
+    app must fail verification.</p>
+
+    <h2 class="rise" id="operations">Operations <a class="anchor" href="#operations" aria-label="Link to this section">#</a></h2>
+    <pre><code># start the console (loopback only)
+node scripts/backup-ui.mjs
+# → http://127.0.0.1:8000
+
+# check a job without any browser
+node scripts/job-runner.mjs status
+
+# stop a running job
+node scripts/job-runner.mjs stop</code></pre>
+    <p>The same operations remain available head-less through <code>./backup.sh</code>; see
+    <a href="./sync-and-backup.html">Sync &amp; backup</a> for the command-line reference and the
+    tarball layout.</p>
+
+    <h2 class="rise" id="after-restore">After a restore <a class="anchor" href="#after-restore" aria-label="Link to this section">#</a></h2>
+    <p>Three steps are outside the database and must be done by hand:</p>
+    <ol>
+      <li>Re-enter the <strong>Google OAuth</strong> client ID and secret in Supabase Auth providers.</li>
+      <li>Add the <strong>redirect URLs</strong> the app expects, including the Android deep link.</li>
+      <li>Point the app at the new project — <code>SUPABASE_URL</code>,
+      <code>SUPABASE_ANON_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>.</li>
+    </ol>
+    <p>A restored project with no OAuth configuration will accept email sign-in and reject Google.
+    That is expected, and preferable to shipping client secrets around in a backup file.</p>
+</main>
+
+  <aside class="toc glass" data-toc aria-label="On this page">
+    <p>On this page</p>
+  </aside>
+</div>
+
+<footer class="site-footer glass">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg><span>IsotopeAI</span></a>
+        <p>Local-first study platform.<br>Self-hosted, MIT licensed.</p>
+      </div>
+      <div>
+        <p class="footer-col-title">Guides</p>
+        <a href="./getting-started.html">Getting started</a>
+        <a href="./configuration.html">Configuration</a>
+        <a href="./supabase-setup.html">Supabase setup</a>
+        <a href="./sync-and-backup.html">Sync &amp; backup</a>
+        <a href="./community.html">Community</a>
+      </div>
+      <div>
+        <p class="footer-col-title">Reference</p>
+        <a href="./architecture.html">Architecture</a>
+        <a href="./api-reference.html">API reference</a>
+        <a href="./database.html">Database</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./admin.html">Admin console</a>
+      </div>
+      <div>
+        <p class="footer-col-title">More</p>
+        <a href="./troubleshooting.html">Troubleshooting</a>
+        <a href="./faq.html">FAQ</a>
+        <a href="./contributing.html">Contributing</a>
+        <a href="./changelog.html">Changelog</a>
+        <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <p>© 2026 IsotopeAI · <a href="./license.html">MIT License</a> · <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="./security.html">Security</a></p>
+    </div>
+  </div>
+</footer>
+
+<script src="./assets/site.js" defer></script>
+</body>
+</html>

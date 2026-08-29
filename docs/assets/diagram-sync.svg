@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 400" role="img"
+     aria-labelledby="sync-title sync-desc" font-family="IBM Plex Sans, system-ui, sans-serif">
+  <title id="sync-title">Sync conflict resolution</title>
+  <desc id="sync-desc">When a local snapshot and a cloud snapshot disagree, IsotopeAI compares
+    them by validity, then richness, then timestamp. A snapshot containing real study data
+    always beats an empty one, even when the empty snapshot is newer. This prevents a fresh
+    install from overwriting existing progress.</desc>
+
+  <style>
+    .box   { fill: var(--c-surface, #fff); stroke: var(--c-border, #e2e8f0); stroke-width: 1.5; }
+    .box-a { fill: var(--c-bg-subtle, #f8fafc); stroke: var(--c-border-strong, #cbd5e1); stroke-width: 1.5; }
+    .win   { fill: var(--c-surface, #fff); stroke: var(--brand, #8df31f); stroke-width: 2; }
+    .lbl   { fill: var(--c-text, #0f172a); font-size: 13px; font-weight: 600; }
+    .sub   { fill: var(--c-text-muted, #475569); font-size: 11px; }
+    .tiny  { fill: var(--c-text-faint, #64748b); font-size: 10px; }
+    .mono  { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .flow  { stroke: var(--c-border-strong, #cbd5e1); stroke-width: 1.5; fill: none; }
+    .ok    { fill: var(--c-ok, #15803d); font-size: 11px; font-weight: 600; }
+    .no    { fill: var(--c-text-faint, #64748b); font-size: 11px; }
+  </style>
+
+  <defs>
+    <marker id="s-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10z" fill="var(--c-border-strong, #cbd5e1)"/>
+    </marker>
+  </defs>
+
+  <!-- Inputs -->
+  <rect class="box" x="24" y="40" width="190" height="104" rx="10"/>
+  <text class="lbl" x="42" y="66">Local snapshot</text>
+  <text class="tiny mono" x="42" y="88">tasks: 143</text>
+  <text class="tiny mono" x="42" y="105">sessions: 512</text>
+  <text class="tiny mono" x="42" y="122">exportedAt: Jun 01</text>
+
+  <rect class="box" x="24" y="176" width="190" height="104" rx="10"/>
+  <text class="lbl" x="42" y="202">Cloud snapshot</text>
+  <text class="tiny mono" x="42" y="224">tasks: 0</text>
+  <text class="tiny mono" x="42" y="241">sessions: 0</text>
+  <text class="tiny mono" x="42" y="258">exportedAt: Jun 11 (newer)</text>
+
+  <path class="flow" d="M214 92 H262 V150 H286" marker-end="url(#s-ah)"/>
+  <path class="flow" d="M214 228 H262 V166 H286" marker-end="url(#s-ah)"/>
+
+  <!-- Decision ladder -->
+  <rect class="box-a" x="290" y="40" width="268" height="240" rx="10"/>
+  <text class="lbl" x="308" y="66">compareBackupCandidates()</text>
+  <text class="tiny" x="308" y="84">evaluated in order — first decision wins</text>
+
+  <line class="flow" x1="308" y1="96" x2="540" y2="96"/>
+
+  <text class="sub" x="308" y="120">1 · valid schema?</text>
+  <text class="no"  x="470" y="120">tie</text>
+
+  <text class="sub" x="308" y="148">2 · rich vs empty?</text>
+  <text class="ok"  x="440" y="148">local wins</text>
+
+  <text class="sub" x="308" y="176">3 · newer timestamp</text>
+  <text class="no"  x="440" y="176">not reached</text>
+
+  <text class="sub" x="308" y="204">4 · richness score</text>
+  <text class="no"  x="440" y="204">not reached</text>
+
+  <text class="sub" x="308" y="232">5 · payload size</text>
+  <text class="no"  x="440" y="232">not reached</text>
+
+  <text class="tiny" x="308" y="262">Richness outranks recency, so an empty newer</text>
+
+  <path class="flow" d="M558 150 H612" marker-end="url(#s-ah)"/>
+
+  <!-- Result -->
+  <rect class="win" x="616" y="96" width="238" height="110" rx="10"/>
+  <text class="lbl" x="634" y="122">Local snapshot kept</text>
+  <text class="tiny" x="634" y="144">143 tasks and 512 sessions</text>
+  <text class="tiny" x="634" y="161">preserved. The cloud copy is</text>
+  <text class="tiny" x="634" y="178">replaced on the next upload.</text>
+
+  <text class="tiny" x="24" y="316">snapshot can never silently erase real progress. Merge keeps the union of both sides where both are rich.</text>
+  <text class="tiny" x="24" y="340">Implementation: public/sync/backup-normalizer.js — asserted by the CI backup-normalizer smoke test.</text>
+</svg>

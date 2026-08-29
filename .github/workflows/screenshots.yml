@@ -1,14 +1,41 @@
 name: 📸 Screenshot Refresh
 
+# Captures the real app UI on GitHub's runners, where a full Chromium is
+# available. This is the only environment in this project that can produce
+# trustworthy screenshots: the development device is Termux/Android, where
+# Chromium cannot run, and public screenshot APIs capture the pre-hydration
+# shell of a React SPA rather than the app.
+#
+# Requires four repository secrets to capture signed-in routes:
+#   SHOT_EMAIL, SHOT_PASSWORD                  — a dedicated capture account
+#   SCREENSHOT_SUPABASE_URL, ..._ANON_KEY      — the project that account lives in
+#
+# Without them the run captures demo mode instead, which needs no account.
+
 on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Capture mode'
+        type: choice
+        default: login
+        options: [login, demo]
+      scale:
+        description: 'Device pixel ratio (2 = 4K desktop shots)'
+        type: choice
+        default: '2'
+        options: ['1', '2', '3']
+      commit:
+        description: 'Commit the results to main'
+        type: boolean
+        default: true
   push:
     branches: [main]
     paths:
       - 'public/**'
       - 'server.mjs'
-      - 'docs/**'
+      - 'scripts/capture-screenshots.mjs'
       - '.github/workflows/screenshots.yml'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,6 +49,7 @@ jobs:
     name: Capture and commit UI screenshots
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: ⬇️ Checkout
@@ -34,85 +62,151 @@ jobs:
         with:
           node-version: '22'
 
+      # Pinned rather than floating. An unpinned Playwright can change its
+      # rendering between runs, which would show up as a spurious diff in every
+      # screenshot and make the duplicate check harder to reason about.
       - name: 📦 Install Playwright
         run: |
-          npm install --no-save playwright >/dev/null 2>&1 || true
+          set -euo pipefail
+          npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
+          sudo apt-get install -y pngquant
+
+      - name: 🔎 Resolve capture mode
+        id: mode
+        env:
+          SHOT_EMAIL: ${{ secrets.SHOT_EMAIL }}
+          SHOT_PASSWORD: ${{ secrets.SHOT_PASSWORD }}
+          SUPA_URL: ${{ secrets.SCREENSHOT_SUPABASE_URL }}
+          SUPA_ANON: ${{ secrets.SCREENSHOT_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          REQUESTED="${{ github.event.inputs.mode || 'login' }}"
+          HAVE_CREDS=no
+          if [ -n "${SHOT_EMAIL:-}" ] && [ -n "${SHOT_PASSWORD:-}" ] \
+             && [ -n "${SUPA_URL:-}" ] && [ -n "${SUPA_ANON:-}" ]; then
+            HAVE_CREDS=yes
+          fi
+
+          # Falling back from login to demo is correct: demo mode yields a real,
+          # populated UI without an account. Falling back to *unauthenticated*
+          # would not — every gated route redirects to /auth and the gallery
+          # becomes twelve copies of the login page, which is exactly how three
+          # duplicate pairs were committed previously.
+          if [ "$REQUESTED" = "login" ] && [ "$HAVE_CREDS" = "no" ]; then
+            echo "::warning::Screenshot credentials absent — falling back to demo mode."
+            MODE=demo
+          else
+            MODE="$REQUESTED"
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "Capture mode: $MODE"
 
       - name: 🚀 Start local server
         env:
-          # If screenshot Supabase secrets exist, boot against that project so the
-          # injected login session matches the server's project ref. Otherwise use
-          # the inert placeholder (unauthenticated capture).
           SCREENSHOT_SUPABASE_URL: ${{ secrets.SCREENSHOT_SUPABASE_URL }}
           SCREENSHOT_SUPABASE_ANON_KEY: ${{ secrets.SCREENSHOT_SUPABASE_ANON_KEY }}
         run: |
+          set -euo pipefail
+          # The server must boot against the same Supabase project the capture
+          # account belongs to. Its auth guard derives the storage key from the
+          # project ref (sb-<ref>-auth-token), so a mismatched project means the
+          # planted session is invisible to the app and every route bounces.
           PORT=3000 \
           SUPABASE_URL="${SCREENSHOT_SUPABASE_URL:-https://placeholder.supabase.co}" \
           SUPABASE_ANON_KEY="${SCREENSHOT_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature}" \
           SESSION_SECRET=screenshot_ci_secret_not_real \
-          node server.mjs &
+          node server.mjs > /tmp/server.log 2>&1 &
           echo $! > /tmp/iso.pid
-          for i in $(seq 1 40); do
-            STATUS="$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/__isotope/ping 2>/dev/null || echo 000)"
-            if [ "$STATUS" = "200" ]; then echo "Server up (HTTP $STATUS)"; break; fi
+
+          STATUS=000
+          for i in $(seq 1 60); do
+            STATUS="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/health || echo 000)"
+            case "$STATUS" in 2*|3*|4*) break ;; esac
             sleep 0.5
           done
-          [ "$STATUS" = "200" ] || { echo "Server failed to start"; exit 1; }
+          case "$STATUS" in
+            2*|3*|4*) echo "Server up (HTTP $STATUS)" ;;
+            *) echo "Server failed to start (HTTP $STATUS)"; tail -50 /tmp/server.log; exit 1 ;;
+          esac
 
       - name: 📷 Capture screenshots
         env:
-          # Optional: set these repo secrets to capture auth-gated routes signed
-          # in. Without them the step still runs, unauthenticated, and stays green.
           SHOT_EMAIL: ${{ secrets.SHOT_EMAIL }}
           SHOT_PASSWORD: ${{ secrets.SHOT_PASSWORD }}
-          SUPABASE_URL: ${{ secrets.SCREENSHOT_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          SUPABASE_ANON_KEY: ${{ secrets.SCREENSHOT_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature' }}
+          SUPABASE_URL: ${{ secrets.SCREENSHOT_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SCREENSHOT_SUPABASE_ANON_KEY }}
         run: |
-          sudo apt-get install -y pngquant >/dev/null 2>&1 || true
-          LOGIN_FLAG=""
-          if [ -n "${SHOT_EMAIL:-}" ] && [ -n "${SHOT_PASSWORD:-}" ]; then
-            LOGIN_FLAG="--login"
-            echo "Screenshot login credentials present — capturing signed in"
-          else
-            echo "No SHOT_EMAIL/SHOT_PASSWORD secrets — capturing unauthenticated"
-          fi
+          set -euo pipefail
+          FLAG="--${{ steps.mode.outputs.mode }}"
           node scripts/capture-screenshots.mjs \
             --server=http://127.0.0.1:3000 \
             --out=screenshots \
-            --demo \
-            $LOGIN_FLAG \
-            --compress \
-            || echo "capture had failures (manifest reflects them)"
-          node -e "
-            const fs = require('fs');
-            try {
-              const m = JSON.parse(fs.readFileSync('screenshots/screenshot-manifest.json','utf8'));
-              const ok = (m.screenshots||[]).filter(s => s.status === 'captured').length;
-              console.log('Captured:', ok, 'of', (m.screenshots||[]).length);
-              if (ok === 0) process.exit(1);
-            } catch(e) { console.log('No manifest — failing'); process.exit(1); }
-          "
+            --scale=${{ github.event.inputs.scale || '2' }} \
+            "$FLAG" \
+            --compress
+
+      # No `|| true` on the capture step, and this summary runs even on failure
+      # so the manifest is readable from the run page without downloading it.
+      - name: 📋 Summarise manifest
+        if: always()
+        run: |
+          node -e '
+            const fs = require("fs");
+            let m;
+            try { m = JSON.parse(fs.readFileSync("screenshots/screenshot-manifest.json","utf8")); }
+            catch { console.log("No manifest produced."); process.exit(0); }
+            const rows = m.screenshots || [];
+            const pad = (s,n) => String(s).padEnd(n);
+            console.log("mode:", m.mode, "| scale:", m.scale + "x");
+            console.log("");
+            console.log(pad("key",20), pad("status",10), pad("dimensions",12), "dominant");
+            for (const s of rows) {
+              console.log(pad(s.key,20), pad(s.status,10), pad(s.dimensions || "-",12),
+                          s.dominant_share != null ? (s.dominant_share*100).toFixed(1)+"%" : "-");
+            }
+            const dupes = m.duplicate_groups || [];
+            if (dupes.length) {
+              console.log("");
+              console.log("DUPLICATE GROUPS:");
+              for (const g of dupes) console.log("  " + g.join(" = "));
+            }
+          ' | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+      - name: 📤 Upload screenshots as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ steps.mode.outputs.mode }}-${{ github.run_number }}
+          path: screenshots/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: 🪵 Server log on failure
+        if: failure()
+        run: tail -100 /tmp/server.log || true
 
       - name: ⏹️ Stop server
         if: always()
-        run: kill $(cat /tmp/iso.pid) 2>/dev/null || true
+        run: kill "$(cat /tmp/iso.pid)" 2>/dev/null || true
 
+      # Only commit a run that actually succeeded. The previous version used
+      # `if: always()`, so a run that captured nothing but login pages still
+      # committed them over the good ones.
       - name: 💾 Commit screenshots back to main
-        if: always()
+        if: success() && github.event.inputs.commit != 'false'
         run: |
           set -euo pipefail
           git add screenshots/
-          if ! git diff --cached --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            # [skip ci] prevents this bot commit from re-triggering ci/codeql/release,
-            # which previously caused the recurring push-race loop (see memory.md §5).
-            # Rebase first so a concurrent human push doesn't reject ours.
-            git commit -m "docs(screenshots): refresh UI screenshots (automated) [skip ci]"
-            git pull --rebase origin main
-            git push origin HEAD:main
-            echo "✅ Screenshots committed"
-          else
+          if git diff --cached --quiet; then
             echo "No screenshot changes — nothing to commit"
+            exit 0
           fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # [skip ci] keeps this bot commit from re-triggering ci/codeql/release,
+          # which previously caused a recurring push-race loop.
+          git commit -m "docs(screenshots): refresh UI screenshots via ${{ steps.mode.outputs.mode }} capture [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo "✅ Screenshots committed"

@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Android APK — IsotopeAI docs</title>
+<meta name="description" content="Build and install the IsotopeAI Picture-in-Picture companion APK, and what it can and cannot do.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://suydev.github.io/isotope-code/android-apk.html">
+<link rel="icon" href="./logo.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Android APK — IsotopeAI">
+<meta property="og:description" content="Build and install the IsotopeAI Picture-in-Picture companion APK, and what it can and cannot do.">
+<meta property="og:url" content="https://suydev.github.io/isotope-code/android-apk.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="./assets/site.css">
+</head>
+<body class="docs-page page-open">
+<div class="liquid-bg bg-1" aria-hidden="true"></div>
+<div class="progress" data-progress aria-hidden="true"></div>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="globalbar" data-liquid-ignore>
+  <div class="globalbar-inner">
+    <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
+    <nav class="globalbar-links" aria-label="Sections">
+      <a href="./getting-started.html" aria-current="true">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./sync-and-backup.html">Sync</a>
+      <a href="./community.html">Community</a>
+      <a href="./admin.html">Admin</a>
+      <a href="./troubleshooting.html">Support</a>
+    </nav>
+    <div class="globalbar-right">
+      <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+  </div>
+</div>
+
+<header class="topbar glass">
+  <div class="topbar-inner">
+    <a class="brand" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg><span>IsotopeAI<span class="brand-sub"> / docs</span></span></a>
+    <nav class="nav" aria-label="Primary">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+    </nav>
+    <div class="topbar-actions">
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch to dark theme"><svg data-icon="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></svg><svg data-icon="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+      <a class="icon-btn" href="https://github.com/Suydev/isotope-code" aria-label="View source on GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7 0-.7 0-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1a2.6 2.6 0 0 1 .7-1.6c-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.2-3.1a4 4 0 0 1 .1-3s1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C16.3 3.4 17.3 3.7 17.3 3.7a4 4 0 0 1 .1 3c.8.8 1.2 1.9 1.2 3.1 0 4.7-2.8 5.7-5.5 6 .5.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg></a>
+      <button class="icon-btn nav-toggle" type="button" data-drawer-toggle aria-expanded="false" aria-controls="drawer" aria-label="Open navigation menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Guides</p>
+  <a href="./getting-started.html">Getting started</a>
+  <a href="./configuration.html">Configuration</a>
+  <a href="./supabase-setup.html">Supabase setup</a>
+  <a href="./sync-and-backup.html">Sync &amp; backup</a>
+  <a href="./backup-console.html">Backup console</a>
+  <a href="./community.html">Community</a>
+  <p class="drawer-label">Reference</p>
+  <a href="./architecture.html">Architecture</a>
+  <a href="./api-reference.html">API reference</a>
+  <a href="./database.html">Database</a>
+  <a href="./cli.html">CLI</a>
+  <a href="./android-apk.html" aria-current="page">Android APK</a>
+  <a href="./admin.html">Admin console</a>
+  <p class="drawer-label">Help</p>
+  <a href="./troubleshooting.html">Troubleshooting</a>
+  <a href="./faq.html">FAQ</a>
+  <a href="./contributing.html">Contributing</a>
+  <a href="./changelog.html">Changelog</a>
+  <p class="drawer-label">Legal</p>
+  <a href="./security.html">Security</a>
+  <a href="./privacy.html">Privacy</a>
+  <a href="./terms.html">Terms</a>
+  <a href="./license.html">License</a>
+</div>
+
+<div class="wrap docs">
+
+  <aside class="sidebar glass" aria-label="Documentation">
+    <label class="sr-only" for="navfilter">Filter documentation pages</label>
+    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <div class="sidebar-group">
+      <p>Guides</p>
+      <a href="./getting-started.html">Getting started</a>
+      <a href="./configuration.html">Configuration</a>
+      <a href="./supabase-setup.html">Supabase setup</a>
+      <a href="./sync-and-backup.html">Sync &amp; backup</a>
+      <a href="./backup-console.html">Backup console</a>
+      <a href="./community.html">Community</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Reference</p>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API reference</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./android-apk.html" aria-current="page">Android APK</a>
+      <a href="./admin.html">Admin console</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Help</p>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+      <a href="./faq.html">FAQ</a>
+      <a href="./contributing.html">Contributing</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Legal</p>
+      <a href="./security.html">Security</a>
+      <a href="./privacy.html">Privacy</a>
+      <a href="./terms.html">Terms</a>
+      <a href="./license.html">License</a>
+    </div>
+  </aside>
+
+  <main id="main" class="content">
+    <nav class="breadcrumb" data-enter="1" aria-label="Breadcrumb">
+      <a href="./">Docs</a> <span aria-hidden="true">/</span> <span>Android APK</span>
+    </nav>
+    <h1 data-enter="2">Android APK</h1>
+    <p class="lead" data-enter="3">A small companion app that shows the focus timer in a
+    real Android Picture-in-Picture window, or as a floating overlay above other apps. It
+    is not the whole product — it is a remote control for the timer already running on
+    your device.</p>
+
+    <div class="note warn glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">Debug build, unsigned</span>The CI workflow runs
+  <code>assembleDebug</code>, so the artifact is signed with Android&rsquo;s shared debug key. It
+  installs fine and runs fine, but it cannot go on Play, cannot be updated over a release
+  build, and any other debug-signed APK can overwrite it. There is no release pipeline yet.</p>
+    </div>
+
+    <h2 class="rise" id="what">What it actually does <a class="anchor" href="#what" aria-label="Link to this section">#</a></h2>
+
+    <p>The APK contains no application logic and no database access. It polls two
+    endpoints on the server already running on your device and renders whatever they
+    return:</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Endpoint</th><th>Direction</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/pip/state</code></td><td>APK &larr; server</td><td>Latest timer snapshot: phase, remaining time, subject, attempts.</td></tr>
+          <tr><td><code>POST /api/pip/action</code></td><td>APK &rarr; server</td><td>Correct / incorrect / skip / undo / target. The server fans these over SSE to the open <code>/focus</code> page, which applies them.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Both live in <code>server.mjs</code>. Because every action is relayed to the web app
+    rather than applied directly, the APK cannot change your data on its own — if no
+    browser tab has <code>/focus</code> open, actions have nowhere to land.</p>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <p><span class="note-title">This is a thin client on purpose</span>Bundling the whole
+  web app into a WebView was the alternative, and it was rejected: two copies of the app
+  would then disagree about state, and the APK would need its own Supabase credentials.
+  Polling a local endpoint keeps exactly one source of truth.</p>
+    </div>
+
+    <h2 class="rise" id="build">Build it <a class="anchor" href="#build" aria-label="Link to this section">#</a></h2>
+
+    <p>No Android SDK fits comfortably in Termux, so the build runs in CI. The workflow is
+    <code>.github/workflows/pip-apk.yml</code>.</p>
+
+    <ol class="steps">
+      <li><p>Trigger the workflow. It also runs automatically on any push touching <code>pipapk/**</code>.</p>
+        <div class="codeblock" data-lang="bash">
+<pre>gh workflow run pip-apk.yml
+
+# watch it
+gh run watch "$(gh run list --workflow=pip-apk.yml --limit=1 --json databaseId -q '.[0].databaseId')"</pre>
+        </div>
+      </li>
+      <li><p>Download the artifact. It is named <code>isotope-pip-debug</code>.</p>
+        <div class="codeblock" data-lang="bash">
+<pre>gh run download --name isotope-pip-debug --dir ~/apk-out
+ls -l ~/apk-out/app-debug.apk</pre>
+        </div>
+      </li>
+      <li><p>Install it. Either open the file in Android&rsquo;s package installer, or use ADB if you have it paired.</p>
+        <div class="codeblock" data-lang="bash">
+<pre>adb install -r ~/apk-out/app-debug.apk</pre>
+        </div>
+        <p>Android will warn about installing from an unknown source. That is expected for
+        a debug build and not something the workflow can avoid.</p>
+      </li>
+    </ol>
+
+    <div class="note tip glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg>
+      <p><span class="note-title">Building locally</span>If you do have an Android SDK,
+  <code>cd pipapk &amp;&amp; ./gradlew :app:assembleDebug</code> produces the same file at
+  <code>pipapk/app/build/outputs/apk/debug/app-debug.apk</code>. The wrapper pins its own
+  Gradle version, so nothing needs installing beyond a JDK 17.</p>
+    </div>
+
+    <h2 class="rise" id="connect">Point it at your server <a class="anchor" href="#connect" aria-label="Link to this section">#</a></h2>
+
+    <p>The default is <code>http://127.0.0.1:3000</code>, which works when the APK and the
+    server are on the same device — the normal Termux case. The URL is editable in the app:
+    type a new one and press <strong>Save URL</strong>. It is stored in
+    <code>SharedPreferences</code> under <code>pipapk_settings/server_url</code>.</p>
+
+    <p>To drive a server on another machine, use its LAN address:</p>
+
+    <div class="codeblock" data-lang="text">
+<pre>http://10.0.0.5:3000</pre>
+    </div>
+
+    <div class="note danger glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+      <p><span class="note-title">Cleartext HTTP is permitted app-wide</span>
+  <code>network_security_config.xml</code> sets <code>cleartextTrafficPermitted="true"</code>
+  for <em>all</em> hosts, not just loopback. Over a LAN that means timer state and your
+  actions travel unencrypted. On a home network that is a reasonable trade; on a shared or
+  public network it is not. Scoping this to a <code>&lt;domain-config&gt;</code> for
+  <code>127.0.0.1</code> would be the correct fix and has not been done.</p>
+    </div>
+
+    <h2 class="rise" id="permissions">Permissions, and why each exists <a class="anchor" href="#permissions" aria-label="Link to this section">#</a></h2>
+
+    <p>The manifest declares thirteen. Most are inherited from the reference project rather
+    than genuinely needed by this build, which is worth knowing before you grant them.</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Permission</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td><code>INTERNET</code></td><td>Required. HTTP to the server, loopback included.</td></tr>
+          <tr><td><code>SYSTEM_ALERT_WINDOW</code></td><td>The floating overlay. Must be granted by hand in Android settings; the app checks <code>Settings.canDrawOverlays</code> and declines to start the overlay without it.</td></tr>
+          <tr><td><code>FOREGROUND_SERVICE</code>, <code>FOREGROUND_SERVICE_SPECIAL_USE</code></td><td>Keeps the overlay alive. Android requires a persistent notification for it.</td></tr>
+          <tr><td><code>POST_NOTIFICATIONS</code></td><td>That notification, on Android 13+.</td></tr>
+          <tr><td><code>RECEIVE_BOOT_COMPLETED</code></td><td>Optional auto-start. Governed by <code>pipapk_settings/auto_start</code>, default on.</td></tr>
+          <tr><td><code>WAKE_LOCK</code>, <code>VIBRATE</code>, <code>SCHEDULE_EXACT_ALARM</code></td><td>Timer completion feedback.</td></tr>
+          <tr><td><code>USE_BIOMETRIC</code>, <code>USE_FINGERPRINT</code></td><td><strong>Unused by this build.</strong> Carried over from the reference app.</td></tr>
+          <tr><td><code>READ_EXTERNAL_STORAGE</code>, <code>WRITE_EXTERNAL_STORAGE</code></td><td><strong>Unused by this build.</strong> Write is capped at <code>maxSdkVersion="28"</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Four declared permissions do nothing here. They should be removed from the manifest
+    — a permission you do not use is one you cannot justify, and it makes the install prompt
+    look worse than the app deserves.</p>
+
+    <h2 class="rise" id="behaviour">Behaviour worth knowing <a class="anchor" href="#behaviour" aria-label="Link to this section">#</a></h2>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Detail</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Overlay poll</td><td>1&nbsp;s while running, 3&nbsp;s otherwise (<code>pollInterval()</code>), with exponential backoff on failure — capped at 5&nbsp;s for a loopback server, 8&nbsp;s otherwise.</td></tr>
+          <tr><td>Overlay render tick</td><td>40&nbsp;ms (<code>TICK_MS</code>), interpolated from <code>completionAtMs</code> rather than from the last poll — so the countdown is exact between polls, not merely smooth.</td></tr>
+          <tr><td>Session-detection poll</td><td>5&nbsp;s (<code>AUTO_POLL_MS</code>). Watches for a session starting so it can pop the overlay; it renders nothing itself.</td></tr>
+          <tr><td>PiP aspect ratio</td><td>Clamped into Android&rsquo;s legal 1/2.39–2.39 band, so an odd viewport cannot crash <code>enterPictureInPictureMode</code>.</td></tr>
+          <tr><td>Overlay window type</td><td><code>TYPE_APPLICATION_OVERLAY</code>, the only type Android 8+ allows for third-party overlays.</td></tr>
+          <tr><td>Offline handling</td><td>For a loopback server the app retries state even when Android reports no network — a device with Wi-Fi off still has a working localhost.</td></tr>
+          <tr><td>Auto-start on boot</td><td>Requires overlay permission already granted; silently skipped otherwise.</td></tr>
+          <tr><td>Package name</td><td><code>in.isotopeai.pip</code> (namespace <code>app.isotopeai.pip</code>).</td></tr>
+          <tr><td>Android version</td><td>minSdk 24 (7.0) &middot; targetSdk 35 (15).</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The two poll rates are worth separating, because conflating them makes the app sound
+    worse than it is. <code>AUTO_POLL_MS = 5000</code> drives <code>autoStartPoll</code>,
+    whose only job is to notice that a session has begun and launch the overlay
+    (<code>PipActivity.kt:57</code>). It renders nothing. The timer lives in the overlay
+    service, which polls every second while running.</p>
+
+    <p>So the one user-visible consequence of the 5&nbsp;s figure is this: <strong>starting a
+    focus session can take up to five seconds to pop the overlay.</strong> That is a
+    reasonable trade — the alternative is six times the wake-ups on a loop that runs
+    whenever the app is foregrounded, to make a window appear slightly sooner.</p>
+
+    <p>More importantly, the countdown does not depend on the poll rate at all.
+    <code>/api/pip/state</code> returns <code>completionAtMs</code>, an absolute timestamp,
+    and <code>TimerState.displaySecondsNow()</code> derives the display from
+    <code>completionAtMs − now</code> on every 40&nbsp;ms tick. So the digits are correct
+    continuously, and a slow or missed poll shifts nothing on screen. Only a change made
+    elsewhere — a pause from the web app, say — waits for the next poll.</p>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <p><span class="note-title">Why an absolute timestamp and not a remaining count</span>
+  A server returning &ldquo;312 seconds left&rdquo; is stale the instant it is sent, and the
+  client cannot tell how stale. A completion timestamp is still true whenever it arrives,
+  so late delivery costs accuracy of nothing. <code>pipapk.md</code> proposes a 750&nbsp;ms
+  poll to keep the display fresh; the timestamp approach makes that unnecessary.</p>
+    </div>
+
+    <h2 class="rise" id="limits">What it cannot do <a class="anchor" href="#limits" aria-label="Link to this section">#</a></h2>
+
+    <ul>
+      <li><strong>Work without the server.</strong> No server on <code>127.0.0.1:3000</code> means an offline badge and nothing else. It is a remote control, not a client.</li>
+      <li><strong>Work without a browser tab.</strong> Actions are relayed over SSE to the open <code>/focus</code> page. With no tab open they are accepted and dropped.</li>
+      <li><strong>Show anything but the timer.</strong> No tasks, no syllabus, no analytics, no community.</li>
+      <li><strong>Update itself.</strong> Debug-signed with no release channel, so every upgrade is a manual reinstall.</li>
+      <li><strong>Be distributed.</strong> No Play listing and no signing key. Build it yourself or download the CI artifact.</li>
+    </ul>
+
+    <h2 class="rise" id="trouble">If it does not connect <a class="anchor" href="#trouble" aria-label="Link to this section">#</a></h2>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Symptom</th><th>Check</th></tr></thead>
+        <tbody>
+          <tr><td>Offline badge, server is running</td><td>Confirm the URL. A trailing slash is trimmed on save, but a wrong port is not caught. <code>curl -s http://127.0.0.1:3000/api/health</code> from Termux first.</td></tr>
+          <tr><td>Timer shows but buttons do nothing</td><td>No browser tab has <code>/focus</code> open. The server accepts the action and has nobody to relay it to.</td></tr>
+          <tr><td>Overlay button does nothing</td><td>&ldquo;Display over other apps&rdquo; is not granted. Android settings &rarr; Apps &rarr; IsotopeAI PiP &rarr; Advanced.</td></tr>
+          <tr><td>Nothing after a reboot</td><td>Auto-start needs overlay permission at boot time. It exits silently rather than prompting.</td></tr>
+          <tr><td>PiP window never appears</td><td>Some launchers disable PiP per-app. Check Android settings &rarr; Apps &rarr; Special access &rarr; Picture-in-picture.</td></tr>
+          <tr><td>Install blocked</td><td>Expected for an unsigned debug build. Allow installs from your browser or file manager.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="rise" id="next">Related <a class="anchor" href="#next" aria-label="Link to this section">#</a></h2>
+
+    <div class="grid cols-2 scene mt-6">
+      <a class="card tilt glass" href="./api-reference.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">API reference</h3>
+        <p>The endpoints the APK polls, and everything else the server exposes.</p>
+        <span class="card-more">Read →</span>
+      </a>
+      <a class="card tilt glass" href="./architecture.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">Architecture</h3>
+        <p>Why the server relays actions instead of applying them.</p>
+        <span class="card-more">Read →</span>
+      </a>
+    </div>
+  </main>
+
+  <aside class="toc glass" data-toc aria-label="On this page">
+    <p>On this page</p>
+  </aside>
+</div>
+
+<footer class="site-footer glass">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg><span>IsotopeAI</span></a>
+        <p>Local-first study platform.<br>Self-hosted, MIT licensed.</p>
+      </div>
+      <div>
+        <p class="footer-col-title">Guides</p>
+        <a href="./getting-started.html">Getting started</a>
+        <a href="./configuration.html">Configuration</a>
+        <a href="./supabase-setup.html">Supabase setup</a>
+        <a href="./sync-and-backup.html">Sync &amp; backup</a>
+        <a href="./community.html">Community</a>
+      </div>
+      <div>
+        <p class="footer-col-title">Reference</p>
+        <a href="./architecture.html">Architecture</a>
+        <a href="./api-reference.html">API reference</a>
+        <a href="./database.html">Database</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./admin.html">Admin console</a>
+      </div>
+      <div>
+        <p class="footer-col-title">More</p>
+        <a href="./troubleshooting.html">Troubleshooting</a>
+        <a href="./faq.html">FAQ</a>
+        <a href="./contributing.html">Contributing</a>
+        <a href="./changelog.html">Changelog</a>
+        <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <p>© 2026 IsotopeAI · <a href="./license.html">MIT License</a> · <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="./security.html">Security</a></p>
+    </div>
+  </div>
+</footer>
+
+<script src="./assets/site.js" defer></script>
+</body>
+</html>

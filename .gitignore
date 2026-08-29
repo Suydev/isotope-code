@@ -27,3 +27,9 @@ isotope-apk-ref/.env.*
 screenshot.png
 apk-out/
 liquidglass-ref/
+
+# Inter-agent handoff notes (local only, never committed)
+message.md
+
+# Supabase advisor dumps — regenerated on demand, not source
+supabase_advisor.json

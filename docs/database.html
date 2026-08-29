@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Database — IsotopeAI docs</title>
+<meta name="description" content="IsotopeAI database reference: 42 tables, 73 functions, 153 row-level security policies, 14 triggers and 124 indexes, verified against the live schema.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://suydev.github.io/isotope-code/database.html">
+<link rel="icon" href="./logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="./assets/site.css">
+</head>
+<body class="docs-page page-open">
+<div class="liquid-bg bg-1" aria-hidden="true"></div>
+<div class="progress" data-progress aria-hidden="true"></div>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="globalbar" data-liquid-ignore>
+  <div class="globalbar-inner">
+    <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
+    <nav class="globalbar-links" aria-label="Sections">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html" aria-current="true">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./sync-and-backup.html">Sync</a>
+      <a href="./community.html">Community</a>
+      <a href="./admin.html">Admin</a>
+      <a href="./troubleshooting.html">Support</a>
+    </nav>
+    <div class="globalbar-right">
+      <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+  </div>
+</div>
+
+<header class="topbar glass">
+  <div class="topbar-inner">
+    <a class="brand" href="./">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg>
+      <span>IsotopeAI<span class="brand-sub"> / docs</span></span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html" aria-current="page">Database</a>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+    </nav>
+    <div class="topbar-actions">
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch to dark theme">
+        <svg data-icon="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></svg>
+        <svg data-icon="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+      <a class="icon-btn" href="https://github.com/Suydev/isotope-code" aria-label="View source on GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7 0-.7 0-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1a2.6 2.6 0 0 1 .7-1.6c-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.2-3.1a4 4 0 0 1 .1-3s1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C16.3 3.4 17.3 3.7 17.3 3.7a4 4 0 0 1 .1 3c.8.8 1.2 1.9 1.2 3.1 0 4.7-2.8 5.7-5.5 6 .5.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg>
+      </a>
+      <button class="icon-btn nav-toggle" type="button" data-drawer-toggle aria-expanded="false" aria-controls="drawer" aria-label="Open navigation menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Guides</p>
+  <a href="./getting-started.html">Getting started</a>
+  <a href="./configuration.html">Configuration</a>
+  <a href="./supabase-setup.html">Supabase setup</a>
+  <a href="./sync-and-backup.html">Sync &amp; backup</a>
+  <a href="./backup-console.html">Backup console</a>
+  <a href="./community.html">Community</a>
+  <p class="drawer-label">Reference</p>
+  <a href="./architecture.html">Architecture</a>
+  <a href="./api-reference.html">API reference</a>
+  <a href="./database.html" aria-current="page">Database</a>
+  <a href="./cli.html">CLI</a>
+  <a href="./android-apk.html">Android APK</a>
+  <a href="./admin.html">Admin console</a>
+  <p class="drawer-label">Help</p>
+  <a href="./troubleshooting.html">Troubleshooting</a>
+  <a href="./faq.html">FAQ</a>
+  <a href="./contributing.html">Contributing</a>
+  <a href="./changelog.html">Changelog</a>
+  <p class="drawer-label">Legal</p>
+  <a href="./security.html">Security</a>
+  <a href="./privacy.html">Privacy</a>
+  <a href="./terms.html">Terms</a>
+  <a href="./license.html">License</a>
+</div>
+
+<div class="wrap docs">
+
+  <aside class="sidebar glass" aria-label="Documentation">
+    <label class="sr-only" for="navfilter">Filter documentation pages</label>
+    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <div class="sidebar-group">
+      <p>Guides</p>
+      <a href="./getting-started.html">Getting started</a>
+      <a href="./configuration.html">Configuration</a>
+      <a href="./supabase-setup.html">Supabase setup</a>
+      <a href="./sync-and-backup.html">Sync &amp; backup</a>
+      <a href="./backup-console.html">Backup console</a>
+      <a href="./community.html">Community</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Reference</p>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API reference</a>
+      <a href="./database.html" aria-current="page">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./android-apk.html">Android APK</a>
+      <a href="./admin.html">Admin console</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Help</p>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+      <a href="./faq.html">FAQ</a>
+      <a href="./contributing.html">Contributing</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Legal</p>
+      <a href="./security.html">Security</a>
+      <a href="./privacy.html">Privacy</a>
+      <a href="./terms.html">Terms</a>
+      <a href="./license.html">License</a>
+    </div>
+  </aside>
+
+  <main id="main" class="content">
+    <nav class="breadcrumb" data-enter="1" aria-label="Breadcrumb">
+      <a href="./">Docs</a> <span aria-hidden="true">/</span> <span>Database</span>
+    </nav>
+
+    <h1 data-enter="2">Database</h1>
+    <p class="lead" data-enter="3">Every table, function, policy and trigger in an IsotopeAI Supabase
+    project. The figures below were read from a live schema, not inferred from the
+    migration files.</p>
+
+    <div class="grid cols-4" style="margin-top:var(--s-6)">
+      <div><span class="ticker" data-ticker="42">42</span><span class="ticker-label">Tables</span></div>
+      <div><span class="ticker" data-ticker="73">73</span><span class="ticker-label">Functions</span></div>
+      <div><span class="ticker" data-ticker="153">153</span><span class="ticker-label">RLS policies</span></div>
+      <div><span class="ticker" data-ticker="124">124</span><span class="ticker-label">Indexes</span></div>
+    </div>
+
+    <div class="note ok glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+      <p><span class="note-title">Row-level security is on for all 42 tables</span>
+      There are no tables with RLS disabled. Every read and write from the browser is
+      filtered by policy, using the caller's own JWT.</p>
+    </div>
+
+    <h2 class="rise" id="verify">Check your own schema <a class="anchor" href="#verify" aria-label="Link to this section">#</a></h2>
+
+    <p>Run this in the Supabase SQL editor to compare your project against the reference
+    figures above:</p>
+
+    <div class="codeblock" data-lang="sql">
+<pre>select
+  (select count(*) from information_schema.tables
+     where table_schema = 'public' and table_type = 'BASE TABLE')      as tables,
+  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.prokind = 'f')                   as functions,
+  (select count(*) from pg_policies where schemaname = 'public')        as policies,
+  (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid
+     join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and not t.tgisinternal)                as triggers,
+  (select count(*) from pg_indexes where schemaname = 'public')         as indexes;</pre>
+    </div>
+
+    <p>The repository also ships a drift checker that fails if the install schema falls
+    behind the live database:</p>
+
+    <div class="codeblock" data-lang="bash">
+<pre>npm run schema:drift</pre>
+    </div>
+
+    <h2 class="rise" id="users">Users and profile <a class="anchor" href="#users" aria-label="Link to this section">#</a></h2>
+
+    <p><code>public.users</code> is the hub. It mirrors <code>auth.users</code> by primary
+    key and carries the application-level fields. Everything else hangs off it.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Table</th><th>Columns</th><th>Policies</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>users</code></td><td>19</td><td>9</td><td>Identity, plan, coins, gems, sync metadata. FK to <code>auth.users(id)</code>.</td></tr>
+          <tr><td><code>user_profiles</code></td><td>12</td><td>2</td><td>JSONB profile blob, handle, display name.</td></tr>
+          <tr><td><code>user_display_profiles</code></td><td>5</td><td>1</td><td>Denormalised public display fields, kept in sync by trigger.</td></tr>
+          <tr><td><code>user_settings</code></td><td>9</td><td>2</td><td>Per-user preferences as JSONB.</td></tr>
+          <tr><td><code>user_onboarding</code></td><td>6</td><td>2</td><td>Completion flag and timestamp.</td></tr>
+          <tr><td><code>user_roles</code></td><td>5</td><td>1</td><td>Admin role grants, checked by <code>isSupabaseAdminUser()</code>.</td></tr>
+          <tr><td><code>user_tours</code></td><td>10</td><td>2</td><td>Guided-tour progress, so tours do not repeat across devices.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="rise" id="study">Study data <a class="anchor" href="#study" aria-label="Link to this section">#</a></h2>
+
+    <p>The widest tables in the schema. <code>focus_sessions</code> has 41 columns because
+    a session records subject, task, interruptions, timing mode and derived totals in one
+    row.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Table</th><th>Columns</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>focus_sessions</code></td><td>41</td><td>Individual focus sessions with full context.</td></tr>
+          <tr><td><code>mock_tests</code></td><td>36</td><td>Mock test attempts, per-section scoring and accuracy.</td></tr>
+          <tr><td><code>tasks</code></td><td>29</td><td>Tasks with priority, due dates and availability rules.</td></tr>
+          <tr><td><code>exams</code></td><td>23</td><td>Target exams, dates and countdown metadata.</td></tr>
+          <tr><td><code>subjects</code></td><td>16</td><td>Subjects with colour, icon and syllabus linkage.</td></tr>
+          <tr><td><code>daily_logs</code></td><td>16</td><td>Free-form daily journal entries.</td></tr>
+          <tr><td><code>tests</code></td><td>15</td><td>Lightweight self-tests.</td></tr>
+          <tr><td><code>habits</code></td><td>14</td><td>Habit definitions and streak state.</td></tr>
+          <tr><td><code>study_sessions_log</code></td><td>14</td><td>Append-only session log used for aggregation.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="rise" id="stats">Stats and gamification <a class="anchor" href="#stats" aria-label="Link to this section">#</a></h2>
+
+    <p>These are the tables the leaderboard reads. Both stats tables carry a public
+    <code>SELECT</code> policy plus own-row write policies — that combination is what makes
+    a leaderboard possible without exposing write access.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Table</th><th>Columns</th><th>Policies</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>user_stats_summary</code></td><td>14</td><td>7</td><td>Aggregate totals, streaks and session counts.</td></tr>
+          <tr><td><code>daily_user_stats</code></td><td>10</td><td>7</td><td>Seconds studied per day, per user.</td></tr>
+          <tr><td><code>user_points</code></td><td>4</td><td>6</td><td>Current and lifetime points.</td></tr>
+          <tr><td><code>user_inventory</code></td><td>6</td><td>2</td><td>Owned store items.</td></tr>
+          <tr><td><code>store_items</code></td><td>9</td><td>2</td><td>Purchasable item catalogue.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note warn glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">Empty leaderboard on an older project</span>
+      A legacy <code>stats_own</code> policy used <code>FOR ALL</code>, which also blocked
+      public <code>SELECT</code> and made the leaderboard render empty. Run
+      <code>leaderboard-rls-fix.sql</code> if you see this. Fresh installs already have the
+      corrected <code>stats_read_all</code> policy.</p>
+    </div>
+
+    <h2 class="rise" id="groups">Groups <a class="anchor" href="#groups" aria-label="Link to this section">#</a></h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Table</th><th>Columns</th><th>Policies</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>groups</code></td><td>27</td><td>11</td><td>Group record: name, exam, target year, subjects, visibility, join policy, member count.</td></tr>
+          <tr><td><code>group_members</code></td><td>8</td><td>12</td><td>Membership and role. The most heavily policed table in the schema.</td></tr>
+          <tr><td><code>group_chat_messages</code></td><td>10</td><td>6</td><td>Group chat, published to Realtime.</td></tr>
+          <tr><td><code>group_invites</code></td><td>9</td><td>7</td><td>Invite tokens with use counts and expiry.</td></tr>
+          <tr><td><code>group_challenges</code></td><td>11</td><td>7</td><td>Group challenge definitions.</td></tr>
+          <tr><td><code>group_challenge_participants</code></td><td>7</td><td>7</td><td>Per-user challenge progress.</td></tr>
+          <tr><td><code>group_announcements</code></td><td>6</td><td>8</td><td>Pinned announcements.</td></tr>
+          <tr><td><code>group_milestones</code></td><td>4</td><td>3</td><td>Group achievement records.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="recursion">Avoiding infinite RLS recursion <a class="anchor" href="#recursion" aria-label="Link to this section">#</a></h3>
+
+    <p>A membership policy that queries <code>group_members</code> directly re-triggers the
+    policy on <code>group_members</code>, and Postgres aborts with an infinite-recursion
+    error. Every membership check therefore goes through a <code>SECURITY DEFINER</code>
+    helper, which runs with the owner's rights and bypasses the policy it would otherwise
+    re-enter:</p>
+
+    <div class="codeblock" data-lang="sql">
+<pre>-- correct: definer function breaks the cycle
+create or replace function public._is_group_member(gid uuid, uid uuid)
+returns boolean language sql stable security definer
+set search_path = public as $$
+  select exists (
+    select 1 from public.group_members
+    where group_id = gid and user_id = uid
+  );
+$$;
+
+-- wrong: this recurses and fails at query time
+-- using (exists (select 1 from group_members where ...))</pre>
+    </div>
+
+    <p><code>npm run security:verify</code> asserts that the anon key cannot trigger
+    recursion on any policy.</p>
+
+    <h2 class="rise" id="community">Community <a class="anchor" href="#community" aria-label="Link to this section">#</a></h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Table</th><th>Columns</th><th>Policies</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>community_enrollments</code></td><td>8</td><td>2</td><td>Opt-in state, privacy settings, quiet hours, day offset.</td></tr>
+          <tr><td><code>community_friends</code></td><td>7</td><td>2</td><td>Buddy connections: <code>user_id</code>, <code>friend_id</code>, <code>status</code>, <code>accepted_at</code>.</td></tr>
+          <tr><td><code>community_join_requests</code></td><td>5</td><td>2</td><td>Pending requests for groups with <code>join_policy = 'request'</code>.</td></tr>
+          <tr><td><code>community_start_alerts</code></td><td>9</td><td>2</td><td>Notify-me-when-they-start alerts, with quiet-hour windows.</td></tr>
+          <tr><td><code>community_device_tokens</code></td><td>5</td><td>2</td><td>Push tokens for native notifications.</td></tr>
+          <tr><td><code>community_reports</code></td><td>6</td><td>2</td><td>User reports on groups, messages or people.</td></tr>
+          <tr><td><code>community_events</code></td><td>18</td><td>4</td><td>Scheduled community events.</td></tr>
+          <tr><td><code>community_event_attendees</code></td><td>3</td><td>6</td><td>Event attendance, unique per event and user.</td></tr>
+          <tr><td><code>user_presence</code></td><td>14</td><td>7</td><td>Live presence: state, current subject and task, session start, running total.</td></tr>
+          <tr><td><code>buddy_invites</code></td><td>7</td><td>0</td><td>Unused. See the note below.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <p><span class="note-title"><code>buddy_invites</code> is an orphan</span>
+      It has RLS enabled with <strong>zero policies</strong>, so no anonymous or
+      authenticated caller can read or write it. Nothing references it — not
+      <code>isotope-complete.sql</code>, not <code>server.mjs</code>, and none of the 73
+      functions. Buddy functionality runs entirely through
+      <code>community_friends</code>. This is leftover from an earlier design. It is not a
+      security hole, because RLS with no policies fails closed, but it is dead weight and
+      is scheduled for removal.</p>
+    </div>
+
+    <h2 class="rise" id="sync">Sync and system <a class="anchor" href="#sync" aria-label="Link to this section">#</a></h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Table</th><th>Columns</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>sync_items</code></td><td>16</td><td>Durable per-user sync queue and history.</td></tr>
+          <tr><td><code>backup_manifests</code></td><td>13</td><td>Records each stored backup: bucket, path, kind, content hash.</td></tr>
+          <tr><td><code>notifications</code></td><td>13</td><td>In-app notification inbox, polled by the runtime.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="sync-columns">The sync quartet <a class="anchor" href="#sync-columns" aria-label="Link to this section">#</a></h3>
+
+    <p>Six tables carry the same four columns, and the sync engine depends on all of
+    them:</p>
+
+    <dl class="kv">
+      <dt>version</dt><dd>Monotonic counter. Higher wins when content hashes differ.</dd>
+      <dt>content_hash</dt><dd>Stable hash of the row payload. Equal hashes mean no write is needed.</dd>
+      <dt>last_synced_at</dt><dd>When this row last reconciled with the cloud.</dd>
+      <dt>deleted_at</dt><dd>Tombstone. A soft delete must replicate; a hard delete cannot.</dd>
+      <dt>device_id</dt><dd>Which device produced the write, used to break ties.</dd>
+    </dl>
+
+    <p>They exist on <code>users</code>, <code>user_profiles</code>,
+    <code>user_settings</code>, <code>notifications</code>,
+    <code>study_sessions_log</code> and <code>daily_user_stats</code>.</p>
+
+    <h2 class="rise" id="triggers">Triggers <a class="anchor" href="#triggers" aria-label="Link to this section">#</a></h2>
+
+    <p>14 triggers, and six of them fire on <code>public.users</code>. They exist so a new
+    account is never missing a satellite row — the alternative is an empty leaderboard or a
+    non-functional community tab, caused by a row that was never created.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Trigger</th><th>On</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>trg_ensure_user_profile</code></td><td><code>users</code></td><td>Creates <code>user_profiles</code>.</td></tr>
+          <tr><td><code>trg_ensure_stats</code></td><td><code>users</code></td><td>Creates <code>user_stats_summary</code>.</td></tr>
+          <tr><td><code>trg_ensure_user_points</code></td><td><code>users</code></td><td>Creates <code>user_points</code>.</td></tr>
+          <tr><td><code>trg_ensure_onboarding</code></td><td><code>users</code></td><td>Creates <code>user_onboarding</code>.</td></tr>
+          <tr><td><code>trg_ensure_community_enrollment</code></td><td><code>users</code></td><td>Creates <code>community_enrollments</code>.</td></tr>
+          <tr><td><code>sync_user_display_profile</code></td><td><code>users</code></td><td>Mirrors public display fields to <code>user_display_profiles</code>.</td></tr>
+          <tr><td><code>trg_auto_add_owner</code></td><td><code>groups</code></td><td>Adds the creator to <code>group_members</code> as owner.</td></tr>
+          <tr><td><code>trg_auto_add_super_admin</code></td><td><code>groups</code></td><td>Adds the platform super admin to every new group.</td></tr>
+          <tr><td><code>trg_set_group_slug</code></td><td><code>groups</code></td><td>Generates a URL-safe slug from the name.</td></tr>
+          <tr><td><code>trg_sync_group_visibility</code></td><td><code>groups</code></td><td>Keeps <code>is_public</code> consistent with <code>visibility</code>.</td></tr>
+          <tr><td><code>trg_sync_member_count</code></td><td><code>group_members</code></td><td>Maintains the denormalised <code>groups.member_count</code>.</td></tr>
+          <tr><td><code>tr_sync_user_onboarding_from_profile</code></td><td><code>user_profiles</code></td><td>Reconciles legacy onboarding flags.</td></tr>
+          <tr><td><code>tr_cleanup_old_notifications</code></td><td><code>notifications</code></td><td>Prunes old rows on insert.</td></tr>
+          <tr><td><code>trg_user_tours_updated_at</code></td><td><code>user_tours</code></td><td>Maintains <code>updated_at</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note tip glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <p><span class="note-title">Why <code>trg_auto_add_owner</code> matters</span>
+      Creating a group and adding yourself as its owner are two writes. If the second
+      fails, you get a group nobody can administer. The trigger makes it one atomic
+      operation.</p>
+    </div>
+
+    <h2 class="rise" id="functions">Functions <a class="anchor" href="#functions" aria-label="Link to this section">#</a></h2>
+
+    <p>73 functions. 30 of them are the <code>community_*</code> RPC surface the frontend
+    calls directly through PostgREST.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Area</th><th>Functions</th></tr></thead>
+        <tbody>
+          <tr><td>Groups</td><td><code>community_create_group</code>, <code>community_update_group</code>, <code>community_delete_group</code>, <code>community_get_group</code>, <code>community_discover_groups</code>, <code>community_join_group</code>, <code>community_leave_group</code>, <code>community_transfer_group</code>, <code>community_set_group_role</code>, <code>community_remove_group_member</code></td></tr>
+          <tr><td>Chat</td><td><code>community_get_group_messages</code>, <code>community_send_group_message</code></td></tr>
+          <tr><td>Invites</td><td><code>community_create_invite</code>, <code>community_preview_invite</code>, <code>community_redeem_invite</code>, <code>accept_invite</code>, <code>get_invite_details</code></td></tr>
+          <tr><td>Buddies</td><td><code>community_request_buddy</code>, <code>community_respond_buddy</code>, <code>community_remove_buddy</code></td></tr>
+          <tr><td>Presence</td><td><code>community_heartbeat</code>, <code>expire_stale_presence</code></td></tr>
+          <tr><td>Privacy</td><td><code>community_get_privacy</code>, <code>community_save_privacy</code>, <code>community_sync_quiet_hours</code></td></tr>
+          <tr><td>Alerts</td><td><code>community_get_start_alert</code>, <code>community_set_start_alert</code>, <code>community_register_device_token</code></td></tr>
+          <tr><td>Leaderboards</td><td><code>get_group_leaderboard</code>, <code>get_leaderboard</code>, <code>get_group_analytics_from_snapshots</code></td></tr>
+          <tr><td>Helpers</td><td><code>_is_group_member</code>, <code>_has_group_role</code>, <code>is_premium_user</code>, <code>check_user_role</code>, <code>get_my_role</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="search-path">Pinned search paths <a class="anchor" href="#search-path" aria-label="Link to this section">#</a></h3>
+
+    <p>Every <code>SECURITY DEFINER</code> function pins its <code>search_path</code>.
+    Without that, a caller who can create objects in an earlier schema could shadow a table
+    name and have the function operate on their object with the definer's privileges:</p>
+
+    <div class="codeblock" data-lang="sql">
+<pre>-- find any definer function missing a pinned search_path
+select p.proname, pg_get_function_identity_arguments(p.oid) as args
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.prosecdef and p.proconfig is null;
+-- expected: zero rows</pre>
+    </div>
+
+    <p>To fix one without touching its body:</p>
+
+    <div class="codeblock" data-lang="sql">
+<pre>alter function public.my_function(uuid, integer) set search_path = public;</pre>
+    </div>
+
+    <h2 class="rise" id="rls-model">RLS model <a class="anchor" href="#rls-model" aria-label="Link to this section">#</a></h2>
+
+    <p>Three patterns cover almost every table:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Pattern</th><th>Shape</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td>Own row only</td><td><code>using (user_id = (select auth.uid()))</code></td><td>Study data, settings, private records.</td></tr>
+          <tr><td>Public read, own write</td><td><code>for select using (true)</code> plus an own-row <code>for all</code></td><td>Stats tables, so leaderboards work.</td></tr>
+          <tr><td>Membership gated</td><td><code>using (_is_group_member(group_id, (select auth.uid())))</code></td><td>Group content: chat, announcements, challenges.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><code>(select auth.uid())</code> rather than a bare <code>auth.uid()</code> is
+    deliberate: the subquery form is evaluated once per statement instead of once per row,
+    which matters on large tables.</p>
+
+    <h2 class="rise" id="indexes">Indexes <a class="anchor" href="#indexes" aria-label="Link to this section">#</a></h2>
+
+    <p>124 indexes. The ones that matter most for perceived speed:</p>
+
+    <ul>
+      <li><code>group_members(group_id, user_id)</code> — covers the membership subquery used by every gated policy.</li>
+      <li><code>groups(slug)</code> — group lookup by URL.</li>
+      <li><code>daily_user_stats(user_id, date)</code> — leaderboard range scans.</li>
+      <li>A GIN index on <code>groups.fts</code> — full-text discovery search.</li>
+    </ul>
+
+    <p><code>groups.fts</code> is a generated column, so the search vector cannot drift from
+    the source text:</p>
+
+    <div class="codeblock" data-lang="sql">
+<pre>fts tsvector generated always as (
+  to_tsvector('english',
+    coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || coalesce(category, ''))
+) stored</pre>
+    </div>
+
+    <h2 class="rise" id="files">Schema files <a class="anchor" href="#files" aria-label="Link to this section">#</a></h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>File</th><th>Use</th></tr></thead>
+        <tbody>
+          <tr><td><code>isotope-complete.sql</code></td><td>Authoritative fresh install. Idempotent. Served by <code>/__admin/schema</code>.</td></tr>
+          <tr><td><code>community-patch-v6.sql</code></td><td>Cumulative community patch for existing projects. Served by <code>/__admin/patch</code>.</td></tr>
+          <tr><td><code>leaderboard-rls-fix.sql</code></td><td>Upgrade only. Fixes an empty leaderboard.</td></tr>
+          <tr><td><code>performance-patch.sql</code></td><td>Indexes for RLS subqueries and leaderboard sorts.</td></tr>
+          <tr><td><code>sql/isotope-schema-restore.sql</code></td><td>Full portable dump for restoring into a new project.</td></tr>
+          <tr><td><code>events-expansion.sql</code></td><td>Removal patch. Drops Store and Events. Do not run on a fresh install.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid cols-2 scene" style="margin-top:var(--s-6)">
+      <a class="card tilt glass" href="./supabase-setup.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">Supabase setup</h3>
+        <p>Create the project and apply this schema.</p>
+        <span class="card-more">Read →</span>
+      </a>
+      <a class="card tilt glass" href="./sync-and-backup.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">Sync &amp; backup</h3>
+        <p>How these tables reconcile between device and cloud.</p>
+        <span class="card-more">Read →</span>
+      </a>
+    </div>
+  </main>
+
+  <aside class="toc glass" data-toc aria-label="On this page">
+    <p>On this page</p>
+  </aside>
+</div>
+
+<footer class="site-footer glass">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="./">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg>
+          <span>IsotopeAI</span>
+        </a>
+        <p>Local-first study platform.<br>Self-hosted, MIT licensed.</p>
+      </div>
+      <div>
+        <p class="footer-col-title">Guides</p>
+        <a href="./getting-started.html">Getting started</a>
+        <a href="./configuration.html">Configuration</a>
+        <a href="./supabase-setup.html">Supabase setup</a>
+        <a href="./sync-and-backup.html">Sync &amp; backup</a>
+        <a href="./community.html">Community</a>
+      </div>
+      <div>
+        <p class="footer-col-title">Reference</p>
+        <a href="./architecture.html">Architecture</a>
+        <a href="./api-reference.html">API reference</a>
+        <a href="./database.html">Database</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./admin.html">Admin console</a>
+      </div>
+      <div>
+        <p class="footer-col-title">More</p>
+        <a href="./troubleshooting.html">Troubleshooting</a>
+        <a href="./faq.html">FAQ</a>
+        <a href="./contributing.html">Contributing</a>
+        <a href="./changelog.html">Changelog</a>
+        <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <p>© 2026 IsotopeAI · <a href="./license.html">MIT License</a> · <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="./security.html">Security</a></p>
+    </div>
+  </div>
+</footer>
+
+<script src="./assets/site.js" defer></script>
+</body>
+</html>

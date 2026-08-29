@@ -196,11 +196,8 @@ jobs:
             docs/storage-backup-system.md
             docs/supabase-connection-map.md
             docs/index.html
-            docs/install.html
-            docs/sync.html
+            docs/404.html
             docs/admin.html
-            docs/gallery.html
-            docs/motion.html
             docs/assets/site.css
             docs/assets/site.js
             docs/logo.svg

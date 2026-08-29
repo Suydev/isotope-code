@@ -219,12 +219,17 @@ const REQUIRED_FILES = [
   'README.md',
   'CHANGELOG.md',
   'TERMUX_WIDGET.md',
+  // ── docs/ ───────────────────────────────────────────────────────────────────
+  // This list previously named install.html, sync.html and motion.html, which were
+  // superseded by the current page set and deleted. The validator therefore failed
+  // on every run — and a check that always fails is a check nobody reads, which is
+  // worse than no check: it trains you to ignore the output that would have caught
+  // a real regression.
+  //
+  // Only the structural pages belong here. Individual guides are covered by the
+  // orphan and shell checks below, which do not need a hand-maintained list.
   'docs/index.html',
-  'docs/install.html',
-  'docs/sync.html',
-  'docs/admin.html',
-  'docs/gallery.html',
-  'docs/motion.html',
+  'docs/404.html',
   'docs/assets/site.css',
   'docs/assets/site.js',
   'docs/logo.svg',
@@ -278,6 +283,93 @@ if (existsSync(SCREENSHOT_DIR)) {
   }
 } else {
   warn('screenshots/ directory not found');
+}
+
+// ── 6b. docs/ page set integrity ──────────────────────────────────────────────
+// A hand-maintained file list is exactly what rotted last time, so this derives
+// everything from the directory instead. Three checks, each catching a failure that
+// has actually happened on this site:
+//
+//   1. Orphans. A page nothing links to is unreachable. `backup-console.html` shipped
+//      that way, and so would any page added without editing 20 navs by hand.
+//   2. Search invisibility. The hero search index is built at runtime from
+//      `.drawer a[href]`, so a page missing from the drawer cannot be found even if
+//      it is linked elsewhere.
+//   3. Dead links. gallery.html shipped three of them before it was deleted.
+info('Checking docs/ page set...');
+const DOCS_DIR = join(ROOT, 'docs');
+if (existsSync(DOCS_DIR)) {
+  const pages = readdirSync(DOCS_DIR).filter(f => f.endsWith('.html'));
+  const bodies = new Map(pages.map(f => [f, readFileSync(join(DOCS_DIR, f), 'utf8')]));
+
+  // 1. Broken internal links.
+  let brokenLinks = 0;
+  for (const [file, html] of bodies) {
+    const refs = [...html.matchAll(/href="(?:\.\/|\/isotope-code\/)([a-z0-9-]+\.html)"/g)]
+      .map(m => m[1]);
+    for (const target of new Set(refs)) {
+      if (!pages.includes(target)) {
+        error(`${file} links to docs/${target}, which does not exist`);
+        brokenLinks++;
+      }
+    }
+  }
+  if (brokenLinks === 0) ok('No broken internal doc links');
+
+  // 2. Orphans — reachable from at least one other page.
+  // Hubs are entered directly rather than linked to from a sibling, so the orphan
+  // rule does not apply to them.
+  const HUBS = new Set(['index.html', '404.html']);
+  const orphans = pages.filter(p => {
+    if (HUBS.has(p)) return false;
+    for (const [file, html] of bodies) {
+      if (file !== p && html.includes(`${p}"`)) return false;
+    }
+    return true;
+  });
+  if (orphans.length) {
+    for (const p of orphans) error(`docs/${p} is an orphan — no other page links to it`);
+  } else {
+    ok('No orphan doc pages');
+  }
+
+  // 3. Drawer presence, which is what the runtime search index reads.
+  const DRAWERLESS = new Set();
+  const notInDrawer = pages.filter(p => {
+    if (HUBS.has(p) || DRAWERLESS.has(p)) return false;
+    const home = bodies.get('index.html') || '';
+    const i = home.indexOf('class="drawer');
+    if (i === -1) return false;
+    const j = home.indexOf('</div>', home.lastIndexOf('drawer-label'));
+    return !home.slice(i, j).includes(p);
+  });
+  if (notInDrawer.length) {
+    for (const p of notInDrawer) {
+      warn(`docs/${p} is not in the drawer — it will be invisible to site search`);
+    }
+  } else {
+    ok('Every doc page appears in the drawer (search index reads it)');
+  }
+
+  // 4. Shell consistency. A page missing the backdrop or the entrance class renders
+  //    visibly differently from its siblings.
+  const SHELL = [
+    ['liquid-bg', 'page backdrop'],
+    ['page-open', 'entrance animation'],
+    ['site-footer', 'footer'],
+  ];
+  const drift = [];
+  for (const [file, html] of bodies) {
+    if (DRAWERLESS.has(file)) continue;
+    for (const [needle, label] of SHELL) {
+      if (!html.includes(needle)) drift.push(`${file} is missing the ${label} (${needle})`);
+    }
+  }
+  if (drift.length) {
+    for (const d of drift) warn(d);
+  } else {
+    ok(`All ${pages.length} doc pages share the standard shell`);
+  }
 }
 
 // ── 7. CI workflow ────────────────────────────────────────────────────────────

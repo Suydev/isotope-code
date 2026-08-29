@@ -1,134 +1,381 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#050607">
-  <title>IsotopeAI Admin and Browser Proof</title>
-  <meta name="description" content="Use IsotopeAI admin pages safely for browser proof, sync repair, storage cleanup, and diagnostics.">
-  <link rel="icon" href="./logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./assets/site.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin console — IsotopeAI docs</title>
+<meta name="description" content="IsotopeAI admin console: enabling admin mode, unlocking, the schema verification suite, SQL patch manager, backup repair, storage cleanup, role management and browser proof.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://suydev.github.io/isotope-code/admin.html">
+<link rel="icon" href="./logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="./assets/site.css">
 </head>
-<body>
-  <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-shell">
-    <nav class="topbar" aria-label="Main navigation">
-      <a class="brand" href="./"><img class="brand-logo" src="./logo.svg" alt="" width="38" height="38"><span>IsotopeAI</span></a>
-      <div class="nav-links">
-        <a href="./install.html">Install</a>
-        <a href="./sync.html">Sync</a>
-        <a href="./admin.html" aria-current="page">Admin</a>
-        <a href="./gallery.html">Screenshots</a>
-        <a href="./motion.html">Motion</a>
-        <a href="https://github.com/Suydev/isotope-code">GitHub</a>
-      </div>
+<body class="docs-page page-open">
+<div class="liquid-bg bg-1" aria-hidden="true"></div>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="globalbar" data-liquid-ignore>
+  <div class="globalbar-inner">
+    <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
+    <nav class="globalbar-links" aria-label="Sections">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./sync-and-backup.html">Sync</a>
+      <a href="./community.html">Community</a>
+      <a href="./admin.html" aria-current="true">Admin</a>
+      <a href="./troubleshooting.html">Support</a>
     </nav>
-  </header>
+    <div class="globalbar-right">
+      <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+  </div>
+</div>
 
-  <main id="main" class="site-shell">
-    <section class="hero">
-      <div class="hero-copy reveal">
-        <p class="eyebrow"><span class="dot"></span> Owner tools</p>
-        <h1>Admin pages should prove things.</h1>
-        <p class="lead">Use admin mode only on your own machine. It can verify schema, run browser proof, inspect backups, preview cleanup, and repair one user backup state.</p>
-        <div class="cta-row">
-          <a class="button" href="#browser-proof">Browser proof</a>
-          <a class="button secondary" href="#safe-config">Safe config</a>
-        </div>
-      </div>
-      <aside class="glass-card hero-stage reveal" data-tilt>
-        <div class="hero-shot">
-          <img src="https://raw.githubusercontent.com/Suydev/isotope-code/main/screenshots/screenshot/Screenshot_2026-06-07-14-52-41-48_f9ee0578fe1cc94de7482bd41accb329.jpg" alt="Isotope app admin-style wide screen">
-        </div>
-        <div class="float-card one"><strong>NO</strong><span>secrets in browser</span></div>
-        <div class="float-card two"><strong>DRY</strong><span>preview before apply</span></div>
-      </aside>
-    </section>
+<div class="progress" data-progress aria-hidden="true"></div>
 
-    <section id="safe-config" class="section scroll-pop">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow"><span class="dot"></span> Private .env only</p>
-          <h2>Enable admin mode.</h2>
-        </div>
-        <p>Do not commit these values. Do not place the service-role key in frontend code.</p>
-      </div>
-      <article class="command-card reveal">
-        <pre>ENABLE_ADMIN_MODE=true
-ADMIN_SECRET=&lt;long-random-secret&gt;
-ADMIN_EMAIL=&lt;your-email@example.com&gt;
-BROWSER_PROOF_EMAIL=&lt;your-email@example.com&gt;
-SUPABASE_SERVICE_ROLE_KEY=&lt;service-role-key&gt;</pre>
-      </article>
-      <p class="note">Admin mode gates the <code>/__admin/*</code> pages only. The
-      in-app <strong>Update now</strong> button does not need it — it authorizes on
-      a loopback connection, so a browser on the same machine as the server can
-      trigger <code>isotope update</code> with admin mode off.</p>
-    </section>
+<header class="topbar glass">
+  <div class="topbar-inner">
+    <a class="brand" href="./">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg>
+      <span>IsotopeAI<span class="brand-sub"> / docs</span></span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+    </nav>
+    <div class="topbar-actions">
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch to dark theme">
+        <svg data-icon="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></svg>
+        <svg data-icon="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+      <a class="icon-btn" href="https://github.com/Suydev/isotope-code" aria-label="View source on GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7 0-.7 0-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1a2.6 2.6 0 0 1 .7-1.6c-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.2-3.1a4 4 0 0 1 .1-3s1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C16.3 3.4 17.3 3.7 17.3 3.7a4 4 0 0 1 .1 3c.8.8 1.2 1.9 1.2 3.1 0 4.7-2.8 5.7-5.5 6 .5.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg>
+      </a>
+      <button class="icon-btn nav-toggle" type="button" data-drawer-toggle aria-expanded="false" aria-controls="drawer" aria-label="Open navigation menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
 
-    <section id="browser-proof" class="section scroll-pop">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow"><span class="dot"></span> Real browser check</p>
-          <h2>Open proof after admin unlock.</h2>
-        </div>
-        <p>The browser proof page starts a real browser run for onboarding, profile/settings, avatar, tour, study session, and sync status.</p>
-      </div>
-      <div class="grid two">
-        <article class="command-card reveal">
-          <h3>Open admin</h3>
-          <pre>http://127.0.0.1:3000/__admin</pre>
-        </article>
-        <article class="command-card reveal">
-          <h3>Open browser proof</h3>
-          <pre>http://127.0.0.1:3000/__admin/browser-proof</pre>
-        </article>
-      </div>
-    </section>
+<div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Guides</p>
+  <a href="./getting-started.html">Getting started</a>
+  <a href="./configuration.html">Configuration</a>
+  <a href="./supabase-setup.html">Supabase setup</a>
+  <a href="./sync-and-backup.html">Sync &amp; backup</a>
+  <a href="./backup-console.html">Backup console</a>
+  <a href="./community.html">Community</a>
+  <p class="drawer-label">Reference</p>
+  <a href="./architecture.html">Architecture</a>
+  <a href="./api-reference.html">API reference</a>
+  <a href="./database.html">Database</a>
+  <a href="./cli.html">CLI</a>
+  <a href="./android-apk.html">Android APK</a>
+  <a href="./admin.html" aria-current="page">Admin console</a>
+  <p class="drawer-label">Help</p>
+  <a href="./troubleshooting.html">Troubleshooting</a>
+  <a href="./faq.html">FAQ</a>
+  <a href="./contributing.html">Contributing</a>
+  <a href="./changelog.html">Changelog</a>
+  <p class="drawer-label">Legal</p>
+  <a href="./security.html">Security</a>
+  <a href="./privacy.html">Privacy</a>
+  <a href="./terms.html">Terms</a>
+  <a href="./license.html">License</a>
+</div>
 
-    <section class="section scroll-pop">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow"><span class="dot"></span> Useful admin pages</p>
-          <h2>What each page is for.</h2>
-        </div>
-      </div>
-      <div class="grid">
-        <article class="doc-card reveal">
-          <span class="number">Verify</span>
-          <h3><code>/__admin/verify</code></h3>
-          <p>Checks schema, RPCs, storage buckets, auth guard behavior, and integration wiring.</p>
-        </article>
-        <article class="doc-card reveal">
-          <span class="number">Sync</span>
-          <h3><code>/__admin/sync</code></h3>
-          <p>Shows best backup, candidates, canonical path status, and repair actions.</p>
-        </article>
-        <article class="doc-card reveal">
-          <span class="number">Storage</span>
-          <h3><code>/__admin/storage</code></h3>
-          <p>Shows buckets, backup files, avatar duplicates, and cleanup preview/apply.</p>
-        </article>
-      </div>
-    </section>
+<div class="wrap docs">
 
-    <section class="section scroll-pop">
-      <div class="timeline">
-        <div class="timeline-item reveal">
-          <div class="label">Rule</div>
-          <div><h3>Preview before destructive work</h3><p>Cleanup must show paths, sizes, hashes, keep/delete decisions, and bytes freed before apply.</p></div>
-        </div>
-        <div class="timeline-item reveal">
-          <div class="label">Rule</div>
-          <div><h3>Admin keys stay server-side</h3><p>The service-role key and PAT must never be written into HTML, bundled assets, localStorage, or logs.</p></div>
-        </div>
-      </div>
-    </section>
+  <aside class="sidebar glass" aria-label="Documentation">
+    <label class="sr-only" for="navfilter">Filter documentation pages</label>
+    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <div class="sidebar-group">
+      <p>Guides</p>
+      <a href="./getting-started.html">Getting started</a>
+      <a href="./configuration.html">Configuration</a>
+      <a href="./supabase-setup.html">Supabase setup</a>
+      <a href="./sync-and-backup.html">Sync &amp; backup</a>
+      <a href="./backup-console.html">Backup console</a>
+      <a href="./community.html">Community</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Reference</p>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API reference</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./android-apk.html">Android APK</a>
+      <a href="./admin.html" aria-current="page">Admin console</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Help</p>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+      <a href="./faq.html">FAQ</a>
+      <a href="./contributing.html">Contributing</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Legal</p>
+      <a href="./security.html">Security</a>
+      <a href="./privacy.html">Privacy</a>
+      <a href="./terms.html">Terms</a>
+      <a href="./license.html">License</a>
+    </div>
+  </aside>
+
+  <main id="main" class="content">
+    <nav class="breadcrumb" data-enter="1" aria-label="Breadcrumb">
+      <a href="./">Docs</a> <span aria-hidden="true">/</span> <span>Admin console</span>
+    </nav>
+
+    <h1 data-enter="2">Admin console</h1>
+    <p class="lead" data-enter="3">Owner-only tooling for schema verification, SQL patching, backup repair and storage cleanup. Admin mode is off by default and every route is disabled until you explicitly enable it.</p>
+
+    <div class="note danger glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+      <p><span class="note-title">Admin mode is a privileged surface</span>It grants row-level-security bypass through the service-role key, and <code>/__admin/apply-sql</code> can execute arbitrary SQL against your database. Enable it on a machine you control, and leave <code>ENABLE_ADMIN_MODE=false</code> otherwise.</p>
+    </div>
+
+    <h2 class="rise" id="enable">Enabling admin mode <a class="anchor" href="#enable" aria-label="Link to this section">#</a></h2>
+    <p>Two conditions must both hold. This is deliberate — a stray <code>ENABLE_ADMIN_MODE=true</code> on an install with no service key must not half-open the console.</p>
+    <div class="codeblock" data-lang="ini">
+<pre># .env
+ENABLE_ADMIN_MODE=true
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...      # required
+ADMIN_SECRET=&lt;long-random-string&gt;            # how you unlock
+ADMIN_EMAIL=you@example.com                  # optional: unlock via Supabase login</pre>
+    </div>
+    <p>Internally this resolves to a single flag:</p>
+    <div class="codeblock" data-lang="js">
+<pre>const ADMIN_MODE_READY = ENABLE_ADMIN_MODE &amp;&amp; !!SUPA_SERVICE_KEY &amp;&amp; !!ADMIN_COOKIE_SECRET;</pre>
+    </div>
+    <div class="note warn glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">Without ADMIN_SECRET, unlock does not persist</span>When <code>ADMIN_SECRET</code> is unset the cookie signing key becomes <code>crypto.randomBytes(32)</code> — fresh on every boot. The console still works, but every restart invalidates your session. Set it if you use admin mode regularly.</p>
+    </div>
+
+    <h2 class="rise" id="unlock">Unlocking <a class="anchor" href="#unlock" aria-label="Link to this section">#</a></h2>
+    <p>Visit <code>/__admin/login</code>. Two paths are accepted:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>How it works</th></tr></thead>
+        <tbody>
+          <tr><td><code>ADMIN_SECRET</code></td><td>Type the secret. On success you receive a signed <code>iso_admin</code> cookie at <code>Path=/</code>.</td></tr>
+          <tr><td>Supabase session</td><td>Click <em>Use Supabase Login</em>. The existing browser access token is verified server-side, then checked against <code>ADMIN_EMAIL</code>/<code>ADMIN_EMAILS</code> or an admin row in <code>user_roles</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The cookie is scoped to <code>Path=/</code> rather than <code>/__admin</code> so that non-prefixed protected routes — notably <code>/api/update-now</code> — can also authorise against it.</p>
+
+    <h2 class="rise" id="verify">Schema verification <a class="anchor" href="#verify" aria-label="Link to this section">#</a></h2>
+    <div class="route">
+      <span class="pill get">GET</span>
+      <code>/__admin/verify</code>
+      <span class="auth">admin</span>
+    </div>
+    <p>An in-server test suite, roughly 800 lines, run on demand. It checks the live project rather than asserting against the migration files, so it catches drift the SQL cannot see.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Category</th><th>What it asserts</th></tr></thead>
+        <tbody>
+          <tr><td>Table schema</td><td>Every expected table and column exists.</td></tr>
+          <tr><td>RPC functional</td><td>Each community function is callable and returns the expected shape.</td></tr>
+          <tr><td>RLS recursion safety</td><td>No membership policy recurses infinitely.</td></tr>
+          <tr><td>Edge-function interceptors</td><td>Leaderboard, analytics and finish-session return the intended 502 rather than fabricated data.</td></tr>
+          <tr><td>Server endpoints</td><td>Local routes respond with the expected status.</td></tr>
+          <tr><td>Auth pipeline</td><td>Signup, login and bootstrap smoke test.</td></tr>
+          <tr><td>Storage buckets</td><td>All three buckets exist with the correct visibility.</td></tr>
+          <tr><td>Local integration drift</td><td>Served bundles match what the patcher expects.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note tip glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <p><span class="note-title">Failures link to the fix</span>When a check fails the page surfaces a bar linking to <code>/__admin/patch</code>, because most schema failures are resolved by applying the cumulative patch.</p>
+    </div>
+
+    <h2 class="rise" id="patch">SQL patch manager <a class="anchor" href="#patch" aria-label="Link to this section">#</a></h2>
+    <div class="route">
+      <span class="pill get">GET</span>
+      <code>/__admin/patch</code>
+      <span class="auth">admin</span>
+    </div>
+    <div class="route">
+      <span class="pill post">POST</span>
+      <code>/__admin/apply-sql</code>
+      <span class="auth">admin</span>
+    </div>
+    <p>Serves <code>community-patch-v6.sql</code> with two ways to apply it: a one-click button that proxies through the Management API, or copy-paste into the Supabase SQL editor.</p>
+    <p>The proxy exists because <code>api.supabase.com</code> does not permit cross-origin browser requests. Your PAT is sent to your own local server, which forwards it — it is never stored.</p>
+    <div class="route">
+      <span class="pill get">GET</span>
+      <code>/__admin/schema</code>
+      <span class="auth">admin</span>
+    </div>
+    <p>Downloads <code>isotope-complete.sql</code>, the authoritative fresh-install schema.</p>
+
+    <h2 class="rise" id="sync">Backup diagnostics <a class="anchor" href="#sync" aria-label="Link to this section">#</a></h2>
+    <div class="route">
+      <span class="pill get">GET</span>
+      <code>/__admin/sync</code>
+      <span class="auth">admin</span>
+    </div>
+    <div class="route">
+      <span class="pill post">POST</span>
+      <code>/__admin/sync/repair-user-backup</code>
+      <span class="auth">admin</span>
+    </div>
+    <p>Shows, per user, which stored backup would win the comparison ladder and why. Repair supports a dry run, so you can see the outcome before writing anything.</p>
+    <div class="note ok glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+      <p><span class="note-title">Dry run first</span><code>dry_run: true</code> reports exactly what would change without touching storage. There is no undo for a backup overwrite, so use it.</p>
+    </div>
+
+    <h2 class="rise" id="storage">Storage console <a class="anchor" href="#storage" aria-label="Link to this section">#</a></h2>
+    <div class="route">
+      <span class="pill get">GET</span>
+      <code>/__admin/storage</code>
+      <span class="auth">admin</span>
+    </div>
+    <div class="route">
+      <span class="pill post">POST</span>
+      <code>/__admin/storage/cleanup-preview</code>
+      <span class="auth">admin</span>
+    </div>
+    <div class="route">
+      <span class="pill post">POST</span>
+      <code>/__admin/storage/cleanup-apply</code>
+      <span class="auth">admin</span>
+    </div>
+    <p>Lists stored objects per user and identifies prunable older revisions. Preview and apply are separate endpoints — apply additionally requires <code>confirm: true</code>.</p>
+
+    <h2 class="rise" id="roles">Role management <a class="anchor" href="#roles" aria-label="Link to this section">#</a></h2>
+    <div class="route">
+      <span class="pill get">GET</span>
+      <code>/__admin/roles</code>
+      <span class="auth">admin</span>
+    </div>
+    <div class="route">
+      <span class="pill post">POST</span>
+      <code>/__admin/roles</code>
+      <span class="auth">admin</span>
+    </div>
+    <div class="route">
+      <span class="pill del">DELETE</span>
+      <code>/__admin/roles</code>
+      <span class="auth">admin</span>
+    </div>
+    <p>Grants and revokes admin roles in <code>user_roles</code>. A user holding an admin role can unlock the console with their Supabase login, without knowing <code>ADMIN_SECRET</code>.</p>
+
+    <h2 class="rise" id="proof">Browser proof <a class="anchor" href="#proof" aria-label="Link to this section">#</a></h2>
+    <div class="route">
+      <span class="pill get">GET</span>
+      <code>/__admin/browser-proof</code>
+      <span class="auth">admin</span>
+    </div>
+    <div class="route">
+      <span class="pill post">POST</span>
+      <code>/__admin/browser-proof-result</code>
+      <span class="auth">run token</span>
+    </div>
+    <p>Some behaviour cannot be asserted server-side: whether the service worker actually registered, whether IndexedDB persisted, whether a real login round-trips. Browser proof opens a page that performs those checks in a real browser and reports back.</p>
+    <p><code>browser-proof-result</code> is the one admin route exempt from cookie auth — it is authorised by a per-run token instead, because the reporting page may run in a context without the admin cookie.</p>
+
+    <h2 class="rise" id="update">Update endpoint <a class="anchor" href="#update" aria-label="Link to this section">#</a></h2>
+    <div class="route">
+      <span class="pill get">GET</span>
+      <code>/api/update-status</code>
+      <span class="auth">none to call</span>
+    </div>
+    <div class="route">
+      <span class="pill post">POST</span>
+      <code>/api/update-now</code>
+      <span class="auth">admin cookie or loopback</span>
+    </div>
+    <p>Note this pair is <strong>not</strong> under <code>/__admin/</code> and does not require admin mode. It accepts an admin cookie <em>or</em> a loopback connection, so the in-app Update button works on an ordinary install. Full detail in <a href="./api-reference.html#api">API reference</a>.</p>
+
+    <h2 class="rise" id="hardening">If you expose the server <a class="anchor" href="#hardening" aria-label="Link to this section">#</a></h2>
+    <p>The server binds <code>0.0.0.0</code> so a phone on your network can reach it. That also means anything on the network can. Before doing that:</p>
+    <ul>
+      <li>Leave <code>ENABLE_ADMIN_MODE=false</code> unless actively using the console.</li>
+      <li>Set a long random <code>ADMIN_SECRET</code> if you do enable it.</li>
+      <li>Know that <code>POST /__errors</code> is unauthenticated and appends to a log file, capped at 1 MB per request.</li>
+      <li>Prefer an SSH tunnel over exposing the port directly.</li>
+    </ul>
+    <div class="grid cols-2 scene mt-6">
+      <a class="card tilt glass" href="./api-reference.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">API reference</h3>
+        <p>Every route with its auth requirements.</p>
+        <span class="card-more">Read →</span>
+      </a>
+      <a class="card tilt glass" href="./configuration.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">Configuration</h3>
+        <p>The variables admin mode depends on.</p>
+        <span class="card-more">Read →</span>
+      </a>
+    </div>
   </main>
 
-  <footer class="footer site-shell">
-    <p>More detail: <a href="https://github.com/Suydev/isotope-code/blob/main/ADMIN.md">ADMIN.md</a> and <a href="./supabase-connection-map.md">Supabase connection map</a>.</p>
-  </footer>
-  <script src="./assets/site.js" defer></script>
+  <aside class="toc glass" data-toc aria-label="On this page">
+    <p>On this page</p>
+  </aside>
+</div>
+
+<footer class="site-footer glass">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="./">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg>
+          <span>IsotopeAI</span>
+        </a>
+        <p>Local-first study platform.<br>Self-hosted, MIT licensed.</p>
+      </div>
+      <div>
+        <p class="footer-col-title">Guides</p>
+        <a href="./getting-started.html">Getting started</a>
+        <a href="./configuration.html">Configuration</a>
+        <a href="./supabase-setup.html">Supabase setup</a>
+        <a href="./sync-and-backup.html">Sync &amp; backup</a>
+        <a href="./community.html">Community</a>
+      </div>
+      <div>
+        <p class="footer-col-title">Reference</p>
+        <a href="./architecture.html">Architecture</a>
+        <a href="./api-reference.html">API reference</a>
+        <a href="./database.html">Database</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./admin.html">Admin console</a>
+      </div>
+      <div>
+        <p class="footer-col-title">More</p>
+        <a href="./troubleshooting.html">Troubleshooting</a>
+        <a href="./faq.html">FAQ</a>
+        <a href="./contributing.html">Contributing</a>
+        <a href="./changelog.html">Changelog</a>
+        <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <p>© 2026 IsotopeAI · <a href="./license.html">MIT License</a> · <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="./security.html">Security</a></p>
+    </div>
+  </div>
+</footer>
+
+<script src="./assets/site.js" defer></script>
 </body>
 </html>

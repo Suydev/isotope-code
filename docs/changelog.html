@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changelog — IsotopeAI docs</title>
+<meta name="description" content="IsotopeAI release history: what each version changed and why, from 3.4.1 back to 3.2.0, plus the versioning policy.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://suydev.github.io/isotope-code/changelog.html">
+<link rel="icon" href="./logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="./assets/site.css">
+</head>
+<body class="docs-page page-open">
+<div class="liquid-bg bg-1" aria-hidden="true"></div>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="globalbar" data-liquid-ignore>
+  <div class="globalbar-inner">
+    <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
+    <nav class="globalbar-links" aria-label="Sections">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./sync-and-backup.html">Sync</a>
+      <a href="./community.html">Community</a>
+      <a href="./admin.html">Admin</a>
+      <a href="./troubleshooting.html">Support</a>
+    </nav>
+    <div class="globalbar-right">
+      <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      <a href="./changelog.html" aria-current="page">Changelog</a>
+    </div>
+  </div>
+</div>
+
+<div class="progress" data-progress aria-hidden="true"></div>
+
+<header class="topbar glass">
+  <div class="topbar-inner">
+    <a class="brand" href="./">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg>
+      <span>IsotopeAI<span class="brand-sub"> / docs</span></span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+    </nav>
+    <div class="topbar-actions">
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch to dark theme">
+        <svg data-icon="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></svg>
+        <svg data-icon="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+      <a class="icon-btn" href="https://github.com/Suydev/isotope-code" aria-label="View source on GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7 0-.7 0-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1a2.6 2.6 0 0 1 .7-1.6c-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.2-3.1a4 4 0 0 1 .1-3s1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C16.3 3.4 17.3 3.7 17.3 3.7a4 4 0 0 1 .1 3c.8.8 1.2 1.9 1.2 3.1 0 4.7-2.8 5.7-5.5 6 .5.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg>
+      </a>
+      <button class="icon-btn nav-toggle" type="button" data-drawer-toggle aria-expanded="false" aria-controls="drawer" aria-label="Open navigation menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Guides</p>
+  <a href="./getting-started.html">Getting started</a>
+  <a href="./configuration.html">Configuration</a>
+  <a href="./supabase-setup.html">Supabase setup</a>
+  <a href="./sync-and-backup.html">Sync &amp; backup</a>
+  <a href="./backup-console.html">Backup console</a>
+  <a href="./community.html">Community</a>
+  <p class="drawer-label">Reference</p>
+  <a href="./architecture.html">Architecture</a>
+  <a href="./api-reference.html">API reference</a>
+  <a href="./database.html">Database</a>
+  <a href="./cli.html">CLI</a>
+  <a href="./android-apk.html">Android APK</a>
+  <a href="./admin.html">Admin console</a>
+  <p class="drawer-label">Help</p>
+  <a href="./troubleshooting.html">Troubleshooting</a>
+  <a href="./faq.html">FAQ</a>
+  <a href="./contributing.html">Contributing</a>
+  <a href="./changelog.html">Changelog</a>
+  <p class="drawer-label">Legal</p>
+  <a href="./security.html">Security</a>
+  <a href="./privacy.html">Privacy</a>
+  <a href="./terms.html">Terms</a>
+  <a href="./license.html">License</a>
+</div>
+
+<div class="wrap docs">
+
+  <aside class="sidebar glass" aria-label="Documentation">
+    <label class="sr-only" for="navfilter">Filter documentation pages</label>
+    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <div class="sidebar-group">
+      <p>Guides</p>
+      <a href="./getting-started.html">Getting started</a>
+      <a href="./configuration.html">Configuration</a>
+      <a href="./supabase-setup.html">Supabase setup</a>
+      <a href="./sync-and-backup.html">Sync &amp; backup</a>
+      <a href="./backup-console.html">Backup console</a>
+      <a href="./community.html">Community</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Reference</p>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API reference</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./android-apk.html">Android APK</a>
+      <a href="./admin.html">Admin console</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Help</p>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+      <a href="./faq.html">FAQ</a>
+      <a href="./contributing.html">Contributing</a>
+      <a href="./changelog.html" aria-current="page">Changelog</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Legal</p>
+      <a href="./security.html">Security</a>
+      <a href="./privacy.html">Privacy</a>
+      <a href="./terms.html">Terms</a>
+      <a href="./license.html">License</a>
+    </div>
+  </aside>
+
+  <main id="main" class="content">
+    <nav class="breadcrumb" data-enter="1" aria-label="Breadcrumb">
+      <a href="./">Docs</a> <span aria-hidden="true">/</span> <span>Changelog</span>
+    </nav>
+
+    <h1 data-enter="2">Changelog</h1>
+    <p class="lead" data-enter="3">Release history, newest first. The authoritative source is <a href="https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md">CHANGELOG.md</a> in the repository; this page summarises what each release actually changed and why.</p>
+
+    <h2 class="rise" id="v341">3.4.1 — 27 August 2026 <a class="anchor" href="#v341" aria-label="Link to this section">#</a></h2>
+    <p class="muted">Stale-asset cache rotation, community fixes, CI correctness.</p>
+    <p>The headline fix addresses the root cause of recurring black screens. Bundles are patched at request time, but the service-worker cache name derived only from <code>VERSION</code> — so editing a patch changed the response without changing the cache key, and <code>/assets/</code> is served cache-first. A stale copy could persist indefinitely.</p>
+    <ul>
+      <li>Cache names now include a build token: a digest of <code>VERSION</code> plus the <code>server.mjs</code> modification time. Any patch edit rotates both caches on the next load.</li>
+      <li>Four serve-time-patched assets were shipping <code>Cache-Control: immutable</code>, pinning unpatched bodies for a year. Added to <code>RUNTIME_PATCHED_ASSET_PATHS</code> in both <code>server.mjs</code> and <code>public/sw.js</code>.</li>
+      <li><code>/api/version.pwa_cache</code> reported a cache name that never existed — it omitted the token.</li>
+      <li><strong>Mobile keyboard closed on every keystroke</strong> in community modals. The shared modal ran its focus-trap effect with dep <code>[onClose]</code>, and every call site passed an inline arrow — so the effect re-ran per keystroke and its cleanup moved focus off the input. Android dismisses the keyboard on blur.</li>
+      <li>Two serve-time patches were silently dead: their anchors were written against pretty-printed source while the shipped bundles are minified.</li>
+      <li><code>regenerate-release.yml</code> required <code>public/index.html</code>, which does not exist — the shell is at the repository root. That workflow failed on every release.</li>
+      <li><code>ci.yml</code> never syntax-checked <code>public/sw.js</code> despite it being hand-edited with substituted placeholders.</li>
+      <li>The in-app Update button was a permanent <code>403</code> on any install with <code>ENABLE_ADMIN_MODE=false</code> — the default. Now accepts loopback as well as an admin cookie, with a <code>409</code> gate when the git tree is dirty.</li>
+    </ul>
+
+    <h2 class="rise" id="v340">3.4.0 — 13 August 2026 <a class="anchor" href="#v340" aria-label="Link to this section">#</a></h2>
+    <p class="muted">Performance: lazy asset loading, offline cache fix, gzip HTML.</p>
+    <ul>
+      <li><strong>Service worker never activated on first visit.</strong> <code>cache.addAll()</code> is all-or-nothing — a single 404 in a 50-URL precache list failed the whole install, so the worker never activated and offline never worked. Replaced with <code>Promise.allSettled()</code>.</li>
+      <li>Route chunks moved to lazy loading, cutting initial payload.</li>
+      <li>HTML responses gzipped, with hashed assets pre-gzipped once and cached in memory.</li>
+    </ul>
+
+    <h2 class="rise" id="v339">3.3.9 — 9 August 2026 <a class="anchor" href="#v339" aria-label="Link to this section">#</a></h2>
+    <p class="muted">Cross-platform CLI, one-line installers, main-branch updates, automated screenshots.</p>
+    <ul>
+      <li><code>isotope</code> CLI with <code>.bat</code> and <code>.ps1</code> equivalents, so Windows is a first-class target.</li>
+      <li>One-line installers per platform, including a dedicated Termux path with home-screen widgets.</li>
+      <li><code>isotope update</code> pulls the tracked branch and restarts.</li>
+    </ul>
+
+    <h2 class="rise" id="v337">3.3.7 — 8 June 2026 <a class="anchor" href="#v337" aria-label="Link to this section">#</a></h2>
+    <p class="muted">Auth-gated sync state machine.</p>
+    <p>Sync retried indefinitely when a JWT could not be refreshed. Retrying an upload with a dead token cannot succeed, so it now enters an auth-blocked state and waits for a valid session rather than burning requests on a timer.</p>
+
+    <h2 class="rise" id="v336">3.3.6 — 8 June 2026 <a class="anchor" href="#v336" aria-label="Link to this section">#</a></h2>
+    <p class="muted">Cloud sync download on a new device; storage cleanup.</p>
+    <p>A fresh install could fail to pull an existing account’s data. This is also where the richness-before-recency comparison was hardened, so an empty snapshot can never overwrite real study data.</p>
+
+    <h2 class="rise" id="v335">3.3.5 — 7 June 2026 <a class="anchor" href="#v335" aria-label="Link to this section">#</a></h2>
+    <p class="muted">Speed probe, health cache, pre-gzipped bundles, 14 database indexes.</p>
+
+    <h2 class="rise" id="v334">3.3.4 — 7 June 2026 <a class="anchor" href="#v334" aria-label="Link to this section">#</a></h2>
+    <p class="muted">Security headers, API 404 fencing, service-worker cache corrections.</p>
+    <p><code>/api/*</code> and <code>/__ai*</code> now return JSON 404s instead of falling through to the SPA, so a typo surfaces as an error rather than an HTML page.</p>
+
+    <h2 class="rise" id="v333">3.3.3 — 7 June 2026 <a class="anchor" href="#v333" aria-label="Link to this section">#</a></h2>
+    <p class="muted">Admin role check fixed; 8 undocumented database functions added to the schema.</p>
+    <p><code>isSupabaseAdminUser()</code> filtered <code>user_roles</code> on an <code>is_active</code> column that did not exist, so admin auth failed silently for everyone.</p>
+
+    <h2 class="rise" id="v332">3.3.2 — 7 June 2026 <a class="anchor" href="#v332" aria-label="Link to this section">#</a></h2>
+    <p class="muted"><code>user_tours</code> table added; <code>/__admin/schema</code> fixed; first schema gap audit.</p>
+    <p>The schema route served <code>isotope-schema.sql</code>, a file that no longer existed, returning HTTP 500.</p>
+
+    <h2 class="rise" id="v320">3.2.0 — 7 June 2026 <a class="anchor" href="#v320" aria-label="Link to this section">#</a></h2>
+    <p class="muted">Leaderboard RLS fix and SQL index correction.</p>
+    <p>A <code>stats_own</code> policy using <code>FOR ALL</code> also blocked public <code>SELECT</code>, so the leaderboard rendered empty. Fixed by <code>leaderboard-rls-fix.sql</code>, which upgrading installs still need.</p>
+
+    <h2 class="rise" id="earlier">Earlier releases <a class="anchor" href="#earlier" aria-label="Link to this section">#</a></h2>
+    <p>3.1.x and before covered the initial self-hosted architecture: the serve-time bundle patcher, the Supabase proxy, row-level security across every table, and the backup and restore tooling. See <a href="https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md">CHANGELOG.md</a> for the full record.</p>
+
+    <h2 class="rise" id="versioning">Versioning <a class="anchor" href="#versioning" aria-label="Link to this section">#</a></h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Component</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>Major</td><td>Reserved for a change that breaks an existing install’s data or schema.</td></tr>
+          <tr><td>Minor</td><td>New features, new tables, new routes.</td></tr>
+          <tr><td>Patch</td><td>Fixes and performance work.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The authoritative version is <code>VERSION</code> at the repository root, reported live by <code>/api/version</code>. Note <code>package.json</code> can lag it between releases.</p>
+    <div class="codeblock" data-lang="bash">
+<pre># what is actually running
+curl -s http://127.0.0.1:3000/api/version | python3 -m json.tool</pre>
+    </div>
+    <div class="grid cols-2 scene mt-6">
+      <a class="card tilt glass" href="./getting-started.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">Getting started</h3>
+        <p>Install the current release.</p>
+        <span class="card-more">Read →</span>
+      </a>
+      <a class="card tilt glass" href="./contributing.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">Contributing</h3>
+        <p>How changes get made and verified.</p>
+        <span class="card-more">Read →</span>
+      </a>
+    </div>
+  </main>
+
+  <aside class="toc glass" data-toc aria-label="On this page">
+    <p>On this page</p>
+  </aside>
+</div>
+
+<footer class="site-footer glass">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="./">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg>
+          <span>IsotopeAI</span>
+        </a>
+        <p>Local-first study platform.<br>Self-hosted, MIT licensed.</p>
+      </div>
+      <div>
+        <p class="footer-col-title">Guides</p>
+        <a href="./getting-started.html">Getting started</a>
+        <a href="./configuration.html">Configuration</a>
+        <a href="./supabase-setup.html">Supabase setup</a>
+        <a href="./sync-and-backup.html">Sync &amp; backup</a>
+        <a href="./community.html">Community</a>
+      </div>
+      <div>
+        <p class="footer-col-title">Reference</p>
+        <a href="./architecture.html">Architecture</a>
+        <a href="./api-reference.html">API reference</a>
+        <a href="./database.html">Database</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./admin.html">Admin console</a>
+      </div>
+      <div>
+        <p class="footer-col-title">More</p>
+        <a href="./troubleshooting.html">Troubleshooting</a>
+        <a href="./faq.html">FAQ</a>
+        <a href="./contributing.html">Contributing</a>
+        <a href="./changelog.html">Changelog</a>
+        <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <p>© 2026 IsotopeAI · <a href="./license.html">MIT License</a> · <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="./security.html">Security</a></p>
+    </div>
+  </div>
+</footer>
+
+<script src="./assets/site.js" defer></script>
+</body>
+</html>

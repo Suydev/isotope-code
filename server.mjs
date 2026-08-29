@@ -3603,11 +3603,109 @@ const ERROR_BOUNDARY_SCRIPT = `<script>
     }catch(e){}
   }
   window.__isoErrorBoundaryDismiss=function(){try{localStorage.setItem('iso_error_boundary_ts',Date.now());}catch(e){}window.location.reload();};
+  // A page bundle that fails to parse or 404s never mounts React, so #root stays
+  // empty and the user sees a black screen with no explanation. The most common
+  // cause is a stale service-worker cache serving a bundle the server has since
+  // re-patched. Surface it as a recoverable state instead of nothing.
+  //
+  // Note this listens in the CAPTURE phase: resource errors from <script> and
+  // module fetches do not bubble, so a bubble-phase listener never sees them.
+  window.__isoRefreshPromptShown=false;
+  // One silent auto-recovery attempt per build, then fall back to asking.
+  // Rationale: the overwhelmingly common cause is a stale SW cache entry, and
+  // purging it + reloading fixes it without the user needing to understand any
+  // of that. But an auto-reload loop is far worse than a prompt, so the attempt
+  // is recorded per build stamp in sessionStorage and never repeats.
+  var _autoKey='iso_auto_recover_${RELOAD_GUARD_VERSION.replace(/[^A-Za-z0-9_.-]/g, '_')}';
+  function _autoRecoverOnce(detail){
+    try{
+      if(sessionStorage.getItem(_autoKey))return false;   // already tried
+      if(navigator.onLine===false)return false;           // offline: cache is all we have
+      sessionStorage.setItem(_autoKey,String(Date.now()));
+      try{console.warn('[Isotope] stale bundle detected, purging cache and reloading once:',detail);}catch(e){}
+      var go=function(){
+        // Re-request from the network, bypassing any HTTP cache too.
+        try{window.location.reload(true);}catch(e){window.location.reload();}
+      };
+      if(window.caches&&caches.keys){
+        caches.keys()
+          .then(function(k){return Promise.all(k.map(function(n){return caches.delete(n);}));})
+          .then(go).catch(go);
+        // Do not let a hung Cache API call strand the user on a black screen.
+        setTimeout(go,2500);
+      }else{go();}
+      return true;
+    }catch(e){return false;}
+  }
+  window.__isoShowRefreshPrompt=function(detail){
+    if(window.__isoRefreshPromptShown)return;
+    // First failure on this build: try to fix it silently. Only if that has
+    // already been spent do we surface the prompt.
+    if(_autoRecoverOnce(detail))return;
+    window.__isoRefreshPromptShown=true;
+    try{
+      var d=document.getElementById('iso-refresh-required');
+      if(d)return;
+      d=document.createElement('div');
+      d.id='iso-refresh-required';
+      d.setAttribute('role','alertdialog');
+      d.setAttribute('aria-modal','true');
+      d.setAttribute('aria-labelledby','iso-refresh-title');
+      d.setAttribute('aria-describedby','iso-refresh-body');
+      d.style.cssText='position:fixed;inset:0;z-index:2147483646;background:#08090b;display:flex;align-items:center;justify-content:center;padding:24px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;';
+      d.innerHTML='<div style="max-width:26rem;width:100%;text-align:center;">'
+        +'<div style="width:46px;height:46px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(141,243,31,.12);">'
+        +'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#8df31f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>'
+        +'</div>'
+        +'<h2 id="iso-refresh-title" style="color:#e8edf4;font-size:1.1875rem;font-weight:600;letter-spacing:-.02em;margin:0 0 8px;">Refresh required</h2>'
+        +'<p style="color:#e8edf4;font-size:.9375rem;font-weight:500;margin:0 0 6px;">The app needs a refresh</p>'
+        +'<p id="iso-refresh-body" style="color:#a2adbd;font-size:.875rem;line-height:1.6;margin:0 0 24px;">A page bundle failed to load. Refresh once to pick up the latest cached app files.</p>'
+        +'<p style="color:#7d8797;font-size:.75rem;margin:0 0 20px;">An automatic recovery was already attempted, so this needs one manual refresh.</p>'
+        +'<button id="iso-refresh-go" type="button" style="min-height:44px;padding:11px 26px;background:#8df31f;color:#1a2e05;border:0;border-radius:10px;font-size:.875rem;font-weight:700;cursor:pointer;touch-action:manipulation;">Refresh now</button>'
+        +'<p style="color:#7d8797;font-size:.75rem;margin:16px 0 0;">Still stuck? <button id="iso-refresh-hard" type="button" style="background:none;border:0;padding:0;color:#a2adbd;font-size:.75rem;text-decoration:underline;cursor:pointer;">Clear cached files and reload</button></p>'
+        +'</div>';
+      document.body.appendChild(d);
+      var go=document.getElementById('iso-refresh-go');
+      if(go){go.focus();go.addEventListener('click',function(){
+        go.disabled=true;go.textContent='Refreshing…';go.style.opacity='.6';
+        window.location.reload();
+      });}
+      var hard=document.getElementById('iso-refresh-hard');
+      if(hard){hard.addEventListener('click',function(){
+        hard.textContent='Clearing…';
+        var done=function(){window.location.reload();};
+        try{
+          if(window.caches&&caches.keys){
+            caches.keys().then(function(k){return Promise.all(k.map(function(n){return caches.delete(n);}));}).then(done).catch(done);
+          }else{done();}
+        }catch(e){done();}
+      });}
+      if(detail)try{console.error('[Isotope] bundle load failure:',detail);}catch(e){}
+    }catch(e){}
+  };
+  window.addEventListener('error',function(e){
+    var t=e&&e.target;
+    if(!t||t===window)return;
+    var tag=t.tagName&&t.tagName.toLowerCase();
+    if(tag!=='script'&&tag!=='link')return;
+    var url=t.src||t.href||'';
+    // Only app bundles — a failed third-party or font request must not take the
+    // whole page down.
+    if(url.indexOf('/assets/')===-1)return;
+    window.__isoShowRefreshPrompt(url);
+  },true);
   window.onerror=function(msg,src,line,col,err){
     var m=typeof msg==='string'?msg:String(msg);
     if(m.indexOf('ResizeObserver')!==-1)return false;
     if(m.indexOf('Loading chunk')!==-1||m.indexOf('ChunkLoadError')!==-1){
       showNotFoundError();return false;
+    }
+    // A SyntaxError from an /assets/ bundle means the served file is not valid
+    // JS for this build — almost always a stale cached copy. One refresh fixes
+    // it, so ask for exactly that rather than showing a generic failure.
+    if((m.indexOf('SyntaxError')!==-1||m.indexOf('Unexpected token')!==-1||m.indexOf('Unexpected identifier')!==-1||m.indexOf('Importing a module script failed')!==-1||m.indexOf('Failed to fetch dynamically imported module')!==-1)
+       &&(!src||src.indexOf('/assets/')!==-1)){
+      window.__isoShowRefreshPrompt(m+' @ '+(src||'?'));return false;
     }
     _errs.push({msg:m,src:src,line:line,col:col,ts:Date.now()});
     if(_errs.length>3){
@@ -3618,9 +3716,26 @@ const ERROR_BOUNDARY_SCRIPT = `<script>
   window.addEventListener('unhandledrejection',function(e){
     var r=e&&e.reason;
     var m=r&&(r.message||String(r))||'Network request failed';
+    if(m.indexOf('Failed to fetch dynamically imported module')!==-1||m.indexOf('Importing a module script failed')!==-1){
+      window.__isoShowRefreshPrompt(m);return;
+    }
     if(m.indexOf('Failed to fetch')!==-1||m.indexOf('NetworkError')!==-1){
       showError('Could not connect to the server. Check your internet connection and make sure the local server is running.');
     }
+  });
+  // Last resort: if React never mounted, #root is still empty well after load.
+  // Nothing above will have fired for a bundle that parsed but threw during
+  // module evaluation, so poll once and offer the same recovery.
+  window.addEventListener('load',function(){
+    setTimeout(function(){
+      try{
+        if(window.__isoRefreshPromptShown)return;
+        var root=document.getElementById('root');
+        if(root&&root.children.length===0&&!document.getElementById('error-boundary-overlay')){
+          window.__isoShowRefreshPrompt('#root empty 8s after load');
+        }
+      }catch(e){}
+    },8000);
   });
   function showNotFoundError(){
     var d=document.createElement('div');

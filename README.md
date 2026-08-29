@@ -16,19 +16,19 @@
 <p align="center">
   <a href="https://suydev.github.io/isotope-code/">Animated docs</a>
   ·
-  <a href="https://suydev.github.io/isotope-code/install.html">Install</a>
+  <a href="https://suydev.github.io/isotope-code/getting-started.html">Install</a>
   ·
-  <a href="https://suydev.github.io/isotope-code/sync.html">Sync safety</a>
+  <a href="https://suydev.github.io/isotope-code/sync-and-backup.html">Sync &amp; backup</a>
   ·
-  <a href="https://suydev.github.io/isotope-code/admin.html">Admin proof</a>
+  <a href="https://suydev.github.io/isotope-code/admin.html">Admin</a>
   ·
-  <a href="https://suydev.github.io/isotope-code/gallery.html">Screenshots</a>
+  <a href="https://suydev.github.io/isotope-code/database.html">Database</a>
   ·
-  <a href="https://suydev.github.io/isotope-code/motion.html">Motion</a>
+  <a href="https://suydev.github.io/isotope-code/android-apk.html">Android APK</a>
 </p>
 
 <p align="center">
-  <a href="https://suydev.github.io/isotope-code/gallery.html">
+  <a href="https://suydev.github.io/isotope-code/">
     <img src="./screenshots/landingpage.png" alt="IsotopeAI landing page screenshot" width="860">
   </a>
 </p>
@@ -43,12 +43,18 @@ It includes:
 
 Start here:
 
-- Animated web guide: https://suydev.github.io/isotope-code/
-- Install guide: https://suydev.github.io/isotope-code/install.html
-- Screenshot gallery: https://suydev.github.io/isotope-code/gallery.html
-- Sync safety: https://suydev.github.io/isotope-code/sync.html
-- Admin proof: https://suydev.github.io/isotope-code/admin.html
-- Motion showcase: https://suydev.github.io/isotope-code/motion.html
+- Documentation home: https://suydev.github.io/isotope-code/
+- Getting started: https://suydev.github.io/isotope-code/getting-started.html
+- Configuration: https://suydev.github.io/isotope-code/configuration.html
+- Supabase setup: https://suydev.github.io/isotope-code/supabase-setup.html
+- Sync & backup: https://suydev.github.io/isotope-code/sync-and-backup.html
+- Architecture: https://suydev.github.io/isotope-code/architecture.html
+- API reference: https://suydev.github.io/isotope-code/api-reference.html
+- Database: https://suydev.github.io/isotope-code/database.html
+- CLI: https://suydev.github.io/isotope-code/cli.html
+- Android APK: https://suydev.github.io/isotope-code/android-apk.html
+- Admin console: https://suydev.github.io/isotope-code/admin.html
+- Troubleshooting: https://suydev.github.io/isotope-code/troubleshooting.html
 - Admin guide: [ADMIN.md](./ADMIN.md)
 - Sync details: [docs/sync-system.md](./docs/sync-system.md)
 - Backup storage details: [docs/storage-backup-system.md](./docs/storage-backup-system.md)

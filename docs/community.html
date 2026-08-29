@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Community — IsotopeAI docs</title>
+<meta name="description" content="IsotopeAI community features: study groups, roles and permissions, join policies, invites, group chat, presence heartbeat and leaderboards — all enforced by row-level security in your own database.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://suydev.github.io/isotope-code/community.html">
+<link rel="icon" href="./logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="./assets/site.css">
+</head>
+<body class="docs-page page-open">
+<div class="liquid-bg bg-1" aria-hidden="true"></div>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="globalbar" data-liquid-ignore>
+  <div class="globalbar-inner">
+    <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
+    <nav class="globalbar-links" aria-label="Sections">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./sync-and-backup.html">Sync</a>
+      <a href="./community.html" aria-current="true">Community</a>
+      <a href="./admin.html">Admin</a>
+      <a href="./troubleshooting.html">Support</a>
+    </nav>
+    <div class="globalbar-right">
+      <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+  </div>
+</div>
+
+<div class="progress" data-progress aria-hidden="true"></div>
+
+<header class="topbar glass">
+  <div class="topbar-inner">
+    <a class="brand" href="./">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg>
+      <span>IsotopeAI<span class="brand-sub"> / docs</span></span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+    </nav>
+    <div class="topbar-actions">
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch to dark theme">
+        <svg data-icon="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></svg>
+        <svg data-icon="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+      <a class="icon-btn" href="https://github.com/Suydev/isotope-code" aria-label="View source on GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7 0-.7 0-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1a2.6 2.6 0 0 1 .7-1.6c-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.2-3.1a4 4 0 0 1 .1-3s1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C16.3 3.4 17.3 3.7 17.3 3.7a4 4 0 0 1 .1 3c.8.8 1.2 1.9 1.2 3.1 0 4.7-2.8 5.7-5.5 6 .5.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg>
+      </a>
+      <button class="icon-btn nav-toggle" type="button" data-drawer-toggle aria-expanded="false" aria-controls="drawer" aria-label="Open navigation menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Guides</p>
+  <a href="./getting-started.html">Getting started</a>
+  <a href="./configuration.html">Configuration</a>
+  <a href="./supabase-setup.html">Supabase setup</a>
+  <a href="./sync-and-backup.html">Sync &amp; backup</a>
+  <a href="./backup-console.html">Backup console</a>
+  <a href="./community.html" aria-current="page">Community</a>
+  <p class="drawer-label">Reference</p>
+  <a href="./architecture.html">Architecture</a>
+  <a href="./api-reference.html">API reference</a>
+  <a href="./database.html">Database</a>
+  <a href="./cli.html">CLI</a>
+  <a href="./android-apk.html">Android APK</a>
+  <a href="./admin.html">Admin console</a>
+  <p class="drawer-label">Help</p>
+  <a href="./troubleshooting.html">Troubleshooting</a>
+  <a href="./faq.html">FAQ</a>
+  <a href="./contributing.html">Contributing</a>
+  <a href="./changelog.html">Changelog</a>
+  <p class="drawer-label">Legal</p>
+  <a href="./security.html">Security</a>
+  <a href="./privacy.html">Privacy</a>
+  <a href="./terms.html">Terms</a>
+  <a href="./license.html">License</a>
+</div>
+
+<div class="wrap docs">
+
+  <aside class="sidebar glass" aria-label="Documentation">
+    <label class="sr-only" for="navfilter">Filter documentation pages</label>
+    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <div class="sidebar-group">
+      <p>Guides</p>
+      <a href="./getting-started.html">Getting started</a>
+      <a href="./configuration.html">Configuration</a>
+      <a href="./supabase-setup.html">Supabase setup</a>
+      <a href="./sync-and-backup.html">Sync &amp; backup</a>
+      <a href="./backup-console.html">Backup console</a>
+      <a href="./community.html" aria-current="page">Community</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Reference</p>
+      <a href="./architecture.html">Architecture</a>
+      <a href="./api-reference.html">API reference</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./android-apk.html">Android APK</a>
+      <a href="./admin.html">Admin console</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Help</p>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+      <a href="./faq.html">FAQ</a>
+      <a href="./contributing.html">Contributing</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Legal</p>
+      <a href="./security.html">Security</a>
+      <a href="./privacy.html">Privacy</a>
+      <a href="./terms.html">Terms</a>
+      <a href="./license.html">License</a>
+    </div>
+  </aside>
+
+  <main id="main" class="content">
+    <nav class="breadcrumb" data-enter="1" aria-label="Breadcrumb">
+      <a href="./">Docs</a> <span aria-hidden="true">/</span> <span>Community</span>
+    </nav>
+
+    <h1 data-enter="2">Community</h1>
+    <p class="lead" data-enter="3">Study groups, chat, presence and leaderboards. Every rule described
+    here is enforced by row-level security inside your own database, not by the
+    application — so it holds even for a direct API call.</p>
+
+    <h2 class="rise" id="enrolment">Enrolment <a class="anchor" href="#enrolment" aria-label="Link to this section">#</a></h2>
+
+    <p>Community is opt-in. A row in <code>community_enrollments</code> carries your
+    consent plus the settings that govern what others can see.</p>
+
+    <div class="specs">
+      <div><dt>enrolled</dt><dd>Master switch. Defaults to <code>true</code> on account creation.</dd></div>
+      <div><dt>privacy</dt><dd>JSONB. Which fields other users may see.</dd></div>
+      <div><dt>quiet_hours</dt><dd>JSONB window during which alerts are suppressed.</dd></div>
+      <div><dt>day_offset_hours</dt><dd>Your day boundary. A user who studies past midnight can keep a streak intact.</dd></div>
+      <div><dt>onboarded</dt><dd>Whether the community walkthrough has been completed.</dd></div>
+    </div>
+
+    <p>The row is created by a database trigger the moment your
+    <code>public.users</code> row exists, so the community tab can never load against a
+    missing enrolment record.</p>
+
+    <div class="codeblock" data-lang="bash">
+<pre># am I enrolled?
+curl -s -X POST "$SUPABASE_URL/rest/v1/rpc/community_is_enrolled" \
+  -H "apikey: $SUPABASE_ANON_KEY" \
+  -H "Authorization: Bearer $USER_JWT" \
+  -H 'Content-Type: application/json' -d '{}'</pre>
+    </div>
+
+    <h2 class="rise" id="groups">Groups <a class="anchor" href="#groups" aria-label="Link to this section">#</a></h2>
+
+    <p>A group is a row in <code>groups</code> with 27 columns — identity, exam target,
+    subject list, visibility, join policy and a denormalised member count.</p>
+
+    <h3 id="visibility">Visibility and join policy <a class="anchor" href="#visibility" aria-label="Link to this section">#</a></h3>
+
+    <p>Two independent axes. Visibility controls who can <em>find</em> the group; join
+    policy controls who can <em>enter</em> it.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>visibility</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>public</code></td><td>Appears in discovery search for everyone.</td></tr>
+          <tr><td><code>private</code></td><td>Hidden from discovery. Reachable only by direct link or invite.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>join_policy</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>open</code></td><td>Anyone who can see the group joins immediately.</td></tr>
+          <tr><td><code>request</code></td><td>Creates a row in <code>community_join_requests</code> for an owner to accept or decline. This is the default.</td></tr>
+          <tr><td><code>invite</code></td><td>Entry only by redeeming a token from <code>group_invites</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note tip glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <p><span class="note-title">Private groups never leak through discovery</span>
+      <code>community_discover_groups</code> returns public groups plus private groups you
+      are already a member of. A private group cannot appear in results for a non-member,
+      regardless of the search term.</p>
+    </div>
+
+    <h3 id="roles">Roles <a class="anchor" href="#roles" aria-label="Link to this section">#</a></h3>
+
+    <p>Two roles are in use: <code>owner</code> and <code>member</code>. Permission checks
+    go through a single helper that takes an array, so a policy can accept several roles in
+    one call:</p>
+
+    <div class="codeblock" data-lang="sql">
+<pre>create or replace function public._has_group_role(
+  gid uuid, uid uuid, allowed_roles text[]
+) returns boolean language sql stable security definer
+set search_path = public as $$
+  select exists (
+    select 1 from public.group_members gm
+    where gm.group_id = gid
+      and gm.user_id  = uid
+      and gm.role     = any(allowed_roles)
+  );
+$$;</pre>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Action</th><th>owner</th><th>member</th></tr></thead>
+        <tbody>
+          <tr><td>Read group and members</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Post chat messages</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Edit group details</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Create invites</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Accept or decline join requests</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Remove a member</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Change a member's role</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Transfer ownership</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Delete the group</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Leave</td><td>Only after transferring ownership</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="creation">Creation is atomic <a class="anchor" href="#creation" aria-label="Link to this section">#</a></h3>
+
+    <p>Creating a group and becoming its owner are logically one operation. If they were
+    two writes and the second failed, you would have a group nobody could administer. Four
+    triggers on <code>groups</code> close that gap:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Trigger</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>trg_auto_add_owner</code></td><td>Inserts the creator into <code>group_members</code> as <code>owner</code>.</td></tr>
+          <tr><td><code>trg_auto_add_super_admin</code></td><td>Adds the platform super admin, for moderation.</td></tr>
+          <tr><td><code>trg_set_group_slug</code></td><td>Derives a URL-safe slug from the name.</td></tr>
+          <tr><td><code>trg_sync_group_visibility</code></td><td>Keeps the legacy <code>is_public</code> flag consistent with <code>visibility</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><code>trg_sync_member_count</code> on <code>group_members</code> maintains
+    <code>groups.member_count</code>, so listing groups never needs a
+    <code>COUNT(*)</code> per row.</p>
+
+    <h2 class="rise" id="invites">Invites <a class="anchor" href="#invites" aria-label="Link to this section">#</a></h2>
+
+    <p>An invite is a token in <code>group_invites</code> with an optional use limit and
+    expiry. Redemption is a three-step flow so a user can see what they are joining before
+    committing:</p>
+
+    <ol class="steps">
+      <li><h3>Create</h3><p><code>community_create_invite(p_type, p_target_id, p_days)</code> — owner only.</p></li>
+      <li><h3>Preview</h3><p><code>community_preview_invite(p_token)</code> returns the group name, member count and inviter without joining. Also exposed as <code>get_invite_details</code>.</p></li>
+      <li><h3>Redeem</h3><p><code>community_redeem_invite(p_token)</code> validates expiry and use count, then adds membership and increments <code>uses_count</code>.</p></li>
+    </ol>
+
+    <p>Validity is computed, not stored, so an expired invite cannot be resurrected by
+    editing a flag:</p>
+
+    <div class="codeblock" data-lang="sql">
+<pre>(gi.expires_at is null or gi.expires_at &gt; now())
+and (gi.max_uses is null or gi.uses_count &lt; gi.max_uses)</pre>
+    </div>
+
+    <h2 class="rise" id="chat">Group chat <a class="anchor" href="#chat" aria-label="Link to this section">#</a></h2>
+
+    <p>Messages live in <code>group_chat_messages</code>, published to Supabase Realtime.
+    Reads and writes are membership-gated by RLS, so a non-member cannot fetch history even
+    with a valid token and the correct group id.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>community_get_group_messages(p_group_id, p_limit)</code></td><td>Recent messages, newest last. Default limit 50.</td></tr>
+          <tr><td><code>community_send_group_message(p_group_id, p_content)</code></td><td>Posts a message as the calling user.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <p><span class="note-title">The chat panel is added by a serve-time patch</span>
+      The shipped frontend bundle has no group-chat component. The local server injects one
+      into <code>Community-*.js</code> as it is served, wired to the two functions above.
+      See <a href="./architecture.html#patching">Architecture</a>.</p>
+    </div>
+
+    <h2 class="rise" id="presence">Presence <a class="anchor" href="#presence" aria-label="Link to this section">#</a></h2>
+
+    <p>Presence answers "who is studying right now". The client sends a heartbeat while a
+    session runs; <code>user_presence</code> holds one row per user.</p>
+
+    <div class="codeblock" data-lang="sql">
+<pre>-- community_heartbeat upserts on user_presence(user_id)
+insert into public.user_presence (
+  user_id, status, last_seen, subject_id, subject_name,
+  task_id, task_title, session_started_at
+) values (auth.uid(), p_state, now(), …)
+on conflict (user_id) do update set
+  status     = excluded.status,
+  last_seen  = excluded.last_seen,
+  -- a mid-session heartbeat must not reset when the session began
+  session_started_at = coalesce(user_presence.session_started_at,
+                                excluded.session_started_at),
+  updated_at = now();</pre>
+    </div>
+
+    <p>That <code>COALESCE</code> is the important line. Without it every heartbeat would
+    move <code>session_started_at</code> forward and elapsed time would never grow.</p>
+
+    <h3 id="expiry">Stale presence <a class="anchor" href="#expiry" aria-label="Link to this section">#</a></h3>
+
+    <p>A closed tab sends no goodbye. <code>expire_stale_presence()</code> reconciles
+    that:</p>
+
+    <div class="codeblock" data-lang="sql">
+<pre>update public.user_presence set status = 'offline'
+where status != 'offline'
+  and last_seen &lt; now() - interval '2 minutes';</pre>
+    </div>
+
+    <p>So a user who disappears shows as offline within two minutes, rather than appearing
+    to study forever.</p>
+
+    <h2 class="rise" id="buddies">Buddies <a class="anchor" href="#buddies" aria-label="Link to this section">#</a></h2>
+
+    <p>Buddy connections are rows in <code>community_friends</code>
+    (<code>user_id</code>, <code>friend_id</code>, <code>status</code>,
+    <code>accepted_at</code>). Requests are made by handle, not email — you never need to
+    know someone's address to add them.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>community_request_buddy(p_handle)</code></td><td>Sends a request to the user with that handle.</td></tr>
+          <tr><td><code>community_respond_buddy(p_connection_id, p_accept)</code></td><td>Accepts or declines.</td></tr>
+          <tr><td><code>community_remove_buddy(p_other_user, p_block)</code></td><td>Removes, and optionally blocks.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <p><span class="note-title">Ignore <code>buddy_invites</code></span>
+      That table exists in the schema but has row-level security enabled with zero
+      policies, and nothing references it — no function, no server route. It is an orphan
+      from an earlier design and is scheduled for removal. Buddies run entirely through
+      <code>community_friends</code>.</p>
+    </div>
+
+    <h2 class="rise" id="alerts">Start alerts and quiet hours <a class="anchor" href="#alerts" aria-label="Link to this section">#</a></h2>
+
+    <p>You can ask to be notified when a specific buddy or group starts studying.
+    <code>community_start_alerts</code> stores the subscription together with a quiet-hours
+    window and a timezone offset, so a 3 a.m. notification is suppressed rather than
+    delivered.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>community_set_start_alert(…)</code></td><td>Creates or updates an alert with its quiet window.</td></tr>
+          <tr><td><code>community_get_start_alert(p_target_type, p_target_id)</code></td><td>Reads the current setting.</td></tr>
+          <tr><td><code>community_sync_quiet_hours(…)</code></td><td>Applies one quiet window across every alert.</td></tr>
+          <tr><td><code>community_register_device_token(p_token)</code></td><td>Registers a push token in <code>community_device_tokens</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="rise" id="leaderboards">Leaderboards <a class="anchor" href="#leaderboards" aria-label="Link to this section">#</a></h2>
+
+    <p>Two scopes. Group leaderboards run in Postgres; the global leaderboard is assembled
+    by the local server.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Scope</th><th>Path</th></tr></thead>
+        <tbody>
+          <tr><td>Group</td><td><code>get_group_leaderboard(p_group_id, p_limit)</code> — ranks members by points.</td></tr>
+          <tr><td>Global</td><td><code>POST /__leaderboard</code> on the local server, using the caller's own JWT.</td></tr>
+          <tr><td>Group analytics</td><td><code>get_group_analytics_from_snapshots(p_group_id, p_days)</code> — daily totals and active members.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note warn glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">Empty leaderboard</span>
+      A leaderboard must read <em>other</em> users' stats, which requires a public
+      <code>SELECT</code> policy on <code>user_stats_summary</code> and
+      <code>daily_user_stats</code>. An older <code>stats_own</code> policy used
+      <code>FOR ALL</code>, which blocked that read. Run
+      <code>leaderboard-rls-fix.sql</code> if your leaderboard is empty.</p>
+    </div>
+
+    <h2 class="rise" id="moderation">Moderation <a class="anchor" href="#moderation" aria-label="Link to this section">#</a></h2>
+
+    <p><code>community_submit_report(p_target_type, p_target_id, p_reason)</code> writes to
+    <code>community_reports</code>. Targets can be a group, a message or a user. Reports are
+    readable only by the reporter and by service-role callers, so one user cannot enumerate
+    another's reports.</p>
+
+    <p><code>trg_auto_add_super_admin</code> also places the platform super admin in every
+    new group, which is what makes moderation possible without a privileged back door into
+    private groups.</p>
+
+    <h2 class="rise" id="rls-summary">How the rules are enforced <a class="anchor" href="#rls-summary" aria-label="Link to this section">#</a></h2>
+
+    <p>Group content policies never query <code>group_members</code> directly, because a
+    policy on that table querying itself recurses and Postgres aborts. Every check goes
+    through a <code>SECURITY DEFINER</code> helper:</p>
+
+    <div class="codeblock" data-lang="sql">
+<pre>-- membership-gated read on group content
+using ( public._is_group_member(group_id, (select auth.uid())) )
+
+-- owner-only write
+using ( public._has_group_role(group_id, (select auth.uid()), array['owner']) )</pre>
+    </div>
+
+    <p><code>(select auth.uid())</code> rather than a bare call is deliberate: the subquery
+    form is evaluated once per statement instead of once per row.</p>
+
+    <div class="grid cols-2 scene" style="margin-top:var(--s-6)">
+      <a class="card tilt glass" href="./database.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">Database</h3>
+        <p>The 10 community tables and all 30 community functions.</p>
+        <span class="card-more">Read →</span>
+      </a>
+      <a class="card tilt glass" href="./troubleshooting.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">Troubleshooting</h3>
+        <p>Black screen on a group, empty leaderboard, chat not loading.</p>
+        <span class="card-more">Read →</span>
+      </a>
+    </div>
+  </main>
+
+  <aside class="toc glass" data-toc aria-label="On this page">
+    <p>On this page</p>
+  </aside>
+</div>
+
+<footer class="site-footer glass">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="./">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg>
+          <span>IsotopeAI</span>
+        </a>
+        <p>Local-first study platform.<br>Self-hosted, MIT licensed.</p>
+      </div>
+      <div>
+        <p class="footer-col-title">Guides</p>
+        <a href="./getting-started.html">Getting started</a>
+        <a href="./configuration.html">Configuration</a>
+        <a href="./supabase-setup.html">Supabase setup</a>
+        <a href="./sync-and-backup.html">Sync &amp; backup</a>
+        <a href="./community.html">Community</a>
+      </div>
+      <div>
+        <p class="footer-col-title">Reference</p>
+        <a href="./architecture.html">Architecture</a>
+        <a href="./api-reference.html">API reference</a>
+        <a href="./database.html">Database</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./admin.html">Admin console</a>
+      </div>
+      <div>
+        <p class="footer-col-title">More</p>
+        <a href="./troubleshooting.html">Troubleshooting</a>
+        <a href="./faq.html">FAQ</a>
+        <a href="./contributing.html">Contributing</a>
+        <a href="./changelog.html">Changelog</a>
+        <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <p>© 2026 IsotopeAI · <a href="./license.html">MIT License</a> · <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="./security.html">Security</a></p>
+    </div>
+  </div>
+</footer>
+
+<script src="./assets/site.js" defer></script>
+</body>
+</html>
