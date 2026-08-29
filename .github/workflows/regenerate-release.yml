@@ -106,9 +106,6 @@ jobs:
             scripts/compare-remote-assets.mjs
             isotope-complete.sql
             sql/backup_manifests.sql
-            docs/sync-system.md
-            docs/storage-backup-system.md
-            docs/supabase-connection-map.md
             README.md
             ADMIN.md
             .env.example

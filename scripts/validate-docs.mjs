@@ -3,7 +3,7 @@
  * ──────────────────────────────────────────────────────────────────────────────
  * Checks:
  *   1. All image paths referenced in README.md exist in the repo
- *   2. All image paths referenced in docs/index.html and docs/index.md exist
+ *   2. All image paths referenced in docs/index.html exist
  *   3. Install commands reference real scripts (checked against file system)
  *   4. No .env or secrets are referenced in docs
  *   5. Version number in README/docs matches package.json
@@ -44,7 +44,6 @@ function readText(rel) {
 
 // ── Load files ────────────────────────────────────────────────────────────────
 const README   = readText('README.md');
-const DOCS_MD  = readText('docs/index.md');
 const DOCS_HTML = readText('docs/index.html');
 const PKG      = readText('package.json');
 const MANIFEST = readText('screenshots/screenshot-manifest.json');
@@ -186,13 +185,13 @@ if (!DOCS_HTML) {
   }
 }
 
-// ── 4. docs/index.md checks ───────────────────────────────────────────────────
-info('Checking docs/index.md...');
-if (!DOCS_MD) {
-  warn('docs/index.md not found');
-} else {
-  ok('docs/index.md exists', `(${DOCS_MD.length} chars)`);
-}
+// ── 4. (removed) docs/index.md ────────────────────────────────────────────────
+// docs/ used to carry six markdown files alongside the HTML pages, which meant two
+// sets of documentation that could disagree — and did: index.md still linked to
+// install.html, sync.html, gallery.html and motion.html months after they were
+// deleted. Their content is now merged into the pages that own the subject
+// (sync-and-backup, architecture, changelog) and the markdown is gone, so there is
+// nothing left here to validate.
 
 // ── 5. Required files check ───────────────────────────────────────────────────
 info('Checking required files...');

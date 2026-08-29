@@ -320,6 +320,33 @@ function isCountsEmpty(counts) {
       <li><h3>Verify against source</h3><p>Row counts, auth user count and storage object counts are compared back to the live project. A mismatch fails loudly.</p></li>
     </ol>
 
+    <h3 id="verify-cmd">Auditioning a backup before you trust it</h3>
+
+    <p><code>verify</code> cross-checks any tarball against any project, so a backup can be
+    validated without restoring it:</p>
+
+    <div class="codeblock" data-lang="bash">
+<pre>./backup.sh verify backups/isotope-backup-20260827-233852.tar.gz
+
+# or against a specific project
+./backup.sh verify &lt;file&gt; --supabase-url=... --service-key=... --pat=...</pre>
+    </div>
+
+    <p>Exit code 0 means every check passed. Worth running after a restore to prove the
+    target matches the tarball, and worth running on an old backup before you rely on it —
+    a backup you have never verified is a hypothesis, not a backup.</p>
+
+    <h3 id="schedule">Scheduling</h3>
+
+    <div class="codeblock" data-lang="bash">
+<pre># daily at 03:00, keeping the newest 14
+0 3 * * * cd ~/isotope-code &amp;&amp; ./backup.sh backup --keep 14 &gt;&gt; backups/backup.log 2&gt;&amp;1</pre>
+    </div>
+
+    <p>Redirecting to a log matters more than it looks: a cron job that fails silently
+    produces the same visible result as one that succeeds — nothing — until the day you need
+    the backup.</p>
+
     <h3 id="inspect">Inspecting a backup <a class="anchor" href="#inspect" aria-label="Link to this section">#</a></h3>
 
     <div class="codeblock" data-lang="bash">
@@ -358,6 +385,126 @@ function isCountsEmpty(counts) {
       Rows in the target project are replaced by rows from the tarball. Take a backup of
       the target first if it contains anything you need. Verification protects you from a
       <em>partial</em> restore, not from an intentional one.</p>
+    </div>
+
+    <h2 class="rise" id="storage-layout">Storage bucket layout <a class="anchor" href="#storage-layout" aria-label="Link to this section">#</a></h2>
+
+    <p>Three buckets, with different visibility. Getting these wrong is how a private
+    backup ends up publicly readable, so the distinction is worth stating explicitly.</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Bucket</th><th>Visibility</th><th>Holds</th></tr></thead>
+        <tbody>
+          <tr><td><code>user-content</code></td><td>Private</td><td>Backups, imports, exports, cloud snapshots, user files.</td></tr>
+          <tr><td><code>avatars</code></td><td>Public read</td><td>Profile images. Write paths are owner-scoped.</td></tr>
+          <tr><td><code>notes</code></td><td>Private</td><td>Notes and documents.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Within <code>user-content</code>, canonical writes go to three paths:</p>
+
+    <div class="codeblock" data-lang="text">
+<pre>{userId}/backups/latest.json
+{userId}/backups/history/{timestamp}-{hash}.json
+{userId}/cloud-snapshot/latest.json</pre>
+    </div>
+
+    <p>Four older path shapes are still <em>read</em> for compatibility —
+    <code>imports/latest.json</code>, <code>exports/latest.json</code>, and timestamped
+    files under <code>imports/</code>, <code>exports/</code> and
+    <code>cloud-snapshot/history/</code>. They are never written to any more. Dropping the
+    reads would orphan every backup made before the paths were unified.</p>
+
+    <h2 class="rise" id="which-backup">Which backup wins <a class="anchor" href="#which-backup" aria-label="Link to this section">#</a></h2>
+
+    <p>With several candidate files, choosing the newest is the obvious rule and the wrong
+    one. A fresh empty backup is newer than a rich one from yesterday, and picking it loses
+    everything. The selection rule is therefore:</p>
+
+    <ol class="steps">
+      <li><p><strong>Rich beats empty, even when older.</strong> Data outranks recency.</p></li>
+      <li><p>If both are rich, the newest <em>meaningful data</em> timestamp wins — not the file mtime, which changes on any rewrite.</p></li>
+      <li><p>If both are empty, newest wins. Nothing is at stake.</p></li>
+    </ol>
+
+    <div class="note danger glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+      <p><span class="note-title">An empty local workspace cannot overwrite a rich cloud backup</span>
+      This is the single most important guarantee in the sync system. A fresh browser, a
+      cleared cache or a failed restore all present as &ldquo;no local data&rdquo;, and
+      without this rule the next upload would erase the cloud copy. The server checks
+      candidates before accepting an upload and refuses:</p>
+    </div>
+
+    <div class="codeblock" data-lang="json">
+<pre>{
+  "ok": false,
+  "code": "BLOCKED_EMPTY_OVERWRITE",
+  "message": "Cloud has richer backup. Restore first."
+}</pre>
+    </div>
+
+    <p>If you see that code, the correct response is to restore first, not to force the
+    upload. It is telling you the cloud knows something this device does not.</p>
+
+    <h2 class="rise" id="manual-sync">The manual sync sequence <a class="anchor" href="#manual-sync" aria-label="Link to this section">#</a></h2>
+
+    <p>Eight steps, and the order is the point — the verification happens
+    <em>before</em> the upload, not after:</p>
+
+    <ol class="steps">
+      <li><p>Check auth.</p></li>
+      <li><p>Build the local backup.</p></li>
+      <li><p>Count local data.</p></li>
+      <li><p>Call <code>/__auth/backup/best</code> to find the richest cloud candidate.</p></li>
+      <li><p>If local is empty and cloud is rich, call <code>/__auth/restore-best-backup</code>.</p></li>
+      <li><p>Apply the backup to browser local data.</p></li>
+      <li><p>Verify the restored counts are non-empty.</p></li>
+      <li><p>Only then upload the canonical backup.</p></li>
+    </ol>
+
+    <p>On the browser side the adapter is <code>public/sync/local-data-adapter.js</code>. It
+    writes the IndexedDB database <code>isotope_main</code>, mirrors to
+    <code>localStorage</code> keys such as <code>isotope_tasks_v2</code>, records restore
+    metadata in <code>isotope_restore_metadata</code>, and dispatches
+    <code>isotope:sync_refresh</code> when finished so open views reload rather than showing
+    stale counts.</p>
+
+    <h2 class="rise" id="cleanup">Storage cleanup <a class="anchor" href="#cleanup" aria-label="Link to this section">#</a></h2>
+
+    <p>Cleanup is preview-first, and that is not a convenience — it is the only thing
+    standing between a bug in the selection logic and a deleted backup.</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Endpoint</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>/__auth/storage/cleanup-preview</code></td><td>Reports what would be deleted. Changes nothing.</td></tr>
+          <tr><td><code>/__auth/storage/cleanup-apply</code></td><td>Deletes — and only with <code>confirm: true</code> in the body.</td></tr>
+          <tr><td><code>/__admin/storage</code></td><td>Admin view across all users.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The preview reports action, reason, size, hash, path and bytes freed for every
+    candidate, so a wrong decision is visible before it is irreversible. Three paths are
+    protected and never deleted regardless of age:</p>
+
+    <div class="codeblock" data-lang="text">
+<pre>{userId}/backups/latest.json
+{userId}/cloud-snapshot/latest.json
+the currently selected best backup</pre>
+    </div>
+
+    <div class="note warn glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">Two known gaps</span>
+      Avatar duplicates are not cleaned — that needs an avatar-aware pass, since the
+      backup heuristics do not apply to images. And <code>sync_items</code> exists in the
+      schema but is not yet the runtime queue for every local change, so per-row sync is
+      narrower than the table implies.</p>
     </div>
 
     <h2 class="rise" id="keys">Key precedence <a class="anchor" href="#keys" aria-label="Link to this section">#</a></h2>

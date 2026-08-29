@@ -255,6 +255,61 @@ const RUNTIME_CACHE = 'isotope-local-runtime-' + CACHE_SUFFIX;</pre>
     <p>Every other caller is forwarded with their own <code>Authorization</code> header
     plus the anon key, so row-level security still applies.</p>
 
+    <h2 class="rise" id="connection-map">Feature-to-Supabase map <a class="anchor" href="#connection-map" aria-label="Link to this section">#</a></h2>
+
+    <p>Which features actually reach Supabase, which are local-first, and which are local
+    on purpose. The distinction matters: &ldquo;local-first&rdquo; means the feature works
+    offline and syncs later; &ldquo;local only&rdquo; means it never touches the network and
+    that is intended, not a gap.</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Feature</th><th>Local store</th><th>Supabase object</th><th>Offline</th></tr></thead>
+        <tbody>
+          <tr><td>Auth</td><td>Supabase session keys, <code>isotope-auth-token</code></td><td><code>auth.users</code>, <code>public.users</code></td><td>Cached session restored</td></tr>
+          <tr><td>Session restore</td><td><code>isotope-bootstrap-cache</code></td><td><code>user_profiles</code>, <code>user_onboarding</code></td><td>Cached bootstrap fallback</td></tr>
+          <tr><td>Onboarding</td><td><code>isotope-onboarding</code></td><td><code>user_onboarding</code>, <code>user_profiles</code></td><td>Local cache</td></tr>
+          <tr><td>Profile &amp; settings</td><td><code>isotope_user_profile_v2</code></td><td><code>user_profiles.profile_data</code>, <code>user_settings</code></td><td>Local profile stands</td></tr>
+          <tr><td>Avatar</td><td><code>isotope_user_profile_v2</code></td><td><code>avatars</code> bucket</td><td>Local avatar stands</td></tr>
+          <tr><td>Focus sessions</td><td>IndexedDB <code>sessions</code>, <code>isotope_sessions_v2</code></td><td><code>finish_session_sync</code> RPC, <code>study_sessions_log</code></td><td>Pending queue</td></tr>
+          <tr><td>Daily stats</td><td><code>isotope_daily_logs_v2</code></td><td><code>daily_user_stats</code></td><td>Local analytics</td></tr>
+          <tr><td>Tasks, subjects, habits, exams, timer</td><td>IndexedDB + <code>isotope_*_v2</code></td><td>Backup JSON in <code>user-content</code></td><td>Fully local-first</td></tr>
+          <tr><td>Backup / import / smart sync</td><td><code>isotope_sync_metadata</code></td><td><code>user-content/backups/*</code></td><td>Skipped offline</td></tr>
+          <tr><td>Community &amp; notifications</td><td>Group cache</td><td><code>groups</code>, <code>group_members</code>, <code>notifications</code></td><td><strong>Online required</strong></td></tr>
+          <tr><td>Admin routes</td><td>None</td><td>Service role / Management API</td><td>Unavailable offline</td></tr>
+          <tr><td>Update check, install scripts</td><td><code>~/.isotope</code></td><td>None — GitHub API only</td><td>Skipped, by design</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The pattern worth noticing: everything a student produces while studying — tasks,
+    sessions, subjects, habits, exams, timer state — is local-first and reaches Supabase
+    only as a backup blob. Only community features genuinely require a connection, because
+    they involve other people. That is why the app is usable on a phone with no signal.</p>
+
+    <h2 class="rise" id="sql-order">SQL run order <a class="anchor" href="#sql-order" aria-label="Link to this section">#</a></h2>
+
+    <p>For a fresh project, in this order:</p>
+
+    <ol class="steps">
+      <li><p><code>isotope-complete.sql</code> — the whole schema. Idempotent, safe to re-run.</p></li>
+      <li><p>Compatibility migrations in <code>sql/</code> — <strong>only</strong> when upgrading an older install.</p></li>
+      <li><p><code>sql/verify-security.sql</code> — verification queries, not changes.</p></li>
+    </ol>
+
+    <p>Upgrade-only patches, which a fresh install should skip:</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Patch</th><th>When you need it</th></tr></thead>
+        <tbody>
+          <tr><td><code>leaderboard-rls-fix.sql</code></td><td>The leaderboard renders empty. A legacy <code>stats_own FOR ALL</code> policy blocked public <code>SELECT</code> on <code>user_stats_summary</code>; this replaces it with public read plus own-row writes. Fresh installs already get the correct policy.</td></tr>
+          <tr><td><code>community-patch-v6.sql</code></td><td>The cumulative community patch, and what <code>/__admin/patch</code> serves. Supersedes v4.</td></tr>
+          <tr><td><code>performance-patch.sql</code>, <code>performance-indexes.sql</code></td><td>Indexes for RLS membership subqueries and leaderboard date sorts.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <h2 class="rise" id="startup">Startup sequence <a class="anchor" href="#startup" aria-label="Link to this section">#</a></h2>
     <ol class="steps">
       <li><h3>Load and validate configuration</h3><p><code>.env</code> then host environment. Exits on a malformed <code>SUPABASE_URL</code>.</p></li>

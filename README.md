@@ -56,9 +56,8 @@ Start here:
 - Admin console: https://suydev.github.io/isotope-code/admin.html
 - Troubleshooting: https://suydev.github.io/isotope-code/troubleshooting.html
 - Admin guide: [ADMIN.md](./ADMIN.md)
-- Sync details: [docs/sync-system.md](./docs/sync-system.md)
-- Backup storage details: [docs/storage-backup-system.md](./docs/storage-backup-system.md)
-- Backup & restore CLI: [docs/backup-restore.md](./docs/backup-restore.md)
+- Sync, storage layout and backup CLI: https://suydev.github.io/isotope-code/sync-and-backup.html
+- Feature-to-Supabase map and SQL run order: https://suydev.github.io/isotope-code/architecture.html
 
 ## Pick Your Device
 
@@ -257,7 +256,7 @@ For full project backups (schema + auth + storage + all users), a standalone CLI
 ./backup.sh info             # list local backups with status
 ```
 
-See [docs/backup-restore.md](./docs/backup-restore.md) for key precedence, scheduling, and safety notes.
+See the [sync & backup guide](https://suydev.github.io/isotope-code/sync-and-backup.html) for key precedence, scheduling, and safety notes.
 
 Keys are resolved from CLI flags > `.backup_env` (gitignored) > `.env`. The `.backup_env` file holds the **keeper project** credentials (separate from your working project in `.env`) so cloud backups never hit your live app DB.
 

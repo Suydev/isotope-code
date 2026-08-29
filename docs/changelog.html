@@ -200,8 +200,16 @@
     <p class="muted">Leaderboard RLS fix and SQL index correction.</p>
     <p>A <code>stats_own</code> policy using <code>FOR ALL</code> also blocked public <code>SELECT</code>, so the leaderboard rendered empty. Fixed by <code>leaderboard-rls-fix.sql</code>, which upgrading installs still need.</p>
 
+    <h2 class="rise" id="v312">3.1.2-patch — PWA stability <a class="anchor" href="#v312" aria-label="Link to this section">#</a></h2>
+    <p class="muted">Seven service-worker and offline-mode fixes.</p>
+    <p>The one worth recording: the cache name embedded the <em>full</em> commit SHA rather
+    than a truncated one, so a new build produced a name that did not match the old format.
+    Cache reuse failed silently and duplicate caches accumulated — the app worked, storage
+    grew, and nothing reported a problem. Also in this release: update-checker error handling
+    and offline-mode memory management.</p>
+
     <h2 class="rise" id="earlier">Earlier releases <a class="anchor" href="#earlier" aria-label="Link to this section">#</a></h2>
-    <p>3.1.x and before covered the initial self-hosted architecture: the serve-time bundle patcher, the Supabase proxy, row-level security across every table, and the backup and restore tooling. See <a href="https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md">CHANGELOG.md</a> for the full record.</p>
+    <p>3.1.1 and before covered the initial self-hosted architecture: the serve-time bundle patcher, the Supabase proxy, row-level security across every table, and the backup and restore tooling. See <a href="https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md">CHANGELOG.md</a> for the full record.</p>
 
     <h2 class="rise" id="versioning">Versioning <a class="anchor" href="#versioning" aria-label="Link to this section">#</a></h2>
     <div class="table-wrap">
