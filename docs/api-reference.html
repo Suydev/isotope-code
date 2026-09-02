@@ -93,8 +93,17 @@
 <div class="wrap docs">
 
   <aside class="sidebar glass" aria-label="Documentation">
-    <label class="sr-only" for="navfilter">Filter documentation pages</label>
-    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <!-- Search, not a filter. The old control only hid sidebar links, so it could
+         never find text on a page you were not already looking at. This is the
+         same full-text search as the landing hero, reachable from every page. -->
+    <form class="sidebar-search" role="search" action="./troubleshooting.html" data-docsearch>
+      <label class="sr-only" for="docsearch-side">Search the documentation</label>
+      <svg class="askbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="sidebar-search-input" id="docsearch-side" type="search" autocomplete="off"
+             placeholder="Search docs…">
+      <kbd class="askbar-slash" aria-hidden="true">/</kbd>
+    </form>
+    <ul class="askbar-results is-rail" data-docsearch-results hidden></ul>
     <div class="sidebar-group">
       <p>Guides</p>
       <a href="./getting-started.html">Getting started</a>

@@ -99,6 +99,12 @@ const MIME_TYPES = {
   '.ttf':   'font/ttf',
   '.wav':   'audio/wav',
   '.mp3':   'audio/mpeg',
+  // Opus in an Ogg container is the primary ambient format; AAC is the Safari
+  // fallback. Serving either as octet-stream makes <audio> refuse to decode it,
+  // which is exactly how the remote .wav files failed silently.
+  '.opus':  'audio/ogg; codecs=opus',
+  '.m4a':   'audio/mp4',
+  '.ogg':   'audio/ogg',
   '.webp':  'image/webp',
   '.txt':   'text/plain',
   '.map':   'application/json',
@@ -2131,8 +2137,17 @@ function buildUsernameAuthScript() {
       var jwt = await getValidJwt();
       if (!jwt) return;
 
+      // A valid JWT does not guarantee a resolved user id: _getUserId() reads the
+      // decoded session, and during a restore or a token refresh it briefly
+      // returns an empty string. The request then went out as user_id=eq. with no
+      // value, which PostgREST rejects with 400 because '' is not a UUID — every
+      // 30s, forever, filling the console with an error that looks like an auth
+      // failure and is not.
+      var _uid = _getUserId();
+      if (!_uid) return;
+
       try {
-        var r = await fetch(SUPA_URL_BASE + '/rest/v1/notifications?select=id,type,title,body,data,created_at&user_id=eq.' + encodeURIComponent(_getUserId()) + '&read_at=is.null&order=created_at.desc&limit=20', {
+        var r = await fetch(SUPA_URL_BASE + '/rest/v1/notifications?select=id,type,title,body,data,created_at&user_id=eq.' + encodeURIComponent(_uid) + '&read_at=is.null&order=created_at.desc&limit=20', {
           headers: { 'apikey': SUPA_ANON, 'Authorization': 'Bearer ' + jwt },
           signal: AbortSignal.timeout(10000)
         });
@@ -3737,6 +3752,81 @@ const ERROR_BOUNDARY_SCRIPT = `<script>
       }catch(e){}
     },8000);
   });
+  // ── Render-time unmount ────────────────────────────────────────────────────
+  // Everything above handles a bundle that never loaded. This handles the
+  // opposite: a bundle that loaded fine and then threw inside React's render
+  // pass. React unmounts the whole tree on an uncaught render error, so #root
+  // goes from populated to EMPTY and the user gets a black screen with no
+  // message and no way back. The /community presence crash did exactly this.
+  //
+  // The 8s poller above cannot catch it — it only fires when #root was never
+  // filled, and here it was. Refreshing is also the wrong advice, because the
+  // bundle is not stale; the same render will throw again. So this is a
+  // distinct state with a distinct message and a route out of the broken page.
+  (function watchUnmount(){
+    var seenMounted=false;
+    var shown=false;
+    function check(){
+      try{
+        if(shown||window.__isoRefreshPromptShown)return;
+        var root=document.getElementById('root');
+        if(!root)return;
+        if(root.children.length>0){seenMounted=true;return;}
+        // Empty now, but was populated earlier: React tore the tree down.
+        if(!seenMounted)return;
+        if(document.getElementById('error-boundary-overlay'))return;
+        shown=true;
+        showUnmounted();
+      }catch(e){}
+    }
+    function showUnmounted(){
+      try{
+        var d=document.createElement('div');
+        d.id='iso-page-crashed';
+        d.setAttribute('role','alertdialog');
+        d.setAttribute('aria-modal','true');
+        d.style.cssText='position:fixed;inset:0;z-index:2147483645;background:#08090b;display:flex;align-items:center;justify-content:center;padding:24px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;';
+        var here=location.pathname.replace(/^\//,'')||'this page';
+        d.innerHTML='<div style="max-width:26rem;width:100%;text-align:center;">'
+          +'<div style="width:46px;height:46px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(252,165,165,.12);">'
+          +'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>'
+          +'</div>'
+          +'<h2 style="color:#e8edf4;font-size:1.1875rem;font-weight:600;letter-spacing:-.02em;margin:0 0 8px;">This page hit an error</h2>'
+          +'<p style="color:#a2adbd;font-size:.875rem;line-height:1.6;margin:0 0 6px;">Something in <strong style="color:#e8edf4;font-weight:600;">'+here+'</strong> failed while rendering, so it closed itself rather than showing a half-drawn screen.</p>'
+          +'<p style="color:#a2adbd;font-size:.875rem;line-height:1.6;margin:0 0 24px;">Your data is safe — nothing was saved or changed. The rest of the app still works.</p>'
+          +'<button id="iso-crash-home" type="button" style="min-height:44px;padding:11px 26px;background:#8df31f;color:#1a2e05;border:0;border-radius:10px;font-size:.875rem;font-weight:700;cursor:pointer;touch-action:manipulation;">Go to dashboard</button>'
+          +'<p style="color:#7d8797;font-size:.75rem;margin:16px 0 0;"><button id="iso-crash-retry" type="button" style="background:none;border:0;padding:0;color:#a2adbd;font-size:.75rem;text-decoration:underline;cursor:pointer;">Try this page again</button></p>'
+          +'</div>';
+        document.body.appendChild(d);
+        var home=document.getElementById('iso-crash-home');
+        // Dashboard rather than reload: a reload returns to the page that just
+        // threw, and offering the broken route as the primary action is how you
+        // get someone stuck in a loop.
+        if(home){home.focus();home.addEventListener('click',function(){window.location.href='/dashboard';});}
+        var retry=document.getElementById('iso-crash-retry');
+        if(retry){retry.addEventListener('click',function(){window.location.reload();});}
+        try{console.error('[Isotope] React tree unmounted after a render error on '+location.pathname);}catch(e){}
+      }catch(e){}
+    }
+    // MutationObserver rather than an interval: the transition is a single DOM
+    // mutation, so this reacts immediately instead of up to a second late, and
+    // costs nothing while the tree is stable.
+    function start(){
+      try{
+        var root=document.getElementById('root');
+        if(!root){setTimeout(start,500);return;}
+        if(root.children.length>0)seenMounted=true;
+        if(window.MutationObserver){
+          new MutationObserver(check).observe(root,{childList:true});
+        }else{
+          setInterval(check,1000);
+        }
+      }catch(e){}
+    }
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded',start);
+    }else{start();}
+  })();
   function showNotFoundError(){
     var d=document.createElement('div');
     d.style.cssText='position:fixed;inset:0;z-index:99999;background:#09090b;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;';
@@ -3863,6 +3953,59 @@ function getPatchedAiStore() {
 const COMMUNITY_BUNDLE_ABS     = path.join(PUBLIC_DIR, 'assets', 'Community-CEnEgsrd.js');
 const COMMUNITY_API_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'communityApi-Ccw5N_9O.js');
 const COMMUNITY_HUB_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityHub-gANxZssO.js');
+
+// Paths already reported missing, so the warning fires once rather than on every
+// request. A chunk is requested repeatedly by a retrying router.
+const _missingAssetSeen = new Set();
+
+// ── Upstream-unreachable detection ───────────────────────────────────────────
+// A failure to reach Supabase is not a server fault, and returning 500 for it is
+// actively misleading: it tells the client "I am broken" when the truth is "I
+// cannot reach the network right now". The distinction matters because the app
+// already has an offline path — it suppresses Supabase calls and works from local
+// data — and a 500 makes the boot sequence treat a working offline session as a
+// server error instead.
+//
+// 503 with Retry-After is the accurate answer. It also lets a caller decide to
+// back off rather than retry immediately, which is what produced ~20 repeated
+// community_heartbeat failures per minute in the offline logs.
+const _OFFLINE_ERRNOS = new Set([
+  'ENOTFOUND',      // DNS failed — no resolver reachable
+  'EAI_AGAIN',      // DNS temporary failure, the usual one on a dropped link
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'ENETDOWN',
+  'EPIPE',
+  'ETIMEDOUT',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_SOCKET',
+]);
+
+function isUpstreamUnreachable(err) {
+  if (!err) return false;
+  const codes = [err.code, err.errno, err.cause && err.cause.code].filter(Boolean).map(String);
+  if (codes.some(c => _OFFLINE_ERRNOS.has(c))) return true;
+  // undici surfaces most transport failures as a bare "fetch failed" TypeError,
+  // with the real reason only on `cause`. Without this the common case is missed.
+  const msg = String(err.message || '');
+  return /fetch failed|network|socket hang up|getaddrinfo|ENOTFOUND|EAI_AGAIN/i.test(msg);
+}
+
+/** 503 for an unreachable upstream, 500 for a genuine server fault. */
+function sendUpstreamError(res, err, fallbackMessage) {
+  const offline = isUpstreamUnreachable(err);
+  const status = offline ? 503 : 500;
+  const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
+  // Retry-After is the part that lets a client stop hammering.
+  if (offline) headers['Retry-After'] = '15';
+  res.writeHead(status, headers);
+  res.end(JSON.stringify(offline
+    ? { ok: false, code: 'UPSTREAM_UNREACHABLE', offline: true,
+        error: 'Supabase is unreachable from this device. Local data is unaffected.' }
+    : { ok: false, code: 'SERVER_ERROR', error: (err && err.message) || fallbackMessage }));
+}
 const COMMUNITY_VISUALS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityVisuals-mHr4KGyg.js');
 const DASHBOARD_BUNDLE_ABS     = path.join(PUBLIC_DIR, 'assets', 'Dashboard-Dzf-IC_a.js');
 const STUDY_BUNDLE_ABS         = path.join(PUBLIC_DIR, 'assets', 'Study-BXfkiHvM.js');
@@ -4008,6 +4151,44 @@ function getPatchedCommunityBundle() {
       raw = raw.split(ROW_TASKS_LEN).join(ROW_TASKS_LEN_TO);
       console.log('[CommunityCrashFix] buddy tasks length guarded');
     }
+    // Fix: every `presence.state|subject|task` dereference — 23 of them.
+    //
+    // This is the black-screen crash on /community. The bundle guards the array
+    // and the trailing value but dereferences the object in between:
+    //
+    //   (b.data?.buddies||[]).filter(j => j.presence.state === "studying")
+    //   { status: s.presence.state, currentSubject: s.presence.subject||null }
+    //
+    // The `||null` on the second line shows the author expected `subject` to be
+    // absent, yet `s.presence` itself is read raw one expression earlier, so the
+    // guard never runs. Any buddy row without a presence object throws
+    // `Cannot read properties of undefined (reading 'state')` inside
+    // Array.filter, during render, which unmounts the whole route.
+    //
+    // It is reachable in production, not theoretical: `community_get_overview`
+    // returns FLAT `status`/`currentSubject`, so `presence` is undefined for
+    // *every* buddy. Nobody hit it only because no accepted buddy pair existed
+    // while `community_request_buddy` was failing for all users. The first
+    // successful buddy accept blanks the page.
+    //
+    // Optional chaining is the defensive half. The real fix is the RPC emitting
+    // a nested `presence` object as well as the flat fields — without that, this
+    // patch renders every buddy as idle with no subject, which looks like it
+    // works. Both are needed; this one stops the crash.
+    let _presenceGuards = 0;
+    for (const prop of ['state', 'subject', 'task']) {
+      const from = '.presence.' + prop;
+      const to = '.presence?.' + prop;
+      const n = raw.split(from).length - 1;
+      if (n) { raw = raw.split(from).join(to); _presenceGuards += n; }
+    }
+    if (_presenceGuards) {
+      console.log('[CommunityCrashFix] ' + _presenceGuards + ' presence dereference(s) made null-safe');
+    } else {
+      console.warn('[CommunityCrashFix] no presence.* dereference found — anchor may have moved');
+      _criticalPatchFailures.push('community-presence-guard');
+    }
+
     // Fix: h.members unguarded in SingleGroup detail view
     const MEMBERS_GUARD_FROM = 'h.members.filter(n=>n.status==="studying")';
     const MEMBERS_GUARD_TO   = '(h.members||[]).filter(n=>n.status==="studying")';
@@ -4118,6 +4299,32 @@ function getPatchedCommunityVisualsBundle() {
       raw = raw.replace(COMMUNITY_LB_ICON_FROM, COMMUNITY_LB_ICON_TO);
       console.log('[LeaderboardPatch] trophy icon added to destination icons');
     } else { console.warn('[LeaderboardPatch] icon anchor not found'); }
+
+    // Fix: "Updated NaNh ago" on every buddy card and group row.
+    //
+    //   const r = Math.max(0, t - new Date(n).getTime());
+    //
+    // `Math.max(0, …)` reads as a guard and is not one: it clamps negatives, but
+    // Math.max(0, NaN) is NaN, not 0. So when the timestamp is absent — which it
+    // is for every buddy while community_get_overview omits the field — NaN
+    // propagates through the minute maths and renders as "Updated NaNh ago".
+    // This formatter is shared, which is why the string appears in many places
+    // at once rather than on one card.
+    //
+    // Fixed by validating the parse instead of clamping it. An unparseable or
+    // missing timestamp has no honest relative form, so it says so rather than
+    // inventing one: "Updated recently" is vague but true, where "NaNh" is
+    // neither.
+    const AGO_FROM = 'const r=Math.max(0,t-new Date(n).getTime()),c=Math.floor(r/6e4);return c<1?"Updated just now"';
+    const AGO_TO   = 'const _p=n==null?NaN:new Date(n).getTime();if(!isFinite(_p))return"Updated recently";const r=Math.max(0,t-_p),c=Math.floor(r/6e4);return c<1?"Updated just now"';
+    if (raw.includes(AGO_FROM)) {
+      raw = raw.replace(AGO_FROM, AGO_TO);
+      console.log('[CommunityVisualsPatch] "Updated NaNh ago" guarded (invalid timestamp)');
+    } else {
+      console.warn('[CommunityVisualsPatch] relative-time anchor not found');
+      _criticalPatchFailures.push('community-visuals-ago');
+    }
+
     patchedCommunityVisualsBundle = Buffer.from(raw, 'utf8');
   } catch { patchedCommunityVisualsBundle = null; }
   return patchedCommunityVisualsBundle;
@@ -4712,8 +4919,41 @@ window.documentPictureInPicture={
 };
 })();`;
 
+// ── Ambient audio: remote WAV -> local Opus/AAC ──────────────────────────────
+// The bundle hardcodes three raw.githubusercontent.com WAV URLs (44 MB total,
+// PCM). Three problems with that, and the third is the one that matters:
+//   1. 14-17 MB per track over the network before a sound is heard.
+//   2. GitHub serves them as application/octet-stream, so some browsers refuse
+//      to decode them at all.
+//   3. Offline they simply fail — the console fills with
+//      ERR_INTERNET_DISCONNECTED and "NotSupportedError: Failed to load because
+//      no supported source was found", on a study app whose whole premise is
+//      that it works without a connection.
+//
+// Transcoded to Opus at 48 kbps (~3% of the WAV size, indistinguishable for
+// ambient loops) and served from /audio/ambient/. `.opus` is listed first; the
+// `.m4a` AAC copy exists for Safari, which still has no Ogg-Opus support.
+//
+// The bundle assigns a single `url` string and builds `new Audio(url)`, so the
+// fallback cannot be expressed as multiple <source> elements. Instead the URL
+// is written as the Opus path and `window.__isoAmbient` (injected below) swaps
+// in the AAC one when the browser reports it cannot play Opus.
+const AMBIENT_REMOTE = 'https://raw.githubusercontent.com/cookiecaker/Rain-World-Sounds/main/Ambient%20Sounds/';
+const AMBIENT_LOCAL = '/audio/ambient/';
+
+// Runs before the audio element is created; picks the format the browser admits.
+const AMBIENT_SHIM = 'window.__isoAmbient=window.__isoAmbient||(function(){var ok=null;function canOpus(){if(ok!==null)return ok;try{var a=document.createElement("audio");ok=!!(a.canPlayType&&a.canPlayType(\'audio/ogg; codecs="opus"\').replace(/no/,""));}catch(e){ok=false;}return ok;}return function(u){try{if(typeof u!=="string")return u;if(u.indexOf("/audio/ambient/")===-1)return u;return canOpus()?u:u.replace(/\\.opus$/,".m4a");}catch(e){return u;}};})();';
+
 const URL_PATCHES = [
   ['const S=pn(p);', 'const S=/^(blob:|data:)/i.test(p)?p:pn(p);'],
+  // Point each ambient track at the local Opus file.
+  [AMBIENT_REMOTE + 'AM_RAIN-QuietThunder.wav', AMBIENT_LOCAL + 'AM_RAIN-QuietThunder.opus'],
+  [AMBIENT_REMOTE + 'AM_ENV-CricketsWnd.wav',   AMBIENT_LOCAL + 'AM_ENV-CricketsWnd.opus'],
+  [AMBIENT_REMOTE + 'AM_WIN-NiceWnd.wav',       AMBIENT_LOCAL + 'AM_WIN-NiceWnd.opus'],
+  // Route the constructor through the format picker. Anchored on the exact
+  // construction site so a future bundle that builds Audio elsewhere fails the
+  // anchor loudly rather than silently losing the fallback.
+  ['const m=new Audio(c.url);', 'const m=new Audio(window.__isoAmbient(c.url));'],
   ['const p=prompt("Enter the URL of the image you want to use as background:");',
    'const p=(window.__isoBgP||prompt)("Enter the URL of the image you want to use as background:");'],
   ['alert("Please enter a valid image URL starting with http:// or https://")',
@@ -4734,7 +4974,10 @@ function getPatchedFocusBundle() {
       else console.warn('[FocusPatch] String not found:', from.slice(0, 60));
     }
     if (!raw.includes('__pipBridge')) raw = raw + PIP_BRIDGE_JS;
-    patchedFocusBundle = Buffer.from(PIP_POLYFILL + '\n' + raw, 'utf8');
+    // AMBIENT_SHIM must precede the bundle: the component calls it during the
+    // effect that creates the Audio element.
+    patchedFocusBundle = Buffer.from(
+      PIP_POLYFILL + '\n' + AMBIENT_SHIM + '\n' + raw, 'utf8');
   } catch { patchedFocusBundle = null; }
   return patchedFocusBundle;
 }
@@ -5448,23 +5691,41 @@ function canonicalBackupManager() {
 }
 
 function jsonEndpointError(res, error, fallback = 'Request failed', stage = 'unknown') {
-  const code = error?.code || (/auth/i.test(error?.message || '') ? 'AUTH_REQUIRED' : 'UNKNOWN');
+  // An unreachable upstream is checked first and deliberately. Every other branch
+  // here describes something the server did wrong; this one describes something
+  // it could not do at all, and conflating the two is what made an offline device
+  // look like a broken install. 503 is the honest status, and it is the one that
+  // tells a client to back off rather than retry immediately.
+  const offline = isUpstreamUnreachable(error);
+  const code = offline ? 'UPSTREAM_UNREACHABLE'
+    : (error?.code || (/auth/i.test(error?.message || '') ? 'AUTH_REQUIRED' : 'UNKNOWN'));
   const status =
+    offline ? 503 :
     code === 'AUTH_REQUIRED' ? 401 :
     code === 'BLOCKED_EMPTY_OVERWRITE' ? 409 :
     code === 'STORAGE_NOT_FOUND' ? 404 :
     (/permission|policy|forbidden|rls/i.test(error?.message || '') ? 403 : 500);
+  if (offline) {
+    // Retry-After is the whole point: without it a client with a fixed interval
+    // keeps firing, which is how the offline logs filled with repeated
+    // community_heartbeat and notifications failures.
+    try { res.setHeader('Retry-After', '15'); } catch (e) {}
+  }
   sendJson(res, status, {
     ok: false,
     success: false,
     code,
-    state: code === 'BLOCKED_EMPTY_OVERWRITE' ? 'blocked_empty_overwrite' : 'failed',
+    offline: offline || undefined,
+    state: offline ? 'offline'
+      : code === 'BLOCKED_EMPTY_OVERWRITE' ? 'blocked_empty_overwrite' : 'failed',
     stage,
     retryable: status >= 500,
-    message: error?.payload?.message || error?.message || fallback,
-    error: error?.message || fallback,
-    details: error?.payload || undefined,
-    ...(error?.payload || {}),
+    message: offline
+      ? 'Supabase is unreachable from this device. Local data is unaffected.'
+      : (error?.payload?.message || error?.message || fallback),
+    error: offline ? 'upstream_unreachable' : (error?.message || fallback),
+    details: offline ? undefined : (error?.payload || undefined),
+    ...(offline ? {} : (error?.payload || {})),
   });
 }
 
@@ -7401,14 +7662,10 @@ const server = http.createServer((req, res) => {
           backup_warning: bestBackup.warning_if_empty_latest || bestBackup.error || null,
         }));
       } catch (e) {
-        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: e.message || 'Bootstrap failed' }));
+        sendUpstreamError(res, e, 'Bootstrap failed');
       }
     })().catch(e => {
-      if (!res.headersSent) {
-        res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ ok: false, error: e.message || 'Bootstrap failed' }));
-      }
+      if (!res.headersSent) sendUpstreamError(res, e, 'Bootstrap failed');
     });
     return;
   }
@@ -8929,11 +9186,17 @@ function copySQL(){
           const ok = r.status === 200 && r.body && r.body.id === 'user-content';
           return { name:'user-content bucket (private)', ok, detail: ok ? `public=${r.body.public} limit=${r.body.file_size_limit}b` : `HTTP ${r.status} — ⛔ MISSING` };
         })(),
-        // notes bucket (private — study notes)
+        // group-icons bucket (public read — rendered in Discover for non-members)
         (async () => {
-          const r = await supaReq('GET', '/storage/v1/bucket/notes', null, svcKey);
-          const ok = r.status === 200 && r.body && r.body.id === 'notes';
-          return { name:'notes bucket (private)', ok, detail: ok ? `public=${r.body.public} limit=${r.body.file_size_limit}b` : `HTTP ${r.status} — ⛔ MISSING` };
+          const r = await supaReq('GET', '/storage/v1/bucket/group-icons', null, svcKey);
+          const ok = r.status === 200 && r.body && r.body.id === 'group-icons';
+          return { name:'group-icons bucket (public)', ok, detail: ok ? `public=${r.body.public} limit=${r.body.file_size_limit}b` : `HTTP ${r.status} — ⛔ MISSING` };
+        })(),
+        // study-material bucket (private — a student's own PDFs/scans)
+        (async () => {
+          const r = await supaReq('GET', '/storage/v1/bucket/study-material', null, svcKey);
+          const ok = r.status === 200 && r.body && r.body.id === 'study-material';
+          return { name:'study-material bucket (private)', ok, detail: ok ? `public=${r.body.public} limit=${r.body.file_size_limit}b` : `HTTP ${r.status} — ⛔ MISSING` };
         })(),
         // avatars RLS: public read — list via POST (Supabase list-objects endpoint)
         (async () => {
@@ -9786,16 +10049,45 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       return;
     }
 
+    // A 404 for a static asset must carry the Content-Type the request asked
+    // for. Sending a bare 404 with no type produced one of the most misleading
+    // errors this project has had: a missing stylesheet reported as
+    //   "MIME type ('') is not a supported stylesheet MIME type"
+    // because <link rel=stylesheet> is under strict MIME checking, so the
+    // browser complains about the type of the error body rather than saying the
+    // file is absent. That sent debugging into the MIME map, which was correct
+    // all along. Ten CSS chunks were missing and crashing nine routes before
+    // anyone read past the message.
+    const notFound = () => {
+      const body = `/* 404 ${urlPath} — asset not found on this install */\n`;
+      res.writeHead(404, {
+        'Content-Type': contentType,
+        'Content-Length': Buffer.byteLength(body),
+        'Cache-Control': 'no-store',
+        // Names the real problem in a place a developer will actually see it.
+        'X-Isotope-Error': 'asset-missing',
+      });
+      res.end(body);
+    };
+
     fs.readFile(fp, (err, data) => {
       if (err) {
         if (ext === '.js' && urlPath.startsWith('/assets/')) {
           fetchRemoteAsset(path.basename(fp))
             .then((buf) => send(buf))
-            .catch(() => { res.writeHead(404); res.end('Not found'); });
+            .catch(notFound);
           return;
         }
         if (['.js','.mjs','.css','.png','.svg','.woff','.woff2','.ttf','.json'].includes(ext)) {
-          res.writeHead(404); res.end('Not found'); return;
+          // Log it once per path. A missing chunk is a build problem, and it is
+          // invisible in the server output otherwise.
+          if (!_missingAssetSeen.has(urlPath)) {
+            _missingAssetSeen.add(urlPath);
+            console.warn(`[Assets] MISSING ${urlPath} — referenced but not on disk. ` +
+                         'A missing .css will crash the route that imports it.');
+          }
+          notFound();
+          return;
         }
         spaFallback();
         return;
@@ -9911,10 +10203,21 @@ server.listen(port, '0.0.0.0', () => {
 // times — it only creates buckets that return 404.
 async function ensureStorageBuckets() {
   if (!ADMIN_MODE_READY) return; // service key required to create buckets
+  // Must match REQUIRED_BUCKETS in isotope-apk/scripts/supabase-setup.mjs and
+  // supabase/023_wire_missing_storage_buckets.sql.
+  //
+  // `group-icons` and `study-material` were missing here and from the schema, while
+  // the shipped app uploaded to both — every group-icon and study-material upload
+  // returned 404 NoSuchBucket for weeks, and no check noticed because the tooling's
+  // reference point was the database rather than the code.
+  //
+  // `notes` was removed: 0 objects, 0 upload paths, no reachable bundle referenced
+  // it. Note attachments go to `user-content` with the rest of the sync payload.
   const BUCKETS = [
-    { id: 'user-content', name: 'user-content', public: false, file_size_limit: 52428800 },
-    { id: 'avatars',      name: 'avatars',      public: true,  file_size_limit: 2097152  },
-    { id: 'notes',        name: 'notes',        public: false, file_size_limit: 10485760 },
+    { id: 'user-content',   name: 'user-content',   public: false, file_size_limit: 52428800 },
+    { id: 'avatars',        name: 'avatars',        public: true,  file_size_limit: 2097152   },
+    { id: 'group-icons',    name: 'group-icons',    public: true,  file_size_limit: 10485760  },
+    { id: 'study-material', name: 'study-material', public: false, file_size_limit: 104857600 },
   ];
   for (const bucket of BUCKETS) {
     try {
@@ -9930,7 +10233,9 @@ async function ensureStorageBuckets() {
         id: bucket.id, name: bucket.name,
         public: bucket.public,
         file_size_limit: bucket.file_size_limit,
-        allowed_mime_types: bucket.id === 'avatars'
+        // Image-only buckets reject a non-image at the storage layer, which is a
+        // clearer failure than a broken <img> discovered later.
+        allowed_mime_types: (bucket.id === 'avatars' || bucket.id === 'group-icons')
           ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
           : null,
       }).catch(() => ({ status: 0 }));

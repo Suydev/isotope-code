@@ -316,6 +316,34 @@ jobs:
       # backup.sh must also stay byte-identical to isotope-apk's copy. The two
       # diverged once, and the divergence was dangerous rather than cosmetic: this
       # repo's copy let `restore` infer its target from .env, which is production.
+      # The generator's own header says "Run from CI so the index cannot drift
+      # from the pages" — and it was not wired in, so it had drifted: the shipped
+      # index still described three storage buckets, 14 triggers and a 249 KB
+      # schema file after all three were corrected. Search would have returned
+      # text that no longer appears on the page it links to.
+      #
+      # Rebuild and diff rather than trusting a committed artefact. A stale index
+      # is worse than none: it looks like search works.
+      - name: 🔎 Docs search index is current
+        run: |
+          set -euo pipefail
+          cp docs/assets/search-index.json "$RUNNER_TEMP/committed.json"
+          node scripts/build-search-index.mjs
+          # Compare CONTENT, not bytes. The file carries a `built` timestamp, so a
+          # byte diff fails on every run including one where nothing changed —
+          # a gate that always fails is a gate everyone learns to ignore.
+          node -e '
+            const fs = require("fs");
+            const strip = (f) => { const j = JSON.parse(fs.readFileSync(f, "utf8")); delete j.built; return JSON.stringify(j); };
+            const a = strip(process.env.RUNNER_TEMP + "/committed.json");
+            const b = strip("docs/assets/search-index.json");
+            if (a !== b) {
+              console.error("❌ search-index.json is stale — run: node scripts/build-search-index.mjs");
+              process.exit(1);
+            }
+            console.log("✅ search index matches the pages (" + JSON.parse(b).n + " sections)");
+          '
+
       - name: 🗄️  Supabase tooling parses
         run: |
           set -euo pipefail

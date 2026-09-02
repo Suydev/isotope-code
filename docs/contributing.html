@@ -99,8 +99,17 @@
 <div class="wrap docs">
 
   <aside class="sidebar glass" aria-label="Documentation">
-    <label class="sr-only" for="navfilter">Filter documentation pages</label>
-    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <!-- Search, not a filter. The old control only hid sidebar links, so it could
+         never find text on a page you were not already looking at. This is the
+         same full-text search as the landing hero, reachable from every page. -->
+    <form class="sidebar-search" role="search" action="./troubleshooting.html" data-docsearch>
+      <label class="sr-only" for="docsearch-side">Search the documentation</label>
+      <svg class="askbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="sidebar-search-input" id="docsearch-side" type="search" autocomplete="off"
+             placeholder="Search docs…">
+      <kbd class="askbar-slash" aria-hidden="true">/</kbd>
+    </form>
+    <ul class="askbar-results is-rail" data-docsearch-results hidden></ul>
     <div class="sidebar-group">
       <p>Guides</p>
       <a href="./getting-started.html">Getting started</a>
@@ -268,10 +277,9 @@ npm run docs:validate</pre>
       <table>
         <thead><tr><th>Item</th><th>Detail</th></tr></thead>
         <tbody>
-          <tr><td>16 tables missing from install schema</td><td><code>tasks</code>, <code>subjects</code>, <code>focus_sessions</code>, <code>exams</code> and others exist live but are not created by <code>isotope-complete.sql</code>. A fresh install lacks them.</td></tr>
-          <tr><td>19 functions and 8 triggers likewise missing</td><td>Including the community chat RPCs and the auto-seeding triggers.</td></tr>
-          <tr><td><code>buddy_invites</code> is dead</td><td>RLS on, zero policies, referenced by nothing. Scheduled for removal.</td></tr>
-          <tr><td>Two <code>search_path</code> conventions</td><td>10 definer functions pin the empty string, the rest pin <code>public</code>. Both are safe; the inconsistency is not ideal.</td></tr>
+          <tr><td><code>community_bootstrap_profile</code> cannot run</td><td>Its <code>UPDATE</code> assigns <code>profile_data</code> four times in one statement, which PostgreSQL rejects with <code>42601: multiple assignments to same column</code>. It is the only writer to <code>user_profiles</code>, so that table stays empty and every buddy feature fails downstream.</td></tr>
+          <tr><td>Buddy handle is written and read in different places</td><td>Bootstrap writes the handle into <code>profile_data-&gt;&gt;'community_handle'</code>; <code>community_request_buddy</code> reads the <code>user_profiles.handle</code> column. Even with 42601 fixed, buddy requests would still raise <code>user_not_found</code>.</td></tr>
+          <tr><td>Two <code>search_path</code> conventions</td><td>Some definer functions pin the empty string, the rest pin <code>public</code>. Both are safe; the inconsistency is not ideal.</td></tr>
         </tbody>
       </table>
     </div>

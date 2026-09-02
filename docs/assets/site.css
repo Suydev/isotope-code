@@ -3185,3 +3185,227 @@ body:has(.liquid-bg) .glass {
   .askbar-slash { display: inline-block; }
 }
 .askbar:focus-within .askbar-slash { opacity: 0; }
+
+/* ============================================================================
+   Search results and arrival highlight
+   ----------------------------------------------------------------------------
+   Two related surfaces: the result list under the hero bar, and the highlight
+   applied to the destination once a result is opened.
+   ========================================================================= */
+
+/* ── Result rows ─────────────────────────────────────────────────────────────
+   Three lines per result: section title, the page it lives on, and a snippet
+   around the match. The snippet is the part that earns its space — a title
+   alone often cannot tell you whether a result is the one you want, and opening
+   the wrong section costs a navigation. */
+.askbar-results a {
+  display: grid;
+  gap: 1px;
+  padding: var(--s-2) var(--s-3);
+  min-height: 44px;
+  border-radius: var(--r-sm);
+  color: #111827;
+  text-decoration: none;
+}
+.askbar-results a:hover,
+.askbar-results a:focus-visible,
+.askbar-results a[data-active='true'] { background: #f3f4f6; }
+
+.askbar-results .r-title {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.askbar-results .r-page {
+  font-size: var(--t-xs);
+  color: #6b7280;          /* 4.83:1 on #f3f4f6 — the hover surface, not white */
+}
+/* Snippet clamped to two lines. Unclamped, a long paragraph would push the
+   remaining results off the visible list. */
+.askbar-results .r-snip {
+  margin-top: 2px;
+  font-size: var(--t-xs);
+  line-height: 1.45;
+  color: #4b5563;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Subsections are indented so the hierarchy is visible without a second label. */
+.askbar-results li.is-sub a { padding-inline-start: var(--s-5); }
+.askbar-results li.is-sub .r-title { font-weight: 500; }
+
+/* ── Arrival highlight ───────────────────────────────────────────────────────
+   `?hl=<term>` marks the term on the destination page, holds for 2.5s, then
+   fades over 600ms and unwraps itself.
+
+   The background alphas are low deliberately. A highlight has to be findable at
+   a glance while leaving the text it covers fully readable — those two goals
+   pull in opposite directions, and legibility wins. Measured against the body
+   token: 22% brand on white gives 13.19:1, and 32% on the dark panel gives
+   8.67:1, both far above the 4.5:1 floor.
+
+   `transition` is on opacity and background only. Animating a layout property
+   here would reflow the paragraph the reader is trying to read. */
+mark.hl {
+  background: color-mix(in srgb, var(--accent-tint, #7c3aed) 22%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding-inline: 2px;
+  /* A hairline ring, so the mark is still distinguishable for a reader who
+     cannot separate the hue from the page — colour alone is not a signal. */
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-tint, #7c3aed) 38%, transparent);
+  transition: opacity var(--dur-slow) var(--ease),
+              background-color var(--dur-slow) var(--ease),
+              box-shadow var(--dur-slow) var(--ease);
+}
+:root[data-theme='dark'] mark.hl {
+  background: color-mix(in srgb, var(--accent-tint, #a78bfa) 32%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-tint, #a78bfa) 46%, transparent);
+}
+mark.hl.fading {
+  opacity: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  mark.hl { background: rgba(124, 58, 237, .22); box-shadow: 0 0 0 1px rgba(124, 58, 237, .38); }
+  :root[data-theme='dark'] mark.hl { background: rgba(167, 139, 250, .32); }
+}
+
+/* Reduced motion: the fade is the whole point of the effect, so it is kept —
+   but instant rather than animated. A highlight that never disappears is worse
+   for everyone, and this is a colour change, not movement. */
+@media (prefers-reduced-motion: reduce) {
+  mark.hl { transition: none; }
+}
+
+/* The scroll-to-match uses `behavior: 'smooth'`, which respects this already at
+   the JS level, but the sticky topbar offset must hold either way. */
+:root { scroll-padding-top: calc(var(--h-topbar) + var(--s-5)); }
+
+/* ── Sidebar search ──────────────────────────────────────────────────────────
+   The rail control that replaced the old `.nav-filter`. The markup landed on 20
+   pages with no styling at all: `.sidebar-search`, `.sidebar-search-input` and
+   `.is-rail` had zero rules anywhere, so the form rendered as a bare unstyled
+   input on every documentation page. `.askbar-results` was already styled, which
+   is why the results list looked right and the field it belonged to did not.
+
+   Modelled on `.askbar` rather than invented: same shape, same focus behaviour,
+   same 44px floor. It differs where the context differs — a 16rem rail cannot
+   carry the hero's pill radius, 40rem max-width or lifted double shadow without
+   looking like a component that wandered in from another page.
+
+   BORDER COLOUR IS NOT --c-border-strong, and that is deliberate. Measured:
+
+     light   #d1d5db on #ffffff   1.47:1   FAIL
+     dark    #363048 on #0b0910   1.58:1   FAIL
+
+   WCAG 1.4.11 requires 3:1 for the boundary of a control, and both existing
+   border tokens are far under it — they are tuned for dividers, where the
+   surface step does the work, not for something a user has to locate and click.
+   The values below are the lightest that clear the threshold:
+
+     light   #8b929c on #ffffff   3.14:1   PASS
+     dark    #6e648a on #0b0910   3.63:1   PASS
+
+   Everything else measured on --c-bg-subtle, in both themes:
+
+     input text        16.98:1 light · 15.74:1 dark
+     placeholder        4.63:1 light ·  5.92:1 dark   (clears AA even as text)
+     icon               4.63:1 light ·  5.92:1 dark   (needs only 3:1)
+     focus ring         5.70:1 light · 10.72:1 dark   (inherited :focus-visible)
+*/
+
+.sidebar-search {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  /* Aligns with .sidebar's inline-end padding so the field ends flush with the
+     nav links above it rather than overhanging them. */
+  margin: 0 0 var(--s-5);
+  padding-inline: var(--s-3);
+  background: var(--c-bg-subtle);
+  /* 3:1 against the page background — see the note above. */
+  border: 1px solid #8b929c;
+  border-radius: var(--r-md);
+  transition: border-color var(--dur-fast) var(--ease),
+              background-color var(--dur-fast) var(--ease);
+}
+:root[data-theme='dark'] .sidebar-search { border-color: #6e648a; }
+
+.sidebar-search:hover { background: var(--c-surface); }
+
+/* The ring goes on the container, not the input: the icon and the kbd hint are
+   part of the same control, and a ring around only the text box would read as
+   three separate widgets. */
+.sidebar-search:focus-within {
+  border-color: var(--c-accent);
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+.sidebar-search .askbar-icon { color: var(--c-text-faint); }
+
+.sidebar-search-input {
+  flex: 1;
+  min-width: 0;
+  /* 44px so the field meets the touch-target floor on its own. The rails do
+     show below 1000px in landscape, so this is not a desktop-only control. */
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  /* 16px minimum: anything smaller triggers iOS auto-zoom on focus, which
+     silently resizes the whole page the first time someone taps search. */
+  font: 400 1rem/1.4 var(--f-sans);
+  color: var(--c-text);
+}
+.sidebar-search-input::placeholder { color: var(--c-text-faint); }
+/* The ring is on the container; a second one here would double up. */
+.sidebar-search-input:focus,
+.sidebar-search-input:focus-visible { outline: none; }
+.sidebar-search-input::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+/* The `/` hint. Hidden on touch, where there is no key to press and it would be
+   an instruction the reader cannot follow. */
+.sidebar-search .askbar-slash { flex: none; }
+@media (hover: none) {
+  .sidebar-search .askbar-slash { display: none; }
+}
+
+/* ── Results, rail variant ───────────────────────────────────────────────────
+   `.askbar-results` is sized for the hero: 40rem wide, centred, and pulled up
+   with a negative margin to sit under a floating pill. In a 16rem rail every one
+   of those is wrong, so `.is-rail` overrides them rather than forking the class.
+
+   It also stays in flow instead of floating. An absolutely-positioned dropdown
+   inside a `overflow-y: auto` sticky rail is clipped by its own scroll container
+   — the results would be cut off by the element they belong to. */
+.askbar-results.is-rail {
+  width: 100%;
+  max-width: none;
+  margin: calc(var(--s-5) * -1) 0 var(--s-5);
+  background: var(--c-surface);
+  border-color: var(--c-border);
+  /* One tight shadow, not the hero's wide lift: this sits ON the rail surface,
+     not above the page. */
+  box-shadow: 0 2px 8px -2px rgba(17, 24, 39, .12);
+  /* A long result set must not push the nav links out of reach. */
+  max-height: 22rem;
+  overflow-y: auto;
+}
+:root[data-theme='dark'] .askbar-results.is-rail {
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, .5);
+}
+.askbar-results.is-rail a       { color: var(--c-text); font-size: var(--t-xs); }
+.askbar-results.is-rail a:hover,
+.askbar-results.is-rail a:focus-visible { background: var(--c-bg-subtle); }
+.askbar-results.is-rail small   { color: var(--c-text-faint); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-search { transition: none; }
+}
