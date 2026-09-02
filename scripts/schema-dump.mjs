@@ -55,9 +55,8 @@ const query = (sql) => new Promise((resolve, reject) => {
 });
 
 const out = [];
-const counts = { schemas: 0, extensions: 0, types: 0, sequences: 0, tables: 0, views: 0, pks: 0, fks: 0, unique: 0, checks: 0, indexes: 0, functions: 0, triggers: 0, rls: 0, policies: 0, tableGrants: 0, fnGrants: 0 };
+const counts = { schemas: 0, extensions: 0, types: 0, sequences: 0, tables: 0, views: 0, pks: 0, fks: 0, unique: 0, checks: 0, indexes: 0, functions: 0, triggers: 0, rls: 0, policies: 0, tableGrants: 0, fnGrants: 0, buckets: 0, storagePolicies: 0 };
 const add = (s) => { if (s) out.push(s); };
-const scq = (schema) => quoteIdent(schema);
 
 // 0. user schemas (exclude system + Supabase-managed)
 const EXCLUDE_SCHEMAS = "'pg_catalog','information_schema','pg_toast','auth','storage','vault','extensions','supabase_migrations','realtime','_realtime','net','pgbouncer','supabase_functions','cron','graphql','graphql_public'";
@@ -145,6 +144,10 @@ for (const s of SCHEMAS) {
   join pg_namespace n on n.oid = c.relnamespace and n.nspname = '${s.replace(/'/g, "''")}'
   join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
   where c.relkind in ('r','p')
+    -- Extension-owned tables belong to the extension, not this schema.
+    and not exists (
+      select 1 from pg_depend d
+      where d.objid = c.oid and d.classid = 'pg_class'::regclass and d.deptype = 'e')
   order by c.relname, a.attnum;`);
   for (const r of rows) {
     const key = s + '.' + r.relname;
@@ -174,7 +177,14 @@ for (const s of SCHEMAS) {
   select c.relname, c.relkind, pg_get_viewdef(c.oid) as def
   from pg_class c
   join pg_namespace n on n.oid = c.relnamespace and n.nspname = '${s.replace(/'/g, "''")}'
-  where c.relkind in ('v','m') order by c.relname;`);
+  where c.relkind in ('v','m')
+    -- Skip extension-owned views. hypopg_hidden_indexes / hypopg_list_indexes
+    -- live in public but belong to the extension, so a restore reported
+    -- "42501: must be owner of view hypopg_hidden_indexes".
+    and not exists (
+      select 1 from pg_depend d
+      where d.objid = c.oid and d.classid = 'pg_class'::regclass and d.deptype = 'e')
+  order by c.relname;`);
   for (const r of rows) {
     const kw = r.relkind === 'm' ? 'MATERIALIZED VIEW' : 'VIEW';
     add(`CREATE OR REPLACE ${kw} ${sc(s)}.${quoteIdent(r.relname)} AS\n${r.def.trimEnd()};`);
@@ -182,6 +192,23 @@ for (const s of SCHEMAS) {
   }
 }
 add('');
+
+// Postgres has no `ADD CONSTRAINT IF NOT EXISTS`, so a bare
+// ALTER TABLE ... ADD CONSTRAINT aborts this whole transactional file on a
+// re-run — and the header advertises the dump as safe to run repeatedly. Each
+// constraint is emitted inside a guard that checks pg_constraint by name first.
+function addConstraint(schema, table, name, definition) {
+  const lines = [
+    'DO $iso_c$ BEGIN',
+    '  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = ' +
+      quoteLiteral(name) + ' AND connamespace = ' + quoteLiteral(schema) + '::regnamespace) THEN',
+    '    ALTER TABLE ONLY ' + sc(schema) + '.' + quoteIdent(table) +
+      ' ADD CONSTRAINT ' + quoteIdent(name) + ' ' + definition + ';',
+    '  END IF;',
+    'END $iso_c$;',
+  ];
+  add(lines.join('\n'));
+}
 
 // 6. primary keys
 for (const s of SCHEMAS) {
@@ -193,7 +220,7 @@ for (const s of SCHEMAS) {
   where tc.constraint_type = 'PRIMARY KEY' and tc.table_schema = '${s.replace(/'/g, "''")}'
   group by tc.table_name, tc.constraint_name order by tc.table_name;`);
   for (const r of rows) {
-    add(`ALTER TABLE ONLY ${sc(s)}.${quoteIdent(r.table_name)} ADD CONSTRAINT ${quoteIdent(r.constraint_name)} PRIMARY KEY (${r.cols});`);
+    addConstraint(s, r.table_name, r.constraint_name, `PRIMARY KEY (${r.cols})`);
     counts.pks++;
   }
 }
@@ -206,7 +233,7 @@ for (const s of SCHEMAS) {
   from pg_constraint where connamespace = '${s.replace(/'/g, "''")}'::regnamespace and contype = 'f'
   order by conname;`);
   for (const r of rows) {
-    add(`ALTER TABLE ONLY ${sc(s)}.${quoteIdent(r.tbl.split('.').pop())} ADD CONSTRAINT ${quoteIdent(r.conname)} ${r.def};`);
+    addConstraint(s, r.tbl.split('.').pop(), r.conname, r.def);
     counts.fks++;
   }
   rows = await query(`
@@ -214,7 +241,7 @@ for (const s of SCHEMAS) {
   from pg_constraint where connamespace = '${s.replace(/'/g, "''")}'::regnamespace and contype = 'u'
   order by conname;`);
   for (const r of rows) {
-    add(`ALTER TABLE ONLY ${sc(s)}.${quoteIdent(r.tbl.split('.').pop())} ADD CONSTRAINT ${quoteIdent(r.conname)} ${r.def};`);
+    addConstraint(s, r.tbl.split('.').pop(), r.conname, r.def);
     counts.unique++;
   }
   rows = await query(`
@@ -222,7 +249,7 @@ for (const s of SCHEMAS) {
   from pg_constraint where connamespace = '${s.replace(/'/g, "''")}'::regnamespace and contype = 'c'
   order by conname;`);
   for (const r of rows) {
-    add(`ALTER TABLE ONLY ${sc(s)}.${quoteIdent(r.tbl.split('.').pop())} ADD CONSTRAINT ${quoteIdent(r.conname)} ${r.def};`);
+    addConstraint(s, r.tbl.split('.').pop(), r.conname, r.def);
     counts.checks++;
   }
 }
@@ -239,7 +266,11 @@ for (const s of SCHEMAS) {
     and not exists (select 1 from pg_constraint con where con.conindid = i.indexrelid)
   order by name;`);
   for (const r of rows) {
-    add(r.def.replace(/^CREATE INDEX/, 'CREATE INDEX IF NOT EXISTS') + ';');
+    // pg_get_indexdef emits CREATE INDEX or CREATE UNIQUE INDEX; only the
+    // former was guarded, so prod's 5 unique indexes (groups_slug_active_unique,
+    // uq_community_friends_pair, ...) broke a re-run of a file that claims to be
+    // idempotent.
+    add(r.def.replace(/^CREATE (UNIQUE )?INDEX /, function (m, u) { return 'CREATE ' + (u || '') + 'INDEX IF NOT EXISTS '; }) + ';');
     counts.indexes++;
   }
 }
@@ -260,8 +291,19 @@ for (const s of SCHEMAS) {
   from pg_proc p
   join pg_language l on l.oid = p.prolang
   join pg_namespace n on n.oid = p.pronamespace and n.nspname = '${s.replace(/'/g, "''")}'
-  where p.prokind in ('f','p') and not exists (
-    select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'i')
+  where p.prokind in ('f','p')
+    -- deptype 'i' = internal (auto-generated); 'e' = owned by an EXTENSION.
+    -- Extension-owned routines must never be dumped: only the extension can
+    -- create them. hypopg installs 11 LANGUAGE c functions into public, and
+    -- emitting those produced "42501: permission denied for language c" on
+    -- restore — which, because statements are applied in batches, failed a whole
+    -- batch of 50 and forced a slow per-statement replay for each one.
+    and not exists (
+      select 1 from pg_depend d
+      where d.objid = p.oid and d.classid = 'pg_proc'::regclass
+        and d.deptype in ('i', 'e'))
+    -- C-language routines are compiled extension internals by definition.
+    and l.lanname <> 'c'
   order by p.proname;`);
   for (const r of rows) {
     add(buildFunctionDef(s, r));
@@ -286,6 +328,38 @@ for (const s of SCHEMAS) {
   }
 }
 add('');
+
+// 12b. triggers on auth.users — the signup hook.
+//
+// `auth` is in EXCLUDE_SCHEMAS and must stay there: its tables are
+// Supabase-managed and dumping them would fight the platform. But the trigger
+// that seeds the app's own tables lives there, and excluding the schema excluded
+// it too. Restores therefore produced a database with all 42 tables, all 14
+// public triggers, 94/94 verification checks passing — and no ability to accept a
+// signup, because nothing copied auth.users -> public.users. Measured on prod:
+// 43 auth users, 11 public.users rows.
+//
+// Only triggers whose function lives in a dumped schema are emitted, so this
+// cannot try to recreate a Supabase-internal hook.
+{
+  const userSchemas = SCHEMAS.map((s) => `'${s.replace(/'/g, "''")}'`).join(', ');
+  rows = await query(`
+  select t.tgname, pg_get_triggerdef(t.oid) as def, c.relname as tbl
+  from pg_trigger t
+  join pg_class c  on c.oid = t.tgrelid
+  join pg_namespace n on n.oid = c.relnamespace
+  join pg_proc p   on p.oid = t.tgfoid
+  join pg_namespace fn on fn.oid = p.pronamespace
+  where n.nspname = 'auth' and not t.tgisinternal
+    and fn.nspname in (${userSchemas})
+  order by c.relname, t.tgname;`);
+  for (const r of rows) {
+    add(`DROP TRIGGER IF EXISTS ${quoteIdent(r.tgname)} ON "auth".${quoteIdent(r.tbl)};`);
+    add(r.def + ';');
+    counts.triggers++;
+  }
+  if (rows.length) add('');
+}
 
 // 13. RLS enablement
 for (const s of SCHEMAS) {
@@ -335,6 +409,10 @@ for (const s of SCHEMAS) {
   join pg_namespace n on n.oid = c.relnamespace and n.nspname = '${s.replace(/'/g, "''")}'
   cross join lateral aclexplode(c.relacl) g
   where c.relkind in ('r','S','v','m') and g.grantee::regrole::text in ('anon','authenticated','service_role')
+    -- Do not emit grants for extension-owned relations we no longer create.
+    and not exists (
+      select 1 from pg_depend d
+      where d.objid = c.oid and d.classid = 'pg_class'::regclass and d.deptype = 'e')
   order by c.relname, grantee, priv;`);
   for (const r of rows) {
     const kind = r.relkind === 'S' ? 'SEQUENCE' : 'TABLE';
@@ -352,6 +430,12 @@ for (const s of SCHEMAS) {
   join pg_namespace n on n.oid = p.pronamespace and n.nspname = '${s.replace(/'/g, "''")}'
   cross join lateral aclexplode(p.proacl) g
   where g.grantee::regrole::text in ('anon','authenticated','service_role') and g.privilege_type = 'EXECUTE'
+    -- Match the routine dump: no grants for extension-owned or C routines we
+    -- deliberately do not create.
+    and not exists (
+      select 1 from pg_depend d
+      where d.objid = p.oid and d.classid = 'pg_proc'::regclass and d.deptype in ('i','e'))
+    and (select l.lanname from pg_language l where l.oid = p.prolang) <> 'c'
   order by p.proname, ident, grantee;`);
   let prevSig = '';
   for (const r of rows) {
@@ -363,6 +447,71 @@ for (const s of SCHEMAS) {
   }
 }
 add('');
+
+// 16. storage buckets + storage RLS policies
+//
+// Buckets live in the ordinary table storage.buckets, and their access rules are
+// ordinary RLS policies on storage.objects, so both belong in a portable schema
+// dump. They were missing entirely: restoring into a fresh project produced a
+// database where every avatar/notes/user-content upload failed, because neither
+// the bucket nor its policy existed. auth.* still cannot be dumped — GoTrue owns
+// those tables — but storage can.
+{
+  const buckets = await query(`
+  select id, name, public, file_size_limit, allowed_mime_types
+  from storage.buckets order by id;`);
+  if (buckets.length) {
+    add('-- storage buckets (id, visibility, size cap, allowed types)');
+    for (const b of buckets) {
+      // Also a Postgres array literal string, e.g. {image/png,image/jpeg}.
+      const mimeList = typeof b.allowed_mime_types === 'string'
+        ? b.allowed_mime_types.replace(/^\{|\}$/g, '').split(',').map((x) => x.replace(/^"|"$/g, '')).filter(Boolean)
+        : (Array.isArray(b.allowed_mime_types) ? b.allowed_mime_types : []);
+      const mime = mimeList.length
+        ? 'ARRAY[' + mimeList.map((m) => quoteLiteral(m)).join(', ') + ']::text[]'
+        : 'NULL';
+      // Idempotent: re-running must not fail, and must not silently keep a stale
+      // size limit if the source changed.
+      add(
+        'INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)\n' +
+        '  VALUES (' + quoteLiteral(b.id) + ', ' + quoteLiteral(b.name) + ', ' +
+        (b.public ? 'true' : 'false') + ', ' +
+        (b.file_size_limit == null ? 'NULL' : String(b.file_size_limit)) + ', ' + mime + ')\n' +
+        '  ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public,\n' +
+        '    file_size_limit = EXCLUDED.file_size_limit,\n' +
+        '    allowed_mime_types = EXCLUDED.allowed_mime_types;'
+      );
+      counts.buckets++;
+    }
+    add('');
+  }
+
+  const spol = await query(`
+  select pol.polname as name, c.relname as tbl, pol.polcmd as cmd,
+         pg_get_expr(pol.polqual, pol.polrelid) as using_expr,
+         pg_get_expr(pol.polwithcheck, pol.polrelid) as check_expr,
+         coalesce(array_to_string((select array_agg(case when r = 0 then 'public' else pg_get_userbyid(r) end order by r)
+           from unnest(pol.polroles) r), ', '), 'public') as roles
+  from pg_policy pol
+  join pg_class c on c.oid = pol.polrelid
+  join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'storage'
+  order by c.relname, pol.polname;`);
+  if (spol.length) {
+    add('-- storage access policies');
+    const CMD = { r: 'SELECT', a: 'INSERT', w: 'UPDATE', d: 'DELETE', '*': 'ALL' };
+    for (const p of spol) {
+      const roles = (p.roles || 'public').trim() || 'public';
+      let stmt = 'DROP POLICY IF EXISTS ' + quoteIdent(p.name) + ' ON storage.' + quoteIdent(p.tbl) + ';\n';
+      stmt += 'CREATE POLICY ' + quoteIdent(p.name) + ' ON storage.' + quoteIdent(p.tbl) +
+        ' FOR ' + (CMD[p.cmd] || 'ALL') + ' TO ' + roles;
+      if (p.using_expr) stmt += ' USING (' + p.using_expr + ')';
+      if (p.check_expr) stmt += ' WITH CHECK (' + p.check_expr + ')';
+      add(stmt + ';');
+      counts.storagePolicies++;
+    }
+    add('');
+  }
+}
 
 const header = `-- =============================================================================
 -- IsotopeAI — full portable schema dump (NO user data)
@@ -388,7 +537,14 @@ BEGIN;
 const footer = `COMMIT;
 `;
 const final = header + out.join('\n') + '\n' + footer;
-const target = join(ROOT, 'sql', 'isotope-schema-restore.sql');
+// Default output is sql/isotope-schema-restore.sql. SCHEMA_OUT redirects it so
+// the same generator can also write isotope-code/isotope-complete.sql, rather
+// than maintaining a second copy of this script that drifts.
+const target = process.env.SCHEMA_OUT
+  ? (process.env.SCHEMA_OUT.startsWith('/')
+      ? process.env.SCHEMA_OUT
+      : join(ROOT, process.env.SCHEMA_OUT))
+  : join(ROOT, 'sql', 'isotope-schema-restore.sql');
 writeFileSync(target, final, 'utf8');
 
 console.log('Wrote ' + target + ' (' + (final.length / 1024).toFixed(1) + ' KB)');
@@ -411,7 +567,22 @@ function buildFunctionDef(s, r) {
       const eq = cfg.indexOf('=');
       if (eq < 0) continue;
       const key = cfg.slice(0, eq).trim();
-      const val = cfg.slice(eq + 1).trim();
+      let val = cfg.slice(eq + 1).trim();
+      // proconfig stores GUC values in list syntax, so an EMPTY search_path is
+      // held as the two characters "" — a quoted empty element. Emitting that
+      // verbatim as a SQL literal produced
+      //     SET "search_path" TO '""'
+      // which sets search_path to the literal two-character name "" rather than
+      // to nothing. The next dump then read back """" and the pair grew on every
+      // backup/restore cycle. Prod already carries a six-quote value from this.
+      //
+      // Unwrap one layer of list-quoting so the emitted literal is the value the
+      // GUC should actually hold, and collapse a fully-quote-run value to empty.
+      if (/^"+$/.test(val) && val.length % 2 === 0) {
+        val = '';
+      } else if (val.length >= 2 && val.startsWith('"') && val.endsWith('"')) {
+        val = val.slice(1, -1).replace(/""/g, '"');
+      }
       parts.push(` SET ${quoteIdent(key)} TO ${quoteLiteral(val)}`);
     }
   }
@@ -424,4 +595,3 @@ function buildFunctionDef(s, r) {
   parts.push(tag + ';');
   return parts.join('\n');
 }
-const searchPathKw = 'search_path';

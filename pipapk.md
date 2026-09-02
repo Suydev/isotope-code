@@ -1,6 +1,55 @@
-# PiP APK for Android — Research Plan (no build yet)
+# PiP APK for Android — original research plan (SUPERSEDED)
 
-Status: RESEARCH ONLY. Nothing built. This document plans a standalone Android APK
+> **Status: BUILT. This document is the plan, not the build.**
+>
+> It opened with "RESEARCH ONLY. Nothing built." for weeks after the thing was
+> built, which is worse than no document: a reader takes it as current and plans
+> against decisions that were already overtaken.
+>
+> **For what actually ships, read `docs/android-apk.html`.** What exists now:
+>
+> | | |
+> |---|---|
+> | `pipapk/` | real Gradle project — 5 Kotlin files, ~1,900 lines, `applicationId in.isotopeai.pip`, minSdk 24 / targetSdk 35 |
+> | `.github/workflows/pip-apk.yml` | builds and uploads `isotope-pip-debug` (debug, **unsigned**) |
+> | `/api/pip/state`, `/api/pip/action` | implemented in `server.mjs` (§5 below called them "NOT yet implemented") |
+> | Target | `http://127.0.0.1:3000` — same device as the server, only |
+>
+> **Three specifics in this plan are now wrong.** Corrected here rather than edited
+> into the text below, so the original reasoning stays readable:
+>
+> 1. **"~750 ms poll"** (§1, §4a, §10) — obsolete, not merely a missed target. Two
+>    loops exist and neither is 750 ms: `PipActivity.AUTO_POLL_MS = 5000` detects a
+>    newly started session, and `FloatingTimerService.pollInterval()` is 1 s running
+>    / 3 s idle. The countdown does not depend on either — `TimerState`
+>    `displaySecondsNow()` derives it from `completionAtMs` on a 40 ms tick, so it is
+>    *correct* between polls, not just smooth. A server saying "312 seconds left" is
+>    stale the moment it is sent and the client cannot tell how stale; a completion
+>    timestamp is still true whenever it arrives.
+> 2. **§4 "Decision: Option A"** — the WebView blocker ("buttons inside system-PiP
+>    are not clickable") was **routed around, not solved**. `isotope-apk` ships a
+>    native `FloatingTimerService` overlay built from real Java views, genuinely
+>    tappable, covering all 17 elements of the §4b contract. System PiP is the
+>    fallback; the overlay is primary — the reverse of what this document concludes.
+> 3. **§5 "NOT yet implemented"** — both endpoints exist, and the browser-side relay
+>    is injected as `PIP_BRIDGE_JS` at serve time rather than as a separate
+>    `pip-bridge.js` file.
+>
+> Two open defects in the shipped build, neither of them in this plan:
+>
+> - `network_security_config.xml` permits cleartext for **all** hosts, not just
+>   loopback, so a hostile DNS answer gets a plaintext channel. §8 below specifies
+>   the correct `<domain-config>` scoped to `127.0.0.1`; the build does not use it.
+> - Four of thirteen manifest permissions are unused by this build —
+>   `USE_BIOMETRIC`, `USE_FINGERPRINT`, `READ/WRITE_EXTERNAL_STORAGE` — inherited
+>   from the reference app. The install prompt asks for fingerprint access for a
+>   timer.
+
+---
+
+## Original plan follows, unedited
+
+This document plans a standalone Android APK
 ("pipapk") that talks to the isotope app through its **localhost API** and renders the
 app's Picture-in-Picture (PiP) interface as a real Android PiP window.
 

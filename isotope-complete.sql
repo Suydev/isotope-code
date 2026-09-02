@@ -1,6 +1,6 @@
 -- =============================================================================
 -- IsotopeAI — full portable schema dump (NO user data)
--- Generated: 2026-08-28 14:56:39 UTC
+-- Generated: 2026-08-30 13:59:15 UTC
 -- Project ref: ollsqiutzartjhiuzkbf
 -- Schemas: private, rpc_private, public
 --
@@ -1220,7 +1220,7 @@ CREATE OR REPLACE FUNCTION "private"."can_manage_group"(p_group_id uuid, p_user_
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -1244,7 +1244,7 @@ CREATE OR REPLACE FUNCTION "private"."is_group_member"(p_group_id uuid, p_user_i
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -1260,7 +1260,7 @@ CREATE OR REPLACE FUNCTION "rpc_private"."accept_invite"(p_code text)
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -1326,7 +1326,7 @@ CREATE OR REPLACE FUNCTION "rpc_private"."get_invite_details"(p_code text)
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -1354,7 +1354,7 @@ CREATE OR REPLACE FUNCTION "rpc_private"."join_community_event"(p_event_id uuid)
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -1395,7 +1395,7 @@ CREATE OR REPLACE FUNCTION "rpc_private"."leave_community_event"(p_event_id uuid
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -1426,7 +1426,7 @@ CREATE OR REPLACE FUNCTION "rpc_private"."purchase_store_item"(p_user_id uuid, p
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -1485,7 +1485,7 @@ CREATE OR REPLACE FUNCTION "public"."_auto_add_group_owner"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -1501,7 +1501,7 @@ CREATE OR REPLACE FUNCTION "public"."_auto_add_super_admin"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -1680,7 +1680,7 @@ CREATE OR REPLACE FUNCTION "public"."check_user_role"(p_user_id uuid, p_role tex
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -1691,7 +1691,7 @@ CREATE OR REPLACE FUNCTION "public"."cleanup_old_notifications"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -1710,34 +1710,76 @@ CREATE OR REPLACE FUNCTION "public"."community_bootstrap_profile"(p_display_name
  AS $iso_fn$
 
 DECLARE
-  v_uid uuid := auth.uid();
+  v_uid    uuid := auth.uid();
+  v_handle text;
+  v_taken  uuid;
 BEGIN
   IF v_uid IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
   END IF;
+
+  -- Normalise once, here, so the column, the JSONB key and the unique index all
+  -- agree. ux_profiles_handle is on lower(handle); storing mixed case would let
+  -- two users differ only by case and collide on insert instead of on validation.
+  v_handle := nullif(btrim(coalesce(p_handle, '')), '');
+  IF v_handle IS NOT NULL THEN
+    v_handle := lower(regexp_replace(v_handle, '[^A-Za-z0-9_]+', '_', 'g'));
+    v_handle := nullif(btrim(v_handle, '_'), '');
+  END IF;
+
+  -- A handle is how other people find you, so a clash has to be reported rather
+  -- than silently applied and then rejected by the index.
+  IF v_handle IS NOT NULL THEN
+    SELECT user_id INTO v_taken
+      FROM public.user_profiles
+     WHERE lower(handle) = v_handle
+       AND user_id <> v_uid
+     LIMIT 1;
+    IF v_taken IS NOT NULL THEN
+      RETURN jsonb_build_object(
+        'success', false,
+        -- Readable for the UI, machine-readable for anything that wants to branch.
+        'error', format('The handle @%s is already taken. Pick another.', v_handle),
+        'code',  'handle_taken',
+        'handle', v_handle);
+    END IF;
+  END IF;
+
+  -- Ensure a row exists. Enrolment used to depend on user_profiles already
+  -- having been created by the signup trigger; when it had not, the UPDATE
+  -- matched zero rows and reported success having written nothing.
+  INSERT INTO public.user_profiles (user_id, profile_data, created_at, updated_at)
+  VALUES (v_uid, '{}'::jsonb, now(), now())
+  ON CONFLICT (user_id) DO NOTHING;
+
   UPDATE public.user_profiles
-  SET profile_data = jsonb_set(
-    COALESCE(profile_data, '{}'),
-    '{community_enrolled}',
-    'true'
-  ),
-  profile_data = jsonb_set(
-    profile_data,
-    '{community_handle}',
-    to_jsonb(p_handle)
-  ),
-  profile_data = jsonb_set(
-    profile_data,
-    '{community_display_name}',
-    to_jsonb(p_display_name)
-  ),
-  profile_data = jsonb_set(
-    profile_data,
-    '{community_day_offset_hours}',
-    to_jsonb(p_day_offset_hours)
-  )
-  WHERE user_id = v_uid;
-  RETURN jsonb_build_object('success', true);
+     SET handle       = COALESCE(v_handle, handle),
+         display_name = COALESCE(nullif(btrim(p_display_name), ''), display_name),
+         profile_data = jsonb_set(
+                          jsonb_set(
+                            jsonb_set(
+                              jsonb_set(
+                                COALESCE(profile_data, '{}'::jsonb),
+                                '{community_enrolled}', 'true'::jsonb, true),
+                              '{community_handle}', to_jsonb(COALESCE(v_handle, handle)), true),
+                            '{community_display_name}', to_jsonb(p_display_name), true),
+                          '{community_day_offset_hours}', to_jsonb(p_day_offset_hours), true),
+         updated_at   = now()
+   WHERE user_id = v_uid;
+
+  -- Enrolment row carries privacy + day offset; the overview reads it.
+  INSERT INTO public.community_enrollments (user_id, enrolled, day_offset_hours, created_at, updated_at)
+  VALUES (v_uid, true, COALESCE(p_day_offset_hours, 0), now(), now())
+  ON CONFLICT (user_id) DO UPDATE
+     SET enrolled         = true,
+         day_offset_hours = COALESCE(EXCLUDED.day_offset_hours, public.community_enrollments.day_offset_hours),
+         onboarded        = true,
+         updated_at       = now();
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'handle',  (SELECT handle FROM public.user_profiles WHERE user_id = v_uid)
+  );
 END;
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_create_group"(p_name text, p_description text DEFAULT NULL::text, p_exam text DEFAULT NULL::text, p_target_year integer DEFAULT NULL::integer, p_subjects text[] DEFAULT '{}'::text[], p_visibility text DEFAULT 'public'::text, p_join_policy text DEFAULT 'open'::text, p_timezone_offset_minutes integer DEFAULT 0)
@@ -2050,24 +2092,275 @@ end
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_get_overview"()
  RETURNS jsonb
- LANGUAGE sql
+ LANGUAGE plpgsql
  STABLE
  SECURITY DEFINER
  SET "search_path" TO 'public'
  AS $iso_fn$
 
-  SELECT jsonb_build_object(
+declare
+  uid      uuid := auth.uid();
+  v_offset integer := 0;
+  v_day    date;
+  result   jsonb;
+begin
+  -- The day boundary is the USER'S, not UTC. A student studying at 01:00 local
+  -- has not started a new day yet, and showing their buddies' minutes as 0
+  -- because UTC rolled over is wrong in the way that makes people distrust the
+  -- number.
+  select coalesce(day_offset_hours, 0) into v_offset
+    from public.community_enrollments where user_id = uid;
+  v_day := (now() + make_interval(hours => coalesce(v_offset, 0)))::date;
+
+  with conn as (
+    -- Direction matters: community_respond_buddy only accepts a request that was
+    -- sent TO you, so an outgoing request rendered with an Accept button is a
+    -- button that always fails.
+    select f.id  as connection_id,
+           case when f.user_id = uid then f.friend_id else f.user_id end as buddy_id,
+           f.status,
+           (f.user_id = uid) as outgoing
+      from public.community_friends f
+     where (f.user_id = uid or f.friend_id = uid)
+       and coalesce(f.status, 'pending') <> 'blocked'
+  ),
+  priv as (
+    select c.buddy_id,
+           coalesce((e.privacy->>'stealthMode')::boolean,
+                    (e.privacy->>'stealth_mode')::boolean, false)            as stealth,
+           coalesce((e.privacy->>'shareLiveStatus')::boolean,
+                    (e.privacy->>'share_live_status')::boolean, true)        as share_live,
+           coalesce((e.privacy->>'shareCurrentSubject')::boolean,
+                    (e.privacy->>'share_current_subject')::boolean, true)    as share_subject,
+           coalesce((e.privacy->>'shareTasks')::boolean,
+                    (e.privacy->>'share_tasks')::boolean, true)              as share_tasks,
+           coalesce((e.privacy->>'shareExactTime')::boolean,
+                    (e.privacy->>'share_exact_time')::boolean, true)         as share_time,
+           coalesce((e.privacy->>'shareSubjectBreakdown')::boolean,
+                    (e.privacy->>'share_subject_breakdown')::boolean, true)  as share_breakdown,
+           coalesce((e.privacy->>'shareQuestionCounts')::boolean,
+                    (e.privacy->>'share_question_counts')::boolean, true)    as share_questions,
+           -- community_get_privacy exposes shareCurrentTask and the UI renders
+           -- presence.task, so it needs its own gate. Without it the task title
+           -- would ride along under shareCurrentSubject, and a user who shared a
+           -- subject but not a task would leak the task.
+           coalesce((e.privacy->>'shareCurrentTask')::boolean,
+                    (e.privacy->>'share_current_task')::boolean, true)       as share_task
+      from conn c
+      left join public.community_enrollments e on e.user_id = c.buddy_id
+  ),
+  mins as (
+    select c.buddy_id,
+           coalesce(sum(s.duration_minutes), 0)::int as minutes_today
+      from conn c
+      left join public.study_sessions_log s
+             on s.user_id = c.buddy_id
+            and s.deleted_at is null
+            and (s.ended_at + make_interval(hours => coalesce(v_offset, 0)))::date = v_day
+     group by c.buddy_id
+  ),
+  subj as (
+    select c.buddy_id,
+           jsonb_agg(jsonb_build_object(
+             'name',      x.subject,
+             'minutes',   x.minutes,
+             -- Question counts live on the session rows only when the user logs
+             -- them; absent is 0, which the UI sums without special-casing.
+             'questions', 0
+           ) order by x.minutes desc) as subjects
+      from conn c
+      join lateral (
+        select coalesce(nullif(btrim(s.subject), ''), 'General') as subject,
+               coalesce(sum(s.duration_minutes), 0)::int         as minutes
+          from public.study_sessions_log s
+         where s.user_id = c.buddy_id
+           and s.deleted_at is null
+           and (s.ended_at + make_interval(hours => coalesce(v_offset, 0)))::date = v_day
+         group by 1
+         order by 2 desc
+         limit 8
+      ) x on true
+     group by c.buddy_id
+  ),
+  tsk as (
+    select c.buddy_id,
+           jsonb_agg(jsonb_build_object(
+             'id',      x.id,
+             'title',   x.title,
+             'subject', x.subject,
+             'done',    x.done
+           ) order by x.done, x.title) as tasks
+      from conn c
+      join lateral (
+        select t.id,
+               t.title,
+               coalesce(nullif(btrim(t.subject), ''), 'General') as subject,
+               (t.status = 'completed' or t.completed_at is not null) as done
+          from public.tasks t
+         where t.user_id = c.buddy_id
+           and t.deleted_at is null
+           and (
+             (t.due_date is not null
+               and (t.due_date + make_interval(hours => coalesce(v_offset, 0)))::date = v_day)
+             or (t.completed_at is not null
+               and (t.completed_at + make_interval(hours => coalesce(v_offset, 0)))::date = v_day)
+           )
+         order by 4, 2
+         limit 12
+      ) x on true
+     group by c.buddy_id
+  )
+  select jsonb_build_object(
     'stats', jsonb_build_object(
-      'totalGroups', (SELECT COUNT(*) FROM public.groups WHERE deleted_at IS NULL),
-      'totalMembers', (SELECT COUNT(DISTINCT user_id) FROM public.group_members),
+      'totalGroups',  (select count(*) from public.groups where deleted_at is null),
+      'totalMembers', (select count(distinct user_id) from public.group_members),
       'totalMessages', 0
     ),
-    'groups', (SELECT jsonb_agg(jsonb_build_object(
-      'id', id, 'name', name, 'slug', lower(regexp_replace(name, '[^a-z0-9]+', '-', 'g')),
-      'memberCount', (SELECT COUNT(*) FROM public.group_members WHERE group_id = g.id),
-      'activeNow', 0, 'visualKey', visual_key, 'exam', exam
-    )) FROM public.groups g WHERE deleted_at IS NULL)
-  );
+    'groups', coalesce((select jsonb_agg(jsonb_build_object(
+        'id',   g.id,
+        'name', g.name,
+        'slug', coalesce(nullif(g.slug, ''), lower(regexp_replace(g.name, '[^a-zA-Z0-9]+', '-', 'g'))),
+        'memberCount', (select count(*) from public.group_members where group_id = g.id),
+        -- Real figure, not the hardcoded 0 this returned before: members seen
+        -- inside the last two minutes.
+        'activeNow', (
+          select count(*) from public.group_members gm
+            join public.user_presence up on up.user_id = gm.user_id
+           where gm.group_id = g.id
+             and coalesce(up.is_online, up.status = 'studying') is true
+             and coalesce(up.last_beat_at, up.last_seen) > now() - interval '2 minutes'
+        ),
+        'visualKey', g.visual_key,
+        'exam', g.exam
+      )) from public.groups g where g.deleted_at is null), '[]'::jsonb),
+
+    'buddies', coalesce((select jsonb_agg(jsonb_build_object(
+        'userId',        c.buddy_id,
+        'connectionId',  c.connection_id,
+        'requestStatus', case when c.status = 'accepted' then 'accepted' else 'pending' end,
+        -- Outgoing pending requests must not render an Accept control.
+        'outgoing',      c.outgoing,
+        'name',          coalesce(nullif(btrim(pr.display_name), ''),
+                                  nullif(btrim(u.name), ''),
+                                  nullif(btrim(pr.handle), ''),
+                                  'Study buddy'),
+        'handle',        pr.handle,
+        'avatarUrl',     u.avatar_url,
+        -- Live status is emitted in BOTH shapes, deliberately.
+        --
+        -- The compiled bundle reads them inconsistently and both spellings are
+        -- live in the same file:
+        --
+        --   nested   s.presence.state / .subject / .task   — 22 sites, incl. the
+        --            buddy-card mapper and the "studying now" rail
+        --   flat     n.currentSubject, n.status            — the member row it
+        --            maps INTO, shared with group members
+        --
+        -- The first version of this RPC returned only the flat pair, so
+        -- `s.presence` was undefined for EVERY buddy and every one of those 22
+        -- sites threw `Cannot read properties of undefined (reading 'state')`
+        -- inside render, unmounting the tree and blanking the page. Nothing had
+        -- hit it only because community_request_buddy failed for everyone, so no
+        -- accepted pair existed — the first person to accept a request would have
+        -- crashed. Emitting both is the only shape that satisfies the bundle, and
+        -- the bundle is baked into the APK so it cannot be the thing that changes.
+        --
+        -- `presence` is always an OBJECT, never null: a null would reintroduce the
+        -- same crash by a different route, since the call sites dereference it
+        -- without a guard.
+        'presence', jsonb_build_object(
+          'state',   case
+                       when p.stealth or not p.share_live then 'idle'
+                       when coalesce(up.last_beat_at, up.last_seen) > now() - interval '2 minutes'
+                         then coalesce(nullif(up.state, ''), nullif(up.status, ''), 'idle')
+                       else 'idle'
+                     end,
+          'subject', case
+                       when p.stealth or not p.share_subject then null
+                       when coalesce(up.last_beat_at, up.last_seen) > now() - interval '2 minutes'
+                         then coalesce(nullif(up.subject_name, ''), nullif(up.current_subject, ''))
+                       else null
+                     end,
+          'task',    case
+                       when p.stealth or not p.share_task then null
+                       when coalesce(up.last_beat_at, up.last_seen) > now() - interval '2 minutes'
+                         then nullif(up.task_title, '')
+                       else null
+                     end
+        ),
+        -- Flat aliases of the same two values. Kept in sync by construction:
+        -- change the CASE above and these follow, because they read the object.
+        'status',        case
+                           when p.stealth or not p.share_live then 'idle'
+                           when coalesce(up.last_beat_at, up.last_seen) > now() - interval '2 minutes'
+                             then coalesce(nullif(up.state, ''), nullif(up.status, ''), 'idle')
+                           else 'idle'
+                         end,
+        'currentSubject', case
+                            when p.stealth or not p.share_subject then null
+                            when coalesce(up.last_beat_at, up.last_seen) > now() - interval '2 minutes'
+                              then coalesce(nullif(up.subject_name, ''), nullif(up.current_subject, ''))
+                            else null
+                          end,
+        'minutesToday',  case when p.share_time then coalesce(m.minutes_today, 0) else null end,
+        -- `subjects` and `tasks` are NULL when withheld and [] when genuinely
+        -- empty, because the UI distinguishes them:
+        --     s.subjects === null  -> "Subject details are not shared."
+        --     (s.subjects||[])     -> "No settled study time in this period."
+        -- Returning [] for a withheld field would tell the reader their buddy did
+        -- nothing today, which is a different and wrong statement.
+        'subjects',      case when p.share_breakdown
+                              then coalesce(
+                                     case when p.share_questions then sb.subjects
+                                          -- Withheld question counts must be NULL,
+                                          -- not absent. The UI tests
+                                          -- `r.questions !== null` and renders the
+                                          -- value otherwise — a stripped key is
+                                          -- `undefined`, which is !== null, so it
+                                          -- printed the literal text
+                                          -- "undefined questions". NULL renders
+                                          -- as the intended em dash.
+                                          else (select jsonb_agg(jsonb_set(e, '{questions}', 'null'::jsonb))
+                                                  from jsonb_array_elements(sb.subjects) e)
+                                     end, '[]'::jsonb)
+                              else null end,
+        'tasks',         case when p.share_tasks then coalesce(tk.tasks, '[]'::jsonb) else null end
+      ))
+      from conn c
+      join priv p           on p.buddy_id = c.buddy_id
+      left join public.user_profiles pr on pr.user_id = c.buddy_id
+      left join public.users u          on u.id       = c.buddy_id
+      left join public.user_presence up on up.user_id = c.buddy_id
+      left join mins m      on m.buddy_id = c.buddy_id
+      left join subj sb     on sb.buddy_id = c.buddy_id
+      left join tsk  tk     on tk.buddy_id = c.buddy_id
+    ), '[]'::jsonb),
+
+    -- Incoming group join requests for groups the caller manages. The UI already
+    -- reads overview.groupRequests and normalises a missing key to [], so this
+    -- was silently empty for the same reason buddies was.
+    'groupRequests', coalesce((select jsonb_agg(jsonb_build_object(
+        'id',        r.id,
+        'groupId',   r.group_id,
+        'groupName', g.name,
+        'userId',    r.user_id,
+        'name',      coalesce(nullif(btrim(u2.name), ''), nullif(btrim(pr2.handle), ''), 'Student'),
+        'handle',    pr2.handle,
+        'avatarUrl', u2.avatar_url,
+        'createdAt', r.created_at
+      ))
+      from public.community_join_requests r
+      join public.groups g on g.id = r.group_id
+      join public.group_members gm on gm.group_id = r.group_id
+                                  and gm.user_id = uid
+                                  and gm.role in ('owner', 'admin')
+      left join public.users u2         on u2.id       = r.user_id
+      left join public.user_profiles pr2 on pr2.user_id = r.user_id
+     where coalesce(r.status, 'pending') = 'pending'), '[]'::jsonb)
+  ) into result;
+
+  return result;
+end
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."community_get_privacy"()
  RETURNS jsonb
@@ -2403,24 +2696,93 @@ CREATE OR REPLACE FUNCTION "public"."community_request_buddy"(p_handle text)
  AS $iso_fn$
 
 declare
-  uid uuid := auth.uid();
-  fid uuid;
-  cid uuid;
+  uid    uuid := auth.uid();
+  needle text;
+  fid    uuid;
+  cid    uuid;
+  st     text;
 begin
-  select user_id into fid from public.user_profiles where lower(handle) = lower(p_handle) limit 1;
-  if fid is null then raise exception 'user_not_found'; end if;
-  if fid = uid then raise exception 'cannot_be_self'; end if;
-  begin
-    insert into public.community_friends (user_id, friend_id, status, created_at, updated_at)
-    values (uid, fid, 'pending', now(), now())
-    returning id into cid;
-  exception when unique_violation then
-    null;
-  end;
-  select id into cid from public.community_friends
+  -- Messages are written for a STUDENT, not a developer.
+  --
+  -- communityApi surfaces the Postgres error verbatim:
+  --     const u = e => e instanceof Error ? e.message : "Something went wrong."
+  --     catch (r) { return { success: false, error: u(r) } }
+  -- so `raise exception 'user_not_found'` renders "user_not_found" in the UI. The
+  -- bundle is compiled and baked into the APK, so the readable text has to come
+  -- from here.
+  if uid is null then
+    raise exception 'Please sign in to add a study buddy.';
+  end if;
+
+  needle := lower(btrim(coalesce(p_handle, '')));
+  needle := ltrim(needle, '@');           -- users type "@name"; the store holds "name"
+  if needle = '' then
+    raise exception 'Enter your buddy''s handle.';
+  end if;
+
+  -- Three lookups, in order of authority. The column is canonical; the JSONB key
+  -- covers accounts enrolled before this migration; users.username covers
+  -- accounts that never enrolled in Community but are still findable by name.
+  select user_id into fid
+    from public.user_profiles
+   where lower(handle) = needle
+     and deleted_at is null
+   limit 1;
+
+  if fid is null then
+    select user_id into fid
+      from public.user_profiles
+     where lower(profile_data->>'community_handle') = needle
+       and deleted_at is null
+     limit 1;
+  end if;
+
+  if fid is null then
+    select id into fid
+      from public.users
+     where lower(username) = needle
+       and deleted_at is null
+     limit 1;
+  end if;
+
+  if fid is null then
+    raise exception 'No one is using the handle @%. Check the spelling and try again.', needle;
+  end if;
+  if fid = uid then
+    raise exception 'That is your own handle.';
+  end if;
+
+  -- An existing connection decides what happens next. Previously any
+  -- unique_violation was swallowed and the row re-selected, so re-requesting an
+  -- existing buddy — or one who had blocked you — was indistinguishable from a
+  -- fresh request.
+  select id, status into cid, st
+    from public.community_friends
    where (user_id = uid and friend_id = fid)
       or (user_id = fid and friend_id = uid)
    limit 1;
+
+  if cid is not null then
+    if st = 'blocked' then
+      raise exception 'You cannot send a request to @%.', needle;
+    end if;
+    return cid;
+  end if;
+
+  insert into public.community_friends (user_id, friend_id, status, created_at, updated_at)
+  values (uid, fid, 'pending', now(), now())
+  on conflict do nothing
+  returning id into cid;
+
+  if cid is null then
+    -- Lost a race with a concurrent request; the row exists either way.
+    select id into cid
+      from public.community_friends
+     where (user_id = uid and friend_id = fid)
+        or (user_id = fid and friend_id = uid)
+     limit 1;
+  end if;
+
   return cid;
 end
 $iso_fn$;
@@ -2752,7 +3114,7 @@ CREATE OR REPLACE FUNCTION "public"."expire_stale_presence"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -2997,7 +3359,7 @@ CREATE OR REPLACE FUNCTION "public"."get_my_group_ids"()
  LANGUAGE sql
  STABLE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
  SELECT ARRAY(SELECT group_id FROM public.group_members WHERE user_id = (SELECT auth.uid()));
@@ -3006,7 +3368,7 @@ CREATE OR REPLACE FUNCTION "public"."get_my_role"()
  RETURNS text
  LANGUAGE sql
  STABLE
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -3057,7 +3419,7 @@ CREATE OR REPLACE FUNCTION "public"."is_premium_user"()
  RETURNS boolean
  LANGUAGE sql
  STABLE
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
  SELECT true;
@@ -3208,7 +3570,7 @@ CREATE OR REPLACE FUNCTION "public"."purchase_store_item"(p_user_id uuid, p_item
  RETURNS jsonb
  LANGUAGE sql
  VOLATILE
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -3219,7 +3581,7 @@ CREATE OR REPLACE FUNCTION "public"."rls_auto_enable"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -3250,7 +3612,7 @@ CREATE OR REPLACE FUNCTION "public"."set_group_slug_from_name"()
  RETURNS trigger
  LANGUAGE plpgsql
  VOLATILE
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -3268,7 +3630,7 @@ CREATE OR REPLACE FUNCTION "public"."set_user_tours_updated_at"()
  RETURNS trigger
  LANGUAGE plpgsql
  VOLATILE
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -3279,7 +3641,7 @@ CREATE OR REPLACE FUNCTION "public"."sync_group_member_count"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -3296,7 +3658,7 @@ CREATE OR REPLACE FUNCTION "public"."sync_group_visibility"()
  RETURNS trigger
  LANGUAGE plpgsql
  VOLATILE
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -3316,7 +3678,7 @@ CREATE OR REPLACE FUNCTION "public"."sync_user_display_profile"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -3340,7 +3702,7 @@ CREATE OR REPLACE FUNCTION "public"."sync_user_onboarding_from_profile"()
  LANGUAGE plpgsql
  VOLATILE
  SECURITY DEFINER
- SET "search_path" TO '""""""'
+ SET "search_path" TO ''
  AS $iso_fn$
 
 
@@ -3484,6 +3846,8 @@ DROP TRIGGER IF EXISTS "trg_sync_member_count" ON "public"."group_members";
 CREATE TRIGGER trg_sync_member_count AFTER INSERT OR DELETE ON public.group_members FOR EACH ROW EXECUTE FUNCTION _sync_group_member_count();
 DROP TRIGGER IF EXISTS "trg_user_tours_updated_at" ON "public"."user_tours";
 CREATE TRIGGER trg_user_tours_updated_at BEFORE UPDATE ON public.user_tours FOR EACH ROW EXECUTE FUNCTION set_user_tours_updated_at();
+DROP TRIGGER IF EXISTS "on_auth_user_created" ON "auth"."users";
+CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 ALTER TABLE "public"."backup_manifests" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."buddy_invites" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."community_device_tokens" ENABLE ROW LEVEL SECURITY;
@@ -4947,4 +5311,58 @@ GRANT EXECUTE ON FUNCTION "public"."sync_user_display_profile"() TO anon;
 GRANT EXECUTE ON FUNCTION "public"."sync_user_onboarding_from_profile"() TO anon;
 GRANT EXECUTE ON FUNCTION "public"."update_community_event"(p_id uuid, p_title text, p_event_type text, p_description text, p_host text, p_start_time timestamp with time zone, p_end_time timestamp with time zone, p_image_gradient text, p_image_url text, p_tags text[], p_max_attendees integer, p_is_featured boolean, p_is_active boolean) TO anon;
 GRANT EXECUTE ON FUNCTION "public"."update_group_member_role"(p_group_id uuid, p_target_uid uuid, p_new_role text) TO anon;
+-- storage buckets (id, visibility, size cap, allowed types)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  VALUES ('avatars', 'avatars', true, 2097152, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']::text[])
+  ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  VALUES ('group-icons', 'group-icons', true, 10485760, ARRAY['image/png', 'image/jpeg', 'image/webp', 'image/gif']::text[])
+  ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  VALUES ('study-material', 'study-material', false, 104857600, NULL)
+  ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  VALUES ('user-content', 'user-content', false, 52428800, NULL)
+  ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+-- storage access policies
+DROP POLICY IF EXISTS "avatars owner delete" ON storage."objects";
+CREATE POLICY "avatars owner delete" ON storage."objects" FOR DELETE TO public USING (((bucket_id = 'avatars'::text) AND (auth.role() = 'authenticated'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text)));
+DROP POLICY IF EXISTS "avatars owner update" ON storage."objects";
+CREATE POLICY "avatars owner update" ON storage."objects" FOR UPDATE TO public USING (((bucket_id = 'avatars'::text) AND (auth.role() = 'authenticated'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text)));
+DROP POLICY IF EXISTS "avatars owner write" ON storage."objects";
+CREATE POLICY "avatars owner write" ON storage."objects" FOR INSERT TO public WITH CHECK (((bucket_id = 'avatars'::text) AND (auth.role() = 'authenticated'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text)));
+DROP POLICY IF EXISTS "avatars public read" ON storage."objects";
+CREATE POLICY "avatars public read" ON storage."objects" FOR SELECT TO public USING ((bucket_id = 'avatars'::text));
+DROP POLICY IF EXISTS "group_icons_owner_delete" ON storage."objects";
+CREATE POLICY "group_icons_owner_delete" ON storage."objects" FOR DELETE TO authenticated USING (((bucket_id = 'group-icons'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text)));
+DROP POLICY IF EXISTS "group_icons_owner_insert" ON storage."objects";
+CREATE POLICY "group_icons_owner_insert" ON storage."objects" FOR INSERT TO authenticated WITH CHECK (((bucket_id = 'group-icons'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text)));
+DROP POLICY IF EXISTS "group_icons_owner_update" ON storage."objects";
+CREATE POLICY "group_icons_owner_update" ON storage."objects" FOR UPDATE TO authenticated USING (((bucket_id = 'group-icons'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))) WITH CHECK (((bucket_id = 'group-icons'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text)));
+DROP POLICY IF EXISTS "group_icons_public_read" ON storage."objects";
+CREATE POLICY "group_icons_public_read" ON storage."objects" FOR SELECT TO public USING ((bucket_id = 'group-icons'::text));
+DROP POLICY IF EXISTS "study_material_owner_delete" ON storage."objects";
+CREATE POLICY "study_material_owner_delete" ON storage."objects" FOR DELETE TO authenticated USING (((bucket_id = 'study-material'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text)));
+DROP POLICY IF EXISTS "study_material_owner_insert" ON storage."objects";
+CREATE POLICY "study_material_owner_insert" ON storage."objects" FOR INSERT TO authenticated WITH CHECK (((bucket_id = 'study-material'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text)));
+DROP POLICY IF EXISTS "study_material_owner_select" ON storage."objects";
+CREATE POLICY "study_material_owner_select" ON storage."objects" FOR SELECT TO authenticated USING (((bucket_id = 'study-material'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text)));
+DROP POLICY IF EXISTS "study_material_owner_update" ON storage."objects";
+CREATE POLICY "study_material_owner_update" ON storage."objects" FOR UPDATE TO authenticated USING (((bucket_id = 'study-material'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))) WITH CHECK (((bucket_id = 'study-material'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text)));
+DROP POLICY IF EXISTS "user-content owner delete" ON storage."objects";
+CREATE POLICY "user-content owner delete" ON storage."objects" FOR DELETE TO public USING (((bucket_id = 'user-content'::text) AND (auth.role() = 'authenticated'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text)));
+DROP POLICY IF EXISTS "user-content owner read" ON storage."objects";
+CREATE POLICY "user-content owner read" ON storage."objects" FOR SELECT TO public USING (((bucket_id = 'user-content'::text) AND (auth.role() = 'authenticated'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text)));
+DROP POLICY IF EXISTS "user-content owner update" ON storage."objects";
+CREATE POLICY "user-content owner update" ON storage."objects" FOR UPDATE TO public USING (((bucket_id = 'user-content'::text) AND (auth.role() = 'authenticated'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text)));
+DROP POLICY IF EXISTS "user-content owner write" ON storage."objects";
+CREATE POLICY "user-content owner write" ON storage."objects" FOR INSERT TO public WITH CHECK (((bucket_id = 'user-content'::text) AND (auth.role() = 'authenticated'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text)));
 COMMIT;

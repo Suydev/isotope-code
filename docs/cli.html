@@ -93,8 +93,17 @@
 <div class="wrap docs">
 
   <aside class="sidebar glass" aria-label="Documentation">
-    <label class="sr-only" for="navfilter">Filter documentation pages</label>
-    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <!-- Search, not a filter. The old control only hid sidebar links, so it could
+         never find text on a page you were not already looking at. This is the
+         same full-text search as the landing hero, reachable from every page. -->
+    <form class="sidebar-search" role="search" action="./troubleshooting.html" data-docsearch>
+      <label class="sr-only" for="docsearch-side">Search the documentation</label>
+      <svg class="askbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="sidebar-search-input" id="docsearch-side" type="search" autocomplete="off"
+             placeholder="Search docs…">
+      <kbd class="askbar-slash" aria-hidden="true">/</kbd>
+    </form>
+    <ul class="askbar-results is-rail" data-docsearch-results hidden></ul>
     <div class="sidebar-group">
       <p>Guides</p>
       <a href="./getting-started.html">Getting started</a>
@@ -203,6 +212,77 @@
         </tbody>
       </table>
     </div>
+
+    <h2 class="rise" id="database">Database tooling <a class="anchor" href="#database" aria-label="Link to this section">#</a></h2>
+
+    <p>Two separate programs, and which you want depends on <em>what you already have</em>.
+    They are easy to confuse and the distinction matters: <code>restore</code> replays a
+    tarball, and a tarball only exists if you already had a working backend, so it is no help
+    at all to someone setting up for the first time.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>You have</th><th>You want</th></tr></thead>
+        <tbody>
+          <tr><td>No Supabase project</td><td><code>./supabase.sh setup --create "my-isotope"</code></td></tr>
+          <tr><td>An empty project</td><td><code>./supabase.sh setup --ref &lt;ref&gt;</code></td></tr>
+          <tr><td>A project, unsure if it is correct</td><td><code>./supabase.sh check --ref &lt;ref&gt;</code> — read-only</td></tr>
+          <tr><td>A working project</td><td><code>./backup.sh backup</code></td></tr>
+          <tr><td>A snapshot, and somewhere to put it</td><td><code>./backup.sh restore &lt;tarball&gt; --supabase-url=&lt;target&gt;</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="supabase-sh"><code>supabase.sh</code> — first-run setup</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Command</th><th>Does</th></tr></thead>
+        <tbody>
+          <tr><td><code>setup --pat T --ref R</code></td><td>Provisions an empty project: schema, storage, the signup trigger, verify, then writes <code>.env</code>.</td></tr>
+          <tr><td><code>setup --pat T --create "name"</code></td><td>Creates a free project, waits for its database, then provisions it. Prints a generated DB password once.</td></tr>
+          <tr><td><code>check --pat T --ref R</code></td><td><strong>Read-only.</strong> 13 checks in four groups; each failure prints the fix. <code>--json</code> for machines.</td></tr>
+          <tr><td><code>ui [--port N]</code></td><td>Web console on <code>127.0.0.1:8000</code>.</td></tr>
+          <tr><td><code>status</code> / <code>stop</code></td><td>Progress and ETA of the detached job, or kill it.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><code>setup</code> writes no database rows — no users, no seed data, no files. It moves
+    an existing <code>.env</code> to <code>.env.old</code> rather than overwriting it, carries
+    over <code>PORT</code>, the AI keys and <code>SESSION_SECRET</code>, and takes
+    <code>--no-env</code> to skip that entirely. Full detail in
+    <a href="./supabase-setup.html#automated">Supabase setup</a>.</p>
+
+    <h3 id="backup-sh"><code>backup.sh</code> — backup, restore, verify</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Command</th><th>Does</th></tr></thead>
+        <tbody>
+          <tr><td><code>backup [--keep N] [--no-storage]</code></td><td>Schema, every table, auth users and storage files into a timestamped tarball, then verifies it against the source.</td></tr>
+          <tr><td><code>restore &lt;tarball&gt; --supabase-url=&lt;target&gt;</code></td><td>Applies it to the target, verifies, then scaffolds <code>.env</code>. Add <code>--schema-only</code> for structure with no people.</td></tr>
+          <tr><td><code>verify &lt;tarball&gt;</code></td><td>Cross-checks a tarball against any project. Exit 1 on mismatch.</td></tr>
+          <tr><td><code>info &lt;tarball&gt;</code></td><td>Integrity and manifest summary. Touches no project.</td></tr>
+          <tr><td><code>ui</code> / <code>status</code> / <code>stop</code></td><td>Same detached-job front ends as <code>supabase.sh</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note danger glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title"><code>restore</code> now refuses to guess its target</span>
+  It used to fall through to <code>.backup_env</code> then <code>.env</code> — the files that
+  hold <strong>production</strong> credentials. So <code>./backup.sh restore dump.tar.gz</code>
+  with no <code>--supabase-url</code> silently wrote 42 tables and 43 auth users into the live
+  database. It now dies rather than infer. If you have the old habit, this is the one to
+  unlearn: a restore is the single command that must never guess where it is pointing.</p>
+    </div>
+
+    <p>Jobs started from either tool run <strong>detached</strong>, with their state on disk in
+    <code>backups/.job.json</code>. Closing the browser tab, or restarting the console, does
+    not stop or lose a running job — and <code>status</code> works with no server running at
+    all, because the console and the CLI are two front ends over the same files.</p>
 
     <div class="grid cols-2 scene">
       <a class="card tilt glass" href="./troubleshooting.html">

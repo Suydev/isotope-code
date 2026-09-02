@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Database — IsotopeAI docs</title>
-<meta name="description" content="IsotopeAI database reference: 42 tables, 73 functions, 153 row-level security policies, 14 triggers and 124 indexes, verified against the live schema.">
+<meta name="description" content="IsotopeAI database reference: 42 tables, 80 functions, 153 row-level security policies, 15 triggers and 66 indexes, counted from isotope-complete.sql.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
@@ -98,8 +98,17 @@
 <div class="wrap docs">
 
   <aside class="sidebar glass" aria-label="Documentation">
-    <label class="sr-only" for="navfilter">Filter documentation pages</label>
-    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <!-- Search, not a filter. The old control only hid sidebar links, so it could
+         never find text on a page you were not already looking at. This is the
+         same full-text search as the landing hero, reachable from every page. -->
+    <form class="sidebar-search" role="search" action="./troubleshooting.html" data-docsearch>
+      <label class="sr-only" for="docsearch-side">Search the documentation</label>
+      <svg class="askbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="sidebar-search-input" id="docsearch-side" type="search" autocomplete="off"
+             placeholder="Search docs…">
+      <kbd class="askbar-slash" aria-hidden="true">/</kbd>
+    </form>
+    <ul class="askbar-results is-rail" data-docsearch-results hidden></ul>
     <div class="sidebar-group">
       <p>Guides</p>
       <a href="./getting-started.html">Getting started</a>
@@ -146,9 +155,9 @@
 
     <div class="grid cols-4" style="margin-top:var(--s-6)">
       <div><span class="ticker" data-ticker="42">42</span><span class="ticker-label">Tables</span></div>
-      <div><span class="ticker" data-ticker="73">73</span><span class="ticker-label">Functions</span></div>
+      <div><span class="ticker" data-ticker="80">80</span><span class="ticker-label">Functions</span></div>
       <div><span class="ticker" data-ticker="153">153</span><span class="ticker-label">RLS policies</span></div>
-      <div><span class="ticker" data-ticker="124">124</span><span class="ticker-label">Indexes</span></div>
+      <div><span class="ticker" data-ticker="124">124</span><span class="ticker-label">Indexes (66 declared)</span></div>
     </div>
 
     <div class="note ok glass">
@@ -362,9 +371,36 @@ $$;
 
     <h2 class="rise" id="triggers">Triggers <a class="anchor" href="#triggers" aria-label="Link to this section">#</a></h2>
 
-    <p>14 triggers, and six of them fire on <code>public.users</code>. They exist so a new
-    account is never missing a satellite row — the alternative is an empty leaderboard or a
-    non-functional community tab, caused by a row that was never created.</p>
+    <p>15 triggers. Fourteen live in <code>public</code>, and six of those fire on
+    <code>public.users</code> so a new account is never missing a satellite row — the
+    alternative is an empty leaderboard or a non-functional community tab, caused by a row
+    that was never created.</p>
+
+    <p>The fifteenth is the one that matters most, and it is easy to lose: it lives on
+    <code>auth.users</code>, not in <code>public</code>.</p>
+
+    <div class="note danger glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">The 14 above are the second stage, not the first</span>
+  Every trigger in the table fires on <code>INSERT INTO public.users</code>. Nothing in
+  <code>public</code> copies <code>auth.users</code> → <code>public.users</code> — that is
+  <code>on_auth_user_created</code> on <code>auth.users</code>, calling
+  <code>handle_new_user()</code>. For a period it did not exist: the function was present,
+  nothing called it, and <strong>32 of 43 accounts had an auth identity and no application
+  data at all</strong>. Signup appeared to succeed and then nothing worked.</p>
+    </div>
+
+    <p>It was also absent from the schema dump, because both dump tools exclude the
+    <code>auth</code> schema — correct for tables, wrong for a trigger attached to one. So a
+    restored project passed every check and could not accept a signup. Detect it with:</p>
+
+    <div class="codeblock" data-lang="sql">
+<pre>select count(*) from auth.users u
+ where not exists (select 1 from public.users p where p.id = u.id);
+-- non-zero => the trigger is missing; supabase/022 restores it and backfills</pre>
+    </div>
+
+    <p>Or run <code>./supabase.sh check</code>, which asserts it unconditionally.</p>
 
     <div class="table-wrap">
       <table>
@@ -384,6 +420,7 @@ $$;
           <tr><td><code>tr_sync_user_onboarding_from_profile</code></td><td><code>user_profiles</code></td><td>Reconciles legacy onboarding flags.</td></tr>
           <tr><td><code>tr_cleanup_old_notifications</code></td><td><code>notifications</code></td><td>Prunes old rows on insert.</td></tr>
           <tr><td><code>trg_user_tours_updated_at</code></td><td><code>user_tours</code></td><td>Maintains <code>updated_at</code>.</td></tr>
+          <tr><td><code>on_auth_user_created</code></td><td><code>auth.users</code></td><td><strong>Seeds <code>public.users</code> and its five satellite rows on signup.</strong> Without it every new account is broken.</td></tr>
         </tbody>
       </table>
     </div>
@@ -398,7 +435,9 @@ $$;
 
     <h2 class="rise" id="functions">Functions <a class="anchor" href="#functions" aria-label="Link to this section">#</a></h2>
 
-    <p>73 functions. 30 of them are the <code>community_*</code> RPC surface the frontend
+    <p>80 <code>CREATE FUNCTION</code> statements covering 72 distinct names — eight are
+    overloads sharing a name with a different signature. 30 of them are the
+    <code>community_*</code> RPC surface the frontend
     calls directly through PostgREST.</p>
 
     <div class="table-wrap">
@@ -460,7 +499,15 @@ where n.nspname = 'public' and p.prosecdef and p.proconfig is null;
 
     <h2 class="rise" id="indexes">Indexes <a class="anchor" href="#indexes" aria-label="Link to this section">#</a></h2>
 
-    <p>124 indexes. The ones that matter most for perceived speed:</p>
+    <p><strong>66 declared indexes, 124 in total.</strong> Both numbers are correct and
+    the difference is not a discrepancy: a <code>PRIMARY KEY</code> or
+    <code>UNIQUE</code> constraint creates an index of its own, so
+    <code>pg_indexes</code> reports 124 while <code>isotope-complete.sql</code>
+    contains 66 explicit <code>CREATE INDEX</code> statements. If you are checking a
+    project against the schema file, 66 is the figure to compare; if you are reading
+    <code>pg_indexes</code>, expect 124.</p>
+
+    <p>The ones that matter most for perceived speed:</p>
 
     <ul>
       <li><code>group_members(group_id, user_id)</code> — covers the membership subquery used by every gated policy.</li>

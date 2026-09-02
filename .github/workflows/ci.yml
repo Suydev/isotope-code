@@ -304,8 +304,32 @@ jobs:
           bash -n install.sh
           bash -n setup-termux-widget.sh
           bash -n bin/isotope
+          bash -n backup.sh
+          bash -n supabase.sh
           grep -q 'TERMUX_VERSION' setup.sh install-termux.sh
           echo "✅ Termux scripts parse and contain Termux detection"
+
+      # ── Supabase tooling ──────────────────────────────────────────────────────
+      # These provision and restore a database. A syntax error in one is caught by
+      # nothing else, because they are entry points that no test imports.
+      #
+      # backup.sh must also stay byte-identical to isotope-apk's copy. The two
+      # diverged once, and the divergence was dangerous rather than cosmetic: this
+      # repo's copy let `restore` infer its target from .env, which is production.
+      - name: 🗄️  Supabase tooling parses
+        run: |
+          set -euo pipefail
+          for f in scripts/supabase-backup.mjs scripts/schema-dump.mjs \
+                   scripts/job-runner.mjs scripts/backup-ui.mjs \
+                   scripts/supabase-setup.mjs scripts/supabase-check.mjs \
+                   scripts/check-ui-refs.mjs; do
+            node --check "$f"
+            echo "  ok $f"
+          done
+          bash -n backup.sh
+          bash -n supabase.sh
+          node scripts/check-ui-refs.mjs
+          echo "✅ Supabase tooling parses"
 
       # ── Smoke test ────────────────────────────────────────────────────────────
       - name: 🚀 Smoke test — server starts and responds

@@ -1,0 +1,1333 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<!-- Never disable zoom: this runs on a phone in Termux and the operator may need
+     to magnify a project ref or an error message. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>Supabase console · IsotopeAI</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOKENS
+   Semantic names, not raw hex at the point of use, so a value can change in one
+   place. Every foreground/background pair below was computed, not eyeballed —
+   the ratio is recorded beside it.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root{
+  /* surfaces — three levels only, so elevation stays legible */
+  --bg:#0b0b0f;
+  --surface:#15151b;
+  --surface-2:#1c1c24;
+  --surface-3:#23232c;
+
+  /* text (measured on --surface) */
+  --text:#fafafa;        /* 17.42:1  AAA */
+  --text-2:#d4d4d8;      /* 12.30:1  AAA */
+  --text-3:#a1a1aa;      /*  7.09:1  AAA */
+  --text-muted:#8b8b96;  /*  5.40:1  AA   — the floor; nothing dimmer carries meaning */
+
+  /* lines. Two tiers for a reason:
+     --line is decorative separation, where the surface step already does the work.
+     --line-control bounds an interactive element, which WCAG 1.4.11 requires to
+     clear 3:1 — #2e2e38 measures 1.35:1 and would be a non-compliant input border. */
+  --line:#2e2e38;
+  --line-control:#6b6b7a;   /* 3.47:1 on --surface  PASS */
+
+  /* brand + status. Text-weight variants are lighter than fill-weight ones,
+     because a colour that works as a fill fails as text on a dark surface. */
+  --brand:#8b5cf6;          /* fill only */
+  --brand-text:#c4b5fd;     /*  9.85:1  AAA */
+  --brand-dim:#7c4ddb;
+  --ok:#22c55e;             /* fill only */
+  --ok-text:#86efac;        /* 12.95:1  AAA */
+  --warn:#f59e0b;           /* fill only */
+  --warn-text:#fcd34d;      /* 12.61:1  AAA */
+  --danger:#ef4444;         /* fill only */
+  --danger-text:#fca5a5;    /*  9.58:1  AAA */
+
+  /* ink for coloured fills. White on --brand is 4.23:1 — a FAIL for body text —
+     so filled buttons carry near-black ink instead: 4.64:1. */
+  --on-fill:#0b0b0f;
+
+  /* radius + spacing on a 4px rhythm */
+  --r-sm:10px; --r:14px; --r-lg:20px; --r-full:999px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px; --s-7:48px;
+
+  /* motion. One duration scale, one easing pair, so everything shares a rhythm.
+     Exit is ~65% of enter, which reads as responsive rather than sluggish. */
+  --dur-fast:120ms; --dur:200ms; --dur-slow:320ms; --dur-exit:130ms;
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --ease-in:cubic-bezier(.4,0,1,1);
+
+  /* z-index as a named scale, never an arbitrary 99999 */
+  --z-base:0; --z-sticky:20; --z-scrim:80; --z-modal:90; --z-toast:100;
+
+  --tap:44px;   /* minimum touch target, Apple HIG */
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  /* dvh, not vh: on mobile 100vh includes the retracting URL bar and clips. */
+  min-height:100dvh;
+}
+
+/* Tabular figures everywhere a number changes in place, so a counter ticking
+   1099→1100 does not shift the layout around it. */
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+code,.mono{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ── layout ──────────────────────────────────────────────────────────────── */
+.shell{
+  max-width:56rem;
+  margin:0 auto;
+  /* Safe areas: this is a phone-first page and a fixed bar must not sit under
+     the notch or the gesture indicator. */
+  padding:calc(env(safe-area-inset-top,0px) + var(--s-5))
+          max(var(--s-4), env(safe-area-inset-left,0px))
+          calc(env(safe-area-inset-bottom,0px) + var(--s-7))
+          max(var(--s-4), env(safe-area-inset-right,0px));
+}
+@media (min-width:768px){ .shell{padding-left:var(--s-6);padding-right:var(--s-6)} }
+
+/* ── skip link ───────────────────────────────────────────────────────────── */
+/* First control a keyboard user reaches. Ink on brand, not white on brand —
+   white would be 4.23:1. */
+.skip{
+  position:absolute;left:var(--s-4);top:calc(env(safe-area-inset-top,0px) + var(--s-2));
+  transform:translateY(-200%);
+  z-index:var(--z-toast);
+  background:var(--brand);color:var(--on-fill);
+  padding:var(--s-2) var(--s-4);border-radius:var(--r-sm);
+  font-size:14px;font-weight:700;text-decoration:none;
+  transition:transform var(--dur) var(--ease-out);
+}
+.skip:focus{transform:translateY(0)}
+
+/* ── type ────────────────────────────────────────────────────────────────── */
+h1{font-size:1.375rem;font-weight:700;letter-spacing:-.02em;margin:0 0 var(--s-1)}
+h2{font-size:1rem;font-weight:700;letter-spacing:-.01em;margin:0}
+h3{font-size:.8125rem;font-weight:700;margin:0 0 var(--s-2);
+   text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)}
+p{margin:0 0 var(--s-3);color:var(--text-2)}
+.lede{color:var(--text-3);font-size:.875rem;margin:0 0 var(--s-5)}
+.hint{font-size:.8125rem;color:var(--text-3);margin:var(--s-2) 0 0}
+.hint code{font-size:.75rem;color:var(--text-2)}
+
+/* ── step rail ───────────────────────────────────────────────────────────── */
+/* Multi-step flows need a visible position indicator. Numbers are announced via
+   aria-current, and state is carried by shape + icon as well as colour. */
+.steps{
+  display:flex;gap:var(--s-1);list-style:none;margin:0 0 var(--s-5);padding:0;
+  overflow-x:auto;scrollbar-width:none;
+}
+.steps::-webkit-scrollbar{display:none}
+.steps li{flex:1 1 0;min-width:5.5rem}
+.step{
+  display:flex;align-items:center;gap:var(--s-2);
+  padding:var(--s-2) var(--s-1);border-top:2px solid var(--line);
+  font-size:.75rem;font-weight:700;color:var(--text-muted);
+  transition:color var(--dur) var(--ease-out),border-color var(--dur) var(--ease-out);
+}
+.step-n{
+  flex:0 0 auto;width:20px;height:20px;border-radius:var(--r-full);
+  display:grid;place-items:center;
+  background:var(--surface-3);color:var(--text-3);
+  font-size:.6875rem;line-height:1;
+}
+.step[data-state="current"]{color:var(--text);border-top-color:var(--brand)}
+.step[data-state="current"] .step-n{background:var(--brand);color:var(--on-fill)}
+.step[data-state="done"]{color:var(--text-3);border-top-color:var(--ok)}
+.step[data-state="done"] .step-n{background:var(--ok);color:var(--on-fill)}
+.step-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── card ────────────────────────────────────────────────────────────────── */
+.card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-lg);
+  padding:var(--s-5) var(--s-4);
+  margin:0 0 var(--s-4);
+}
+@media (min-width:768px){ .card{padding:var(--s-5)} }
+.card-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  gap:var(--s-3);margin:0 0 var(--s-4);
+}
+.card[aria-disabled="true"]{opacity:.45}
+.card[aria-disabled="true"] *{pointer-events:none}
+
+/* ── form ────────────────────────────────────────────────────────────────── */
+.field{margin:0 0 var(--s-4)}
+label{
+  display:block;font-size:.8125rem;font-weight:600;
+  color:var(--text-2);margin:0 0 var(--s-2);
+}
+.req{color:var(--danger-text);margin-left:2px}
+input,select{
+  width:100%;min-height:var(--tap);padding:0 var(--s-3);
+  background:var(--surface-2);color:var(--text);
+  border:1px solid var(--line-control);border-radius:var(--r);
+  font:inherit;font-size:1rem;   /* 16px: anything smaller triggers iOS auto-zoom */
+  transition:border-color var(--dur-fast) var(--ease-out),
+             background var(--dur-fast) var(--ease-out);
+}
+select{appearance:none;padding-right:var(--s-6);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round'><path d='m6 9 6 6 6-6'/></svg>");
+  background-repeat:no-repeat;background-position:right var(--s-3) center;background-size:18px}
+input::placeholder{color:var(--text-muted)}
+input:hover,select:hover{background:var(--surface-3)}
+/* Focus is never removed, only replaced with something clearer. */
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,
+summary:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid var(--brand-text);outline-offset:2px;
+}
+input[aria-invalid="true"]{border-color:var(--danger);background:#1d1114}
+.err-msg{
+  display:none;margin:var(--s-2) 0 0;font-size:.8125rem;
+  color:var(--danger-text);font-weight:600;
+}
+input[aria-invalid="true"] ~ .err-msg{display:block}
+
+.row{display:flex;gap:var(--s-2);flex-wrap:wrap}
+.row > *{flex:1 1 10rem}
+.row.tight > *{flex:0 0 auto}
+
+/* ── buttons ─────────────────────────────────────────────────────────────── */
+button{
+  display:inline-flex;align-items:center;justify-content:center;gap:var(--s-2);
+  min-height:var(--tap);padding:0 var(--s-4);
+  background:var(--surface-3);color:var(--text);
+  border:1px solid var(--line-control);border-radius:var(--r);
+  font:inherit;font-size:.9375rem;font-weight:700;
+  cursor:pointer;touch-action:manipulation;
+  /* transform+opacity only — never width/height/top/left */
+  transition:transform var(--dur-fast) var(--ease-out),
+             opacity var(--dur-fast) var(--ease-out),
+             background var(--dur-fast) var(--ease-out);
+}
+button:hover:not(:disabled){background:#2a2a34}
+/* Scale only: a press must not move the elements around it. */
+button:active:not(:disabled){transform:scale(.97)}
+button:disabled{opacity:.42;cursor:not-allowed}
+button.primary{background:var(--brand);color:var(--on-fill);border-color:transparent}
+button.primary:hover:not(:disabled){background:var(--brand-dim)}
+button.danger{background:#2a1216;color:var(--danger-text);border-color:rgba(239,68,68,.45)}
+button.danger:hover:not(:disabled){background:#361519}
+button.ghost{background:transparent}
+button.ghost:hover:not(:disabled){background:var(--surface-2)}
+button.sm{min-height:36px;padding:0 var(--s-3);font-size:.8125rem}
+/* Icon-only buttons keep a 44px hit area even with a 16px glyph. */
+button.icon{min-width:var(--tap);padding:0}
+.spinner{
+  width:15px;height:15px;flex:0 0 auto;
+  border:2px solid currentColor;border-top-color:transparent;
+  border-radius:var(--r-full);animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+svg.ico{width:16px;height:16px;flex:0 0 auto;stroke-width:2;
+  stroke:currentColor;fill:none;stroke-linecap:round;stroke-linejoin:round}
+svg.ico-lg{width:20px;height:20px}
+
+/* ── pills ───────────────────────────────────────────────────────────────── */
+.pills{display:flex;flex-wrap:wrap;gap:var(--s-2)}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:var(--r-full);
+  border:1px solid var(--line-control);background:var(--surface-2);
+  font-size:.75rem;font-weight:700;color:var(--text-3);white-space:nowrap;
+}
+.pill.ok{color:var(--ok-text);border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.1)}
+.pill.warn{color:var(--warn-text);border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.1)}
+.pill.err{color:var(--danger-text);border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.1)}
+.pill.run{color:var(--brand-text);border-color:rgba(139,92,246,.45);background:rgba(139,92,246,.12)}
+
+/* ── readiness report ────────────────────────────────────────────────────── */
+.grp{margin:0 0 var(--s-4)}
+.check{
+  display:flex;align-items:flex-start;gap:var(--s-3);
+  padding:var(--s-2) 0;border-bottom:1px solid var(--line);
+}
+.grp .check:last-child{border-bottom:0}
+/* Status is an icon AND a colour AND text — never colour alone. */
+.check-ico{flex:0 0 auto;margin-top:2px}
+.check.ok .check-ico{color:var(--ok-text)}
+.check.bad .check-ico{color:var(--danger-text)}
+.check-body{min-width:0;flex:1 1 auto}
+.check-label{font-size:.875rem;font-weight:600;color:var(--text)}
+.check-detail{font-size:.8125rem;color:var(--text-3);word-break:break-word}
+.check.bad .check-detail{color:var(--danger-text)}
+
+/* ── progress ────────────────────────────────────────────────────────────── */
+.phase{margin:0 0 var(--s-4)}
+.phase-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  gap:var(--s-2);margin:0 0 6px;
+}
+.phase-name{font-size:.875rem;font-weight:700}
+.phase-meta{font-size:.8125rem;color:var(--text-3);
+  font-variant-numeric:tabular-nums;text-align:right}
+.bar{height:8px;background:var(--surface-3);border-radius:var(--r-full);overflow:hidden}
+.bar > i{
+  display:block;height:100%;width:0;border-radius:var(--r-full);
+  background:var(--brand);
+  transition:width var(--dur-slow) var(--ease-out);
+}
+.bar > i.done{background:var(--ok)}
+.bar > i.fail{background:var(--danger)}
+
+/* Skeleton for the gap between "asked" and "answered". A shimmer that says
+   "measuring" beats a spinner that says nothing for 40 seconds. */
+.skel{background:var(--surface-3);border-radius:var(--r-sm);
+  animation:pulse 1.4s var(--ease-out) infinite}
+.skel-line{height:14px;margin:0 0 var(--s-2)}
+.skel-line:nth-child(2){width:80%}
+.skel-line:nth-child(3){width:60%}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:.85}}
+
+/* ── notes ───────────────────────────────────────────────────────────────── */
+.note{
+  display:flex;gap:var(--s-3);
+  padding:var(--s-3);border-radius:var(--r);
+  border:1px solid var(--line-control);background:var(--surface-2);
+  font-size:.8125rem;color:var(--text-2);margin:0 0 var(--s-3);
+}
+.note svg{flex:0 0 auto;margin-top:1px}
+.note.warn{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.07);color:var(--warn-text)}
+.note.bad{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.07);color:var(--danger-text)}
+.note.good{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.07);color:var(--ok-text)}
+.note strong{display:block;color:inherit;margin-bottom:2px}
+
+.err-item{
+  background:#1a1113;border:1px solid rgba(239,68,68,.25);
+  border-radius:var(--r);padding:var(--s-3);margin:0 0 var(--s-2);
+}
+.err-item p{color:var(--danger-text);font-size:.8125rem;font-weight:600;
+  margin:0 0 var(--s-1);word-break:break-word}
+.err-item code{display:block;color:var(--text-3);font-size:.6875rem;word-break:break-all}
+
+pre.log{
+  background:#08080b;border:1px solid var(--line);border-radius:var(--r);
+  padding:var(--s-3);margin:0;max-height:16rem;overflow:auto;
+  font-size:.6875rem;line-height:1.6;color:var(--text-3);
+  white-space:pre-wrap;word-break:break-word;
+}
+
+/* ── empty state ─────────────────────────────────────────────────────────── */
+.empty{text-align:center;padding:var(--s-6) var(--s-4);color:var(--text-3)}
+.empty svg{width:32px;height:32px;margin:0 auto var(--s-3);color:var(--text-muted);
+  stroke:currentColor;fill:none;stroke-width:1.5}
+.empty p{color:var(--text-3);font-size:.875rem}
+
+/* ── modal ───────────────────────────────────────────────────────────────── */
+/* A real dialog, not confirm(): it can be styled, labelled, focus-trapped and
+   dismissed with Escape, and it states consequences rather than asking
+   "Are you sure?". */
+.scrim{
+  position:fixed;inset:0;z-index:var(--z-scrim);
+  background:rgba(0,0,0,.62);           /* strong enough to isolate the foreground */
+  backdrop-filter:blur(2px);
+  display:grid;place-items:center;padding:var(--s-4);
+  animation:fade var(--dur) var(--ease-out);
+}
+.modal{
+  position:relative;z-index:var(--z-modal);
+  width:100%;max-width:26rem;
+  background:var(--surface);border:1px solid var(--line-control);
+  border-radius:var(--r-lg);padding:var(--s-5);
+  /* Enters from slightly below and scales up: a sheet arriving, not appearing. */
+  animation:rise var(--dur-slow) var(--ease-out);
+}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(10px) scale(.97)}
+                to{opacity:1;transform:none}}
+.modal h2{margin:0 0 var(--s-2)}
+.modal .row{margin-top:var(--s-5)}
+
+/* ── toast ───────────────────────────────────────────────────────────────── */
+.toasts{
+  position:fixed;z-index:var(--z-toast);
+  left:var(--s-4);right:var(--s-4);
+  bottom:calc(env(safe-area-inset-bottom,0px) + var(--s-4));
+  display:flex;flex-direction:column;gap:var(--s-2);
+  pointer-events:none;
+}
+@media (min-width:768px){ .toasts{left:auto;width:22rem} }
+.toast{
+  pointer-events:auto;
+  background:var(--surface-3);border:1px solid var(--line-control);
+  border-radius:var(--r);padding:var(--s-3);
+  font-size:.875rem;font-weight:600;color:var(--text);
+  display:flex;gap:var(--s-2);align-items:flex-start;
+  animation:rise var(--dur) var(--ease-out);
+}
+.toast.good{border-color:rgba(34,197,94,.5);color:var(--ok-text)}
+.toast.bad{border-color:rgba(239,68,68,.5);color:var(--danger-text)}
+.toast[data-leaving]{animation:sink var(--dur-exit) var(--ease-in) forwards}
+@keyframes sink{to{opacity:0;transform:translateY(6px)}}
+
+/* Checkbox row: a full-width 44px target, not a 13px box you have to hit. */
+.opt{
+  display:flex;align-items:center;gap:var(--s-3);
+  min-height:var(--tap);margin:var(--s-3) 0 0;
+  font-size:.8125rem;font-weight:600;color:var(--text-2);cursor:pointer;
+}
+.opt input{
+  width:20px;height:20px;flex:0 0 auto;margin:0;
+  accent-color:var(--brand);cursor:pointer;
+}
+.opt:hover{color:var(--text)}
+
+.hidden{display:none !important}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+details summary{
+  cursor:pointer;min-height:var(--tap);display:flex;align-items:center;gap:var(--s-2);
+  font-size:.875rem;font-weight:700;color:var(--danger-text);
+}
+details summary::-webkit-details-marker{display:none}
+details[open] summary svg.chev{transform:rotate(90deg)}
+summary svg.chev{transition:transform var(--dur) var(--ease-out)}
+
+/* Honour the OS setting. Not a nicety — motion can be a vestibular trigger. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;scroll-behavior:auto !important;
+  }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="shell">
+  <header>
+    <h1>Supabase console</h1>
+    <p class="lede">Set up, check, back up and restore your IsotopeAI database.
+    Runs on this device only &mdash; jobs keep going if you close this page.</p>
+  </header>
+
+  <!-- Step rail. aria-current tells a screen reader where it is; the visual
+       state is carried by border colour, badge fill AND the badge glyph. -->
+  <nav aria-label="Progress">
+    <ol class="steps" id="steps">
+      <li><span class="step" data-step="1" data-state="current" aria-current="step">
+        <span class="step-n" aria-hidden="true">1</span>
+        <span class="step-label">Connect</span></span></li>
+      <li><span class="step" data-step="2">
+        <span class="step-n" aria-hidden="true">2</span>
+        <span class="step-label">Project</span></span></li>
+      <li><span class="step" data-step="3">
+        <span class="step-n" aria-hidden="true">3</span>
+        <span class="step-label">Readiness</span></span></li>
+      <li><span class="step" data-step="4">
+        <span class="step-n" aria-hidden="true">4</span>
+        <span class="step-label">Run</span></span></li>
+    </ol>
+  </nav>
+
+  <main id="main">
+
+  <!-- ══ 1 · CONNECT ══════════════════════════════════════════════════════ -->
+  <section class="card" id="c-connect" aria-labelledby="h-connect">
+    <div class="card-head"><h2 id="h-connect">1 &middot; Connect</h2></div>
+
+    <div class="field">
+      <label for="pat">Supabase access token <span class="req" aria-hidden="true">*</span>
+        <span class="sr">required</span></label>
+      <input id="pat" type="password" autocomplete="off" spellcheck="false"
+             placeholder="sbp_&hellip;" aria-describedby="pat-hint pat-err"
+             enterkeyhint="go">
+      <p class="err-msg" id="pat-err" role="alert"></p>
+      <p class="hint" id="pat-hint">One token is all you need &mdash; the anon and
+      service keys are fetched for you and never reach this page. Nothing is written
+      to disk. Create one at
+      <code>supabase.com/dashboard/account/tokens</code>.</p>
+    </div>
+
+    <div class="row tight">
+      <button id="b-load" class="primary">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8 8 8 0 0 1-8-8Z"/><path d="M4 12h16M12 4a14 14 0 0 1 0 16 14 14 0 0 1 0-16Z"/></svg>
+        Connect
+      </button>
+    </div>
+  </section>
+
+  <!-- ══ 2 · PROJECT ══════════════════════════════════════════════════════ -->
+  <section class="card hidden" id="c-project" aria-labelledby="h-project">
+    <div class="card-head"><h2 id="h-project">2 &middot; Choose a project</h2></div>
+
+    <div id="proj-empty" class="empty hidden">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+      <p>No projects on this account yet. Create one to get started &mdash;
+      the free tier is enough.</p>
+    </div>
+
+    <div class="field" id="proj-pick">
+      <label for="project">Target project</label>
+      <select id="project" aria-describedby="proj-hint"></select>
+      <p class="hint" id="proj-hint">Read-only until you choose an action.</p>
+    </div>
+
+    <div class="row tight">
+      <button id="b-check" class="primary">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Check readiness
+      </button>
+      <button id="b-newproj" class="ghost">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        New project
+      </button>
+    </div>
+
+    <div id="createbox" class="hidden" style="margin-top:var(--s-5)">
+      <h3>Create a project</h3>
+      <div class="field">
+        <label for="pname">Name <span class="req" aria-hidden="true">*</span>
+          <span class="sr">required</span></label>
+        <input id="pname" placeholder="my-isotope" autocomplete="off"
+               aria-describedby="pname-err">
+        <p class="err-msg" id="pname-err" role="alert"></p>
+      </div>
+      <div class="field">
+        <label for="porg">Organisation</label>
+        <select id="porg"></select>
+      </div>
+      <div class="field">
+        <label for="pregion">Region</label>
+        <select id="pregion" aria-describedby="pregion-hint">
+          <option value="ap-southeast-1">Singapore &middot; ap-southeast-1</option>
+          <option value="ap-south-1">Mumbai &middot; ap-south-1</option>
+          <option value="ap-northeast-1">Tokyo &middot; ap-northeast-1</option>
+          <option value="us-east-1">N. Virginia &middot; us-east-1</option>
+          <option value="us-west-1">N. California &middot; us-west-1</option>
+          <option value="eu-west-2">London &middot; eu-west-2</option>
+          <option value="eu-central-1">Frankfurt &middot; eu-central-1</option>
+        </select>
+        <p class="hint" id="pregion-hint">Pick the one nearest your users. It cannot
+        be changed later.</p>
+      </div>
+      <div class="note">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+        <span>A database password is generated for you and shown once. Nothing in
+        this flow needs it again, so it is not stored.</span>
+      </div>
+      <div class="row tight">
+        <button id="b-create" class="primary">Create and wait</button>
+        <button id="b-cancelcreate" class="ghost">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 3 · READINESS ════════════════════════════════════════════════════ -->
+  <section class="card hidden" id="c-ready" aria-labelledby="h-ready">
+    <div class="card-head">
+      <h2 id="h-ready">3 &middot; Readiness</h2>
+      <button id="b-recheck" class="ghost sm">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        Re-check
+      </button>
+    </div>
+
+    <div id="ready-loading" class="hidden" aria-busy="true">
+      <div class="skel skel-line"></div>
+      <div class="skel skel-line"></div>
+      <div class="skel skel-line"></div>
+      <p class="hint">Running 13 checks against the database&hellip;</p>
+    </div>
+
+    <div id="ready-out"></div>
+  </section>
+
+  <!-- ══ 4 · RUN ══════════════════════════════════════════════════════════ -->
+  <section class="card hidden" id="c-run" aria-labelledby="h-run">
+    <div class="card-head"><h2 id="h-run">4 &middot; Run</h2></div>
+    <div id="run-primary"></div>
+
+    <div style="margin-top:var(--s-5)">
+      <h3>Other actions</h3>
+      <div class="row tight">
+        <button id="b-backup">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+          Back up
+        </button>
+        <button id="b-verify" class="ghost">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Verify backup
+        </button>
+      </div>
+      <p class="hint" id="tarball"></p>
+    </div>
+
+    <!-- Destructive action, kept behind a disclosure and visually separated. -->
+    <details style="margin-top:var(--s-5);border-top:1px solid var(--line);padding-top:var(--s-3)">
+      <summary>
+        <svg class="ico chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        Full recovery &mdash; overwrites this project
+      </summary>
+      <p class="hint" style="margin-top:var(--s-3)">Writes every user, row and file
+      from the backup into the target, replacing what is there. Type the project ref
+      to unlock.</p>
+      <div class="field">
+        <label for="confirm">Confirm target ref</label>
+        <input id="confirm" autocomplete="off" spellcheck="false" class="mono">
+      </div>
+      <button id="b-restore" class="danger" disabled>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+        Full recovery
+      </button>
+    </details>
+  </section>
+
+  <!-- ══ PROGRESS ═════════════════════════════════════════════════════════ -->
+  <section class="card hidden" id="c-progress" aria-labelledby="h-progress">
+    <div class="card-head">
+      <h2 id="h-progress">Progress</h2>
+      <button id="b-stop" class="danger sm hidden">Stop</button>
+    </div>
+    <div class="pills" style="margin-bottom:var(--s-4)">
+      <span class="pill" id="p-kind">&mdash;</span>
+      <span class="pill" id="p-state">&mdash;</span>
+      <span class="pill num" id="p-elapsed">0s</span>
+      <span class="pill num" id="p-stale">&mdash;</span>
+    </div>
+    <div id="phases"></div>
+    <div id="job-done"></div>
+  </section>
+
+  <section class="card hidden" id="c-errors" aria-labelledby="h-errors">
+    <div class="card-head">
+      <h2 id="h-errors">Errors <span class="num" id="errcount">0</span></h2>
+    </div>
+    <div id="errlist"></div>
+  </section>
+
+  <section class="card hidden" id="c-log" aria-labelledby="h-log">
+    <div class="card-head"><h2 id="h-log">Log</h2></div>
+    <pre class="log" id="log" tabindex="0" aria-label="Job log"></pre>
+  </section>
+
+  </main>
+</div>
+
+<!-- Toasts announce politely: they must never steal focus mid-task. -->
+<div class="toasts" id="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
+<div id="modal-host"></div>
+<div class="sr" id="live" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { pat: '', ref: '', ready: null, projects: [], orgs: [] };
+
+  // ── plumbing ─────────────────────────────────────────────────────────────
+
+  function api(route, body) {
+    return fetch(route, {
+      method: body ? 'POST' : 'GET',
+      headers: body ? { 'content-type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (r) {
+      return r.text().then(function (t) {
+        var j = null;
+        try { j = t ? JSON.parse(t) : null; } catch (e) { /* fall through */ }
+        if (!r.ok) throw new Error((j && j.error) || t.slice(0, 200) || ('HTTP ' + r.status));
+        return j;
+      });
+    });
+  }
+
+  var ICO = {
+    ok: '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+    bad: '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
+    info: '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>',
+    warn: '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>'
+  };
+
+  /** Screen-reader announcement for state the eye gets from colour or motion. */
+  function announce(msg) { $('live').textContent = msg; }
+
+  /**
+   * Toasts auto-dismiss in 4s and never take focus. An alert() would be modal and
+   * would interrupt a running job to say a request failed, which is the opposite
+   * of what a long-running console wants.
+   */
+  function toast(msg, kind) {
+    var t = document.createElement('div');
+    t.className = 'toast' + (kind ? ' ' + kind : '');
+    t.innerHTML = (kind === 'bad' ? ICO.bad : kind === 'good' ? ICO.ok : ICO.info) +
+      '<span></span>';
+    t.lastChild.textContent = msg;
+    $('toasts').appendChild(t);
+    announce(msg);
+    setTimeout(function () {
+      t.setAttribute('data-leaving', '');
+      setTimeout(function () { t.remove(); }, 200);
+    }, 4000);
+  }
+  function fail(e) { toast(e && e.message ? e.message : String(e), 'bad'); }
+
+  /**
+   * Buttons must never look tappable while doing nothing. Label is preserved and
+   * restored, so a failed request returns the button to its real name rather than
+   * leaving "Working…" on screen.
+   */
+  function busy(btn, on, label) {
+    if (!btn) return;
+    if (on) {
+      if (!btn.dataset.html) btn.dataset.html = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner" aria-hidden="true"></span>' +
+        '<span></span>';
+      btn.lastChild.textContent = label || 'Working…';
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+    } else {
+      if (btn.dataset.html) btn.innerHTML = btn.dataset.html;
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+    }
+  }
+
+  /** Inline error on a field, with focus moved to it — not a summary at the top. */
+  function fieldError(inputId, msg) {
+    var el = $(inputId);
+    var box = $(inputId + '-err');
+    if (msg) {
+      el.setAttribute('aria-invalid', 'true');
+      if (box) box.textContent = msg;
+      el.focus();
+    } else {
+      el.removeAttribute('aria-invalid');
+      if (box) box.textContent = '';
+    }
+  }
+
+  /**
+   * A real dialog rather than confirm(): focus-trapped, Escape-dismissable,
+   * labelled for screen readers, and able to state the consequence in the
+   * operator's terms instead of "Are you sure?".
+   */
+  function confirmDialog(opts) {
+    return new Promise(function (resolve) {
+      var prev = document.activeElement;
+      var scrim = document.createElement('div');
+      scrim.className = 'scrim';
+      var m = document.createElement('div');
+      m.className = 'modal';
+      m.setAttribute('role', 'alertdialog');
+      m.setAttribute('aria-modal', 'true');
+      m.setAttribute('aria-labelledby', 'mt');
+      m.setAttribute('aria-describedby', 'mb');
+      m.innerHTML =
+        '<h2 id="mt"></h2><p id="mb"></p>' +
+        '<div class="row tight"><button class="' + (opts.danger ? 'danger' : 'primary') +
+        '" id="m-go"></button><button class="ghost" id="m-no">Cancel</button></div>';
+      m.querySelector('#mt').textContent = opts.title;
+      m.querySelector('#mb').textContent = opts.body;
+      m.querySelector('#m-go').textContent = opts.confirm || 'Continue';
+      scrim.appendChild(m);
+      $('modal-host').appendChild(scrim);
+
+      function close(v) {
+        document.removeEventListener('keydown', key, true);
+        scrim.remove();
+        if (prev && prev.focus) prev.focus();   // return focus where it came from
+        resolve(v);
+      }
+      function key(e) {
+        if (e.key === 'Escape') { e.preventDefault(); close(false); return; }
+        if (e.key !== 'Tab') return;
+        // Trap: Tab must not escape into the page behind the scrim.
+        var f = m.querySelectorAll('button');
+        var first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+      document.addEventListener('keydown', key, true);
+      // Cancel is focused first: the safe option should be the default one.
+      m.querySelector('#m-no').focus();
+      m.querySelector('#m-go').addEventListener('click', function () { close(true); });
+      m.querySelector('#m-no').addEventListener('click', function () { close(false); });
+      scrim.addEventListener('click', function (e) { if (e.target === scrim) close(false); });
+    });
+  }
+
+  /** Reveal a step's card and move focus to its heading, so keyboard and screen
+   *  reader users are not left behind at the button they just pressed. */
+  function reveal(cardId, headingId) {
+    var c = $(cardId);
+    if (!c.classList.contains('hidden')) return;
+    c.classList.remove('hidden');
+    var h = $(headingId);
+    if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: false }); }
+  }
+
+  function setStep(n) {
+    var els = document.querySelectorAll('#steps .step');
+    for (var i = 0; i < els.length; i++) {
+      var s = Number(els[i].dataset.step);
+      els[i].removeAttribute('aria-current');
+      if (s < n) { els[i].dataset.state = 'done'; els[i].querySelector('.step-n').textContent = '\u2713'; }
+      else if (s === n) {
+        els[i].dataset.state = 'current';
+        els[i].setAttribute('aria-current', 'step');
+        els[i].querySelector('.step-n').textContent = String(s);
+      } else { delete els[i].dataset.state; els[i].querySelector('.step-n').textContent = String(s); }
+    }
+  }
+
+  function fmt(s) {
+    if (s == null) return '\u2014';
+    if (s < 60) return s + 's';
+    var m = Math.floor(s / 60);
+    return m + 'm ' + (s % 60) + 's';
+  }
+
+  // ── 1 · connect ──────────────────────────────────────────────────────────
+
+  function connect() {
+    var pat = $('pat').value.trim();
+    if (!pat) { fieldError('pat', 'Paste your access token to continue.'); return; }
+    if (!/^sbp_/.test(pat)) {
+      // Cause and fix, not "invalid input".
+      fieldError('pat', 'That does not look like an access token \u2014 they start with sbp_. This is not the anon or service key.');
+      return;
+    }
+    fieldError('pat', '');
+    busy($('b-load'), true, 'Connecting\u2026');
+    api('/api/projects', { pat: pat }).then(function (j) {
+      state.pat = pat;
+      state.projects = j.projects || [];
+      state.orgs = j.organizations || [];
+
+      var sel = $('project');
+      sel.innerHTML = '';
+      state.projects.forEach(function (p) {
+        var o = document.createElement('option');
+        o.value = p.ref;
+        o.textContent = p.name + ' \u00b7 ' + p.ref +
+          (p.status === 'ACTIVE_HEALTHY' ? '' : ' \u00b7 ' + p.status);
+        sel.appendChild(o);
+      });
+      var osel = $('porg');
+      osel.innerHTML = '';
+      state.orgs.forEach(function (o) {
+        var x = document.createElement('option');
+        x.value = o.id; x.textContent = o.name;
+        osel.appendChild(x);
+      });
+
+      // Empty state with a route forward, not a blank select.
+      var none = state.projects.length === 0;
+      $('proj-empty').classList.toggle('hidden', !none);
+      $('proj-pick').classList.toggle('hidden', none);
+      $('b-check').classList.toggle('hidden', none);
+      if (none) $('createbox').classList.remove('hidden');
+
+      setStep(2);
+      reveal('c-project', 'h-project');
+      toast('Connected \u00b7 ' + state.projects.length + ' project(s)', 'good');
+    }).catch(function (e) {
+      fieldError('pat', e.message || 'Could not reach Supabase.');
+    }).finally(function () { busy($('b-load'), false); });
+  }
+
+  $('b-load').addEventListener('click', connect);
+  $('pat').addEventListener('keydown', function (e) { if (e.key === 'Enter') connect(); });
+  // Validate on blur, not on keystroke: an error appearing mid-typing is noise.
+  $('pat').addEventListener('blur', function () {
+    var v = $('pat').value.trim();
+    if (v && !/^sbp_/.test(v)) fieldError('pat', 'Access tokens start with sbp_.');
+    else fieldError('pat', '');
+  });
+
+  // ── 2 · project ──────────────────────────────────────────────────────────
+
+  $('b-newproj').addEventListener('click', function () {
+    var box = $('createbox');
+    var open = box.classList.toggle('hidden') === false;
+    this.setAttribute('aria-expanded', String(open));
+    if (open) $('pname').focus();
+  });
+  $('b-cancelcreate').addEventListener('click', function () {
+    $('createbox').classList.add('hidden');
+    $('b-newproj').setAttribute('aria-expanded', 'false');
+    $('b-newproj').focus();
+  });
+
+  $('b-create').addEventListener('click', function () {
+    var btn = this;
+    var name = $('pname').value.trim();
+    if (!name) { fieldError('pname', 'Give the project a name.'); return; }
+    fieldError('pname', '');
+    var org = $('porg').value;
+    if (!org) { toast('No organisation available on this account.', 'bad'); return; }
+
+    // Generated, never asked for: a database password typed here would be a second
+    // secret in the browser for no benefit, since nothing downstream needs it.
+    var pass = 'Iso-' + Math.random().toString(36).slice(2, 10) +
+               Math.random().toString(36).slice(2, 6).toUpperCase() + '-9!';
+
+    busy(btn, true, 'Creating\u2026');
+    api('/api/create-project', {
+      pat: state.pat, name: name, org: org,
+      region: $('pregion').value, dbPass: pass
+    }).then(function (j) {
+      // Provisioning is not instant, and the database accepts queries some time
+      // AFTER the project reports healthy — so poll the database, not the status.
+      busy(btn, true, 'Waiting for database\u2026');
+      announce('Project created. Waiting for the database to accept queries.');
+      var tries = 0;
+      return new Promise(function (resolve, reject) {
+        (function poll() {
+          api('/api/ready', { pat: state.pat, ref: j.ref }).then(function (r) {
+            if (r.ready) return resolve(j.ref);
+            if (++tries > 60) return reject(new Error('The project did not become reachable in 5 minutes. It may still be provisioning \u2014 re-connect and check again.'));
+            busy(btn, true, 'Waiting\u2026 ' + (tries * 5) + 's');
+            setTimeout(poll, 5000);
+          }).catch(function () {
+            if (++tries > 60) return reject(new Error('The project did not become reachable in 5 minutes.'));
+            setTimeout(poll, 5000);
+          });
+        })();
+      });
+    }).then(function (ref) {
+      var o = document.createElement('option');
+      o.value = ref; o.textContent = name + ' \u00b7 ' + ref + ' \u00b7 new';
+      $('project').appendChild(o);
+      $('project').value = ref;
+      $('createbox').classList.add('hidden');
+      $('proj-empty').classList.add('hidden');
+      $('proj-pick').classList.remove('hidden');
+      $('b-check').classList.remove('hidden');
+      return confirmDialog({
+        title: 'Project created',
+        body: 'Database password: ' + pass + '\n\nIt is shown once and is not stored. ' +
+              'Nothing in this console needs it again, but save it if you want direct ' +
+              'psql access later.',
+        confirm: 'I have saved it'
+      });
+    }).then(function () { return checkReadiness(); })
+      .catch(fail)
+      .finally(function () { busy(btn, false); });
+  });
+
+  // Changing the project invalidates everything downstream. Silently keeping a
+  // stale readiness report next to a different ref is how someone runs an action
+  // against the wrong database.
+  $('project').addEventListener('change', function () {
+    state.ref = '';
+    state.ready = null;
+    $('c-ready').classList.add('hidden');
+    $('c-run').classList.add('hidden');
+    $('ready-out').innerHTML = '';
+    setStep(2);
+  });
+
+  $('b-check').addEventListener('click', function () { checkReadiness(); });
+  $('b-recheck').addEventListener('click', function () { checkReadiness(); });
+
+  // ── 3 · readiness ────────────────────────────────────────────────────────
+
+  function checkReadiness() {
+    var ref = $('project').value;
+    if (!ref) { toast('Choose a project first.', 'bad'); return Promise.resolve(); }
+    state.ref = ref;
+    $('confirm').placeholder = ref;
+    setStep(3);
+    reveal('c-ready', 'h-ready');
+    $('ready-out').innerHTML = '';
+    $('ready-loading').classList.remove('hidden');
+    busy($('b-check'), true, 'Checking\u2026');
+    busy($('b-recheck'), true, '');
+    announce('Running readiness checks.');
+
+    return api('/api/check', { pat: state.pat, ref: ref }).then(function (j) {
+      state.ready = j;
+      renderReadiness(j);
+      setStep(4);
+      reveal('c-run', 'h-run');
+      renderPrimary(j);
+      toast(j.ready ? 'All ' + j.total + ' checks passed' :
+        j.failed + ' of ' + j.total + ' checks failed', j.ready ? 'good' : 'bad');
+    }).catch(function (e) {
+      $('ready-out').innerHTML = '';
+      var n = document.createElement('div');
+      n.className = 'note bad';
+      n.innerHTML = ICO.bad + '<span><strong>Could not read the project</strong></span>';
+      n.lastChild.appendChild(document.createTextNode(
+        (e.message || String(e)) + ' \u2014 check the token has access to this project, then re-check.'));
+      $('ready-out').appendChild(n);
+    }).finally(function () {
+      $('ready-loading').classList.add('hidden');
+      busy($('b-check'), false);
+      busy($('b-recheck'), false);
+    });
+  }
+
+  function renderReadiness(j) {
+    var out = $('ready-out');
+    out.innerHTML = '';
+
+    if (!j.checks || !j.checks.length) {
+      var e = document.createElement('div');
+      e.className = 'note bad';
+      e.innerHTML = ICO.bad + '<span>The check produced no results. ' +
+        (j.error ? String(j.error) : 'Re-check, or run ./supabase.sh check in a terminal.') + '</span>';
+      out.appendChild(e);
+      return;
+    }
+
+    // Headline first, so the answer is available before the detail.
+    var head = document.createElement('div');
+    head.className = 'note ' + (j.ready ? 'good' : 'bad');
+    head.innerHTML = (j.ready ? ICO.ok : ICO.warn) + '<span><strong></strong></span>';
+    head.querySelector('strong').textContent = j.ready
+      ? 'Ready \u00b7 ' + j.total + '/' + j.total + ' checks passed'
+      : j.failed + ' of ' + j.total + ' checks failed';
+    head.lastChild.appendChild(document.createTextNode(j.ready
+      ? 'This project can run the app.'
+      : 'Setup will fix these. Nothing has been changed yet.'));
+    out.appendChild(head);
+
+    // Grouped, with failures first inside each group — the reader is looking for
+    // what is wrong, not for alphabetical order.
+    var groups = {};
+    j.checks.forEach(function (c) { (groups[c.group] = groups[c.group] || []).push(c); });
+    Object.keys(groups).forEach(function (g) {
+      var wrap = document.createElement('section');
+      wrap.className = 'grp';
+      var h = document.createElement('h3');
+      var bad = groups[g].filter(function (c) { return !c.ok; }).length;
+      h.textContent = g + (bad ? ' \u00b7 ' + bad + ' failing' : '');
+      wrap.appendChild(h);
+      groups[g].slice().sort(function (a, b) { return (a.ok ? 1 : 0) - (b.ok ? 1 : 0); })
+        .forEach(function (c) {
+          var row = document.createElement('div');
+          row.className = 'check ' + (c.ok ? 'ok' : 'bad');
+          var ico = document.createElement('span');
+          ico.className = 'check-ico';
+          ico.innerHTML = c.ok ? ICO.ok : ICO.bad;
+          var body = document.createElement('div');
+          body.className = 'check-body';
+          var lab = document.createElement('div');
+          lab.className = 'check-label';
+          // Text, not colour alone.
+          lab.textContent = (c.ok ? 'Pass' : 'Fail') + ' \u2014 ' + c.label;
+          var det = document.createElement('div');
+          det.className = 'check-detail';
+          det.textContent = c.detail || '';
+          body.appendChild(lab); body.appendChild(det);
+          row.appendChild(ico); row.appendChild(body);
+          wrap.appendChild(row);
+        });
+      out.appendChild(wrap);
+    });
+
+    // Things no tool can provision, stated rather than left to be discovered when
+    // Google sign-in fails with no error.
+    if (j.manual && j.manual.length) {
+      var man = document.createElement('div');
+      man.className = 'note';
+      man.innerHTML = ICO.info + '<span><strong>Two steps only you can do</strong></span>';
+      var ul = document.createElement('div');
+      j.manual.forEach(function (m) {
+        var p = document.createElement('div');
+        p.style.marginTop = '4px';
+        p.textContent = m.label + ' \u2014 ' + m.where + ': ' + m.detail;
+        ul.appendChild(p);
+      });
+      man.lastChild.appendChild(ul);
+      out.appendChild(man);
+    }
+  }
+
+  // ── 4 · run ──────────────────────────────────────────────────────────────
+
+  /**
+   * One primary action per screen, chosen from the readiness result rather than
+   * offered as a menu. A project failing 9 checks and a project passing all 13
+   * need different next steps, and showing both as equal buttons makes the
+   * operator do the diagnosis the console just did.
+   */
+  function renderPrimary(j) {
+    var host = $('run-primary');
+    host.innerHTML = '';
+    var note = document.createElement('div');
+    var btn = document.createElement('button');
+    btn.className = 'primary';
+
+    if (!j.ready) {
+      note.className = 'note warn';
+      note.innerHTML = ICO.warn + '<span><strong>Setup will fix ' + j.failed +
+        ' item(s)</strong></span>';
+      note.lastChild.appendChild(document.createTextNode(
+        'Applies the schema, creates the storage buckets, installs the signup trigger, ' +
+        'then re-verifies. It writes no users, no rows and no files.'));
+      btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path d="M12 3v6M12 15v6M3 12h6M15 12h6"/><circle cx="12" cy="12" r="3"/></svg>' +
+        '<span>Set up this project</span>';
+      btn.addEventListener('click', function () { runSetup(btn); });
+    } else {
+      note.className = 'note good';
+      note.innerHTML = ICO.ok + '<span><strong>Nothing to set up</strong></span>';
+      note.lastChild.appendChild(document.createTextNode(
+        'Every check passes. Re-running setup is safe and idempotent, but it has ' +
+        'nothing to add.'));
+      btn.className = 'ghost';
+      btn.innerHTML = '<span>Run setup anyway</span>';
+      btn.addEventListener('click', function () { runSetup(btn); });
+    }
+    host.appendChild(note);
+    host.appendChild(btn);
+
+    // Writing .env repoints THIS checkout at the project. On by default because
+    // that is the useful case, but stated and reversible rather than a silent
+    // side effect of a button labelled "Set up".
+    var opt = document.createElement('label');
+    opt.className = 'opt';
+    opt.setAttribute('for', 'writeenv');
+    opt.innerHTML = '<input type="checkbox" id="writeenv" checked>' +
+      '<span></span>';
+    opt.lastChild.textContent =
+      'Also write .env for this checkout (existing one is moved to .env.old)';
+    host.appendChild(opt);
+  }
+
+  function runSetup(btn) {
+    var inspect = state.ready || {};
+    var hasUsers = (inspect.checks || []).some(function (c) {
+      return /accounts with app rows/.test(c.label) && !/^0\//.test(c.detail || '');
+    });
+    var ask = hasUsers
+      ? confirmDialog({
+          title: 'This project already has accounts',
+          body: 'Setup is idempotent and will not delete data, but you are pointing it ' +
+                'at a project that is already in use. Confirm this is the right one: ' +
+                state.ref,
+          confirm: 'Yes, set up ' + state.ref
+        })
+      : Promise.resolve(true);
+    ask.then(function (go) {
+      if (!go) return;
+      var box = $('writeenv');
+      start('setup', null, btn, { writeEnv: !box || box.checked });
+    });
+  }
+
+  $('b-backup').addEventListener('click', function () { start('backup', null, this); });
+  $('b-verify').addEventListener('click', function () { start('verify', null, this); });
+
+  // Restore stays locked until the ref is typed exactly. The server enforces this
+  // too — this is only the affordance.
+  $('confirm').addEventListener('input', function () {
+    $('b-restore').disabled = this.value.trim() !== state.ref;
+  });
+  $('b-restore').addEventListener('click', function () {
+    var btn = this;
+    confirmDialog({
+      danger: true,
+      title: 'Overwrite ' + state.ref + '?',
+      body: 'Every user, row and file from the backup will be written into this ' +
+            'project, replacing what is there. This cannot be undone from here.',
+      confirm: 'Overwrite'
+    }).then(function (go) { if (go) start('restore', 'full', btn); });
+  });
+
+  $('b-stop').addEventListener('click', function () {
+    var btn = this;
+    confirmDialog({
+      danger: true,
+      title: 'Stop the running job?',
+      body: 'The job is killed where it is. A partly-applied schema is safe to ' +
+            're-run, but a half-finished restore leaves the target incomplete.',
+      confirm: 'Stop it'
+    }).then(function (go) { if (go) api('/api/stop', {}).catch(fail); });
+  });
+
+  function start(kind, mode, btn, extra) {
+    var body = { kind: kind, pat: state.pat, ref: state.ref, mode: mode };
+    if (extra) Object.keys(extra).forEach(function (k) { body[k] = extra[k]; });
+    if (kind === 'restore') body.confirmRef = $('confirm').value.trim();
+    busy(btn, true, 'Starting\u2026');
+    api('/api/start', body).then(function () {
+      reveal('c-progress', 'h-progress');
+      announce(kind + ' started.');
+    }).catch(fail).finally(function () { busy(btn, false); });
+  }
+
+  // ── live progress ────────────────────────────────────────────────────────
+
+  var PHASE_LABEL = {
+    provision: 'waiting for the database', schema: 'schema', auth: 'users',
+    data: 'rows', storage: 'files', dump: 'reading tables',
+    fetch: 'downloading files', verify: 'verifying', setup: 'setup', restore: 'restore'
+  };
+
+  var lastState = null;
+
+  function render(s) {
+    var job = s.job;
+    if (!job) return;
+    $('c-progress').classList.remove('hidden');
+
+    $('p-kind').textContent = job.kind + (job.mode && job.kind === 'restore' ? ' \u00b7 ' + job.mode : '');
+
+    var st = $('p-state');
+    st.textContent = job.state;
+    st.className = 'pill ' + (job.state === 'running' ? 'run'
+      : job.state === 'done' ? 'ok'
+      : job.state === 'orphaned' || job.state === 'stopped' ? 'err' : '');
+
+    $('p-elapsed').textContent = fmt(s.elapsedSeconds);
+
+    // The field that matters most. A restore of this tool's own sat frozen at
+    // 250/1772 for thirteen minutes and looked exactly like one making progress.
+    var stale = $('p-stale');
+    stale.textContent = 'updated ' + fmt(s.staleSeconds) + ' ago';
+    stale.className = 'pill num ' + (job.state !== 'running' ? ''
+      : s.staleSeconds > 90 ? 'err' : s.staleSeconds > 30 ? 'warn' : 'ok');
+
+    $('b-stop').classList.toggle('hidden', job.state !== 'running');
+
+    var host = $('phases');
+    host.innerHTML = '';
+    var names = Object.keys(s.phases);
+    if (!names.length && job.state === 'running') {
+      var sk = document.createElement('div');
+      sk.innerHTML = '<div class="skel skel-line"></div><div class="skel skel-line"></div>';
+      host.appendChild(sk);
+    }
+    names.forEach(function (name) {
+      var p = s.phases[name];
+      var pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
+      var wrap = document.createElement('div');
+      wrap.className = 'phase';
+
+      var head = document.createElement('div');
+      head.className = 'phase-head';
+      var n = document.createElement('span');
+      n.className = 'phase-name';
+      n.textContent = PHASE_LABEL[name] || name;
+
+      var meta = document.createElement('span');
+      meta.className = 'phase-meta';
+      // ETA is only shown when it means something. Verify measured 0.3 items/s with
+      // the time concentrated in a few slow queries, so an ETA there swings wildly;
+      // elapsed is honest and a guess is worse than nothing.
+      var bits = [p.done + '/' + (p.total || '?')];
+      if (p.failed) bits.push(p.failed + ' failed');
+      if (p.skipped) bits.push(p.skipped + ' skipped');
+      if (p.state !== 'done' && p.etaSeconds != null && p.etaSeconds > 3 && p.total > 60) {
+        bits.push('~' + fmt(p.etaSeconds) + ' left');
+      }
+      meta.textContent = bits.join(' \u00b7 ');
+      head.appendChild(n); head.appendChild(meta);
+
+      var bar = document.createElement('div');
+      bar.className = 'bar';
+      bar.setAttribute('role', 'progressbar');
+      bar.setAttribute('aria-valuemin', '0');
+      bar.setAttribute('aria-valuemax', '100');
+      bar.setAttribute('aria-valuenow', String(pct));
+      bar.setAttribute('aria-label', (PHASE_LABEL[name] || name) + ' ' + pct + '%');
+      var fill = document.createElement('i');
+      fill.style.width = pct + '%';
+      if (p.failed) fill.className = 'fail';
+      else if (p.state === 'done') fill.className = 'done';
+      bar.appendChild(fill);
+
+      wrap.appendChild(head); wrap.appendChild(bar);
+      host.appendChild(wrap);
+    });
+
+    // Success is confirmed, not silent. Announced once, on the transition.
+    var done = $('job-done');
+    if (job.state !== 'running' && lastState === 'running') {
+      var okJob = job.state === 'done' && !s.errorCount;
+      toast(okJob ? job.kind + ' finished' : job.kind + ' ended: ' + job.state,
+        okJob ? 'good' : 'bad');
+      if (okJob && (job.kind === 'setup' || job.kind === 'restore')) checkReadiness();
+    }
+    if (job.state === 'running') { done.innerHTML = ''; }
+    else {
+      done.innerHTML = '';
+      var d = document.createElement('div');
+      d.className = 'note ' + (job.state === 'done' && !s.errorCount ? 'good' : 'bad');
+      d.innerHTML = (job.state === 'done' && !s.errorCount ? ICO.ok : ICO.warn) +
+        '<span><strong></strong></span>';
+      d.querySelector('strong').textContent = job.state === 'done'
+        ? job.kind + ' finished in ' + fmt(s.elapsedSeconds)
+        : job.kind + ' ' + job.state;
+      d.lastChild.appendChild(document.createTextNode(
+        job.error ? String(job.error)
+          : s.errorCount ? s.errorCount + ' error(s) below.'
+          : 'No errors.'));
+      done.appendChild(d);
+    }
+    lastState = job.state;
+
+    $('errcount').textContent = s.errorCount;
+    $('c-errors').classList.toggle('hidden', !s.errors.length);
+    var el = $('errlist');
+    el.innerHTML = '';
+    s.errors.slice().reverse().forEach(function (e) {
+      var d = document.createElement('div');
+      d.className = 'err-item';
+      var m = document.createElement('p');
+      m.textContent = e.msg;
+      d.appendChild(m);
+      // The failing statement, not just that something failed — the difference
+      // between a log you can act on and one you cannot.
+      if (e.stmt) {
+        var q = document.createElement('code');
+        q.textContent = e.stmt;
+        d.appendChild(q);
+      }
+      el.appendChild(d);
+    });
+
+    if (s.log) {
+      $('c-log').classList.remove('hidden');
+      var pre = $('log');
+      var atBottom = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 30;
+      pre.textContent = s.log;
+      if (atBottom) pre.scrollTop = pre.scrollHeight;   // follow, unless scrolled up
+    }
+    if (s.tarball) {
+      $('tarball').textContent = 'Latest backup: ' + s.tarball.split('/').pop();
+    }
+  }
+
+  // Reattach on load, then stream. Both paths use the same render, so a reload
+  // mid-job shows exactly what it showed before.
+  api('/api/state').then(function (s) {
+    if (s && s.job) { lastState = s.job.state; render(s); }
+  }).catch(function () {});
+  try {
+    var es = new EventSource('/api/stream');
+    es.onmessage = function (ev) {
+      try { render(JSON.parse(ev.data)); } catch (e) { /* skip a bad frame */ }
+    };
+  } catch (e) {
+    setInterval(function () { api('/api/state').then(render).catch(function () {}); }, 2000);
+  }
+
+  $('pat').focus();
+})();
+</script>
+</body>
+</html>

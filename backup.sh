@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
 # IsotopeAI — full Supabase backup & reinstall-anywhere restore.
 #
+# This file and isotope-apk/backup.sh are the SAME program, kept byte-identical.
+# They diverged once, and the divergence was dangerous rather than cosmetic: this
+# copy let `restore` infer its target from .env, which is production. If you edit
+# one, copy it to the other.
+#
+# For setting up a project you do not have yet, use ./supabase.sh — `restore`
+# replays a tarball, and a tarball only exists if you already had a working
+# backend.
+#
 # backup:
 #   ./backup.sh backup [--out DIR] [--no-storage] [--keep N] [--no-verify]
 #        [--supabase-url URL --anon-key K --service-key K --pat TOKEN]
 #     Dumps schema (scripts/schema-dump.mjs) + all DB tables + auth users
-#     + every storage bucket discovered on the project (avatars, user-content,
-#     notes, and any others) into a timestamped tarball under backups/.
+#     + storage buckets (avatars, user-content, notes, group-icons,
+#     study-material) into a timestamped tarball under backups/.
 #     Keys: CLI args > env vars > .env (SUPABASE_URL / SUPABASE_ANON_KEY /
 #     SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ACCESS_TOKEN).
 #     Tarball integrity is checked (gzip -t + tar -tzf), a .sha256 sidecar is
@@ -16,10 +25,15 @@
 # restore (reinstall on ANY machine / new Supabase project):
 #   ./backup.sh restore <backup.tar.gz> \
 #       [--supabase-url URL] [--anon-key K] [--service-key K] [--pat TOKEN]
+#       [--schema-only]
 #     Apply schema + data + auth users + storage to the target project,
 #     verify the restore against the target (aborts BEFORE scaffolding .env
 #     if any count mismatches), then scaffold .env with the new keys and
 #     (re)start the server.
+#     --schema-only installs structure WITHOUT people: no auth users, no table
+#     rows, no storage files. Use it to stand up a fresh project; omit it for
+#     disaster recovery. Note that Google OAuth keys live in Supabase auth
+#     config, never in the database, so they are never copied either way.
 #     Keys fall back to env vars or existing .env; keep them out of history.
 #
 # verify:
@@ -29,6 +43,18 @@
 #
 # info:
 #   ./backup.sh info <backup.tar.gz>   — integrity + manifest summary
+#
+# ui / console:
+#   ./backup.sh ui [--port N]
+#     Web console on http://127.0.0.1:8000 (loopback only — the page takes a
+#     Supabase PAT). Runs backup / verify / restore as DETACHED jobs, so closing
+#     the tab or restarting the server does not stop or lose one.
+#
+# status / stop:
+#   ./backup.sh status   — per-phase progress + ETA of the detached job
+#   ./backup.sh stop     — kill it
+#     Both work with no console running: job state lives on disk in
+#     backups/.job.json, not in the server's memory.
 #
 set -euo pipefail
 
@@ -114,6 +140,7 @@ parse_keys() {
       --pat=*)          SUPABASE_ACCESS_TOKEN="${1#*=}"; CLI_PAT=1; shift ;;
       --pat)            SUPABASE_ACCESS_TOKEN="$2"; CLI_PAT=1; shift 2 ;;
       --no-storage)     NO_STORAGE=1; shift ;;
+      --schema-only)    SCHEMA_ONLY=1; shift ;;
       *) shift ;;
     esac
   done
@@ -162,7 +189,14 @@ cmd_backup() {
   done
   if [[ -n "$keep" && ! "$keep" =~ ^[0-9]+$ ]]; then die "--keep must be a number"; fi
 
-  [[ -f "$ROOT/.env" ]] || die ".env not found (needs SUPABASE_URL, SUPABASE_ACCESS_TOKEN, ...)"
+  # load_env_keys() reads .backup_env FIRST (documented precedence, and what
+  # scripts/schema-dump.mjs + supabase-backup.mjs also do), so requiring .env
+  # specifically was wrong: a machine holding only .backup_env — the intended
+  # setup for backing up a project you do not otherwise run — was rejected.
+  # Accept either file, or keys passed entirely on the command line / env.
+  if [[ ! -f "$ROOT/.backup_env" && ! -f "$ROOT/.env" && ${#keyargs[@]} -eq 0 && -z "${SUPABASE_URL:-}" ]]; then
+    die "no credentials: create .backup_env or .env (SUPABASE_URL, SUPABASE_ACCESS_TOKEN, SUPABASE_SERVICE_ROLE_KEY), or pass --supabase-url/--pat/--service-key"
+  fi
   parse_keys "${keyargs[@]:-}"
   reset_env_keys
   load_env_keys
@@ -244,18 +278,54 @@ cmd_backup() {
 # ── restore ─────────────────────────────────────────────────────────────────
 cmd_restore() {
   need_node
-  [[ $# -ge 1 ]] || die "usage: restore <backup.tar.gz> [keys…]"
+  [[ $# -ge 1 ]] || die "usage: restore <backup.tar.gz> --supabase-url=<target> [keys…]"
   local tarball="$1"; shift
   parse_keys "$@"
+
+  # The restore TARGET must be stated explicitly. Previously this fell through
+  # to load_env_keys, which reads .backup_env then .env — files that normally
+  # hold PRODUCTION credentials. So `./backup.sh restore dump.tar.gz` with no
+  # --supabase-url silently wrote 42 auth users and every table into live prod.
+  # A restore is the one command that must never guess where it is pointing.
+  [[ -n "${CLI_URL:-}" ]] || die "restore requires an explicit --supabase-url=<target project url>
+       (refusing to infer the target from .backup_env/.env — that is production)"
+
+  local target_url="$SUPABASE_URL"
   reset_env_keys
 
   [[ -f "$tarball" ]] || die "backup tarball not found: $tarball"
 
-  # keys: CLI > .backup_env > .env (inherited env is discarded — see reset_env_keys)
+  # Remaining keys may come from .backup_env/.env, but the URL stays as given.
   load_env_keys
-  [[ -n "${SUPABASE_URL:-}" ]] || die "missing --supabase-url=<target project url>"
+  SUPABASE_URL="$target_url"
   [[ -n "${SUPABASE_ACCESS_TOKEN:-}" ]] || die "missing --pat=<management api token>"
   resolve_service_key
+
+  # Loud confirmation of where the data is about to land, and a warning if the
+  # target happens to be the project this checkout normally talks to.
+  #
+  # Read with a plain while-read loop, not a grep|head|cut|tr pipeline: under
+  # `set -o pipefail` the early-exiting `head -1` makes grep die on SIGPIPE, so
+  # the whole pipeline returns non-zero and `set -e` aborts the restore before it
+  # starts. That is exactly how this guard silently killed the command.
+  say "RESTORE TARGET: $SUPABASE_URL"
+  local local_url="" cfg line
+  for cfg in "$ROOT/.backup_env" "$ROOT/.env"; do
+    [[ -f "$cfg" ]] || continue
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      if [[ "$line" == SUPABASE_URL=* ]]; then
+        local_url="${line#SUPABASE_URL=}"
+        local_url="${local_url%$'\r'}"
+        local_url="${local_url//\"/}"
+        local_url="${local_url//\'/}"
+        break
+      fi
+    done < "$cfg"
+    [[ -n "$local_url" ]] && break
+  done
+  if [[ -n "$local_url" && "$local_url" == "$SUPABASE_URL" ]]; then
+    warn "target is the SAME project this checkout uses — restoring onto your own database"
+  fi
 
   local work
   work="$(mktemp -d "$(mktmpdir)/isotope-restore.XXXXXX")"
@@ -275,7 +345,8 @@ cmd_restore() {
     --anon-key "${SUPABASE_ANON_KEY:-}" \
     --service-key "${SUPABASE_SERVICE_ROLE_KEY:-}" \
     --pat "$SUPABASE_ACCESS_TOKEN" \
-    ${NO_STORAGE:+--no-storage} || die "restore failed"
+    ${NO_STORAGE:+--no-storage} \
+    ${SCHEMA_ONLY:+--schema-only} || die "restore failed"
 
   # verify the restore against the target BEFORE touching local config —
   # a mismatched restore must never overwrite .env or restart the server.
@@ -324,7 +395,7 @@ EOF
   # previous .env when restoring into the SAME project — never wipe working config
   if [[ -n "$old_env" ]]; then
     local preserved=0 key
-    for key in ADMIN_SECRET ADMIN_EMAIL ADMIN_EMAILS BROWSER_PROOF_EMAIL GITHUB_PAT GITHUB_OWNER GITHUB_REPO ASSET_CDN_ORIGINS GEMINI_API_KEY GROQ_API_KEY YEPAPI_KEY SHOT_EMAIL SHOT_PASSWORD SESSION_SECRET SUPABASE_SERVICE_ROLE_KEY; do
+    for key in ADMIN_SECRET ADMIN_EMAIL ADMIN_EMAILS BROWSER_PROOF_EMAIL GITHUB_PAT GEMINI_API_KEY GROQ_API_KEY YEPAPI_KEY SESSION_SECRET SUPABASE_SERVICE_ROLE_KEY; do
       local newval
       newval="$(grep -E "^$key=" "$ROOT/.env" 2>/dev/null | head -1 | cut -d= -f2-)"
       if [[ -z "$newval" ]]; then
@@ -344,10 +415,7 @@ EOF
     say "restarting server…"
     bash "$ROOT/bin/isotope" restart >/dev/null 2>&1 || true
   fi
-  local port
-  port="$(grep -E '^PORT=' "$ROOT/.env" | head -1 | cut -d= -f2 | tr -dc '0-9')"
-  port="${port:-3000}"
-  say "DONE. Visit http://localhost:$port"
+  say "DONE. Server: $(grep -E '^PORT' "$ROOT/.env" | cut -d= -f2)x — visit http://localhost:$(grep -E '^PORT' "$ROOT/.env" | cut -d= -f2)"
 }
 
 # ── verify ──────────────────────────────────────────────────────────────────
@@ -424,20 +492,59 @@ if (m.notes && m.notes.length) console.log('manifest notes:\\n  ' + m.notes.join
   rm -rf "$work"
 }
 
+# ── ui / status / stop ──────────────────────────────────────────────────────
+# The console and the CLI are two front ends over the SAME on-disk job state
+# (backups/.job.json, .progress.jsonl, .job.log), which is why `status` works
+# with no server running and why closing the browser tab does not stop a job.
+cmd_ui() {
+  need_node
+  local port=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --port) port="$2"; shift 2 ;;
+      --port=*) port="${1#*=}"; shift ;;
+      *) die "unknown arg: $1" ;;
+    esac
+  done
+  if [[ -n "$port" && ! "$port" =~ ^[0-9]+$ ]]; then die "--port must be a number"; fi
+  [[ -f "$ROOT/scripts/backup-ui.mjs" ]] || die "scripts/backup-ui.mjs missing"
+  # Binds 127.0.0.1 only — the page accepts a management-API token, so exposing
+  # it on 0.0.0.0 would hand anything on the network the ability to drive a
+  # restore. Do not put it behind a tunnel.
+  say "starting console on 127.0.0.1:${port:-8000} (loopback only — Ctrl-C to stop serving)"
+  say "jobs are detached: closing the page or this process does NOT stop a running job"
+  ISO_UI_PORT="${port:-8000}" exec node "$ROOT/scripts/backup-ui.mjs"
+}
+
+cmd_status() {
+  need_node
+  node "$ROOT/scripts/job-runner.mjs" status
+}
+
+cmd_stop() {
+  need_node
+  node "$ROOT/scripts/job-runner.mjs" stop
+}
+
 # ── main ────────────────────────────────────────────────────────────────────
 case "${1:-}" in
   backup)  shift; cmd_backup "$@" ;;
   restore) shift; cmd_restore "$@" ;;
   verify)  shift; cmd_verify "$@" ;;
   info)    shift; cmd_info "$@" ;;
-  *) { echo "usage: $0 {backup|restore|verify|info} [args…]
+  ui|console) shift; cmd_ui "$@" ;;
+  status)  shift; cmd_status "$@" ;;
+  stop)    shift; cmd_stop "$@" ;;
+  *) echo "usage: $0 {backup|restore|verify|info|ui|status|stop} [args…]
   $0 backup [--out DIR] [--no-storage] [--keep N] [--no-verify]
         [--supabase-url URL --anon-key K --service-key K --pat TOKEN]
   $0 restore <backup.tar.gz> [--supabase-url URL --anon-key K --service-key K --pat TOKEN]
+        [--no-storage] [--schema-only]
   $0 verify <backup.tar.gz> [--supabase-url URL --service-key K --pat TOKEN]
   $0 info <backup.tar.gz>
-(keys: CLI args > env vars > .env)"
-     # help was explicitly requested → success; an unknown command → error
-     case "${1:-}" in help|-h|--help|'') exit 0 ;; *) exit 2 ;; esac
-   } ;;
+  $0 ui [--port N]              web console on 127.0.0.1:8000
+  $0 status                     progress + ETA of the detached job
+  $0 stop                       kill the detached job
+(keys: CLI args > env vars > .env)
+(--schema-only restores structure only: no users, no rows, no storage files)" ;;
 esac

@@ -2265,6 +2265,17 @@ END $$;
 -- Events and Store are no longer part of this installation.  This final block is
 -- intentionally destructive and idempotent: it removes the Supabase tables, views,
 -- RPCs, triggers, policies, and storage bucket used only by those pages.
+--
+-- ⚠ THIS MAKES THE WHOLE FILE DESTRUCTIVE. Four of the tables dropped below are
+-- created by isotope-complete.sql, and earlier sections of THIS file create them
+-- too (store_items §449, user_inventory §471, community_events §1229,
+-- community_event_attendees §1279) along with seven event/store RPCs. Applying
+-- this patch to a fresh install therefore removes them again. Counted from the
+-- two files: 42 tables -> 38, and 73 public functions -> 57 (16 CREATE statements
+-- removed, one an overload). It also drops 70 policies and creates 78, so the
+-- policy count moves rather than simply shrinking. That is the intended outcome —
+-- Events and Store were removed from the product — but do not apply this file if
+-- you want the full 42-table schema. Re-running isotope-complete.sql restores them.
 
 DROP POLICY IF EXISTS "event_images_public_read" ON storage.objects;
 DROP POLICY IF EXISTS "event_images_authenticated_write" ON storage.objects;
@@ -2631,6 +2642,7 @@ ALTER TABLE public.group_invites ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "gm_insert_self" ON public.group_members;
 
 -- Members can join a PUBLIC group as 'member' only
+DROP POLICY IF EXISTS "gm_join_public_group" ON public.group_members;
 CREATE POLICY "gm_join_public_group"
   ON public.group_members FOR INSERT
   WITH CHECK (
@@ -2646,6 +2658,7 @@ CREATE POLICY "gm_join_public_group"
   );
 
 -- Members can join a PRIVATE group via a valid (non-expired, not over-used) invite
+DROP POLICY IF EXISTS "gm_join_via_invite" ON public.group_members;
 CREATE POLICY "gm_join_via_invite"
   ON public.group_members FOR INSERT
   WITH CHECK (
@@ -2662,6 +2675,7 @@ CREATE POLICY "gm_join_via_invite"
 
 -- Owners can add themselves as 'owner' only for a group they just created
 -- (createGroup mutation inserts the group then immediately inserts the owner row)
+DROP POLICY IF EXISTS "gm_insert_owner_self" ON public.group_members;
 CREATE POLICY "gm_insert_owner_self"
   ON public.group_members FOR INSERT
   WITH CHECK (
@@ -2701,6 +2715,12 @@ CREATE POLICY "invites_read_own_group"
 
 -- SECURITY DEFINER function — allows the bundle to validate a single invite
 -- token without exposing any other rows to anon callers.
+-- This block narrows the return type set by patch v6 §20 above (that version
+-- returns group metadata; this one returns the raw invite row). PostgreSQL
+-- refuses CREATE OR REPLACE across a return-type change, so drop first —
+-- otherwise this statement fails with 42P13 on every single run, including the
+-- first, because §20 already created the wider signature earlier in this file.
+DROP FUNCTION IF EXISTS public.get_invite_details(text);
 CREATE OR REPLACE FUNCTION public.get_invite_details(p_code text)
 RETURNS TABLE (
   id          uuid,
@@ -2726,6 +2746,10 @@ GRANT  EXECUTE ON FUNCTION public.get_invite_details(text) TO anon, authenticate
 -- Accept-invite: increment uses_count and add calling user as member.
 -- Kept as SECURITY DEFINER to bypass RLS on the join step when coming
 -- from a validated invite, but role is hard-coded to 'member'.
+-- Same return-type drift as get_invite_details above: patch v6 §21 declared this
+-- RETURNS jsonb, this block declares RETURNS json. CREATE OR REPLACE cannot
+-- change a return type, so the drop is required for the statement to succeed.
+DROP FUNCTION IF EXISTS public.accept_invite(text);
 CREATE OR REPLACE FUNCTION public.accept_invite(p_code text)
 RETURNS json
 LANGUAGE plpgsql
@@ -2815,6 +2839,7 @@ DROP POLICY IF EXISTS "gm_client_insert_compat" ON public.group_members;
 -- Role changes must go through the update_group_member_role() SECURITY DEFINER RPC.
 DROP POLICY IF EXISTS "gm_admin_update" ON public.group_members;
 
+DROP POLICY IF EXISTS "gm_update_own_row" ON public.group_members;
 CREATE POLICY "gm_update_own_row"
   ON public.group_members FOR UPDATE
   USING  (auth.uid() IS NOT NULL AND user_id = auth.uid())
@@ -2849,6 +2874,7 @@ DROP POLICY IF EXISTS "invites_delete_admin"    ON public.group_invites;
 -- Fix: also require the group to be public when the caller is not a member.
 DROP POLICY IF EXISTS "gchall_read" ON public.group_challenges;
 
+DROP POLICY IF EXISTS "gchall_read_public_or_member" ON public.group_challenges;
 CREATE POLICY "gchall_read_public_or_member"
   ON public.group_challenges FOR SELECT
   USING (
@@ -3107,7 +3133,18 @@ grant execute on function public.get_invite_details(text) to anon, authenticated
 -- authenticated clients to reach the policy checks instead of failing early.
 
 grant update on public.group_challenge_participants to authenticated;
-grant insert, update, delete on public.user_inventory to authenticated;
+-- user_inventory is dropped by PATCH v10 earlier in this same file (Store was
+-- removed from the product). An unconditional GRANT therefore always fails with
+-- 42P01. Kept, but guarded, so the grant is still applied on any older database
+-- where the table survives and this file is used purely as a repair patch.
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'user_inventory'
+  ) THEN
+    GRANT INSERT, UPDATE, DELETE ON public.user_inventory TO authenticated;
+  END IF;
+END $$;
 grant insert, update on public.user_points to authenticated;
 grant update on public.group_members to authenticated;
 

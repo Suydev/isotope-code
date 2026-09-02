@@ -99,8 +99,17 @@
 <div class="wrap docs">
 
   <aside class="sidebar glass" aria-label="Documentation">
-    <label class="sr-only" for="navfilter">Filter documentation pages</label>
-    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <!-- Search, not a filter. The old control only hid sidebar links, so it could
+         never find text on a page you were not already looking at. This is the
+         same full-text search as the landing hero, reachable from every page. -->
+    <form class="sidebar-search" role="search" action="./troubleshooting.html" data-docsearch>
+      <label class="sr-only" for="docsearch-side">Search the documentation</label>
+      <svg class="askbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="sidebar-search-input" id="docsearch-side" type="search" autocomplete="off"
+             placeholder="Search docs…">
+      <kbd class="askbar-slash" aria-hidden="true">/</kbd>
+    </form>
+    <ul class="askbar-results is-rail" data-docsearch-results hidden></ul>
     <div class="sidebar-group">
       <p>Guides</p>
       <a href="./getting-started.html">Getting started</a>
@@ -389,18 +398,35 @@ function isCountsEmpty(counts) {
 
     <h2 class="rise" id="storage-layout">Storage bucket layout <a class="anchor" href="#storage-layout" aria-label="Link to this section">#</a></h2>
 
-    <p>Three buckets, with different visibility. Getting these wrong is how a private
+    <p>Four buckets, with different visibility. Getting these wrong is how a private
     backup ends up publicly readable, so the distinction is worth stating explicitly.</p>
 
     <div class="table-wrap glass">
       <table>
         <thead><tr><th>Bucket</th><th>Visibility</th><th>Holds</th></tr></thead>
         <tbody>
-          <tr><td><code>user-content</code></td><td>Private</td><td>Backups, imports, exports, cloud snapshots, user files.</td></tr>
+          <tr><td><code>user-content</code></td><td>Private</td><td>Backups, imports, exports, cloud snapshots, user files, note attachments.</td></tr>
           <tr><td><code>avatars</code></td><td>Public read</td><td>Profile images. Write paths are owner-scoped.</td></tr>
-          <tr><td><code>notes</code></td><td>Private</td><td>Notes and documents.</td></tr>
+          <tr><td><code>group-icons</code></td><td>Public read</td><td>Group icons — rendered in Discover for people who are not members. Owner-scoped writes.</td></tr>
+          <tr><td><code>study-material</code></td><td>Private</td><td>A student's own PDFs and scans. Private in every direction.</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <p>Public read never means public write — writes are owner-scoped in all four, on the
+    <code>{auth.uid()}/…</code> path convention.</p>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <p><span class="note-title">Backups can only carry buckets that exist</span>
+  <code>group-icons</code> and <code>study-material</code> were absent from the project while
+  the app uploaded to both, and the backup tool passed regardless: it dumped three buckets and
+  compared against three. A bucket the code needs and the database lacks is invisible to a tool
+  whose reference point is the database. The required set is now declared in
+  <code>REQUIRED_BUCKETS</code>, restore creates the union of the manifest and that set, and
+  verify fails when one is missing — so a restored project can accept an upload the source
+  project could not. A fifth bucket, <code>notes</code>, was removed: zero objects, zero
+  references.</p>
     </div>
 
     <p>Within <code>user-content</code>, canonical writes go to three paths:</p>

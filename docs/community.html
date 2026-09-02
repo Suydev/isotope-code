@@ -99,8 +99,17 @@
 <div class="wrap docs">
 
   <aside class="sidebar glass" aria-label="Documentation">
-    <label class="sr-only" for="navfilter">Filter documentation pages</label>
-    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <!-- Search, not a filter. The old control only hid sidebar links, so it could
+         never find text on a page you were not already looking at. This is the
+         same full-text search as the landing hero, reachable from every page. -->
+    <form class="sidebar-search" role="search" action="./troubleshooting.html" data-docsearch>
+      <label class="sr-only" for="docsearch-side">Search the documentation</label>
+      <svg class="askbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="sidebar-search-input" id="docsearch-side" type="search" autocomplete="off"
+             placeholder="Search docs…">
+      <kbd class="askbar-slash" aria-hidden="true">/</kbd>
+    </form>
+    <ul class="askbar-results is-rail" data-docsearch-results hidden></ul>
     <div class="sidebar-group">
       <p>Guides</p>
       <a href="./getting-started.html">Getting started</a>
@@ -357,6 +366,58 @@ where status != 'offline'
     <code>accepted_at</code>). Requests are made by handle, not email — you never need to
     know someone's address to add them.</p>
 
+    <div class="note danger glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">This was completely broken until 2026-08-30</span>
+  The handle was written to one place and read from another:
+  <code>community_bootstrap_profile</code> wrote
+  <code>profile_data-&gt;&gt;'community_handle'</code> (a JSONB key) while
+  <code>community_request_buddy</code> read <code>user_profiles.handle</code> (a real column).
+  The column was NULL for every user, so every request raised <code>user_not_found</code>, for
+  every handle, always. Note which functions still worked:
+  <code>community_respond_buddy</code> and <code>community_remove_buddy</code> both returned
+  200 — only the entry point failed, which is why the whole feature looked dead rather than
+  partly broken. You can never create a connection for the others to act on.</p>
+    </div>
+
+    <p>Fixed in <code>supabase/021_fix_buddy_handle_and_overview.sql</code>: bootstrap now
+    writes the column and the JSONB key, and <code>request_buddy</code> accepts either, plus
+    <code>users.username</code> — so accounts that enrolled before the fix, or never enrolled
+    at all, stay findable. Underneath both was a third defect: <code>user_profiles</code> had
+    no rows at all, because the signup trigger never ran
+    (see <a href="./database.html#triggers">Triggers</a>). A user with no
+    <code>user_profiles</code> row cannot have a handle in either location.</p>
+
+    <h3 id="buddy-progress">What you see once a request is accepted</h3>
+
+    <p><code>community_get_overview</code> returns each buddy with the fields the UI renders:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><code>minutesToday</code></td><td>Settled study minutes, on <em>their</em> day boundary from <code>day_offset_hours</code> — not UTC. A student studying at 01:00 local has not started a new day.</td></tr>
+          <tr><td><code>subjects[]</code></td><td><code>{name, minutes, questions}</code>, top eight by time.</td></tr>
+          <tr><td><code>tasks[]</code></td><td><code>{id, title, subject, done}</code> for today.</td></tr>
+          <tr><td><code>presence</code></td><td><code>{state, subject, task}</code> — live, and only within the last two minutes.</td></tr>
+          <tr><td><code>outgoing</code></td><td>Direction. <code>respond_buddy</code> is only valid for a request sent <em>to</em> you, so an outgoing request must not render an Accept button.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>Privacy is enforced server-side</strong>, from each buddy's own
+    <code>community_enrollments.privacy</code> — not by the client choosing what to display.
+    A client-side filter is not a privacy control: by the time the client filters, the data has
+    already left the database. <code>stealthMode</code> collapses live status and subject;
+    <code>shareTasks</code>, <code>shareSubjectBreakdown</code>,
+    <code>shareQuestionCounts</code>, <code>shareExactTime</code> and
+    <code>shareCurrentSubject</code> each gate their own field.</p>
+
+    <p>A withheld field returns <code>null</code>, not <code>[]</code> — the UI distinguishes
+    them: <code>null</code> renders &ldquo;not shared&rdquo;, an empty array renders
+    &ldquo;no settled study time&rdquo;. Returning <code>[]</code> for a withheld field would
+    tell the reader their buddy did nothing today, which is a different and wrong statement.</p>
+
     <div class="table-wrap">
       <table>
         <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
@@ -370,11 +431,22 @@ where status != 'offline'
 
     <div class="note glass">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><span class="note-title">Ignore <code>buddy_invites</code></span>
-      That table exists in the schema but has row-level security enabled with zero
-      policies, and nothing references it — no function, no server route. It is an orphan
-      from an earlier design and is scheduled for removal. Buddies run entirely through
-      <code>community_friends</code>.</p>
+      <p><span class="note-title"><code>buddy_invites</code> is not dead &mdash; do not drop it</span>
+      An earlier version of this page said that table was an orphan referenced by nothing and
+      scheduled for removal. That was wrong. Three functions depend on it, verified against the
+      live database: <code>community_create_invite</code>,
+      <code>community_preview_invite</code> and <code>community_redeem_invite</code>. It is the
+      <strong>pending-invite</strong> store; <code>community_friends</code> is the
+      <strong>accepted-buddy</strong> store. Dropping it breaks invite links.</p>
+      <p>What is true is that it has RLS enabled with <strong>zero policies</strong>, which is
+      fail-closed. That is why buddy invite links previewed as
+      &ldquo;invalid&rdquo; for perfectly valid tokens: <code>create</code> and
+      <code>redeem</code> are <code>SECURITY DEFINER</code> and bypass RLS, but
+      <code>preview</code> ran with invoker rights and could read nothing. Fixed in
+      <code>supabase/020_fix_community_preview_invite_rls.sql</code> by making it
+      <code>SECURITY DEFINER</code> too &mdash; not by adding a policy, since a preview is
+      deliberately pre-authorisation and any policy permissive enough to allow it would mean
+      &ldquo;anyone may read any invite row&rdquo;.</p>
     </div>
 
     <h2 class="rise" id="alerts">Start alerts and quiet hours <a class="anchor" href="#alerts" aria-label="Link to this section">#</a></h2>

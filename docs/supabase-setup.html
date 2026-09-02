@@ -93,8 +93,17 @@
 <div class="wrap docs">
 
   <aside class="sidebar glass" aria-label="Documentation">
-    <label class="sr-only" for="navfilter">Filter documentation pages</label>
-    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <!-- Search, not a filter. The old control only hid sidebar links, so it could
+         never find text on a page you were not already looking at. This is the
+         same full-text search as the landing hero, reachable from every page. -->
+    <form class="sidebar-search" role="search" action="./troubleshooting.html" data-docsearch>
+      <label class="sr-only" for="docsearch-side">Search the documentation</label>
+      <svg class="askbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="sidebar-search-input" id="docsearch-side" type="search" autocomplete="off"
+             placeholder="Search docs…">
+      <kbd class="askbar-slash" aria-hidden="true">/</kbd>
+    </form>
+    <ul class="askbar-results is-rail" data-docsearch-results hidden></ul>
     <div class="sidebar-group">
       <p>Guides</p>
       <a href="./getting-started.html">Getting started</a>
@@ -134,67 +143,353 @@
       <a href="./">Docs</a> <span aria-hidden="true">/</span> <span>Supabase setup</span>
     </nav>
     <h1 data-enter="2">Supabase setup</h1>
-    <p class="lead" data-enter="3">IsotopeAI stores everything in a Supabase project you own. This takes
-    about five minutes: create the project, run one SQL file, create three storage
-    buckets, copy two keys.</p>
+    <p class="lead" data-enter="3">IsotopeAI stores everything in a Supabase project you own.
+    There are two ways to set one up: run one command, or do it by hand in the dashboard.
+    The command is not a shortcut for the impatient — it does four things the manual route
+    leaves out, and two of them are invisible until the app breaks.</p>
 
-    <h2 class="rise" id="create">Create the project <a class="anchor" href="#create" aria-label="Link to this section">#</a></h2>
-    <ol class="steps">
-      <li>
-        <h3>Start a free project</h3>
-        <p>Go to <a href="https://supabase.com">supabase.com</a> and create a project.
-        Any region works — pick the one closest to you for lower latency.</p>
-      </li>
-      <li>
-        <h3>Open the SQL editor</h3>
-        <p>Project → SQL Editor → New query.</p>
-      </li>
-      <li>
-        <h3>Run the schema</h3>
-        <p>Paste the entire contents of
-        <a href="https://github.com/Suydev/isotope-code/blob/main/isotope-complete.sql"><code>isotope-complete.sql</code></a>
-        and run it. It is idempotent — safe to run again later.</p>
-      </li>
-    </ol>
+    <h2 class="rise" id="automated">The one-command setup <a class="anchor" href="#automated" aria-label="Link to this section">#</a></h2>
 
-    <div class="note tip glass">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><span class="note-title">What the schema creates</span>Tables for users, study data and community
-  features; row-level security policies on every table; <code>SECURITY DEFINER</code>
-  functions for operations RLS alone cannot express; and triggers that seed a new user's
-  satellite rows automatically.</p>
+    <p>From an <code>isotope-apk</code> checkout, with a
+    <a href="https://supabase.com/dashboard/account/tokens" rel="noopener">personal access token</a>
+    and nothing else:</p>
+
+    <div class="codeblock" data-lang="bash">
+<pre># provision a project you already created and left empty
+./supabase.sh setup --pat sbp_xxx --ref abcdefghijklmnop
+
+# or create the project too, wait for its database, then provision it
+./supabase.sh setup --pat sbp_xxx --create "my-isotope"</pre>
     </div>
 
-    <h2 class="rise" id="buckets">Storage buckets <a class="anchor" href="#buckets" aria-label="Link to this section">#</a></h2>
-    <p>Create three buckets under Storage. The server also creates them on startup when
-    admin mode is enabled, but doing it by hand works on any install.</p>
+    <p>It runs five phases in dependency order and asserts each one landed:</p>
 
-    <div class="table-wrap">
+    <div class="table-wrap glass">
       <table>
-        <thead><tr><th>Bucket</th><th>Public</th><th>Purpose</th></tr></thead>
+        <thead><tr><th>Phase</th><th>What it does</th></tr></thead>
         <tbody>
-          <tr><td><code>avatars</code></td><td>Yes</td><td>Profile images. Public so avatar URLs work without signing.</td></tr>
-          <tr><td><code>user-content</code></td><td>No</td><td>User uploads. Owner-scoped by RLS.</td></tr>
-          <tr><td><code>notes</code></td><td>No</td><td>Note attachments. Owner-scoped by RLS.</td></tr>
+          <tr><td><strong>schema</strong></td><td>1,812 statements in batches of 50 — 42 tables, 73 public functions, 15 triggers, 153 policies. Aborts on the first real failure rather than continuing against a half-built database.</td></tr>
+          <tr><td><strong>storage</strong></td><td>All four buckets with their size caps and MIME allow-lists. Clamps any cap above the project's plan limit instead of failing.</td></tr>
+          <tr><td><strong>auth</strong></td><td>The signup trigger on <code>auth.users</code>. This is the step the manual route cannot express — see below.</td></tr>
+          <tr><td><strong>verify</strong></td><td>Eight assertions that the project can actually run the app, not just that the SQL returned success.</td></tr>
+          <tr><td><strong>.env</strong></td><td>Written last, and only if verify passed. An existing <code>.env</code> is moved to <code>.env.old</code>.</td></tr>
         </tbody>
       </table>
     </div>
 
-    <h2 class="rise" id="keys">Copy your keys <a class="anchor" href="#keys" aria-label="Link to this section">#</a></h2>
-    <p>Project Settings → API. Copy the URL and the <strong>anon</strong> key into
-    <code>.env</code>:</p>
+    <p>It writes <strong>no database rows</strong> — no users, no seed data, no files. The project
+    it leaves behind is empty and ready for its owner's first signup.</p>
+
+    <div class="note warn glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">The step that is easy to miss entirely</span>
+  <code>handle_new_user()</code> seeds five rows on every signup —
+  <code>public.users</code>, <code>user_profiles</code>, <code>user_points</code>,
+  <code>user_stats_summary</code>, <code>user_presence</code>. The trigger that fires it lives on
+  <code>auth.users</code>, and for a period this schema file did not contain it: the function
+  existed, nothing called it, and <strong>32 of 43 accounts had an auth identity and no
+  application data at all</strong>. Signup appeared to succeed and then nothing worked —
+  enrolment failed, Community was empty, the leaderboard was blank. The file now includes
+  the trigger and <code>./supabase.sh check</code> asserts it, but if you are applying an older
+  copy of the schema, this is the thing to verify.</p>
+    </div>
+
+    <h3 id="env-file">Writing <code>.env</code></h3>
+
+    <p>On success, setup writes <code>.env</code> pointing at the new project. It never
+    overwrites an existing one — that file holds the service-role key and every API key on
+    the machine, so it is <em>moved</em> to <code>.env.old</code> first. Run it twice and the
+    original is rotated to a timestamped name rather than buried.</p>
+
+    <p>These four are owned by the script, because they identify the project it just set up:</p>
+
+    <div class="codeblock" data-lang="bash">
+<pre>SUPABASE_URL
+SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_ACCESS_TOKEN</pre>
+    </div>
+
+    <p>Everything else is carried across from the old file: <code>PORT</code>, the AI keys, the
+    admin settings, and <code>SESSION_SECRET</code> — regenerating that last one would silently
+    log out every existing browser session for no reason. Any key the script does not
+    recognise is preserved under a comment rather than dropped. The file is written
+    <code>0600</code>.</p>
+
+    <p>Pass <code>--no-env</code> to skip it, for a checkout whose secrets are managed elsewhere
+    or a project you are provisioning for a different machine. The web console offers the same
+    choice as a checkbox.</p>
+
+    <h3 id="check">Checking a project without changing it</h3>
+
+    <p><code>check</code> is read-only and answers the question the counts alone cannot:</p>
+
+    <div class="codeblock" data-lang="bash">
+<pre>./supabase.sh check --pat sbp_xxx --ref abcdefghijklmnop</pre>
+    </div>
+
+    <p>Thirteen checks in four groups. Every one of them exists because that exact thing
+    silently failed at some point:</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Group</th><th>Catches</th></tr></thead>
+        <tbody>
+          <tr><td><strong>schema</strong></td><td>Missing tables, functions, policies, indexes; the six tables signup writes to; ten RPCs the compiled app calls directly.</td></tr>
+          <tr><td><strong>auth</strong></td><td>The signup trigger, and any auth user with no <code>public.users</code> row.</td></tr>
+          <tr><td><strong>community</strong></td><td>Buddy handles populated; the overview returning <code>buddies</code>; and the buddy payload <em>shape</em> — the compiled bundle reads <code>presence.state</code> at 22 unguarded sites, so a flat-only payload crashes the Community tab on the first accepted buddy.</td></tr>
+          <tr><td><strong>storage</strong></td><td>All four buckets present, and the object policies that let uploads through.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Each failure prints the command or migration that fixes it. Add <code>--json</code> for a
+    machine-readable report; that is what the web console consumes.</p>
+
+    <h3 id="console">The web console</h3>
+
+    <div class="codeblock" data-lang="bash">
+<pre>./supabase.sh ui        # http://127.0.0.1:8000</pre>
+    </div>
+
+    <p>A four-step flow — connect, choose a project, read the readiness report, then run.
+    Step four does not appear until step three has run, so you cannot act on a project before
+    the console has told you what state it is in. It binds to loopback only, because the page
+    accepts a management-API token and can provision or overwrite a project.</p>
+
+    <p>Jobs run detached with their state on disk, so closing the tab or restarting the server
+    does not stop or lose one. <code>./supabase.sh status</code> reports the same job from a
+    terminal with no server running.</p>
+
+    <h2 class="rise" id="before">Doing it by hand <a class="anchor" href="#before" aria-label="Link to this section">#</a></h2>
+
+    <p>Everything below is the manual equivalent. It is worth reading even if you use the
+    command, because it explains what the command is doing — and if you follow it instead,
+    remember the signup trigger and the buckets, which are the two things the SQL file alone
+    does not fully cover.</p>
+
+    <p>Two facts worth having up front, because they change what you need to do.</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Fact</th><th>Consequence</th></tr></thead>
+        <tbody>
+          <tr><td><code>isotope-complete.sql</code> is <strong>272&nbsp;KB / 5,368 lines</strong></td><td>Paste it as a file upload, not into the editor box. The browser SQL editor will accept it, but a paste that large is slow and easy to truncate silently.</td></tr>
+          <tr><td>The whole file is wrapped in <code>BEGIN; … COMMIT;</code></td><td>It is one transaction. Either the entire schema lands or none of it does — there is no half-applied state to clean up.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>What it creates, counted from the file rather than estimated:</p>
+
+    <div class="stat-strip">
+      <div><span class="ticker" data-ticker="42" aria-hidden="true">0</span><span class="sr-only">42</span><span class="ticker-label">Tables</span></div>
+      <div><span class="ticker" data-ticker="80" aria-hidden="true">0</span><span class="sr-only">80</span><span class="ticker-label">Functions</span></div>
+      <div><span class="ticker" data-ticker="153" aria-hidden="true">0</span><span class="sr-only">153</span><span class="ticker-label">RLS policies</span></div>
+      <div><span class="ticker" data-ticker="15" aria-hidden="true">0</span><span class="sr-only">15</span><span class="ticker-label">Triggers</span></div>
+    </div>
+
+    <p>Row-level security is enabled on <strong>all 42</strong> tables — not most of them. If
+    you find a table without it after running the file, something did not apply.</p>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <p><span class="note-title">What the file does not contain</span>
+  The <code>auth.*</code> and <code>storage.*</code> schemas are managed by Supabase and are
+  deliberately excluded — you cannot recreate them and should not try. No user data is
+  included either. Buckets are the one thing you create separately; see
+  <a href="#buckets">Storage buckets</a>.</p>
+    </div>
+
+    <h2 class="rise" id="create">Create the project <a class="anchor" href="#create" aria-label="Link to this section">#</a></h2>
+
+    <ol class="steps">
+      <li>
+        <h3>Create a free project</h3>
+        <p>At <a href="https://supabase.com/dashboard" rel="noopener">supabase.com/dashboard</a>.
+        Pick the region closest to you — every request from your device makes a round trip, so
+        region is the single largest factor in how fast the app feels.</p>
+        <p>Save the database password Supabase shows you. It is displayed once, it is not the
+        same as any API key, and <code>backup.sh</code> needs it for <code>DATABASE_URL</code>.</p>
+      </li>
+      <li>
+        <h3>Wait for provisioning to finish</h3>
+        <p>Roughly two minutes. Running SQL against a project that is still starting fails in
+        ways that look like schema errors rather than timing errors, which sends you debugging
+        the wrong thing.</p>
+      </li>
+      <li>
+        <h3>Run the schema</h3>
+        <p>SQL Editor → <em>New query</em>. Upload
+        <a href="https://github.com/Suydev/isotope-code/blob/main/isotope-complete.sql" rel="noopener"><code>isotope-complete.sql</code></a>
+        rather than pasting it, then run.</p>
+        <p>Expect <em>Success. No rows returned</em>. That is the correct output — the file
+        creates objects and selects nothing.</p>
+      </li>
+      <li>
+        <h3>Confirm it actually applied</h3>
+        <p>Do not take the success message on trust. Run this and check the numbers:</p>
+        <div class="codeblock" data-lang="sql">
+<pre>select
+  (select count(*) from pg_tables where schemaname = 'public')                as tables,
+  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public')                                             as functions,
+  (select count(*) from pg_policies where schemaname = 'public')             as policies,
+  (select count(*) from pg_tables
+     where schemaname = 'public' and rowsecurity = false)                    as tables_without_rls;</pre>
+        </div>
+        <p><code>tables_without_rls</code> must be <strong>0</strong>. Anything else means a
+        table is world-readable to any holder of the anon key — which is a public value.</p>
+      </li>
+    </ol>
+
+    <div class="note tip glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg>
+      <p><span class="note-title">Re-running is safe</span>
+  Every statement is <code>IF NOT EXISTS</code> or <code>CREATE OR REPLACE</code>. Run it again
+  after an upgrade and it adds what is missing without touching what is there. This is also how
+  you repair a partially-configured project.</p>
+    </div>
+
+    <h3 id="extensions">Extensions</h3>
+
+    <p>The file enables five, all of which Supabase already ships — nothing needs installing:</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Extension</th><th>Why it is needed</th></tr></thead>
+        <tbody>
+          <tr><td><code>pgcrypto</code></td><td><code>gen_random_uuid()</code> for primary keys.</td></tr>
+          <tr><td><code>uuid-ossp</code></td><td>Legacy UUID generation, kept for older function bodies.</td></tr>
+          <tr><td><code>plpgsql</code></td><td>The language every one of the 80 functions is written in.</td></tr>
+          <tr><td><code>pg_stat_statements</code></td><td>Query statistics. Used when diagnosing a slow leaderboard.</td></tr>
+          <tr><td><code>supabase_vault</code></td><td>Supabase's own secret storage. Present in the dump because the platform expects it.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="rise" id="buckets">Storage buckets <a class="anchor" href="#buckets" aria-label="Link to this section">#</a></h2>
+
+    <p>Four buckets, and the exact values matter — the server checks them on startup and
+    corrects the public flag if it is wrong. Taken from <code>ensureStorageBuckets()</code> in
+    <code>server.mjs</code>:</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Bucket</th><th>Public</th><th>Size limit</th><th>MIME types</th><th>Holds</th></tr></thead>
+        <tbody>
+          <tr><td><code>user-content</code></td><td>No</td><td>50&nbsp;MB</td><td>Any</td><td>Sync payloads, backups, note attachments</td></tr>
+          <tr><td><code>avatars</code></td><td><strong>Yes</strong></td><td>2&nbsp;MB</td><td>Images only</td><td>Profile images</td></tr>
+          <tr><td><code>group-icons</code></td><td><strong>Yes</strong></td><td>10&nbsp;MB</td><td>Images only</td><td>Group icons</td></tr>
+          <tr><td><code>study-material</code></td><td>No</td><td>100&nbsp;MB</td><td>Any</td><td>A student's own PDFs and scans</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Paths in the last two are owner-scoped: <code>{auth.uid()}/…</code>. The first segment
+    being the owner's uid is what makes the RLS policy expressible as
+    <code>(storage.foldername(name))[1] = auth.uid()::text</code>.</p>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <p><span class="note-title">Two of these were missing for weeks</span>
+  <code>group-icons</code> and <code>study-material</code> did not exist on the project while
+  the shipped app uploaded to both, so every group-icon and every study-material upload
+  returned <code>404 NoSuchBucket</code>. Nothing caught it because the backup tool's reference
+  point was the database — it dumped three buckets, compared against three, and passed. If you
+  are on an older project, apply
+  <code>supabase/023_wire_missing_storage_buckets.sql</code> or run
+  <code>./supabase.sh check</code>, which now asserts the required set rather than whatever
+  happens to be there.</p>
+    </div>
+
+    <p>A fifth bucket, <code>notes</code>, was removed. It had a 10&nbsp;MB limit, an
+    owner-scoped policy, zero objects and zero references — no upload path in the bridge, none
+    in any reachable bundle. Its only mention anywhere was a health check asserting it existed,
+    which is worse than no check: it could only ever fail for a reason nobody should act on,
+    and it passed happily while the two buckets above were absent. If your project still has
+    it, <code>supabase/024_drop_unused_notes_bucket.sql</code> removes it — and refuses if it
+    turns out to contain anything.</p>
+
+    <div class="note warn glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">Two are public, and only those two</span>
+  A public bucket means any URL under it is readable by anyone who has the URL, with no token.
+  That is correct for profile images and group icons, which render in Discover for people who
+  are not members and may not be signed in — a signed URL per icon per render would be the
+  wrong shape. It would be very wrong for <code>user-content</code>, which holds every backup
+  you ever upload, or <code>study-material</code>, which holds a student’s own notes. Public
+  read never means public write: writes are owner-scoped in all four. If you create the buckets
+  by hand, check that flag twice.</p>
+    </div>
+
+    <p>You can skip creating them manually. <code>./supabase.sh setup</code> creates all four
+    as one of its phases. Failing that, with <code>ENABLE_ADMIN_MODE=true</code> and a
+    service-role key present, the server creates them on startup and logs each one:</p>
+
+    <div class="codeblock" data-lang="text">
+<pre>[Storage] Created bucket "user-content" (public=false)
+[Storage] Created bucket "avatars" (public=true)
+[Storage] Created bucket "group-icons" (public=true)
+[Storage] Created bucket "study-material" (public=false)</pre>
+    </div>
+
+    <div class="note warn glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">Free-plan size cap</span>
+  Supabase enforces a project-wide upload limit of 50&nbsp;MB on the free plan, and it cannot
+  be raised — the API returns <code>402</code>. So <code>study-material</code>'s 100&nbsp;MB is
+  clamped to 50&nbsp;MB, which <code>setup</code> reports rather than failing on. Before that
+  was handled, bucket creation died with <code>413 EntityTooLarge</code> and left the bucket
+  absent — on exactly the plan most first-time users are on.</p>
+    </div>
+
+    <p>It only creates buckets that return 404, so it is safe on every restart. Without admin
+    mode it does nothing, and you create them in the dashboard instead.</p>
+
+    <h2 class="rise" id="keys">Keys, and which are safe to expose <a class="anchor" href="#keys" aria-label="Link to this section">#</a></h2>
+
+    <p>Project Settings → API. Four values exist and they are not equally sensitive — treating
+    them as if they were is how the service key ends up somewhere it should not be.</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Value</th><th>Sensitivity</th><th>Who needs it</th></tr></thead>
+        <tbody>
+          <tr><td><code>SUPABASE_URL</code></td><td>Public</td><td>Browser and server. It is in every request URL.</td></tr>
+          <tr><td><code>SUPABASE_ANON_KEY</code></td><td><strong>Public by design</strong></td><td>Browser. It grants nothing on its own — RLS decides every row it can reach.</td></tr>
+          <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td><strong>Secret</strong></td><td>Owner tooling only. Bypasses RLS entirely.</td></tr>
+          <tr><td><code>SUPABASE_ACCESS_TOKEN</code></td><td><strong>Secret</strong></td><td>Management API — schema dumps and <code>backup.sh</code>. Account-wide, not project-scoped.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The minimum <code>.env</code> to boot is two lines:</p>
 
     <div class="codeblock" data-lang="ini">
-<pre>SUPABASE_URL=https://your-project-ref.supabase.co
+<pre>SUPABASE_URL=https://&lt;project-ref&gt;.supabase.co
 SUPABASE_ANON_KEY=&lt;your-anon-public-key&gt;</pre>
     </div>
 
     <div class="note danger glass">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
-      <p><span class="note-title">Do not put the service_role key here for normal use</span>The anon key is
-  the only one the browser needs. The service-role key bypasses row-level security and is
-  only required for owner tooling — see <a href="./configuration.html#owner">Configuration</a>.</p>
+      <p><span class="note-title">The anon key being public is not a compromise</span>
+  It is the design. Supabase ships it to every browser on purpose, and your security comes
+  entirely from row-level security — which is why the verification query above insists on
+  <code>tables_without_rls = 0</code>. The service-role key is the opposite: it ignores RLS
+  completely, so anything holding it has full read and write access to every row. Keep it out of
+  <code>.env</code> unless you are running owner tooling, and see
+  <a href="./configuration.html#owner">Configuration</a> for what actually needs it.</p>
     </div>
+
+    <h3 id="ref">Finding your project ref</h3>
+
+    <p>The ref is the subdomain of your project URL — for
+    <code>https://abcdefghijklm.supabase.co</code> it is <code>abcdefghijklm</code>. It appears
+    in three places you will need later: the OAuth callback URL, the auth storage key
+    <code>sb-&lt;ref&gt;-auth-token</code> in <code>localStorage</code>, and the
+    <code>DATABASE_URL</code> host for backups. When a session appears to vanish on login, a
+    mismatched ref is the first thing to check.</p>
 
     <h2 class="rise" id="google-auth">Google sign-in (optional) <a class="anchor" href="#google-auth" aria-label="Link to this section">#</a></h2>
 
@@ -271,16 +566,49 @@ SUPABASE_ANON_KEY=&lt;your-anon-public-key&gt;</pre>
         <p>Still in Authentication, open <strong>URL Configuration</strong> and add your
         local address to <em>Redirect URLs</em>:</p>
         <div class="codeblock" data-lang="text">
-<pre>http://127.0.0.1:3000/**
-http://localhost:3000/**</pre>
+<pre>http://127.0.0.1:3000/dashboard
+http://localhost:3000/dashboard</pre>
         </div>
         <p>Both, because <code>127.0.0.1</code> and <code>localhost</code> are different
-        origins to a browser and you may not always arrive by the same one. The
-        <code>/**</code> wildcard covers <code>/dashboard</code> and every other route the
-        app redirects to.</p>
+        origins to a browser and you will not always arrive by the same one.</p>
+        <p>These are the exact paths the app redirects to —
+        <code>signInWithOAuth</code> sends
+        <code>redirectTo: window.location.origin + '/dashboard'</code>, and nothing else.
+        Listing the exact URL rather than a pattern is what Supabase itself recommends for
+        anything you are not treating as a preview deployment.</p>
       </li>
-      <li><p>Set <strong>Site URL</strong> to <code>http://127.0.0.1:3000</code>. This is the fallback Supabase uses when a redirect target is not supplied.</p></li>
+      <li><p>Set <strong>Site URL</strong> to <code>http://127.0.0.1:3000</code>. This is the fallback Supabase uses when no <code>redirectTo</code> is supplied — password-reset and email-confirmation links use it.</p></li>
     </ol>
+
+    <div class="note warn glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">Wildcards: allowed on one side, forbidden on the other</span>
+  This trips people up because the two systems differ, and the error you get does not say so.</p>
+    </div>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Where</th><th>Wildcards</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Supabase <em>Redirect URLs</em></td>
+            <td><strong>Allowed</strong></td>
+            <td>Supports <code>*</code> (one path segment), <code>**</code> (any depth) and <code>?</code> (one character). Separators are <code>.</code> and <code>/</code>, so <code>/*</code> matches <code>/dashboard</code> but not <code>/a/b</code>. Supabase still recommends an exact path outside of preview-deployment use.</td>
+          </tr>
+          <tr>
+            <td>Google <em>Authorised redirect URIs</em></td>
+            <td><strong>Forbidden</strong></td>
+            <td>Google's URI validation rules reject wildcard characters outright. The scheme, case and trailing slash must all match exactly, and the value must be a domain you own.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>In this setup the difference never bites, because the Google side takes exactly one
+    literal URI — your Supabase callback — and never sees your local address at all. The only
+    place a pattern could appear is Supabase's own list, where it is supported. If you have read
+    that &ldquo;wildcards are not allowed&rdquo;, that is Google's rule being applied to the
+    wrong system.</p>
 
     <div class="note glass">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
@@ -319,7 +647,7 @@ http://localhost:3000/**</pre>
         <thead><tr><th>What you see</th><th>Cause</th></tr></thead>
         <tbody>
           <tr><td><code>redirect_uri_mismatch</code></td><td>The URI in Google Cloud is not exactly your Supabase callback. It must be the <code>supabase.co</code> address, with no trailing slash.</td></tr>
-          <tr><td>Returns to the app but still signed out</td><td>Your local origin is missing from Supabase <em>Redirect URLs</em>. Supabase completed the exchange, then refused to redirect back.</td></tr>
+          <tr><td>Returns to the app but still signed out</td><td><code>http://127.0.0.1:3000/dashboard</code> is missing from Supabase <em>Redirect URLs</em>. Supabase completed the code exchange, then refused to redirect back to an unlisted URL.</td></tr>
           <tr><td>Lands on <code>/dashboard</code>, then bounces to <code>/auth</code></td><td>The session was written but <code>AUTH_GUARD_SCRIPT</code> did not see it. Check <code>localStorage</code> for <code>sb-&lt;ref&gt;-auth-token</code> — if it is missing, the project ref in <code>.env</code> does not match the project that issued the session.</td></tr>
           <tr><td><code>OAuth requires cloud connection</code></td><td>The app is in local-only mode. OAuth cannot work without reaching Supabase; email sign-in still will.</td></tr>
           <tr><td>"Access blocked: this app is not verified"</td><td>Expected on a Testing app. Your account must be listed under <em>Test users</em>; click through the advanced warning.</td></tr>
@@ -337,6 +665,46 @@ http://localhost:3000/**</pre>
       if you want it; skipping it costs you nothing.</p>
     </div>
 
+    <h3 id="google-check">Confirming the provider is live</h3>
+
+    <p>Supabase exposes its own auth configuration publicly. This is the fastest way to know
+    whether the provider is actually enabled, without touching the dashboard:</p>
+
+    <div class="codeblock" data-lang="bash">
+<pre>curl -s https://&lt;project-ref&gt;.supabase.co/auth/v1/settings \
+  -H "apikey: &lt;your-anon-public-key&gt;" | python3 -m json.tool</pre>
+    </div>
+
+    <p>Look at <code>external</code>. A correctly configured project shows both:</p>
+
+    <div class="codeblock" data-lang="json">
+<pre>{
+  "external": {
+    "google": true,
+    "email": true,
+    ...
+  },
+  "disable_signup": false,
+  "mailer_autoconfirm": true
+}</pre>
+    </div>
+
+    <p>Three fields are worth reading while you are here:</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Field</th><th>Means</th></tr></thead>
+        <tbody>
+          <tr><td><code>external.google</code></td><td><code>false</code> means the provider is off, whatever the dashboard appears to show. Check this before debugging redirect URLs.</td></tr>
+          <tr><td><code>disable_signup</code></td><td><code>true</code> blocks all new accounts, including the first one. A locked-out fresh project usually has this set.</td></tr>
+          <tr><td><code>mailer_autoconfirm</code></td><td><code>true</code> means accounts work immediately without email confirmation — the right setting for a self-hosted install with no mail provider. <code>false</code> and no SMTP means every signup is stuck unconfirmed.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>This endpoint needs only the anon key, which is public by design — so it is safe to run
+    and safe to paste into a bug report.</p>
+
     <h2 class="rise" id="verify">Verify <a class="anchor" href="#verify" aria-label="Link to this section">#</a></h2>
     <div class="codeblock" data-lang="bash">
 <pre>isotope restart
@@ -353,30 +721,64 @@ curl -s http://127.0.0.1:3000/api/health | python3 -m json.tool</pre>
 
     <h2 class="rise" id="upgrading">Upgrading an existing project <a class="anchor" href="#upgrading" aria-label="Link to this section">#</a></h2>
     <p><code>isotope-complete.sql</code> is safe to re-run and will add anything missing.
-    Two patches apply only to older projects:</p>
+    Measured on a live project: 1771 statements, 0 failures on the first run and 0 on a
+    second run over the same database, with table, policy, function, trigger, index and
+    constraint counts identical afterwards. Three patches apply only to older projects:</p>
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>File</th><th>When you need it</th></tr></thead>
+        <thead><tr><th>File</th><th>When you need it</th><th>Re-runnable</th></tr></thead>
         <tbody>
           <tr><td><code>leaderboard-rls-fix.sql</code></td><td>If the leaderboard renders empty. An older
     <code>stats_own</code> policy blocked public <code>SELECT</code> on
     <code>user_stats_summary</code> and <code>daily_user_stats</code>. Fresh installs
-    already have the correct policy.</td></tr>
+    already have the correct policy, so on a current database this file is a
+    no-op that re-creates the same two <code>stats_read_all</code> /
+    <code>daily_read_all</code> policies.</td><td><strong>Yes</strong> — drops 7 policies and re-creates 4, so re-running converges rather than accumulating</td></tr>
           <tr><td><code>community-patch-v6.sql</code></td><td>The cumulative community patch, also served by
-    <code>/__admin/patch</code>. Supersedes v4.</td></tr>
-          <tr><td><code>performance-patch.sql</code></td><td>Indexes for RLS membership subqueries and leaderboard date sorts.</td></tr>
+    <code>/__admin/patch</code>. Supersedes v4. <strong>Also removes Events and Store</strong>
+    — see the warning below.</td><td><strong>Yes</strong> — 932 statements. Every <code>CREATE</code> is <code>IF NOT EXISTS</code> or <code>OR REPLACE</code>, and every <code>DROP</code> is <code>IF EXISTS</code></td></tr>
+          <tr><td><code>performance-patch.sql</code></td><td>Indexes for RLS membership subqueries and leaderboard date sorts.
+    Adds 9 indexes and re-creates 28 policies over a fresh install.</td><td><strong>Yes</strong> — 73 statements, all idempotent</td></tr>
         </tbody>
       </table>
     </div>
 
-    <div class="note warn glass">
+    <div class="note danger glass">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
-      <p><span class="note-title">One file is a removal patch</span><code>events-expansion.sql</code> now
-  <em>removes</em> the Events and Store features and drops
-  <code>user_inventory</code> and <code>store_items</code> — tables that
-  <code>isotope-complete.sql</code> creates. Do not run it after a fresh install.</p>
+      <p><span class="note-title">Two files remove Events and Store</span>
+  <code>events-expansion.sql</code> no longer creates the Events feature — it
+  <em>removes</em> it. <code>community-patch-v6.sql</code> ends with the same removal
+  block, so <strong>the cumulative community patch is destructive too</strong>. Both drop
+  four tables that <code>isotope-complete.sql</code> creates:
+  <code>store_items</code>, <code>user_inventory</code>, <code>community_events</code> and
+  <code>community_event_attendees</code>, plus seven RPCs
+  (<code>purchase_store_item</code>, <code>join_community_event</code>,
+  <code>leave_community_event</code>, <code>create_community_event</code>,
+  <code>update_community_event</code>, <code>delete_community_event</code>,
+  <code>get_event_attendees</code>). Counted from the two files: of the 20 tables and
+  28 functions <code>community-patch-v6.sql</code> drops, 4 tables and 15 function names
+  exist in the base schema — the rest are from an Events expansion the base schema never
+  created. Net effect on a fresh install: <strong>42 tables → 38</strong>, and
+  <strong>73 <code>public</code> functions → 57</strong> (16 <code>CREATE</code>
+  statements removed, one of them an overload). The patch also drops 70 policies and
+  creates 78, so the policy count moves rather than simply shrinking.</p>
     </div>
+
+    <p>This is intended — Events and Store were removed from the product — but it means
+    the order matters. On a fresh project the correct sequence is:</p>
+
+    <pre>isotope-complete.sql        # full schema, 42 tables
+community-patch-v6.sql      # optional; removes Events + Store, leaves 38 tables
+performance-patch.sql       # indexes
+sql/verify-security.sql     # check</pre>
+
+    <p>Run <code>community-patch-v6.sql</code> only if you want Events and Store gone, or
+    if you are repairing an older database. <code>events-expansion.sql</code> is now
+    redundant with the removal block inside v6; it exists so legacy setup instructions
+    that reference it stay safe rather than recreating a feature that no longer ships.
+    Running <code>isotope-complete.sql</code> again after either file will recreate all
+    four tables.</p>
 
     <div class="grid cols-2 scene">
       <a class="card tilt glass" href="./database.html">

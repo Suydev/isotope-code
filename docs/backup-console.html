@@ -93,8 +93,17 @@
 <div class="wrap docs">
 
   <aside class="sidebar glass" aria-label="Documentation">
-    <label class="sr-only" for="navfilter">Filter documentation pages</label>
-    <input class="nav-filter" id="navfilter" type="search" data-nav-filter placeholder="Filter pages…" autocomplete="off">
+    <!-- Search, not a filter. The old control only hid sidebar links, so it could
+         never find text on a page you were not already looking at. This is the
+         same full-text search as the landing hero, reachable from every page. -->
+    <form class="sidebar-search" role="search" action="./troubleshooting.html" data-docsearch>
+      <label class="sr-only" for="docsearch-side">Search the documentation</label>
+      <svg class="askbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="sidebar-search-input" id="docsearch-side" type="search" autocomplete="off"
+             placeholder="Search docs…">
+      <kbd class="askbar-slash" aria-hidden="true">/</kbd>
+    </form>
+    <ul class="askbar-results is-rail" data-docsearch-results hidden></ul>
     <div class="sidebar-group">
       <p>Guides</p>
       <a href="./getting-started.html">Getting started</a>
@@ -148,33 +157,100 @@
       before anyone noticed. The console exists mainly to make that state impossible to miss.</p>
     </div>
 
-    <h2 class="rise" id="modes">Two modes <a class="anchor" href="#modes" aria-label="Link to this section">#</a></h2>
-    <p>These are deliberately separate buttons rather than one flow with a checkbox. They carry very
-    different consequences, and the safe one should be the easy one.</p>
+    <h2 class="rise" id="flow">Four steps, gated <a class="anchor" href="#flow" aria-label="Link to this section">#</a></h2>
+
+    <p>Connect &rarr; choose a project &rarr; read the readiness report &rarr; run.
+    <strong>Step four does not exist until step three has run.</strong> That is the whole design:
+    you cannot act on a project before the console has told you what state it is in.</p>
+
+    <p>Changing the project selection collapses steps three and four and discards the report. A
+    stale readiness report sitting next to a different project ref is how someone runs an action
+    against the wrong database.</p>
+
+    <h3 id="one-action">One primary action, chosen for you</h3>
+
+    <p>An earlier version offered <em>Fresh setup</em> and <em>Full recovery</em> as two equal
+    buttons. That made the operator repeat the diagnosis the console had just done. The primary
+    button is now derived from the readiness result:</p>
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th></th><th>Fresh setup</th><th>Full recovery</th></tr></thead>
+        <thead><tr><th>Readiness</th><th>Primary action</th></tr></thead>
         <tbody>
-          <tr><td><strong>Purpose</strong></td><td>New, empty, working project</td><td>Restore a lost or paused project</td></tr>
-          <tr><td><strong>Schema</strong></td><td>Yes — all 42 tables and every column</td><td>Yes</td></tr>
-          <tr><td><strong>RLS policies</strong></td><td>Yes — 153 database + 9 storage</td><td>Yes</td></tr>
-          <tr><td><strong>Functions / RPCs</strong></td><td>Yes — 80</td><td>Yes</td></tr>
-          <tr><td><strong>Indexes, FKs, triggers</strong></td><td>Yes — 66 / 43 / 14</td><td>Yes</td></tr>
-          <tr><td><strong>Grants</strong></td><td>Yes — 1008 table, 79 function</td><td>Yes</td></tr>
-          <tr><td><strong>Storage buckets</strong></td><td>Yes — 3, with size caps and MIME rules</td><td>Yes</td></tr>
-          <tr><td><strong>Auth users</strong></td><td><strong>No</strong></td><td>Yes — with password hashes</td></tr>
-          <tr><td><strong>Table rows</strong></td><td><strong>No</strong></td><td>Yes</td></tr>
-          <tr><td><strong>Storage files</strong></td><td><strong>No</strong></td><td>Yes</td></tr>
-          <tr><td><strong>Unlock step</strong></td><td>None — one click</td><td>Type the target project ref</td></tr>
+          <tr><td>Checks failing</td><td><strong>Set up this project</strong> — states how many items it will fix</td></tr>
+          <tr><td>All 13 passing</td><td>Demoted to a subordinate <em>Run setup anyway</em>, which says it has nothing to add</td></tr>
         </tbody>
       </table>
     </div>
 
-    <p><strong>Fresh setup</strong> is the default because it is idempotent and carries no personal
-    data. <strong>Full recovery</strong> writes real user emails and bcrypt password hashes into the
+    <p>Backup and verify sit below as secondary actions. Full recovery is behind a disclosure,
+    visually separated, and still requires the ref typed exactly.</p>
+
+    <h2 class="rise" id="modes">Setup versus full recovery <a class="anchor" href="#modes" aria-label="Link to this section">#</a></h2>
+
+    <p>Two very different consequences, so the safe one is the easy one.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>Setup</th><th>Full recovery</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Purpose</strong></td><td>New, empty, working project</td><td>Restore a lost or paused project</td></tr>
+          <tr><td><strong>Needs a backup?</strong></td><td><strong>No</strong> — applies the committed schema</td><td>Yes — replays a tarball</td></tr>
+          <tr><td><strong>Schema</strong></td><td>Yes — all 42 tables and every column</td><td>Yes</td></tr>
+          <tr><td><strong>RLS policies</strong></td><td>Yes — 153 database + 16 storage</td><td>Yes</td></tr>
+          <tr><td><strong>Functions / RPCs</strong></td><td>Yes — 73 public (80 across all schemas)</td><td>Yes</td></tr>
+          <tr><td><strong>Indexes, FKs, triggers</strong></td><td>Yes — 66 / 43 / 15</td><td>Yes</td></tr>
+          <tr><td><strong>Signup trigger</strong></td><td>Yes — its own phase, asserted</td><td>Yes, if the backup carried it</td></tr>
+          <tr><td><strong>Storage buckets</strong></td><td>Yes — 4, with size caps and MIME rules</td><td>Yes</td></tr>
+          <tr><td><strong>Auth users</strong></td><td><strong>No</strong></td><td>Yes — with password hashes</td></tr>
+          <tr><td><strong>Table rows</strong></td><td><strong>No</strong></td><td>Yes</td></tr>
+          <tr><td><strong>Storage files</strong></td><td><strong>No</strong></td><td>Yes</td></tr>
+          <tr><td><strong>Writes <code>.env</code></strong></td><td>Yes — checkbox, on by default</td><td>Yes, after verification passes</td></tr>
+          <tr><td><strong>Unlock step</strong></td><td>Confirm only if the project has accounts</td><td>Type the target project ref</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>Setup</strong> needs no backup at all, which is the point &mdash; <em>restore</em>
+    replays a tarball, and a tarball only exists if you already had a working backend. Someone
+    setting up for the first time had no route through this console until setup became an action
+    in its own right. It writes no database rows: no users, no seed data, no files.</p>
+
+    <p><strong>Full recovery</strong> writes real user emails and bcrypt password hashes into the
     target, which is exactly what you want in a disaster and exactly what you do not want by
     accident.</p>
+
+    <h2 class="rise" id="readiness">The readiness report <a class="anchor" href="#readiness" aria-label="Link to this section">#</a></h2>
+
+    <p>Thirteen checks in four groups, read-only, and the same ones
+    <code>./supabase.sh check</code> runs &mdash; the console consumes its
+    <code>--json</code> output, so the two can never disagree. Every check exists because that
+    exact thing silently failed at some point:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Group</th><th>Catches</th></tr></thead>
+        <tbody>
+          <tr><td><strong>schema</strong></td><td>Missing tables, functions, policies, indexes; the six tables signup writes to; ten RPCs the compiled app calls directly.</td></tr>
+          <tr><td><strong>auth</strong></td><td>The signup trigger on <code>auth.users</code>, and any auth user with no <code>public.users</code> row.</td></tr>
+          <tr><td><strong>community</strong></td><td>Buddy handles populated; the overview returning <code>buddies</code>; and the buddy payload <em>shape</em>.</td></tr>
+          <tr><td><strong>storage</strong></td><td>All four buckets, and the object policies that let uploads through.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Failures are listed first within each group, each with the command or migration that
+    fixes it. Status is an icon, a colour <em>and</em> the word Pass or Fail &mdash; never colour
+    alone.</p>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <p><span class="note-title">Why counts alone are not an answer</span>
+  A project can hold all 42 tables, 80 functions and 153 policies and still be unable to accept
+  a single signup &mdash; that state shipped for weeks. The object counts were right; the trigger
+  that seeds a new account was missing. Three of the thirteen checks look for defects that no
+  count would reveal.</p>
+    </div>
 
     <h2 class="rise" id="not-included">What is never included <a class="anchor" href="#not-included" aria-label="Link to this section">#</a></h2>
     <p>Two categories are structurally absent, not filtered out:</p>
@@ -274,6 +350,17 @@
     <code>ADD CONSTRAINT</code> blocks, <code>DROP POLICY IF EXISTS</code> — so re-running a
     partially applied batch cannot corrupt anything.</p>
 
+    <div class="note danger glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">The replay is only useful if failures are classified honestly</span>
+  It was not. <code>does not exist</code> was treated as an idempotent skip alongside
+  <code>already exists</code> — so a statement failing because its dependency had never been
+  created was counted as &ldquo;already present&rdquo;. <strong>1,176 statements were discarded
+  and the phase reported 0 failed</strong> on a restore that had created 11 of 42 tables. The
+  classifier is now narrow, the schema phase aborts on a real failure, and it cross-checks every
+  manifest table against the target before touching data.</p>
+    </div>
+
     <div class="note glass">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
       <p><span class="note-title">Batches are sequential, not parallel</span>Eleven parallel workers
@@ -288,13 +375,23 @@
     counts, the auth user count, buckets and object counts — and, importantly,
     <strong>code</strong>:</p>
     <pre><code>PASS routines 80/80 — all present
-PASS triggers 14/14 — all present
+PASS triggers 15/15 — all present
 PASS policies 153/153 — all present
-[verify] RESULT: PASS (94/94 checks passed)</code></pre>
+PASS trigger auth.users.on_auth_user_created — present
+PASS auth users with a public.users row — 43/43
+[verify] RESULT: PASS (96/96 checks passed)</code></pre>
     <p>The routine, trigger and policy checks were added after a restore reported
     <em>91/91 checks passed</em> while silently missing most RPCs. Verify was counting rows only, so a
     database with every table and almost no functions looked perfect. A database that cannot run the
     app must fail verification.</p>
+
+    <p>The last two lines were added for a worse version of the same problem. Verification
+    compared the target against <em>what the manifest recorded</em>, so it could only ever find
+    objects the backup knew about. The signup trigger lives on <code>auth.users</code>, which
+    both dump tools exclude, so it was never recorded — and a restore passed 94/94 on a database
+    that could not accept a single signup. Those two checks now run
+    <strong>unconditionally</strong>, precisely because a backup taken before the fix does not
+    list the trigger at all.</p>
 
     <h2 class="rise" id="operations">Operations <a class="anchor" href="#operations" aria-label="Link to this section">#</a></h2>
     <pre><code># start the console (loopback only)
