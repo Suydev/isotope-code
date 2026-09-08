@@ -90,8 +90,21 @@ add(`GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;`);
 add('');
 
 // 1. extensions
+// Supabase-managed extensions only exist on the hosted platform: a fresh install
+// on stock Postgres (and the schema-lint CI shim, which runs the plain postgres
+// image) cannot `CREATE EXTENSION` them, and nothing this schema creates
+// references their objects. Emitting them makes the dump abort on the first one
+// under `psql -v ON_ERROR_STOP=1`. Skip them so the dump stays portable; the
+// hosted project already has them installed.
+const PLATFORM_ONLY_EXTENSIONS = new Set([
+  'supabase_vault', 'pg_graphql', 'pgsodium', 'pg_net',
+  'pgjwt', 'wrappers', 'pg_jsonschema', 'supabase_functions',
+]);
 rows = await query("select extname from pg_extension order by extname;");
-for (const r of rows) { add(`CREATE EXTENSION IF NOT EXISTS ${quoteIdent(r.extname)};`); counts.extensions++; }
+for (const r of rows) {
+  if (PLATFORM_ONLY_EXTENSIONS.has(r.extname)) continue;
+  add(`CREATE EXTENSION IF NOT EXISTS ${quoteIdent(r.extname)};`); counts.extensions++;
+}
 add('');
 
 // 2. enum/domain types (all user schemas)
@@ -409,6 +422,12 @@ for (const s of SCHEMAS) {
   join pg_namespace n on n.oid = c.relnamespace and n.nspname = '${s.replace(/'/g, "''")}'
   cross join lateral aclexplode(c.relacl) g
   where c.relkind in ('r','S','v','m') and g.grantee::regrole::text in ('anon','authenticated','service_role')
+    -- MAINTAIN is a Postgres 17 privilege. The hosted project runs PG17, so it
+    -- appears in relacl, but a fresh install on PG16 (and the PG16 CI shim)
+    -- rejects GRANT MAINTAIN with "unrecognized privilege type". It is
+    -- meaningless for these API roles anyway (RLS governs access), so drop it and
+    -- keep the dump installable on PG16+.
+    and g.privilege_type <> 'MAINTAIN'
     -- Do not emit grants for extension-owned relations we no longer create.
     and not exists (
       select 1 from pg_depend d
