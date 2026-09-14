@@ -1,0 +1,16 @@
+# ── Render deployment configuration ────────────────────────────────────────────────
+# Automatic deployment: git push to main → Render builds & deploys
+# Set required environment variables in Render dashboard:
+#   SUPABASE_URL=https://<ref>.supabase.co
+#   SUPABASE_ANON_KEY=<anon_key>
+#   ANON_KEY=<supabase_anon_key>
+#   JWT_SECRET=<random_secret> (for session signing)
+
+services:
+  - type: web
+    name: isotope-ai
+    env: docker
+    dockerfilePath: Dockerfile
+    healthCheckPath: /api/health
+    plan: free
+    autoDeploy: true
