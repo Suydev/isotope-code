@@ -1,0 +1,17 @@
+# ── Railway configuration for Isotope AI ─────────────────────────────────────────────
+# Automatic deployment: git push to main → Railway builds & deploys
+# Set the following environment variables in Railway's dashboard or via CLI:
+#   railway variables set SUPABASE_URL=...
+#   railway variables set SUPABASE_ANON_KEY=...
+#   railway variables set ANON_KEY=...
+#   railway variables set JWT_SECRET=...
+
+[build]
+builder = "Dockerfile"
+# The Dockerfile handles building; Railway detects it automatically.
+
+[deploy]
+# server.mjs respects the PORT env var (Railway sets this automatically).
+startCommand = "node server.mjs"
+healthCheckPath = "/api/health"
+healthCheckTimeout = 120

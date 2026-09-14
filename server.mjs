@@ -4339,6 +4339,19 @@ function getPatchedCommunityVisualsBundle() {
 // guard to be null-safe so the dashboard falls back to the unfiltered list.
 const DASHBOARD_SYLLABUS_FROM = `ya=(a,r)=>{if(!a||a.syllabusIds.length===0)return r;`;
 const DASHBOARD_SYLLABUS_TO   = `ya=(a,r)=>{if(!a||!a.syllabusIds||a.syllabusIds.length===0)return r;`;
+
+// ── Dashboard patch: guard `s.chapters.some(...)` before reading `.includes`/`.find` ──
+// Browser error bridge caught runtime crashes on /dashboard after sync/import:
+//   Cannot read properties of undefined (reading 'some')
+// When subjects/chapters from cloud sync omit `chapters`/`topics`, the `.some`
+// call throws. Patch the guards to be null-safe using optional chaining.
+const DASHBOARD_CHAPTERS_FROM = `s.chapters.some(re=>re.id===S))??(u?.chapterId&&s.chapters.some(S=>S.id===u.chapterId)`;
+const DASHBOARD_CHAPTERS_TO   = `s.chapters?.some(re=>re.id===S))??(u?.chapterId&&s.chapters?.some(S=>S.id===u.chapterId)`;
+const DASHBOARD_TOPICS_FROM   = `l?.topicIds?.find(S=>s.chapters.some(re=>re.topics.some(Is=>Is.id===S)))??`;
+const DASHBOARD_TOPICS_TO     = `l?.topicIds?.find(S=>s.chapters?.some(re=>re.topics?.some(Is=>Is.id===S)))??`;
+const DASHBOARD_TOPICS_FROM2  = `u?.topicId&&s.chapters.some(S=>S.topics.some(re=>re.id===u.topicId))`;
+const DASHBOARD_TOPICS_TO2    = `u?.topicId&&s.chapters?.some(S=>S.topics?.some(re=>re.id===u.topicId))`;
+
 let patchedDashboardBundle = null;
 function getPatchedDashboardBundle() {
   if (patchedDashboardBundle) return patchedDashboardBundle;
@@ -4348,6 +4361,21 @@ function getPatchedDashboardBundle() {
       raw = raw.replace(DASHBOARD_SYLLABUS_FROM, DASHBOARD_SYLLABUS_TO);
       console.log('[DashboardPatch] syllabusIds null-guard added (ya filter)');
     } else { console.warn('[DashboardPatch] syllabusIds anchor not found'); }
+    // chapterId lookup: guard s.chapters?.some
+    if (raw.includes(DASHBOARD_CHAPTERS_FROM)) {
+      raw = raw.replace(DASHBOARD_CHAPTERS_FROM, DASHBOARD_CHAPTERS_TO);
+      console.log('[DashboardPatch] chapters.some null-guard added (chapterId lookup)');
+    } else { console.warn('[DashboardPatch] chapters anchor not found'); }
+    // topicId find: guard s.chapters?.some + re.topics?.some
+    if (raw.includes(DASHBOARD_TOPICS_FROM)) {
+      raw = raw.replace(DASHBOARD_TOPICS_FROM, DASHBOARD_TOPICS_TO);
+      console.log('[DashboardPatch] chapters/topics.some null-guard added (topicId find)');
+    } else { console.warn('[DashboardPatch] topics anchor 1 not found'); }
+    // topicId fallback: guard s.chapters?.some + S.topics?.some
+    if (raw.includes(DASHBOARD_TOPICS_FROM2)) {
+      raw = raw.replace(DASHBOARD_TOPICS_FROM2, DASHBOARD_TOPICS_TO2);
+      console.log('[DashboardPatch] chapters/topics.some null-guard added (topicId fallback)');
+    } else { console.warn('[DashboardPatch] topics anchor 2 not found'); }
     patchedDashboardBundle = Buffer.from(raw, 'utf8');
   } catch { patchedDashboardBundle = null; }
   return patchedDashboardBundle;
