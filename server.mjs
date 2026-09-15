@@ -4332,6 +4332,32 @@ function getPatchedCommunityBundle() {
       console.log('[InviteCode] group settings: "Invite link" -> "Invite code"');
     } else { console.warn('[InviteCode] group wording anchor not found'); _criticalPatchFailures.push('invite-group-wording'); }
 
+    // Own-user id fallback. community_get_overview only returns overview.profile
+    // from migration 025 onward; until that migration is applied the "Generate
+    // code" button early-returns on a falsy ownUserId. Falling back to the
+    // session store user id (exported as u in useAuthStore, bound to Ce here)
+    // makes generate/enter code work regardless of migration state.
+    const OWN_UID_DEF_FROM = 'A=Se(j=>j.profile),h=ze(j=>j.subjects),R=$();';
+    const OWN_UID_DEF_TO   = 'A=Se(j=>j.profile),__uid=Ce(j=>j.userId),h=ze(j=>j.subjects),R=$();';
+    if (raw.includes(OWN_UID_DEF_FROM)) {
+      raw = raw.replace(OWN_UID_DEF_FROM, OWN_UID_DEF_TO);
+      console.log('[InviteCode] ownUserId selector (session fallback) added');
+    } else { console.warn('[InviteCode] ownUserId selector anchor not found'); _criticalPatchFailures.push('invite-own-uid-def'); }
+
+    const OWN_UID_BUDDY_FROM = 'C&&e.jsx(as,{onClose:()=>S(!1),onNotice:f,ownUserId:b.data?.profile?.user_id})';
+    const OWN_UID_BUDDY_TO   = 'C&&e.jsx(as,{onClose:()=>S(!1),onNotice:f,ownUserId:b.data?.profile?.user_id??__uid})';
+    if (raw.includes(OWN_UID_BUDDY_FROM)) {
+      raw = raw.replace(OWN_UID_BUDDY_FROM, OWN_UID_BUDDY_TO);
+      console.log('[InviteCode] buddy popup ownUserId fallback added');
+    } else { console.warn('[InviteCode] buddy ownUserId anchor not found'); _criticalPatchFailures.push('invite-own-uid-buddy'); }
+
+    const OWN_UID_GROUP_FROM = 'l?e.jsx(ts,{groupId:l,viewerId:b.data.profile?.user_id';
+    const OWN_UID_GROUP_TO   = 'l?e.jsx(ts,{groupId:l,viewerId:b.data?.profile?.user_id??__uid';
+    if (raw.includes(OWN_UID_GROUP_FROM)) {
+      raw = raw.replace(OWN_UID_GROUP_FROM, OWN_UID_GROUP_TO);
+      console.log('[InviteCode] group view viewerId fallback added');
+    } else { console.warn('[InviteCode] group viewerId anchor not found'); _criticalPatchFailures.push('invite-own-uid-group'); }
+
     patchedCommunityBundle = Buffer.from(raw, 'utf8');
   } catch { patchedCommunityBundle = null; }
   return patchedCommunityBundle;
