@@ -3953,6 +3953,7 @@ function getPatchedAiStore() {
 const COMMUNITY_BUNDLE_ABS     = path.join(PUBLIC_DIR, 'assets', 'Community-CEnEgsrd.js');
 const COMMUNITY_API_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'communityApi-Ccw5N_9O.js');
 const COMMUNITY_HUB_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityHub-gANxZssO.js');
+const USE_COMMUNITY_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useCommunity-CBDFEeBe.js');
 
 // Paths already reported missing, so the warning fires once rather than on every
 // request. A chunk is requested repeatedly by a retrying router.
@@ -4270,6 +4271,67 @@ function getPatchedCommunityBundle() {
       raw = raw.replace(COMMUNITY_LB_RENDER_FROM, COMMUNITY_LB_RENDER_TO);
       console.log('[LeaderboardPatch] leaderboard view rendered in community page');
     } else { console.warn('[LeaderboardPatch] render anchor not found'); }
+    // ── Code-only invites ──────────────────────────────────────────────────
+    // community_create_invite already returns an 8-char token; the compiled
+    // bundle wraps it as `${origin}/invite/<code>`, which is only useful in a
+    // browser. Codes are what users share and type, and they work across the
+    // APK and the web app through the same RPCs.
+    const INVITE_STATE_FROM = 'const[l,o]=p.useState(""),[d,m]=p.useState(""),x=$(),';
+    const INVITE_STATE_TO   = 'const[l,o]=p.useState(""),[d,m]=p.useState(""),[__code,__setCode]=p.useState(""),x=$(),';
+    if (raw.includes(INVITE_STATE_FROM)) {
+      raw = raw.replace(INVITE_STATE_FROM, INVITE_STATE_TO);
+      console.log('[InviteCode] buddy popup: code state added');
+    } else { console.warn('[InviteCode] buddy state anchor not found'); _criticalPatchFailures.push('invite-code-state'); }
+
+    const INVITE_HANDLER_FROM = 'r({tone:"success",message:"Buddy invite copied."})};return e.jsxs(B,{title:"Add a buddy",description:"Use their exact username, or send a private invite link.",';
+    const INVITE_HANDLER_TO   = 'r({tone:"success",message:"Buddy code copied."})},__join=async()=>{if(!__code)return;const __r=await x.redeemInvite.mutateAsync({token:__code.trim().toLowerCase()});if(!__r.success)return r({tone:"error",message:__r.error==="invite_invalid"?"That code isn\'t valid or has expired.":__r.error==="invite_blocked"?"You can\'t join this person\'s circle.":__r.error||"That code could not be used."});r({tone:"success",message:"Buddy added."}),s()};return e.jsxs(B,{title:"Add a buddy",description:"Use their exact username, or join with an invite code.",';
+    if (raw.includes(INVITE_HANDLER_FROM)) {
+      raw = raw.replace(INVITE_HANDLER_FROM, INVITE_HANDLER_TO);
+      console.log('[InviteCode] buddy popup: join-by-code handler added');
+    } else { console.warn('[InviteCode] buddy handler anchor not found'); _criticalPatchFailures.push('invite-code-handler'); }
+
+    const INVITE_UI_FROM = 'e.jsxs("button",{type:"button",onClick:a,className:"community-control-button inline-flex min-h-11 w-full items-center justify-center gap-2 font-bold",children:[e.jsx(be,{className:"h-4 w-4"}),"Copy private invite link"]}),d&&e.jsx("p",{className:"mt-3 break-all text-xs text-zinc-500",children:d})';
+    const INVITE_UI_TO   = 'e.jsx("div",{className:"mt-4",children:[e.jsx("label",{className:"text-sm font-semibold",htmlFor:"buddy-code",children:"Have an invite code?"}),e.jsxs("div",{className:"mt-2 flex gap-2",children:[e.jsx("input",{id:"buddy-code",value:__code,onChange:u=>__setCode(u.target.value),placeholder:"e.g. 4f9a2b7c",maxLength:32,className:"min-h-12 min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-4 font-mono uppercase outline-none focus:border-brand-500 dark:border-white/15 dark:bg-zinc-900"}),e.jsx("button",{type:"button",disabled:x.redeemInvite.isPending||!__code.trim(),onClick:__join,className:"community-primary-button min-h-12 px-5 font-bold",children:"Join"})]})]}),e.jsxs("button",{type:"button",onClick:a,className:"community-control-button mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 font-bold",children:[e.jsx(be,{className:"h-4 w-4"}),"Generate my buddy code"]}),d&&e.jsx("p",{className:"mt-3 break-all rounded-lg bg-black/5 px-3 py-2 text-center font-mono text-sm tracking-wider text-zinc-700 dark:bg-white/10 dark:text-zinc-200",children:d})';
+    if (raw.includes(INVITE_UI_FROM)) {
+      raw = raw.replace(INVITE_UI_FROM, INVITE_UI_TO);
+      console.log('[InviteCode] buddy popup: enter-code field + generate button');
+    } else { console.warn('[InviteCode] buddy UI anchor not found'); _criticalPatchFailures.push('invite-code-ui'); }
+
+    const GROUP_CODE_STATE_FROM = 'es=({groups:s,requests:r,onCreate:i,onOpen:l,onDiscover:o,onNotice:d})=>{const m=$(),x=async(t,a)=>{';
+    const GROUP_CODE_STATE_TO   = 'es=({groups:s,requests:r,onCreate:i,onOpen:l,onDiscover:o,onNotice:d})=>{const m=$(),[__oc,__so]=p.useState(!1),[__gc,__sgc]=p.useState(""),x=async(t,a)=>{';
+    if (raw.includes(GROUP_CODE_STATE_FROM)) {
+      raw = raw.replace(GROUP_CODE_STATE_FROM, GROUP_CODE_STATE_TO);
+      console.log('[InviteCode] groups tab: code state added');
+    } else { console.warn('[InviteCode] groups state anchor not found'); _criticalPatchFailures.push('invite-groups-state'); }
+
+    const GROUP_CODE_HANDLER_FROM = ':"Request declined."})};return';
+    const GROUP_CODE_HANDLER_TO   = ':"Request declined."})},__join=async()=>{if(!__gc)return;const g=await m.redeemInvite.mutateAsync({token:__gc.trim().toLowerCase()});if(!g.success)return d({tone:"error",message:g.error==="invite_invalid"?"That code isn\'t valid or has expired.":g.error||"That code could not be used."});d({tone:"success",message:"Joined the group."}),__so(!1),__sgc("")};return';
+    if (raw.includes(GROUP_CODE_HANDLER_FROM)) {
+      raw = raw.replace(GROUP_CODE_HANDLER_FROM, GROUP_CODE_HANDLER_TO);
+      console.log('[InviteCode] groups tab: join-by-code handler added');
+    } else { console.warn('[InviteCode] groups handler anchor not found'); _criticalPatchFailures.push('invite-groups-handler'); }
+
+    const GROUP_CODE_BTN_FROM = 'e.jsxs("button",{type:"button",onClick:i,className:"community-primary-button inline-flex min-h-11 items-center gap-2 px-4 text-sm font-bold",children:[e.jsx(ge,{className:"h-4 w-4"}),"Create group"]})';
+    const GROUP_CODE_BTN_TO   = 'e.jsxs("div",{className:"flex gap-2",children:[e.jsx("button",{type:"button",onClick:()=>__so(!0),className:"community-control-button inline-flex min-h-11 items-center gap-2 px-4 text-sm font-bold",children:"Enter code"}),e.jsxs("button",{type:"button",onClick:i,className:"community-primary-button inline-flex min-h-11 items-center gap-2 px-4 text-sm font-bold",children:[e.jsx(ge,{className:"h-4 w-4"}),"Create group"]})]})';
+    if (raw.includes(GROUP_CODE_BTN_FROM)) {
+      raw = raw.replace(GROUP_CODE_BTN_FROM, GROUP_CODE_BTN_TO);
+      console.log('[InviteCode] groups tab: Enter code button added');
+    } else { console.warn('[InviteCode] groups button anchor not found'); _criticalPatchFailures.push('invite-groups-btn'); }
+
+    const GROUP_CODE_DIALOG_FROM = 'action:"Find a group",onAction:o,icon:Le})]})},ss=({filters:';
+    const GROUP_CODE_DIALOG_TO   = 'action:"Find a group",onAction:o,icon:Le})]}),__oc&&e.jsx(B,{title:"Join a group",description:"Enter the invite code you were given.",onClose:()=>__so(!1),children:[e.jsx("label",{className:"text-sm font-semibold",htmlFor:"group-code",children:"Invite code"}),e.jsxs("div",{className:"mt-2 flex gap-2",children:[e.jsx("input",{id:"group-code",value:__gc,onChange:u=>__sgc(u.target.value),placeholder:"e.g. 4f9a2b7c",maxLength:32,className:"min-h-12 min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-4 font-mono uppercase outline-none focus:border-brand-500 dark:border-white/15 dark:bg-zinc-900"}),e.jsx("button",{type:"button",disabled:m.redeemInvite.isPending||!__gc.trim(),onClick:__join,className:"community-primary-button min-h-12 px-5 font-bold",children:"Join"})]})]})},ss=({filters:';
+    if (raw.includes(GROUP_CODE_DIALOG_FROM)) {
+      raw = raw.replace(GROUP_CODE_DIALOG_FROM, GROUP_CODE_DIALOG_TO);
+      console.log('[InviteCode] groups tab: join-by-code dialog added');
+    } else { console.warn('[InviteCode] groups dialog anchor not found'); _criticalPatchFailures.push('invite-groups-dialog'); }
+
+    const GROUP_CODE_WORDING_FROM = 'o({tone:"success",message:"Invite link copied."})';
+    const GROUP_CODE_WORDING_TO   = 'o({tone:"success",message:"Invite code copied."})';
+    if (raw.includes(GROUP_CODE_WORDING_FROM)) {
+      raw = raw.replace(GROUP_CODE_WORDING_FROM, GROUP_CODE_WORDING_TO);
+      console.log('[InviteCode] group settings: "Invite link" -> "Invite code"');
+    } else { console.warn('[InviteCode] group wording anchor not found'); _criticalPatchFailures.push('invite-group-wording'); }
+
     patchedCommunityBundle = Buffer.from(raw, 'utf8');
   } catch { patchedCommunityBundle = null; }
   return patchedCommunityBundle;
@@ -4455,10 +4517,60 @@ function getPatchedCommunityApiBundle() {
       console.warn('[CommunityApiPatch] chat anchor not found; chat methods missing');
       _criticalPatchFailures.push('community-api-chat');
     }
+    // Code-only invites. community_create_invite already returns an 8-char
+    // token; wrapping it as `${origin}/invite/<code>` produces a link that is
+    // unusable inside a WebView-local origin (and only opens the web app). The
+    // raw code is what users share and type.
+    const INVITE_LINK_FROM = 'return{success:!0,data:`${window.location.origin}/invite/${t}`}';
+    const INVITE_LINK_TO   = 'return{success:!0,data:t}';
+    if (raw.includes(INVITE_LINK_FROM)) {
+      raw = raw.replace(INVITE_LINK_FROM, INVITE_LINK_TO);
+      console.log('[CommunityApiPatch] createInvite returns the raw code (link wrapper stripped)');
+    } else {
+      console.warn('[CommunityApiPatch] invite link anchor not found; invites may still produce links');
+      _criticalPatchFailures.push('community-api-invite-link');
+    }
+    // Expose the client so the code-entry handlers in Community-CEnEgsrd.js and
+    // useCommunity-CBDFEeBe.js can redeem codes without another bundle patch.
+    const COMMUNITY_API_EXPORT_FROM = 'export{g as c};';
+    const COMMUNITY_API_EXPORT_TO   = 'window.__isoCommunityApi=g;export{g as c};';
+    if (raw.includes(COMMUNITY_API_EXPORT_FROM)) {
+      raw = raw.replace(COMMUNITY_API_EXPORT_FROM, COMMUNITY_API_EXPORT_TO);
+      console.log('[CommunityApiPatch] community client exposed as window.__isoCommunityApi');
+    } else {
+      console.warn('[CommunityApiPatch] export anchor not found; code-entry handlers cannot redeem');
+      _criticalPatchFailures.push('community-api-export');
+    }
     patchedCommunityApiBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[CommunityApiPatch] Error:', e && e.message); patchedCommunityApiBundle = null; }
   return patchedCommunityApiBundle;
 }
+// ── useCommunity patch: redeem-by-code mutation ────────────────────────────────
+// useCommunity-CBDFEeBe.js exposes the community mutation set the UI calls. The
+// code-entry handlers added above need `redeemInvite`; the upstream bundle does
+// not ship it. Adding it here, with the same onSuccess invalidation as every
+// other mutation, makes entering an invite code work inline in both the APK and
+// the web app.
+let patchedUseCommunityBundle = null;
+function getPatchedUseCommunityBundle() {
+  if (patchedUseCommunityBundle) return patchedUseCommunityBundle;
+  try {
+    let raw = fs.readFileSync(USE_COMMUNITY_BUNDLE_ABS, 'utf8');
+    const ANCHOR = 'createInvite:o({mutationFn:({type:e,targetId:n})=>r.createInvite(e,n)})';
+    if (raw.includes('redeemInvite:o(')) {
+      console.log('[UseCommunityPatch] redeemInvite mutation already present; skipping');
+    } else if (raw.includes(ANCHOR)) {
+      raw = raw.replace(ANCHOR, ANCHOR + ',redeemInvite:o({mutationFn:({token:e})=>r.redeemInvite(e),onSuccess:i})');
+      console.log('[UseCommunityPatch] redeemInvite mutation added');
+    } else {
+      console.warn('[UseCommunityPatch] createInvite anchor not found; cannot add redeemInvite');
+      _criticalPatchFailures.push('use-community-redeem');
+    }
+    patchedUseCommunityBundle = Buffer.from(raw, 'utf8');
+  } catch (e) { console.error('[UseCommunityPatch] Error:', e && e.message); patchedUseCommunityBundle = null; }
+  return patchedUseCommunityBundle;
+}
+
 
 // ── PWA manager patch: guard SW-triggered reloads ─────────────────────────────
 // The SW-update reload hook moved from PWAManager-* into usePWA-* in the
@@ -10052,6 +10164,10 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const buf = getPatchedCommunityApiBundle();
       if (buf) { send(buf); return; }
     }
+    if (fp === USE_COMMUNITY_BUNDLE_ABS) {
+      const buf = getPatchedUseCommunityBundle();
+      if (buf) { send(buf); return; }
+    }
     if (fp === COMMUNITY_HUB_BUNDLE_ABS) {
       const buf = getPatchedCommunityHubBundle();
       if (buf) { send(buf); return; }
@@ -10185,6 +10301,7 @@ server.listen(port, '0.0.0.0', () => {
     safeWarm(INVITES_BUNDLE_ABS, getPatchedInvitesBundle);
     safeWarm(COMMUNITY_BUNDLE_ABS, getPatchedCommunityBundle);
     safeWarm(COMMUNITY_API_BUNDLE_ABS, getPatchedCommunityApiBundle);
+    safeWarm(USE_COMMUNITY_BUNDLE_ABS, getPatchedUseCommunityBundle);
     safeWarm(COMMUNITY_HUB_BUNDLE_ABS, getPatchedCommunityHubBundle);
     safeWarm(COMMUNITY_VISUALS_BUNDLE_ABS, getPatchedCommunityVisualsBundle);
     safeWarm(DASHBOARD_BUNDLE_ABS, getPatchedDashboardBundle);
