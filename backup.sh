@@ -149,6 +149,10 @@ parse_keys() {
 # service-role key sanity: a missing/placeholder key silently skips storage.
 # .env typos like "sukki =sb_secret_..." are detected here so storage is never
 # silently dropped from a backup or a restore.
+#
+# A PAT is enough on its own: with --pat and a URL the key is read from the
+# Management API. Without that fallback a PAT-only backup quietly excluded every
+# storage object, and the ${#VAR} below then aborted the run under `set -u`.
 resolve_service_key() {
   local svc_key="${SUPABASE_SERVICE_ROLE_KEY:-}"
   local len="${#svc_key}"
@@ -164,6 +168,24 @@ resolve_service_key() {
     done
     if [[ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
       [[ "${1:-warn}" == "warn" ]] && warn "service-role key found under a differently-spelled variable (fix the spelling!)"
+    elif [[ -n "${SUPABASE_ACCESS_TOKEN:-}" && -n "${SUPABASE_URL:-}" ]] && command -v node >/dev/null 2>&1; then
+      local ref remote
+      ref="$(printf '%s' "$SUPABASE_URL" | sed -E 's#https?://([^.]+)\..*#\1#')"
+      remote="$(SUPABASE_ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN:-}" node -e '
+        const ref = process.argv[1];
+        fetch("https://api.supabase.com/v1/projects/" + ref + "/api-keys", {
+          headers: { Authorization: "Bearer " + process.env.SUPABASE_ACCESS_TOKEN },
+        }).then(r => r.json()).then(keys => {
+          const k = (keys || []).find(x => x && x.name === "service_role");
+          if (k && k.api_key) process.stdout.write(k.api_key);
+        }).catch(() => {});
+      ' "$ref" 2>/dev/null)" || true
+      if [[ -n "$remote" && "${#remote}" -ge 20 ]]; then
+        SUPABASE_SERVICE_ROLE_KEY="$remote"
+        say "service-role key resolved from the Management API (--pat)"
+      else
+        [[ "${1:-warn}" == "warn" ]] && warn "no valid SUPABASE_SERVICE_ROLE_KEY — storage will NOT be included"
+      fi
     else
       [[ "${1:-warn}" == "warn" ]] && warn "no valid SUPABASE_SERVICE_ROLE_KEY — storage will NOT be included"
     fi
@@ -214,7 +236,9 @@ cmd_backup() {
   mkdir -p "$work/db"
   CLEANUP+=( "$work" )
   say "backup to $work"
-  say "source: $SUPABASE_URL (service key len: ${#SUPABASE_SERVICE_ROLE_KEY})"
+  local svc_len=0
+  [[ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]] && svc_len="${#SUPABASE_SERVICE_ROLE_KEY}"
+  say "source: $SUPABASE_URL (service key len: $svc_len)"
 
   say "step 1/4: schema dump (management API)…"
   node "$ROOT/scripts/schema-dump.mjs" 2>&1 | tail -5

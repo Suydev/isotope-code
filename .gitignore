@@ -33,3 +33,5 @@ message.md
 
 # Supabase advisor dumps — regenerated on demand, not source
 supabase_advisor.json
+.vercel
+.env*
