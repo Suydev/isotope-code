@@ -4318,8 +4318,20 @@ function getPatchedCommunityBundle() {
       console.log('[InviteCode] groups tab: Enter code button added');
     } else { console.warn('[InviteCode] groups button anchor not found'); _criticalPatchFailures.push('invite-groups-btn'); }
 
+    // ISSUE-054: the dialog patch below turns es's `return e.jsxs("div",{...})`
+    // into a comma expression (`return <div jsx>, __oc && e.jsx(B, ...)`) — the
+    // component then RETURNS the closed dialog (false) instead of the panel,
+    // and the whole Groups tab renders empty. Wrap the return in a fragment so
+    // both the panel and the dialog are part of one returned tree.
+    const GROUP_RETURN_OPEN_FROM = '__sgc("")};return e.jsxs("div",{children:[e.jsxs("div",{className:"community-view-heading';
+    const GROUP_RETURN_OPEN_TO   = '__sgc("")};return e.jsxs(p.Fragment,{children:[e.jsxs("div",{children:[e.jsxs("div",{className:"community-view-heading';
+    if (raw.includes(GROUP_RETURN_OPEN_FROM)) {
+      raw = raw.replace(GROUP_RETURN_OPEN_FROM, GROUP_RETURN_OPEN_TO);
+      console.log('[InviteCode] groups tab: return wrapped in fragment (open)');
+    } else { console.warn('[InviteCode] groups return-open anchor not found'); _criticalPatchFailures.push('invite-groups-ret-open'); }
+
     const GROUP_CODE_DIALOG_FROM = 'action:"Find a group",onAction:o,icon:Le})]})},ss=({filters:';
-    const GROUP_CODE_DIALOG_TO   = 'action:"Find a group",onAction:o,icon:Le})]}),__oc&&e.jsx(B,{title:"Join a group",description:"Enter the invite code you were given.",onClose:()=>__so(!1),children:[e.jsx("label",{className:"text-sm font-semibold",htmlFor:"group-code",children:"Invite code"}),e.jsxs("div",{className:"mt-2 flex gap-2",children:[e.jsx("input",{id:"group-code",value:__gc,onChange:u=>__sgc(u.target.value),placeholder:"e.g. 4f9a2b7c",maxLength:32,className:"min-h-12 min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-4 font-mono uppercase outline-none focus:border-brand-500 dark:border-white/15 dark:bg-zinc-900"}),e.jsx("button",{type:"button",disabled:m.redeemInvite.isPending||!__gc.trim(),onClick:__join,className:"community-primary-button min-h-12 px-5 font-bold",children:"Join"})]})]})},ss=({filters:';
+    const GROUP_CODE_DIALOG_TO   = 'action:"Find a group",onAction:o,icon:Le})]}),__oc&&e.jsx(B,{title:"Join a group",description:"Enter the invite code you were given.",onClose:()=>__so(!1),children:[e.jsx("label",{className:"text-sm font-semibold",htmlFor:"group-code",children:"Invite code"}),e.jsxs("div",{className:"mt-2 flex gap-2",children:[e.jsx("input",{id:"group-code",value:__gc,onChange:u=>__sgc(u.target.value),placeholder:"e.g. 4f9a2b7c",maxLength:32,className:"min-h-12 min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-4 font-mono uppercase outline-none focus:border-brand-500 dark:border-white/15 dark:bg-zinc-900"}),e.jsx("button",{type:"button",disabled:m.redeemInvite.isPending||!__gc.trim(),onClick:__join,className:"community-primary-button min-h-12 px-5 font-bold",children:"Join"})]})]})]})},ss=({filters:';
     if (raw.includes(GROUP_CODE_DIALOG_FROM)) {
       raw = raw.replace(GROUP_CODE_DIALOG_FROM, GROUP_CODE_DIALOG_TO);
       console.log('[InviteCode] groups tab: join-by-code dialog added');
