@@ -3850,7 +3850,12 @@ function injectScripts(html) {
   //  PREMIUM_SCRIPT (fetch interceptor), RELOAD_GUARD_SCRIPT, FEATURE_REMOVAL_STYLE,
   //  KEY_SCRIPT (AI keys), USERNAME_AUTH_SCRIPT (auth form helpers)
   // UPDATE_COMMAND_DIALOG_SCRIPT + DOCS_LINK_HTML go before </body> (need document.body).
+  // ISSUE-055: the local update-command UI (`isotope update` dialog, update
+  // pill, /update-checker.js poller) is removed from the served site entirely —
+  // users cannot run local commands from a hosted web page, and the banner was
+  // confusing. Also strip the static <script src="/update-checker.js"> tag.
   let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + '</head>');
+  out = out.replace(/<script[^>]*src=["'][^"']*update-checker\.js["'][^>]*>\s*<\/script>/, '');
   let deferred = [
     ERROR_BOUNDARY_SCRIPT,
     PREMIUM_SCRIPT,
@@ -3859,7 +3864,7 @@ function injectScripts(html) {
     KEY_SCRIPT || '',
     USERNAME_AUTH_SCRIPT
   ].filter(Boolean).join('\n');
-  out = out.replace('</body>', DOCS_LINK_HTML + UPDATE_COMMAND_DIALOG_SCRIPT + buildUpdatePillScript() + deferred + '</body>');
+  out = out.replace('</body>', DOCS_LINK_HTML + deferred + '</body>');
   if (SUPA_URL) {
     try {
       const supaOrigin = new URL(SUPA_URL).origin;
@@ -7759,59 +7764,15 @@ const server = http.createServer((req, res) => {
   // auto-stash local modifications. The UI obtains that confirmation from the
   // user after showing the file count from /api/update-status.
   if (req.method === 'POST' && adminPath === '/api/update-now') {
-    if (!isAdminAuthed(req) && !isLoopbackRequest(req)) {
-      res.writeHead(403, {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
-      });
-      res.end(JSON.stringify({
-        ok: false,
-        error: 'Updates can only be triggered from this machine, or with admin unlock.',
-        admin_available: ADMIN_MODE_READY,
-        hint: 'Run `isotope update` in a terminal, or enable admin mode in .env.',
-      }));
-      return;
-    }
-    let confirmed = false;
-    try { confirmed = new URL('http://x' + req.url).searchParams.get('confirm') === '1'; } catch (e) {}
-    if (!confirmed) {
-      let dirtyCount = 0;
-      try {
-        const st = spawnSync('git', ['status', '--porcelain', '--untracked-files=no'], {
-          cwd: __dirname, encoding: 'utf8', timeout: 5000,
-        });
-        if (st.status === 0) {
-          dirtyCount = String(st.stdout || '').split('\n').filter(l => l.trim()).length;
-        }
-      } catch (e) {}
-      if (dirtyCount > 0) {
-        res.writeHead(409, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({
-          ok: false,
-          error: 'confirmation_required',
-          dirty_count: dirtyCount,
-          message: dirtyCount + ' locally modified file(s) would be stashed by `git pull`.',
-          hint: 'Commit your work first, or retry with ?confirm=1.',
-        }));
-        return;
-      }
-    }
-    try {
-      const bin = path.join(__dirname, 'bin', 'isotope');
-      const child = spawn('bash', [bin, 'update'], {
-        cwd: __dirname,
-        detached: true,
-        stdio: 'ignore',
-      });
-      child.unref();
-      console.log('[OK] Browser-triggered isotope update (spawned detached pid ' + child.pid + ')');
-      res.writeHead(202, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      res.end(JSON.stringify({ ok: true, message: 'Update started — the app will reload automatically.' }));
-    } catch (e) {
-      console.error('[Update] Failed to spawn isotope update:', e && e.message);
-      res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      res.end(JSON.stringify({ ok: false, error: (e && e.message) || 'Failed to start update' }));
-    }
+    // ISSUE-055: the browser-triggered local update command was removed — a
+    // hosted web page should never spawn local processes. The update UI is
+    // gone; keep the endpoint as a documented no-op so old clients fail soft.
+    res.writeHead(410, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({
+      ok: false,
+      error: 'removed',
+      message: 'Browser-triggered updates were removed. Run `isotope update` in a terminal instead.',
+    }));
     return;
   }
 
@@ -10127,7 +10088,26 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
     const acceptsGzip = /gzip/.test(req.headers['accept-encoding'] || '');
     const gzippable = /\.(js|mjs|css|svg|json)$/.test(ext);
 
+    // ISSUE-056: mobile header overlap — stack the Community header actions
+    // below the title on narrow screens instead of squeezing them beside it.
+    let cssMobilePatch = null;
+    if (ext === '.css' && basename.startsWith('community-')) {
+      cssMobilePatch = `
+/* ISSUE-056: mobile header overlap */
+@media(max-width:640px){
+  .community-page-header{grid-template-columns:minmax(0,1fr)}
+  .community-header-actions{flex-wrap:wrap;width:100%;justify-content:flex-start}
+  .community-header-actions .community-primary-button{flex:0 0 auto}
+  .community-header-actions .community-header-focus span,
+  .community-header-actions .community-primary-button span{display:inline}
+}
+`;
+    }
+
     function send(buf) {
+      if (cssMobilePatch && !buf.toString('utf8').includes('ISSUE-056')) {
+        buf = Buffer.concat([buf, Buffer.from(cssMobilePatch, 'utf8')]);
+      }
       res.setHeader('Cache-Control', cacheHeader);
       if (basename === 'sw.js') res.setHeader('Service-Worker-Allowed', '/');
       if (acceptsGzip && gzippable && buf.length > 1024) {
