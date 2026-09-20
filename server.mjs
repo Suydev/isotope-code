@@ -157,6 +157,13 @@ const RUNTIME_PATCHED_ASSET_PATHS = new Set([
   '/assets/Study-BXfkiHvM.js',
   '/assets/useNotificationStore-BTREori0.js',
   '/assets/CommunityVisuals-mHr4KGyg.js',
+  '/assets/WelcomeTeaser-C6jfNmJc.js',
+  // ISSUE-056/058: these stylesheets are patched at serve time, but they keep
+  // their upstream content-hash filename, so a browser (or CDN) happily serves
+  // a stale cached copy of the unpatched file forever. Force no-store so the
+  // mobile header fix and the eased loading animation actually reach clients.
+  '/assets/community-BTpNdnFf.css',
+  '/assets/index-LkPKl--4.css',
 ]);
 
 function isRuntimePatchedAsset(pathname) {
@@ -3849,7 +3856,9 @@ function injectScripts(html) {
   // Non-critical scripts injected before </body> so they don't block first paint:
   //  PREMIUM_SCRIPT (fetch interceptor), RELOAD_GUARD_SCRIPT, FEATURE_REMOVAL_STYLE,
   //  KEY_SCRIPT (AI keys), USERNAME_AUTH_SCRIPT (auth form helpers)
-  // UPDATE_COMMAND_DIALOG_SCRIPT + DOCS_LINK_HTML go before </body> (need document.body).
+  // ISSUE-055: the update-command dialog, update pill and /update-checker.js
+  // tag were removed — a hosted page cannot run local commands. Deferred list
+  // below is what still goes before </body>.
   // ISSUE-055: the local update-command UI (`isotope update` dialog, update
   // pill, /update-checker.js poller) is removed from the served site entirely —
   // users cannot run local commands from a hosted web page, and the banner was
@@ -4020,6 +4029,25 @@ const EVENTS_BUNDLE_ABS        = path.join(PUBLIC_DIR, 'assets', 'EventsCalendar
 const SERVICE_WORKER_ABS       = path.join(PUBLIC_DIR, 'sw.js');
 const USE_SYNC_STORE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useSyncStore-Di0wBMnH.js');
 const PWA_MANAGER_BUNDLE_ABS   = path.join(PUBLIC_DIR, 'assets', 'usePWA-BOujtGOv.js');
+// ISSUE-057: the intro teaser headline was text-6xl (60px) with white-space:
+// nowrap, which clipped "OVERWHELMED" off-screen on narrow phones.
+const WELCOME_TEASER_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'WelcomeTeaser-C6jfNmJc.js');
+const TEASER_HEADLINE_FROM = 'text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tighter text-white relative z-10 leading-none";style:{textShadow:"0 0 60px rgba(255,255,255,0.3)",whiteSpace:"nowrap"';
+const TEASER_HEADLINE_TO   = 'text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white relative z-10 leading-none";style:{textShadow:"0 0 60px rgba(255,255,255,0.3)",whiteSpace:"nowrap",maxWidth:"92vw"';
+let patchedWelcomeTeaserBundle = null;
+function getPatchedWelcomeTeaserBundle() {
+  if (patchedWelcomeTeaserBundle) return patchedWelcomeTeaserBundle;
+  try {
+    const raw = fs.readFileSync(WELCOME_TEASER_BUNDLE_ABS, 'utf8');
+    if (!raw.includes(TEASER_HEADLINE_FROM)) {
+      console.warn('[TeaserPatch] headline anchor not found in WelcomeTeaser bundle');
+      return null;
+    }
+    patchedWelcomeTeaserBundle = Buffer.from(raw.replace(TEASER_HEADLINE_FROM, TEASER_HEADLINE_TO), 'utf8');
+    console.log('[TeaserPatch] intro headline scaled down for mobile');
+    return patchedWelcomeTeaserBundle;
+  } catch (e) { console.warn('[TeaserPatch] read failed:', e && e.message); return null; }
+}
 const REMOVED_FEATURE_MODULE   = Buffer.from('export default function RemovedFeature(){return null;}\\n', 'utf8');
 
 const COMMUNITY_FEATURE_RENDER_FROM = 'a==="store"&&e.jsx(U,{onNavigate:i},"store"),a==="events"&&e.jsx(M,{onNavigate:i},"events"),';
@@ -10090,6 +10118,7 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
 
     // ISSUE-056: mobile header overlap — stack the Community header actions
     // below the title on narrow screens instead of squeezing them beside it.
+    // ISSUE-058: loading screen animation ran too fast to read.
     let cssMobilePatch = null;
     if (ext === '.css' && basename.startsWith('community-')) {
       cssMobilePatch = `
@@ -10101,6 +10130,15 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
   .community-header-actions .community-header-focus span,
   .community-header-actions .community-primary-button span{display:inline}
 }
+/* ISSUE-058: ease the loading animation */
+.isotope-loading-track i{animation-duration:2.2s}
+.isotope-loading-mark i{animation-duration:2.4s}
+`;
+    } else if (ext === '.css' && basename.startsWith('index-')) {
+      cssMobilePatch = `
+/* ISSUE-058: ease the loading animation */
+.isotope-loading-track i{animation-duration:2.2s}
+.isotope-loading-mark i{animation-duration:2.4s}
 `;
     }
 
@@ -10241,6 +10279,10 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
     }
     if (fp === STUDY_BUNDLE_ABS) {
       const buf = getPatchedStudyBundle();
+      if (buf) { send(buf); return; }
+    }
+    if (fp === WELCOME_TEASER_BUNDLE_ABS) {
+      const buf = getPatchedWelcomeTeaserBundle();
       if (buf) { send(buf); return; }
     }
     if (fp === PWA_MANAGER_BUNDLE_ABS) {
