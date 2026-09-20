@@ -3786,7 +3786,7 @@ const ERROR_BOUNDARY_SCRIPT = `<script>
         d.setAttribute('role','alertdialog');
         d.setAttribute('aria-modal','true');
         d.style.cssText='position:fixed;inset:0;z-index:2147483645;background:#08090b;display:flex;align-items:center;justify-content:center;padding:24px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;';
-        var here=location.pathname.replace(/^\//,'')||'this page';
+        var here=location.pathname.replace(/^[/]/,'')||'this page';
         d.innerHTML='<div style="max-width:26rem;width:100%;text-align:center;">'
           +'<div style="width:46px;height:46px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(252,165,165,.12);">'
           +'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>'
@@ -4566,6 +4566,20 @@ function getPatchedCommunityApiBundle() {
     } else {
       console.warn('[CommunityApiPatch] export anchor not found; code-entry handlers cannot redeem');
       _criticalPatchFailures.push('community-api-export');
+    }
+    // Discover unwrap (ISSUE-048): community_discover_groups returns the
+    // PostgREST-style envelope {success,data:[...]}, not a bare array. Older
+    // consumers treated the envelope as the list, so the Discover tab showed
+    // nothing (and object-property lookups on it crashed some builds). Unwrap
+    // client-side right after the RPC resolves.
+    const DISCOVER_UNWRAP_FROM = 'p_limit:20,p_offset:e.offset}))}';
+    const DISCOVER_UNWRAP_TO   = 'p_limit:20,p_offset:e.offset})).then(w=>Array.isArray(w)?w:Array.isArray(w&&w.data)?w.data:[])}';
+    if (raw.includes(DISCOVER_UNWRAP_FROM)) {
+      raw = raw.replace(DISCOVER_UNWRAP_FROM, DISCOVER_UNWRAP_TO);
+      console.log('[CommunityApiPatch] discover() unwraps {success,data} envelope');
+    } else {
+      console.warn('[CommunityApiPatch] discover anchor not found; Discover tab may render empty');
+      _criticalPatchFailures.push('community-api-discover-unwrap');
     }
     patchedCommunityApiBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[CommunityApiPatch] Error:', e && e.message); patchedCommunityApiBundle = null; }
@@ -5381,7 +5395,34 @@ function getPatchedAppAccessGateBundle() {
       'const ye=await(await Ae()).canBootstrapFromCloud(O.userId,!0);if(ye){await S.getState().downloadCloudSnapshot();D(!1)}else D(!1)',
       'auto-import cloud backup on empty local workspace'
     );
-    console.log('[AppAccessGatePatch] ' + applied + '/1 patches applied');
+    // ISSUE-050: on a cold load the profile store hydrates AFTER the gate
+    // renders, so c?.isOnboarded is still false and protected routes bounce to
+    // /onboarding, which itself bounces authed users back — a /onboarding
+    // <-> /dashboard reload loop that never lets /community mount. Trust the
+    // boot router's server-verified decision first.
+    const BOOT_TRUST_FROM = 'if(c?.isOnboarded!==!0&&!y)return r.jsx(Y,{to:"/onboarding",replace:!0})';
+    const BOOT_TRUST_TO   = 'const __isoBoot=window.__ISO_BOOT_STATE__;if(!(__isoBoot&&(__isoBoot.onboarding&&__isoBoot.onboarding.completed===true||__isoBoot.state==="syncFailed"))){if(!__isoBoot||!__isoBoot.bootResolved)return r.jsx(ie,{});if(c?.isOnboarded!==!0&&!y)return r.jsx(Y,{to:"/onboarding",replace:!0})}';
+    // ISSUE-052: this patch deadlocks protected routes (render abandoned mid-flight, shell skeleton forever).
+    // h/v boot-trust patches below already fix the cold-load wait without it.
+    // ISSUE-051: the gate also waits on the sync store's bootstrapChecked
+    // flag, which hydrates late on a cold load — leaving /community on an
+    // empty loader forever even after the boot router has resolved. Trust
+    // the boot state here too.
+        patch('if(!h||E||d)return r.jsx(ie,{});',
+          'if((!h&&!((window.__ISO_BOOT_STATE__||{}).bootResolved))||E||d)return r.jsx(ie,{});',
+          'profile-load wait trusts boot state');
+patch('if(!v)return r.jsx(ie,{});',
+          'if(!v&&!((window.__ISO_BOOT_STATE__||{}).bootResolved))return r.jsx(ie,{});',
+          'bootstrap wait trusts boot state');
+
+    // ISSUE-053: fresh accounts — the gate's private-mode bounce sent authed
+    // users off /onboarding to /dashboard while the boot router (DB truth:
+    // readyNeedsOnboarding) kept sending them back — a full-reload loop that
+    // crashed the error boundary. Only bounce when boot says onboarding is done.
+    patch('if(s==="private"){if(y||l)return r.jsx(Y,{to:"/dashboard",replace:!0})}',
+      'if(s==="private"){/* ISSUE-053: no gate bounce - boot router owns /onboarding routing */}',
+      'private-mode bounce trusts boot onboarding decision');
+    console.log('[AppAccessGatePatch] ' + applied + '/2 patches applied');
     patchedAppAccessGateBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[AppAccessGatePatch] Error:', e.message); patchedAppAccessGateBundle = null; }
   return patchedAppAccessGateBundle;
@@ -10170,7 +10211,7 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const buf = getPatchedUseSyncStoreBundle();
       if (buf) { send(buf); return; }
     }
-    if (fp === APP_ACCESS_GATE_BUNDLE_ABS) {
+    if (fp === APP_ACCESS_GATE_BUNDLE_ABS && process.env.DISABLE_GATE_PATCH !== "1") {
       const buf = getPatchedAppAccessGateBundle();
       if (buf) { send(buf); return; }
     }
