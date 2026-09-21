@@ -208,9 +208,16 @@
       <code>/api/update-now</code>
       <span class="auth">admin cookie or loopback</span>
     </div>
-    <p>Runs <code>isotope update</code> detached. Authorised by an admin cookie
-    <em>or</em> a loopback connection — <code>127.0.0.1</code>/<code>::1</code> with no
-    <code>x-forwarded-*</code> header. LAN and remote callers get <code>403</code>.</p>
+     <p>Runs <code>isotope update</code> detached. Authorised by an admin cookie
+     <em>or</em> a loopback connection — <code>127.0.0.1</code>/<code>::1</code> with no
+     <code>x-forwarded-*</code> header. LAN and remote callers get <code>403</code>.
+
+     <span class="note warn glass">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+       <p><span class="note-title">Stubbed on Vercel / in the APK</span>Hosted builds delete the in-app
+     update UI and make <code>/api/update-now</code> return <code>410 Gone</code> — the self-update
+     path only runs for local <code>isotope update</code> installs.</p>
+     </span></p>
 
     <div class="table-wrap">
       <table>
@@ -377,6 +384,7 @@
         <thead><tr><th>Route</th><th>Method</th><th>Notes</th></tr></thead>
         <tbody>
           <tr><td><code>/__isotope/ping</code></td><td>GET</td><td>Liveness probe. Used by CI and the install scripts.</td></tr>
+          <tr><td><code>/__isotope/state</code></td><td>GET, POST</td><td>Read (GET) or write (POST) the small cross-tab state shared between the PWA timer and the Android Floating Timer overlay — <code>timerState</code> and a slice of <code>localStorage</code>. Unauthenticated.</td></tr>
           <tr><td><code>/__errors</code></td><td>POST</td><td>Unauthenticated log sink. Appends to <code>~/.isotope/logs/browser-errors.log</code>, capped at 1 MB per request.</td></tr>
           <tr><td><code>/__pip/state</code></td><td>POST</td><td>Browser to server PiP snapshot.</td></tr>
           <tr><td><code>/__pip/events</code></td><td>GET</td><td>Server-sent events to browser tabs.</td></tr>

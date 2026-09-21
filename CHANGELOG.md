@@ -5,6 +5,45 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **Community chat black-screen regression.** A serve-time patch that stripped the
+  dead HTTP PiP relay (`__pipBridge`) from the `Focus-B4gLsWoP` bundle over-stripped
+  and removed the `append`/`createElement` hooks entirely, so Focus could not build
+  its own PiP tree and rendered `#root` empty. The patch now strips only the HTTP
+  relay while preserving Focus's native `documentPictureInPicture` fallback (the bridge
+  still wins the property at load time).
+- **Android WebView scroll jank on focused inputs.** The bridge no longer strips
+  `overscroll-behavior` from the auth form, so typing inside a field no longer scrolls
+  the whole page on some WebViews.
+- **`/api/update-now` is now a confirmed `410 Gone` on the hosted path.** The in-app
+  update UI is stripped in `prepare-www.js`, so a request to the endpoint that was
+  meant only for local `isotope update` installs now returns `410 Gone` rather than a
+  permanent `403` when `ENABLE_ADMIN_MODE=false`. Loopback + admin cookie still apply
+  for local self-hosted installs.
+- **`/api/community-events` parity is now `404`**, matching server.mjs (previously the
+  bridge returned `200` with an empty body).
+
+### Added
+
+- **`/__isotope/state` bridge endpoint.** `GET` reads the small cross-tab state store
+  shared between the PWA timer and the Android Floating Timer overlay
+  (`timerState` + a slice of `localStorage`); `POST` merges a partial update and
+  persists it to both the memory cache and the Capacitor Filesystem mirror. Documented
+  in the API reference.
+
+### Docs
+
+- Rewrote `android-apk.html`, `community.html`, `architecture.html`,
+  `configuration.html`, `cli.html`, `troubleshooting.html` against the Sep 2026
+  codebase. Baked-patch anchors, the orphaned-bundle count (40 of 162 unreachable from
+  the entry script), and the `accept_invite(p_code)` vs `community_redeem_invite(p_token)`
+  parameter spelling are now accurate.
+- Schema counts reconciled across all pages: 42 tables, 80 functions, **169** row-level
+  security policies, 15 triggers, 66 indexes (was "153 policies" on three pages).
+
 ## [3.4.1] — 2026-08-27 — Stale-asset cache rotation, community fixes, CI correctness
 
 ### Fixed (service worker — root cause of recurring stale bundles)

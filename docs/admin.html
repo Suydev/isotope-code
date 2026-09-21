@@ -186,7 +186,7 @@ ADMIN_EMAIL=you@example.com                  # optional: unlock via Supabase log
         </tbody>
       </table>
     </div>
-    <p>The cookie is scoped to <code>Path=/</code> rather than <code>/__admin</code> so that non-prefixed protected routes — notably <code>/api/update-now</code> — can also authorise against it.</p>
+    <p>The cookie is scoped to <code>Path=/</code> rather than <code>/__admin</code> so that non-prefixed protected routes — notably <code>/api/update-now</code> — can also authorise against it. (On the hosted APK and on Vercel, the in-app update UI is deleted and <code>/api/update-now</code> is a stubbed <code>410 Gone</code> — the self-update path only exists for local <code>isotope update</code> installs; see <a href="./architecture.html#updater">Architecture → Updater</a>.)</p>
 
     <h2 class="rise" id="verify">Schema verification <a class="anchor" href="#verify" aria-label="Link to this section">#</a></h2>
     <div class="route">

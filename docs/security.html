@@ -224,7 +224,7 @@ npm run security:verify</pre>
         <thead><tr><th>Route</th><th>Authorisation</th></tr></thead>
         <tbody>
           <tr><td><code>/__admin/*</code></td><td>Requires <code>ADMIN_MODE_READY</code> plus a signed cookie or an admin Supabase session.</td></tr>
-          <tr><td><code>/api/update-now</code></td><td>Admin cookie <em>or</em> loopback. Rejects any request carrying <code>x-forwarded-*</code>, since that indicates a proxy and a non-local caller.</td></tr>
+           <tr><td><code>/api/update-now</code></td><td>Admin cookie <em>or</em> loopback. Rejects any request carrying <code>x-forwarded-*</code>, since that indicates a proxy and a non-local caller. <strong>Stubbed on Vercel and in the Android APK</strong> — the hosted build returns <code>410 Gone</code> and never runs <code>isotope update</code> (see <a href="./architecture.html#updater">Architecture → Updater</a>).</td></tr>
           <tr><td><code>/__auth/*</code></td><td>Bearer token, verified server-side.</td></tr>
           <tr><td><code>/__leaderboard</code></td><td>Caller’s own JWT. Never the service key.</td></tr>
           <tr><td><code>/__supa/*</code></td><td>Caller’s JWT, escalated only for an authenticated admin.</td></tr>

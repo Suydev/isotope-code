@@ -386,6 +386,160 @@ if (CI) {
   warn('.github/workflows/ci.yml not found');
 }
 
+// ── 7b. Content drift: pages vs the code they describe ──────────────────────
+// Everything above checks STRUCTURE. Structure has been fine the whole time —
+// the site is reachable, the drawer is complete, no page is an orphan, every
+// link resolves. Meanwhile the pages kept describing a server a few versions
+// older: routes went undocumented, a schema count froze, and a deleted feature
+// stayed presented as live. A check that only ever passes trains nobody to read
+// it, so these compare the pages against the code.
+info('Checking docs against code...');
+const DOCS_ALL = {};
+if (existsSync(DOCS_DIR)) {
+  for (const f of readdirSync(DOCS_DIR).filter(f => f.endsWith('.html'))) {
+    DOCS_ALL[f] = readFileSync(join(DOCS_DIR, f), 'utf8');
+  }
+}
+const ALL_DOCS = Object.values(DOCS_ALL).join('\n');
+
+// 1. Every static server route must be documented on at least one page. Owner-only
+//    /__admin/* routes are documented in admin.html rather than the public API
+//    page, so they are exempted here.
+const SERVER = readText('server.mjs');
+if (SERVER) {
+  const ROUTE_RE = /['"]((?:\/__|\/api)[^'"]*)['"]/g;
+  const routes = new Set();
+  let m;
+  while ((m = ROUTE_RE.exec(SERVER)) !== null) {
+    let p = m[1];
+    const star = p.indexOf('*');
+    if (star !== -1) p = p.slice(0, star);
+    if (/[${}()\[\]`]/.test(p)) continue;      // template fragment, not a route
+    p = p.replace(/\/+$/, '');
+    if (p.length < 5 || p === '/__' || p === '/api') continue;
+    if (p.startsWith('/__admin')) continue;
+    routes.add(p);
+  }
+  // A route counts as documented when a page carries it literally, or when a page
+  // documents the group it belongs to (a token ending in /*, :param or …).
+  const GROUPS = [...new Set([...ALL_DOCS.matchAll(/(?:\/__|\/api)[A-Za-z0-9_\-/*:…]+/g)].map(x => x[0]))];
+  const covered = (p) => {
+    if (ALL_DOCS.includes(p)) return true;
+    return GROUPS.some(g => {
+      if (g === p) return true;
+      if (/[*…]$/.test(g)) {                  // wildcard group, e.g. /__supa/*
+        const prefix = g.replace(/\/?\*+$/, '').replace(/…+$/, '');
+        return p.startsWith(prefix);
+      }
+      if (/[:{]/.test(g)) {                   // parametric form, e.g. /events/:id
+        const prefix = g.replace(/\/:.*$/, '');
+        return p.startsWith(prefix);
+      }
+      return false;
+    });
+  };
+  const undoc = [...routes].filter(p => !covered(p)).sort();
+  if (undoc.length) {
+    for (const p of undoc) error(`server route ${p} is not documented on any docs page`);
+  } else {
+    ok(`All ${routes.size} server routes are documented`);
+  }
+} else {
+  warn('server.mjs not found — cannot check route coverage');
+}
+
+// 2. Schema counts must match the schema dump the pages say they were counted from.
+const SCHEMA = readText('isotope-complete.sql');
+if (SCHEMA) {
+  const n = (re) => (SCHEMA.match(re) || []).length;
+  const actual = {
+    tables:    n(/CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS/gi),
+    functions: n(/CREATE\s+OR\s+REPLACE\s+FUNCTION/gi),
+    policies:  n(/CREATE\s+POLICY/gi),
+    triggers:  n(/\bCREATE\s+TRIGGER\b/gi),
+    indexes:   n(/CREATE\s+(?:UNIQUE\s+)?INDEX\s+IF\s+NOT\s+EXISTS/gi),
+  };
+  ok(`isotope-complete.sql — ${actual.tables} tables, ${actual.functions} functions, ${actual.policies} policies, ${actual.triggers} triggers, ${actual.indexes} indexes`);
+  // Canonical headline counts — the tuple in meta/lead copy and the dashboard
+  // tickers. A loose "N functions" scan was used before and immediately started
+  // flagging legitimate subset mentions ("re-creates 28 policies", "Adds 9
+  // indexes"), which trains the author to ignore errors. The only counts that
+  // must equal the dump are the headline totals.
+  const TUPLE_RE = /(\d+)\s*tables?,\s*(\d+)\s*functions?,\s*(\d+)\s*(?:RLS\s+|row-level\s+security\s+)?policies?,\s*(\d+)\s*triggers?(?:\s+and\s+(\d+)\s*indexes?)?/gi;
+  const labelKey = (label) => {
+    const l = label.toLowerCase();
+    if (l.includes('table')) return 'tables';
+    if (l.includes('function')) return 'functions';
+    if (l.includes('polic')) return 'policies';
+    if (l.includes('trigger')) return 'triggers';
+    if (l.includes('index')) return 'indexes';
+    return null;
+  };
+  const tickRe = /data-ticker="(\d+)"[^]*?class="ticker-label">([^<]*)</g;
+  let stale = 0;
+  for (const [file, html] of Object.entries(DOCS_ALL)) {
+    for (const cm of html.matchAll(TUPLE_RE)) {
+      const vals = { tables: +cm[1], functions: +cm[2], policies: +cm[3], triggers: +cm[4], indexes: cm[5] ? +cm[5] : undefined };
+      for (const [k, v] of Object.entries(vals)) {
+        if (v !== actual[k]) {
+          error(`docs/${file} headline ${k} count ${v} != isotope-complete.sql ${actual[k]}`);
+          stale++;
+        }
+      }
+    }
+    let tm;
+    while ((tm = tickRe.exec(html)) !== null) {
+      const k = labelKey(tm[2]);
+      if (!k) continue;
+      const v = +tm[1];
+      if (v !== actual[k]) {
+        error(`docs/${file} ticker "${tm[2].trim()}" = ${v} != isotope-complete.sql ${actual[k]}`);
+        stale++;
+      }
+    }
+  }
+  if (stale === 0) ok('Schema counts in docs match isotope-complete.sql');
+} else {
+  warn('isotope-complete.sql not found — cannot check schema counts');
+}
+
+// 3. Deleted client surfaces. The in-app self-updater UI is gone from injectScripts
+//    (no overlay, no floating pill) and /api/update-now no longer spawns
+//    `isotope update`. A page that still presents one of these as a live feature
+//    describes a build that no longer ships. The changelog may mention them — it is
+//    a record of the deletion.
+const RETIRED = [
+  { needle: '/api/update-now', context: ['410', 'no longer', 'removed', 'no-op', 'stub'] },
+  { needle: 'update-checker.js', context: ['removed', 'no longer', 'deleted'] },
+];
+for (const { needle, context } of RETIRED) {
+  for (const [file, html] of Object.entries(DOCS_ALL)) {
+    if (file === 'changelog.html' || !html.includes(needle)) continue;
+    if (!context.some(c => html.toLowerCase().includes(c))) {
+      error(`docs/${file} documents the deleted surface "${needle}" as live (needs one of: ${context.join(', ')})`);
+    }
+  }
+}
+
+// 4. The changelog must describe the shipped version, not an older one.
+const CL = readText('docs/changelog.html');
+if (CL && pkgVersion !== 'unknown') {
+  const body = CL.slice(CL.indexOf('<body'));
+  // Match a real changelog heading (## [x.y.z]), not a bare number pulled out of
+  // an SVG path's decimal coordinates.
+  const m = body.match(/(?:<h[1-6][^>]*>|##\s*\[?)(\d+\.\d+\.\d+)/);
+  if (!m) warn('docs/changelog.html has no version number');
+  else if (m[1] !== pkgVersion) warn(`docs/changelog.html latest entry is ${m[1]}, package.json is ${pkgVersion}`);
+  else ok('docs/changelog.html latest entry matches package.json');
+}
+const CLMD = readText('CHANGELOG.md');
+if (CLMD && pkgVersion !== 'unknown') {
+  const m = CLMD.match(/^## \[?(\d+\.\d+\.\d+)/m);
+  if (!m) warn('CHANGELOG.md has no versioned entry');
+  else if (m[1] !== pkgVersion) warn(`CHANGELOG.md latest entry is ${m[1]}, package.json is ${pkgVersion}`);
+  else ok('CHANGELOG.md latest entry matches package.json');
+}
+
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log('');
 console.log(`${B}Validation summary${R}`);

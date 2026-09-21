@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Changelog — IsotopeAI docs</title>
-<meta name="description" content="IsotopeAI release history: what each version changed and why, from 3.4.1 back to 3.2.0, plus the versioning policy.">
+<meta name="description" content="IsotopeAI release history: what each version changed and why, from the Unreleased section back to 3.2.0, plus the versioning policy.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
@@ -152,7 +152,17 @@
     <h1 data-enter="2">Changelog</h1>
     <p class="lead" data-enter="3">Release history, newest first. The authoritative source is <a href="https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md">CHANGELOG.md</a> in the repository; this page summarises what each release actually changed and why.</p>
 
-    <h2 class="rise" id="v341">3.4.1 — 27 August 2026 <a class="anchor" href="#v341" aria-label="Link to this section">#</a></h2>
+     <h2 class="rise" id="unreleased">Unreleased <a class="anchor" href="#unreleased" aria-label="Link to this section">#</a></h2>
+     <p class="muted">Serve-time patch correctness, Android bridge, API parity, schema docs.</p>
+     <ul>
+       <li><strong>Community chat black-screen regression.</strong> The dead HTTP PiP relay (<code>__pipBridge</code>) was stripped from the <code>Focus</code> bundle too aggressively, removing the <code>append</code>/<code>createElement</code> hooks Focus uses for its own PiP tree. Stripping now removes only the HTTP relay while preserving Focus's <code>documentPictureInPicture</code> fallback.</li>
+       <li><strong>Android WebView scroll jank on focused inputs.</strong> The bridge no longer strips <code>overscroll-behavior</code> from the auth form, so typing inside a field no longer scrolls the page on some WebViews.</li>
+       <li><strong><code>/api/update-now</code> is now a confirmed <code>410 Gone</code> on hosted installs.</strong> The in-app update UI is stripped in <code>prepare-www.js</code>; loopback + admin cookie still apply to local self-hosted installs.</li>
+       <li><strong><code>/api/community-events</code> returns <code>404</code>,</strong> matching <code>server.mjs</code>.</li>
+       <li><strong><code>/__isotope/state</code> bridge endpoint</strong> — <code>GET</code> reads the cross-tab state store shared between the PWA timer and the Android Floating Timer overlay (<code>timerState</code> + a slice of <code>localStorage</code>); <code>POST</code> merges a partial update and persists it to memory and the Capacitor Filesystem mirror.</li>
+     </ul>
+
+     <h2 class="rise" id="v341">3.4.1 — 27 August 2026 <a class="anchor" href="#v341" aria-label="Link to this section">#</a></h2>
     <p class="muted">Stale-asset cache rotation, community fixes, CI correctness.</p>
     <p>The headline fix addresses the root cause of recurring black screens. Bundles are patched at request time, but the service-worker cache name derived only from <code>VERSION</code> — so editing a patch changed the response without changing the cache key, and <code>/assets/</code> is served cache-first. A stale copy could persist indefinitely.</p>
     <ul>
