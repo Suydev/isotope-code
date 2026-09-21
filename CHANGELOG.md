@@ -9,40 +9,49 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- **Community chat black-screen regression.** A serve-time patch that stripped the
-  dead HTTP PiP relay (`__pipBridge`) from the `Focus-B4gLsWoP` bundle over-stripped
-  and removed the `append`/`createElement` hooks entirely, so Focus could not build
-  its own PiP tree and rendered `#root` empty. The patch now strips only the HTTP
-  relay while preserving Focus's native `documentPictureInPicture` fallback (the bridge
-  still wins the property at load time).
-- **Android WebView scroll jank on focused inputs.** The bridge no longer strips
-  `overscroll-behavior` from the auth form, so typing inside a field no longer scrolls
-  the whole page on some WebViews.
-- **`/api/update-now` is now a confirmed `410 Gone` on the hosted path.** The in-app
-  update UI is stripped in `prepare-www.js`, so a request to the endpoint that was
-  meant only for local `isotope update` installs now returns `410 Gone` rather than a
-  permanent `403` when `ENABLE_ADMIN_MODE=false`. Loopback + admin cookie still apply
-  for local self-hosted installs.
-- **`/api/community-events` parity is now `404`**, matching server.mjs (previously the
-  bridge returned `200` with an empty body).
+- **The browser-triggered self-update path is gone.** `/api/update-now` (ISSUE-055) now
+  returns `410 Gone` with `{ ok:false, error:'removed', message:'Browser-triggered
+  updates were removed. Run `isotope update` in a terminal instead.' }`. The in-app
+  Update button was deleted from the build, so hosted web and the Android APK can no
+  longer spawn local processes. Loopback + admin-cookie authorization still applies to
+  local self-hosted installs (the route body is retained as a documented no-op).
+- **`/api/pip/state` and `/api/pip/action` (the PiP companion endpoints used by the
+  Kotlin APK) are registered before the `/api/*` 404 fence** so the APK's hot-polled
+  snapshot and SSE-fanned actions always resolve even when the SPA route does not.
+- **Code-only invites: the inviter's own session user id is now used as the fallback
+  for `ownUserId`** (`02edcfd`), so a freshly-created invite works even when the
+  browser's derived id lags.
+- **Onboarding black screen for fresh accounts** (ISSUE-053): missing `profile`/`pendingCount`/
+  `updatedAt` guards now default safely instead of throwing before the first render.
+- **The Groups tab return is wrapped in a fragment** when the join dialog is injected
+  (ISSUE-054), so the tab renders instead of collapsing.
+- **Signed-in users opening `/auth` and `/onboarding` tabs** now bounce to `/dashboard`
+  via the real router navigation (`2f2307d`/`695e940`), instead of the previous lucide-icon
+  stand-in that rendered `null`.
+- **Intro headline text clip** fixed (ISSUE-057); **patched CSS is now served with
+  `Cache-Control: no-store`** so a serve-time style patch is never pinned by an
+  over-eager intermediate cache (ISSUE-058, `9d6ec0d`).
+- **Show group chat to non-members read-only** instead of empty/403 (`ce9f0ea`).
 
 ### Added
 
 - **`/__isotope/state` bridge endpoint.** `GET` reads the small cross-tab state store
-  shared between the PWA timer and the Android Floating Timer overlay
-  (`timerState` + a slice of `localStorage`); `POST` merges a partial update and
-  persists it to both the memory cache and the Capacitor Filesystem mirror. Documented
-  in the API reference.
+  (`appStateStore`) shared between the PWA timer and the Android PiP companion; `POST`
+  merges `timerState` and/or a slice of `localStorage` and replies `{ ok:true }`.
+  Documented in the API reference.
+- **`/api/community-events`** — a 404-equivalent parity route (matches `server.mjs`);
+  the endpoint is present but returns a `502 intercepted` body so the browser runtime
+  never serves fake community data.
 
 ### Docs
 
 - Rewrote `android-apk.html`, `community.html`, `architecture.html`,
   `configuration.html`, `cli.html`, `troubleshooting.html` against the Sep 2026
-  codebase. Baked-patch anchors, the orphaned-bundle count (40 of 162 unreachable from
-  the entry script), and the `accept_invite(p_code)` vs `community_redeem_invite(p_token)`
-  parameter spelling are now accurate.
+  codebase. Baked-patch anchors, the orphaned-bundle count (40 of 162 unreachable
+  from the entry script), and the invite RPC path (`accept_invite` with a token, not
+  `community_preview_invite(p_token)`) are now accurate.
 - Schema counts reconciled across all pages: 42 tables, 80 functions, **169** row-level
-  security policies, 15 triggers, 66 indexes (was "153 policies" on three pages).
+  security policies (was "153" on three pages), 15 triggers, 66 indexes.
 
 ## [3.4.1] — 2026-08-27 — Stale-asset cache rotation, community fixes, CI correctness
 

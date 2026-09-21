@@ -153,13 +153,27 @@
     <p class="lead" data-enter="3">Release history, newest first. The authoritative source is <a href="https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md">CHANGELOG.md</a> in the repository; this page summarises what each release actually changed and why.</p>
 
      <h2 class="rise" id="unreleased">Unreleased <a class="anchor" href="#unreleased" aria-label="Link to this section">#</a></h2>
-     <p class="muted">Serve-time patch correctness, Android bridge, API parity, schema docs.</p>
+     <p class="muted">Self-update removal, PiP companion route ordering, invite fix, onboarding, schema docs.</p>
      <ul>
-       <li><strong>Community chat black-screen regression.</strong> The dead HTTP PiP relay (<code>__pipBridge</code>) was stripped from the <code>Focus</code> bundle too aggressively, removing the <code>append</code>/<code>createElement</code> hooks Focus uses for its own PiP tree. Stripping now removes only the HTTP relay while preserving Focus's <code>documentPictureInPicture</code> fallback.</li>
-       <li><strong>Android WebView scroll jank on focused inputs.</strong> The bridge no longer strips <code>overscroll-behavior</code> from the auth form, so typing inside a field no longer scrolls the page on some WebViews.</li>
-       <li><strong><code>/api/update-now</code> is now a confirmed <code>410 Gone</code> on hosted installs.</strong> The in-app update UI is stripped in <code>prepare-www.js</code>; loopback + admin cookie still apply to local self-hosted installs.</li>
-       <li><strong><code>/api/community-events</code> returns <code>404</code>,</strong> matching <code>server.mjs</code>.</li>
-       <li><strong><code>/__isotope/state</code> bridge endpoint</strong> — <code>GET</code> reads the cross-tab state store shared between the PWA timer and the Android Floating Timer overlay (<code>timerState</code> + a slice of <code>localStorage</code>); <code>POST</code> merges a partial update and persists it to memory and the Capacitor Filesystem mirror.</li>
+       <li><strong>The browser-triggered self-update path is gone.</strong> <code>/api/update-now</code> (ISSUE-055) now returns <code>410 Gone</code> with <code>{ok:false,error:'removed',message:'Browser-triggered updates were removed. Run <code>isotope update</code> in a terminal instead.'}</code>. The in-app Update button was deleted from the build — hosted web and the APK can no longer spawn local processes. Loopback + admin-cookie authorization still applies to local self-hosted installs.</li>
+       <li><strong><code>/api/pip/state</code> and <code>/api/pip/action</code> (PiP companion endpoints used by the Kotlin APK) are registered before the <code>/api/*</code> 404 fence</strong> so the APK's hot-polled snapshot and SSE-fanned actions always resolve even when the SPA route does not.</li>
+       <li><strong>Code-only invites use the inviter's session user id as the fallback for <code>ownUserId</code></strong>, so a freshly-created invite works even when the browser's derived id lags.</li>
+       <li><strong>Onboarding black screen for fresh accounts</strong> fixed — missing <code>profile</code>/<code>pendingCount</code>/<code>updatedAt</code> guards now default safely.</li>
+       <li><strong>Groups tab wraps its return in a fragment</strong> when the join dialog is injected, so the tab renders instead of collapsing.</li>
+       <li><strong>Signed-in users opening <code>/auth</code> and <code>/onboarding</code></strong> bounce to <code>/dashboard</code> via real router navigation rather than rendering null.</li>
+       <li><strong>Intro headline text clip</strong> fixed; <strong>patched CSS served with <code>Cache-Control: no-store</code></strong> so a serve-time style patch is never pinned by an intermediate cache.</li>
+       <li><strong>Show group chat to non-members read-only</strong> instead of empty/403.</li>
+     </ul>
+
+     <h3>Added</h3>
+     <ul>
+       <li><strong><code>/__isotope/state</code> bridge endpoint</strong> — <code>GET</code> reads the cross-tab state store (<code>appStateStore</code>) shared between the PWA timer and the Android PiP companion; <code>POST</code> merges <code>timerState</code> and/or a slice of <code>localStorage</code> and replies <code>{ok:true}</code>. Documented in the API reference.</li>
+       <li><strong><code>/api/community-events</code></strong> parity route — present in <code>server.mjs</code>, returns a <code>502 intercepted</code> body so the browser runtime never serves fake community data.</li>
+     </ul>
+
+     <h3>Docs</h3>
+     <ul>
+       <li>Rewrote <code>android-apk.html</code>, <code>community.html</code>, <code>architecture.html</code>, <code>configuration.html</code>, <code>cli.html</code>, <code>troubleshooting.html</code> against the Sep 2026 codebase. Schema counts reconciled: 42 tables, <strong>169</strong> RLS policies (was "153" on three pages), 80 functions, 15 triggers, 66 indexes.</li>
      </ul>
 
      <h2 class="rise" id="v341">3.4.1 — 27 August 2026 <a class="anchor" href="#v341" aria-label="Link to this section">#</a></h2>

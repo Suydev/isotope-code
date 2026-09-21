@@ -280,14 +280,21 @@ $$;</pre>
 
     <h2 class="rise" id="invites">Invites <a class="anchor" href="#invites" aria-label="Link to this section">#</a></h2>
 
-    <p>An invite is a token in <code>group_invites</code> with an optional use limit and
-    expiry. Redemption is a three-step flow so a user can see what they are joining before
-    committing:</p>
+    <p>An invite is a code in <code>group_invites</code> (group invites) or
+    <code>buddy_invites</code> (one-on-one) with an optional use limit and
+    expiry. The user-facing flow goes through the <code>accept_invite</code> and
+    <code>get_invite_details</code> Postgres RPCs. The compiled bundle calls them
+    with <code>{token_input: "..."}</code>, but those RPCs take the named
+    parameter <code>p_code</code> — so at serve time <code>server.mjs</code> rewrites
+    <code>token_input</code> → <code>p_code</code> in the <code>useInvites</code>
+    bundle (see <code>getPatchedInvitesBundle</code>) before it is served. The
+    admin-facing RPCs <code>community_create_invite</code>,
+    <code>community_preview_invite</code> and <code>community_redeem_invite</code>
+    (the latter two take <code>p_token</code>) back the same tables.</p>
 
     <ol class="steps">
-      <li><h3>Create</h3><p><code>community_create_invite(p_type, p_target_id, p_days)</code> — owner only.</p></li>
-      <li><h3>Preview</h3><p><code>community_preview_invite(p_token)</code> returns the group name, member count and inviter without joining. Also exposed as <code>get_invite_details</code>.</p></li>
-      <li><h3>Redeem</h3><p><code>community_redeem_invite(p_token)</code> validates expiry and use count, then adds membership and increments <code>uses_count</code>.</p></li>
+      <li><h3>Preview</h3><p><code>get_invite_details(p_code)</code> — returns the group/buddy name, member count and inviter without joining. The bundle's <code>redeemInvite</code> calls this first to show the preview screen.</p></li>
+      <li><h3>Redeem</h3><p><code>accept_invite(p_code)</code> — validates <code>expires_at</code> and <code>uses_count</code>, inserts the membership (or buddy link), and bumps <code>uses_count</code>. On <code>invite_invalid</code>/<code>invite_blocked</code> the bundle surfaces a user-facing error.</p></li>
     </ol>
 
     <p>Validity is computed, not stored, so an expired invite cannot be resurrected by
@@ -433,18 +440,18 @@ where status != 'offline'
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
       <p><span class="note-title"><code>buddy_invites</code> is not dead &mdash; do not drop it</span>
       An earlier version of this page said that table was an orphan referenced by nothing and
-      scheduled for removal. That was wrong. Three functions depend on it, verified against the
-      live database: <code>community_create_invite</code>,
-      <code>community_preview_invite</code> and <code>community_redeem_invite</code>. It is the
+      scheduled for removal. That was wrong. It backs <code>community_create_invite</code>,
+      <code>community_preview_invite</code> and <code>community_redeem_invite</code>, and is the
       <strong>pending-invite</strong> store; <code>community_friends</code> is the
       <strong>accepted-buddy</strong> store. Dropping it breaks invite links.</p>
-      <p>What is true is that it has RLS enabled with <strong>zero policies</strong>, which is
-      fail-closed. That is why buddy invite links previewed as
-      &ldquo;invalid&rdquo; for perfectly valid tokens: <code>create</code> and
-      <code>redeem</code> are <code>SECURITY DEFINER</code> and bypass RLS, but
-      <code>preview</code> ran with invoker rights and could read nothing. Fixed in
-      <code>supabase/020_fix_community_preview_invite_rls.sql</code> by making it
-      <code>SECURITY DEFINER</code> too &mdash; not by adding a policy, since a preview is
+      <p>What is true is that the table has RLS enabled with <strong>zero policies</strong>, which
+      is fail-closed. That is why a preview of a valid token could read as
+      &ldquo;invalid&rdquo;: <code>create</code> and <code>redeem</code> are
+      <code>SECURITY DEFINER</code> and bypass RLS, but <code>preview</code> ran with invoker
+      rights and so read nothing. Both preview RPCs were made
+      <code>SECURITY DEFINER</code> (this is baked into <code>isotope-complete.sql</code>
+      &mdash; the migration that first applied it is not split out as a separate
+      <code>supabase/020_…sql</code> file) rather than by adding a policy, since a preview is
       deliberately pre-authorisation and any policy permissive enough to allow it would mean
       &ldquo;anyone may read any invite row&rdquo;.</p>
     </div>
