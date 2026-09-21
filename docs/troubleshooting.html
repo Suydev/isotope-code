@@ -209,22 +209,38 @@ order by tablename, policyname;
 -- expect stats_read_all / daily_read_all with cmd = SELECT</pre>
     </div>
 
-    <h2 class="rise" id="update-403">Update button returns 403 <a class="anchor" href="#update-403" aria-label="Link to this section">#</a></h2>
-    <p><strong>Cause.</strong> The request did not arrive over loopback and carried no admin cookie. Most often the browser is on a different device reaching the server across the network.</p>
-    <p><strong>Fix.</strong> Either open the app on the same machine as the server, or run <code>isotope update</code> in a terminal.</p>
+    <h2 class="rise" id="update-410">Update button is gone / `/api/update-now` returns 410 <a class="anchor" href="#update-410" aria-label="Link to this section">#</a></h2>
+    <p><strong>This is intentional (ISSUE-055).</strong> A browser page must never spawn
+    local processes, so the in-app Update button was deleted from the build and
+    <code>/api/update-now</code> now returns <strong>410 Gone</strong>:
+    <code>{ ok:false, error:'removed', message:'Browser-triggered updates were removed.
+    Run <code>isotope update</code> in a terminal instead.' }</code></p>
+    <p><strong>Fix.</strong> Update from a terminal on the server host:</p>
     <div class="codeblock" data-lang="bash">
-<pre># what the server thinks
-curl -s http://127.0.0.1:3000/api/update-status | python3 -m json.tool</pre>
+<pre># check whether a git pull would touch local work first
+curl -s http://127.0.0.1:3000/api/update-status | python3 -m json.tool
+# then pull and restart
+isotope update</pre>
     </div>
-    <p><code>authorized: false</code> means neither condition was met. <code>admin_available: false</code> additionally means admin unlock is not an option on this install.</p>
+    <p><code>/api/update-status</code> still works: it reports <code>authorized</code>
+    (loopback or admin cookie), <code>dirty</code> + <code>dirty_count</code>, and the
+    current <code>branch</code>. Note the endpoint no longer gates on
+    <code>ENABLE_ADMIN_MODE</code> — loopback alone authorises it for the operator sitting
+    at the box.</p>
 
-    <h2 class="rise" id="update-409">Update returns 409 confirmation_required <a class="anchor" href="#update-409" aria-label="Link to this section">#</a></h2>
-    <p><strong>This is intentional.</strong> <code>isotope update</code> runs <code>git pull</code>, which auto-stashes local modifications. The gate exists so that never happens silently.</p>
-    <p>Commit your work, or accept the stash and recover afterwards:</p>
+    <h2 class="rise" id="update-stash">Local updates stash uncommitted work <a class="anchor" href="#update-stash" aria-label="Link to this section">#</a></h2>
+    <p><strong>This is intentional.</strong> <code>isotope update</code> runs
+    <code>git pull</code>, which auto-stashes local modifications before merging. The
+    gate exists so that never happens silently.</p>
+    <p>Run <code>isotope update</code> from a terminal only on trees you are prepared to
+    stash. Recover afterwards:</p>
     <div class="codeblock" data-lang="bash">
 <pre>git stash list          # your work is here
 git stash pop           # bring it back</pre>
     </div>
+    <p>The old <code>409 confirmation_required</code> branch on <code>/api/update-now</code>
+    existed to gate this same stash, but with the endpoint retired (410) the safeguard now
+    lives entirely in the CLI, where a human is present to confirm.</p>
 
     <h2 class="rise" id="keyboard">Mobile keyboard closes while typing <a class="anchor" href="#keyboard" aria-label="Link to this section">#</a></h2>
     <p><strong>Cause.</strong> A React focus bug in the community modal. Its focus-trap effect depended on <code>onClose</code>, and every call site passed an inline arrow — so the effect re-ran on every keystroke and its cleanup moved focus off the input. Android dismisses the keyboard on blur.</p>
