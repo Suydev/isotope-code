@@ -153,7 +153,7 @@
     <p class="lead" data-enter="3">Release history, newest first. The authoritative source is <a href="https://github.com/Suydev/isotope-code/blob/main/CHANGELOG.md">CHANGELOG.md</a> in the repository; this page summarises what each release actually changed and why.</p>
 
      <h2 class="rise" id="unreleased">Unreleased <a class="anchor" href="#unreleased" aria-label="Link to this section">#</a></h2>
-     <p class="muted">Self-update removal, PiP companion route ordering, invite fix, onboarding, schema docs.</p>
+     <p class="muted">Self-update removal, PiP companion route ordering, invite fix, onboarding, schema docs, leaderboard egress cache, backend move.</p>
      <ul>
        <li><strong>The browser-triggered self-update path is gone.</strong> <code>/api/update-now</code> (ISSUE-055) now returns <code>410 Gone</code> with <code>{ok:false,error:'removed',message:'Browser-triggered updates were removed. Run <code>isotope update</code> in a terminal instead.'}</code>. The in-app Update button was deleted from the build — hosted web and the APK can no longer spawn local processes. Loopback + admin-cookie authorization still applies to local self-hosted installs.</li>
        <li><strong><code>/api/pip/state</code> and <code>/api/pip/action</code> (PiP companion endpoints used by the Kotlin APK) are registered before the <code>/api/*</code> 404 fence</strong> so the APK's hot-polled snapshot and SSE-fanned actions always resolve even when the SPA route does not.</li>
@@ -171,12 +171,18 @@
        <li><strong><code>/api/community-events</code></strong> parity route — present in <code>server.mjs</code>, returns a <code>502 intercepted</code> body so the browser runtime never serves fake community data.</li>
      </ul>
 
-     <h3>Docs</h3>
-     <ul>
-       <li>Rewrote <code>android-apk.html</code>, <code>community.html</code>, <code>architecture.html</code>, <code>configuration.html</code>, <code>cli.html</code>, <code>troubleshooting.html</code> against the Sep 2026 codebase. Schema counts reconciled: 42 tables, <strong>169</strong> RLS policies (was "153" on three pages), 80 functions, 15 triggers, 66 indexes.</li>
-     </ul>
+      <h3>Docs</h3>
+      <ul>
+        <li>Rewrote <code>android-apk.html</code>, <code>community.html</code>, <code>architecture.html</code>, <code>configuration.html</code>, <code>cli.html</code>, <code>troubleshooting.html</code> against the Sep 2026 codebase. Schema counts reconciled: 42 tables, <strong>169</strong> RLS policies (was "153" on three pages), 80 functions, 15 triggers, 66 indexes.</li>
+      </ul>
 
-     <h2 class="rise" id="v341">3.4.1 — 27 August 2026 <a class="anchor" href="#v341" aria-label="Link to this section">#</a></h2>
+      <h3>Backend</h3>
+      <ul>
+        <li><strong>Quota: continuous leaderboard/heartbeat polling replaced with period-boundary caching.</strong> Polling <code>community_heartbeat</code> every 10-30 s and <code>get_leaderboard</code> every 60 s re-fetched the same ranking JSON, which Supabase's CDN bills as cached egress — enough to exhaust the 5 GB free tier in days. <code>/__leaderboard</code> now caches each ranking until its real recalculation boundary (daily to next midnight UTC, weekly &rarr; Monday UTC, monthly &rarr; the 1st), with a 25 s throttle on presence pings and a 1 h TTL on group leaderboards; join/leave/accept events bust the cache so the Groups tab still refreshes immediately. Disable with <code>DISABLE_LEADERBOARD_CACHE=1</code>. The Android APK mirrors this in its <code>window.fetch</code> override.</li>
+        <li><strong>Backup DB migrated into a fresh project</strong> — full schema, the 009-026 patches (incl. the <code>subjects::text[]</code> group-edit type fix), 49 accounts, 18 groups and all 68 storage objects, verified 13/13. See <a href="./sync-and-backup.html#move-project">Moving to another project</a>.</li>
+      </ul>
+
+      <h2 class="rise" id="v341">3.4.1 — 27 August 2026 <a class="anchor" href="#v341" aria-label="Link to this section">#</a></h2>
     <p class="muted">Stale-asset cache rotation, community fixes, CI correctness.</p>
     <p>The headline fix addresses the root cause of recurring black screens. Bundles are patched at request time, but the service-worker cache name derived only from <code>VERSION</code> — so editing a patch changed the response without changing the cache key, and <code>/assets/</code> is served cache-first. A stale copy could persist indefinitely.</p>
     <ul>

@@ -169,6 +169,10 @@
     <h2 class="rise" id="optional">Optional <a class="anchor" href="#optional" aria-label="Link to this section">#</a></h2>
     <dl class="kv">
       <dt>PORT</dt><dd>HTTP port. Defaults to <code>3000</code>.</dd>
+      <dt>DISABLE_LEADERBOARD_CACHE</dt><dd>Set to <code>1</code> to recompute
+    <code>/__leaderboard</code> on every request instead of serving the period-boundary
+    cache. For debugging only — the cache exists to keep Supabase egress inside the free
+    tier. See <a href="./architecture.html#leaderboard-cache">Architecture</a>.</dd>
       <dt>GITHUB_OWNER</dt><dd>Repo owner for update checks. Defaults to <code>Suydev</code>.</dd>
       <dt>GITHUB_REPO</dt><dd>Repo name for update checks. Defaults to <code>isotope-code</code>.</dd>
       <dt>GITHUB_PAT</dt><dd>Raises the GitHub API rate limit for update checks. Not required.</dd>

@@ -396,6 +396,36 @@ function isCountsEmpty(counts) {
       <em>partial</em> restore, not from an intentional one.</p>
     </div>
 
+    <h2 class="rise" id="move-project">Moving to another project <a class="anchor" href="#move-project" aria-label="Link to this section">#</a></h2>
+
+    <p>A full move is three steps — provision, back up, restore. Provisioning and backing
+    up are independent of each other, so a cross-account move can run each half with its
+    own token.</p>
+
+    <ol class="steps">
+      <li><h3>Provision the target</h3><p><code>./supabase.sh setup --pat &lt;token&gt; --ref &lt;new-ref&gt;</code>
+    installs the schema from <code>isotope-complete.sql</code>, creates the buckets, adds the
+    signup trigger and verifies the result. Pass <code>--create "my-isotope"</code> instead of
+    <code>--ref</code> to have a brand-new free project created for you.</p></li>
+      <li><h3>Back up the source</h3><p><code>./backup.sh backup --supabase-url https://old.supabase.co --pat &lt;token&gt;</code>
+    writes a timestamped, checksummed and self-verified tarball under <code>backups/</code>.</p></li>
+      <li><h3>Restore into the target</h3><p><code>./backup.sh restore backups/isotope-backup-…​.tar.gz --supabase-url https://new.supabase.co --pat &lt;token&gt;</code>
+    applies the schema, data, auth users and storage, verifies against the target, then
+    scaffolds <code>.env</code>.</p></li>
+      <li><h3>Restart</h3><p>The app comes back pointed at the new project.</p></li>
+    </ol>
+
+    <div class="note glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+      <p><span class="note-title">One-command wrapper</span>The <code>isotope-apk</code>
+      repository (the Android build) ships <code>switch.sh</code>, which wraps all of the
+      above — including the compatibility migrations and the client repoint — into a single
+      <code>./switch.sh clone --ref NEW --source-ref OLD</code>. Cross-account moves split it:
+      run <code>backup</code> with the source token, then
+      <code>clone --tarball … --pat &lt;target&gt;</code>. See <code>docs/switch.md</code> in
+      that repository for the full reference.</p>
+    </div>
+
     <h2 class="rise" id="storage-layout">Storage bucket layout <a class="anchor" href="#storage-layout" aria-label="Link to this section">#</a></h2>
 
     <p>Four buckets, with different visibility. Getting these wrong is how a private

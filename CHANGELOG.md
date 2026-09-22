@@ -7,6 +7,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Backend
+
+- **Quota: continuous leaderboard/heartbeat polling replaced with period-boundary caching.** Polling `community_heartbeat` every 10-30s and `get_leaderboard` every 60s re-fetched the same ranking JSON each time, which Supabase's CDN bills as Cached Egress — enough to exhaust the 5 GB free tier in days. `/__leaderboard` now caches each ranking until its real recalculation boundary (daily to next midnight UTC, weekly → Monday UTC, monthly → the 1st), with a 25s throttle on presence pings and a 1h TTL on group leaderboards; join/leave/accept events bust the cache so the Groups tab still refreshes immediately. Disable with `DISABLE_LEADERBOARD_CACHE=1`. The Android APK mirrors this in its `window.fetch` override (`android-bridge.js`).
+- **Backup DB migrated into the fresh `iwckb` project** (full schema + 009-026, incl. the `026` `subjects::text[]` group-edit type fix). 49 accounts, 18 groups, 28 group_members, 9 study sessions, 25 subjects, 10 tasks, and all 68 storage objects replicated. `switch.sh verify` = 13/13 checks pass.
+- **Group edit crash `COALESCE types jsonb and text[]`** (`community_update_group`) fixed by casting `p_changes->'subjects'` to `text[]` (migration `026_fix_group_update_subjects_type.sql`).
+- **`014` / `016` migration idempotency** restored: `ADD PRIMARY KEY IF NOT EXISTS` is no longer valid Postgres, and the discover-groups GRANT now guards against the base-schema-created function — so re-running 009-026 on a fresh project no longer produces 42P13/42883 errors.
+
+### Docs
+
+- README Supabase section now documents `./switch.sh clone` for moving between projects and notes the shipped APK target is `iwckbhehmescrqjicbrz`.
+- `.env.example` anon key updated to the backup DB's key.
+
+---
+## [Unreleased]
+
 ### Fixed
 
 - **The browser-triggered self-update path is gone.** `/api/update-now` (ISSUE-055) now

@@ -342,6 +342,12 @@
     </div>
     <p>Built server-side using the caller's own JWT — never the service key. Returns
     rankings for the requested period plus the caller's own rank.</p>
+    <p>The ranking is cached until the period it describes rolls over (daily &rarr; next
+    midnight UTC, weekly &rarr; next Monday, monthly &rarr; the 1st), with a 1-hour TTL for
+    group leaderboards and a 25-second throttle on <code>community_heartbeat</code>. Join,
+    leave, accept-invite and create-group events invalidate the affected key immediately.
+    <code>DISABLE_LEADERBOARD_CACHE=1</code> turns the cache off. See
+    <a href="./architecture.html#leaderboard-cache">Architecture</a>.</p>
 
     <h2 class="rise" id="admin">Admin routes <a class="anchor" href="#admin" aria-label="Link to this section">#</a></h2>
     <p>All <code>/__admin/*</code> routes require <code>ADMIN_MODE_READY</code>

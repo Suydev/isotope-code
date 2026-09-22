@@ -209,6 +209,29 @@ order by tablename, policyname;
 -- expect stats_read_all / daily_read_all with cmd = SELECT</pre>
     </div>
 
+    <h2 class="rise" id="egress-quota">Supabase reports an egress quota overage <a class="anchor" href="#egress-quota" aria-label="Link to this section">#</a></h2>
+    <p><strong>Cause.</strong> Continuous polling. An idle client used to re-fetch the
+    leaderboard every 60&nbsp;s and ping presence every 10-30&nbsp;s, and Supabase bills each
+    CDN-served response as <em>cached egress</em>. A handful of devices left open can pass the
+    free tier's 5&nbsp;GB in days.</p>
+    <p><strong>Fix.</strong> The server caches <code>/__leaderboard</code> until its period
+    boundary (daily &rarr; next midnight UTC, weekly &rarr; next Monday, monthly &rarr; the
+    1st), throttles <code>community_heartbeat</code> to 25&nbsp;s and caps group leaderboards
+    at 1&nbsp;hour; join/leave/accept/create events bust the affected key immediately. Confirm
+    the cache is not disabled:</p>
+    <div class="codeblock" data-lang="bash">
+<pre># empty output means the cache is on (it is only off when this is set to 1)
+grep -n 'DISABLE_LEADERBOARD_CACHE=1' .env
+
+# a second call in the same period is served from cache, not recomputed
+curl -s -XPOST localhost:3000/__leaderboard \
+  -H "Authorization: Bearer $JWT" -d '{"period":"weekly"}'</pre>
+    </div>
+    <p>Storage objects are billed separately and usually dominate the second half of the
+    bill — large avatars and study material. See
+    <a href="./sync-and-backup.html#cleanup">Storage cleanup</a>. To debug cache behaviour set
+    <code>DISABLE_LEADERBOARD_CACHE=1</code> temporarily, and expect egress to climb again.</p>
+
     <h2 class="rise" id="update-410">Update button is gone / `/api/update-now` returns 410 <a class="anchor" href="#update-410" aria-label="Link to this section">#</a></h2>
     <p><strong>This is intentional (ISSUE-055).</strong> A browser page must never spawn
     local processes, so the in-app Update button was deleted from the build and
@@ -254,6 +277,7 @@ git stash pop           # bring it back</pre>
         <tbody>
           <tr><td><code>Could not choose the best candidate function</code></td><td>Two overloads of <code>community_get_group</code> exist — one taking <code>text</code>, one taking <code>uuid</code>. PostgREST cannot disambiguate. Drop the <code>text</code> version.</td></tr>
           <tr><td><code>Cannot read properties of undefined (reading 'reduce')</code></td><td>The RPC returned no <code>members</code> array. Apply <code>community-patch-v6.sql</code>.</td></tr>
+          <tr><td><code>COALESCE types jsonb and text[] cannot be matched</code></td><td>Saving group settings. <code>community_update_group</code> passes <code>p_changes-&gt;'subjects'</code> (jsonb) into a <code>text[]</code> column. Cast it (right).</td></tr>
         </tbody>
       </table>
     </div>
@@ -264,7 +288,30 @@ from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and p.proname = 'community_get_group';
 
 -- remove the text variant if both exist
-drop function if exists public.community_get_group(p_group_id text, p_period text);</pre>
+drop function if exists public.community_get_group(p_group_id text, p_period text);
+
+-- group-edit fix: the jsonb value must be cast to the column type
+create or replace function public.community_update_group(p_group_id uuid, p_changes jsonb)
+returns jsonb language plpgsql security definer set search_path to 'public' as $$
+declare v_uid uuid := auth.uid(); v_role text;
+begin
+  if v_uid is null then return jsonb_build_object('success', false, 'error', 'Not authenticated'); end if;
+  select role into v_role from public.group_members where group_id = p_group_id and user_id = v_uid;
+  if v_role not in ('owner', 'admin') then
+    return jsonb_build_object('success', false, 'error', 'Insufficient permissions');
+  end if;
+  update public.groups set
+    name        = coalesce(p_changes-&gt;&gt;'name', name),
+    description = coalesce(p_changes-&gt;&gt;'description', description),
+    exam        = coalesce(p_changes-&gt;&gt;'exam', exam),
+    target_year = coalesce((p_changes-&gt;&gt;'targetYear')::int, target_year),
+    subjects    = coalesce((p_changes-&gt;'subjects')::text[], subjects),
+    visibility  = coalesce(p_changes-&gt;&gt;'visibility', visibility),
+    join_policy = coalesce(p_changes-&gt;&gt;'joinPolicy', join_policy),
+    updated_at  = now()
+  where id = p_group_id;
+  return jsonb_build_object('success', true);
+end $$;</pre>
     </div>
 
     <h2 class="rise" id="port">Port already in use <a class="anchor" href="#port" aria-label="Link to this section">#</a></h2>

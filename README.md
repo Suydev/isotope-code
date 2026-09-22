@@ -184,6 +184,16 @@ your project predates the leaderboard RLS change, also run
 `SELECT` on `user_stats_summary` and `daily_user_stats`, which makes the leaderboard
 render empty. Fresh installs do not need it.
 
+**Moving between Supabase projects?** From the `isotope-apk` repo, run
+`./switch.sh clone --ref <new-ref> --source-ref <old-ref> --pat <PAT>` to provision the
+new project, migrate the 009-026 patches, then back up data (accounts, groups, study
+sessions, avatars, user-content) and restore it into the target in one pass — the
+leaderboard/heartbeat cache keys are ref-aware, so the moved app keeps its quota-saving
+TTL (daily/weekly/monthly boundaries) without reconfiguration. See `docs/switch.md` in
+the `isotope-apk` repo for the single-token and cross-account variants. The shipped APK's bundled backend is
+`iwckbhehmescrqjicbrz.supabase.co` (do not reset that project without re-running
+`switch.sh clone` or `backup.sh restore`).
+
 Example:
 
 ```env

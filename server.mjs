@@ -9979,6 +9979,10 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
   }
 
   // ── /__leaderboard — server-side leaderboard (uses user JWT, no service key) ──
+  // Note: cache invalidation on group join/leave/accept is handled in the APK
+  // bridge (android-bridge.js window.fetch override) only — server.mjs proxies
+  // the community_* write RPCs through generically, so there is no per-RPC hook
+  // here to bust. Web deploys rely on the period-boundary TTL below.
   if (req.method === 'POST' && adminPath === '/__leaderboard') {
     (async () => {
       const auth = await requireUserAuth(req, res);
@@ -9990,6 +9994,27 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const isDaily = period === 'daily';
       const sortCol = period === 'monthly' ? 'monthly_hours' : 'weekly_hours';
       const today   = new Date().toISOString().slice(0, 10);
+
+      // ── Egress guard (mirrors android-bridge.js): serve cached rankings until the
+      // next period boundary so the same JSON is not recomputed on every poll.
+      // Disable per-deployment via DISABLE_LEADERBOARD_CACHE=1.
+      const LB_CACHE_DISABLED = process.env.DISABLE_LEADERBOARD_CACHE === '1';
+      const uid = auth.userId || '';
+      var __boundaryMs = function(p){
+        var n=Date.now(), d=new Date(n);
+        if(p==='daily'){ return Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+1)-n; }
+        if(p==='weekly'){ var wd=(d.getUTCDay()||7); var nx=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+(8-wd))); if(nx.getTime()<=n) nx=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()+(8-wd)+7)); return nx.getTime()-n; }
+        if(p==='monthly'){ return Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,1)-n; }
+        return 3600000; // hourly for group leaderboard
+      };
+      __LEADERBOARD_CACHE__ = __LEADERBOARD_CACHE__ || {};
+      var __lbKey = uid + '|' + period + '|' + (groupId || '');
+      if (!LB_CACHE_DISABLED) {
+        var __cb = __LEADERBOARD_CACHE__[__lbKey];
+        if (__cb && __cb.expiresAt > Date.now()) {
+          return sendJson(res, 200, JSON.parse(__cb.body));
+        }
+      }
 
       // Use user's JWT for RLS-friendly queries
       const fetchRows = async (path) => {
@@ -10042,7 +10067,12 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
         });
         const uid = auth.userId || null;
         const cur = uid ? (rankings.find(x => x.user_id === uid) || null) : null;
-        sendJson(res, 200, { rankings, period, source: 'db', currentUserRank: cur, display_names_resolved: true });
+        const out = { rankings, period, source: 'db', currentUserRank: cur, display_names_resolved: true };
+        // Cache keyed by user|period|group until the next period boundary (mirrors the APK bridge).
+        if (!LB_CACHE_DISABLED) {
+          __LEADERBOARD_CACHE__[__lbKey] = { body: JSON.stringify(out), expiresAt: Date.now() + __boundaryMs(groupId ? 'group' : period) };
+        }
+        sendJson(res, 200, out);
       } catch (e) {
         sendJson(res, 502, { rankings: [], period, source: 'error', error: e && e.message || 'Leaderboard query failed' });
       }

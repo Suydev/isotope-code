@@ -264,6 +264,36 @@ const RUNTIME_CACHE = 'isotope-local-runtime-' + CACHE_SUFFIX;</pre>
     <p>Every other caller is forwarded with their own <code>Authorization</code> header
     plus the anon key, so row-level security still applies.</p>
 
+    <h2 class="rise" id="leaderboard-cache">Leaderboard &amp; presence caching <a class="anchor" href="#leaderboard-cache" aria-label="Link to this section">#</a></h2>
+    <p>Leaderboards and presence pings are the only routes a client is expected to poll
+    while sitting idle, and Supabase bills every response served from its CDN as
+    <strong>cached egress</strong>. Re-fetching an unchanged ranking every 60 seconds was
+    enough to exhaust the 5 GB free tier in days, so <code>/__leaderboard</code> now
+    computes a ranking once and holds it until the period it describes actually changes:</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Scope</th><th>Cache lifetime</th></tr></thead>
+        <tbody>
+          <tr><td>Daily leaderboard</td><td>Until the next midnight UTC</td></tr>
+          <tr><td>Weekly leaderboard</td><td>Until the next Monday 00:00 UTC</td></tr>
+          <tr><td>Monthly leaderboard</td><td>Until the 1st of the month, 00:00 UTC</td></tr>
+          <tr><td>Group leaderboard</td><td>1 hour</td></tr>
+          <tr><td><code>community_heartbeat</code></td><td>Throttled to one ping per 25 s</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Cache keys are derived from the caller's token, so a backend move starts from a
+    cold cache rather than serving rankings from the previous project. Join, leave,
+    accept-invite and create-group events bust the relevant key immediately, so the Groups
+    tab still reflects membership changes without waiting for the boundary. Disable the
+    cache for debugging with <code>DISABLE_LEADERBOARD_CACHE=1</code>.</p>
+
+    <p>The Android APK has no Node server, so the same policy is baked into
+    <code>android-bridge.js</code>&rsquo;s <code>window.fetch</code> override, gated behind
+    <code>window.__ISO_EGRESS_GUARD</code>.</p>
+
     <h2 class="rise" id="connection-map">Feature-to-Supabase map <a class="anchor" href="#connection-map" aria-label="Link to this section">#</a></h2>
 
     <p>Which features actually reach Supabase, which are local-first, and which are local
