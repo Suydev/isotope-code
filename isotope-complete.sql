@@ -2232,7 +2232,12 @@ begin
         ),
         'visualKey', g.visual_key,
         'exam', g.exam
-      )) from public.groups g where g.deleted_at is null), '[]'::jsonb),
+      )) from public.groups g
+        join public.group_members mine
+          on mine.group_id = g.id
+         and mine.user_id  = uid
+         and mine.left_at is null
+       where g.deleted_at is null), '[]'::jsonb),
 
     'buddies', coalesce((select jsonb_agg(jsonb_build_object(
         'userId',        c.buddy_id,

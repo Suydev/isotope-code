@@ -4281,12 +4281,18 @@ function getPatchedCommunityBundle() {
       console.log('[CommunityCrashFix] null-safe subjects.join (discovery card)');
     }
     // Group chat panel: append component at module scope and render it in the
-    // group page before the settings modal (members only).
+    // group page before the settings modal. Rendered unconditionally, not gated
+    // on the caller's role (ISSUE-059) — the input disables itself for
+    // non-members instead of the whole panel disappearing.
     if (raw.includes(COMMUNITY_CHAT_COMPONENT_FROM)) {
       raw = raw.replace(COMMUNITY_CHAT_COMPONENT_FROM, COMMUNITY_CHAT_COMPONENT_TO);
       console.log('[CommunityChatPatch] chat component appended to Community bundle');
     } else { console.warn('[CommunityChatPatch] component anchor not found'); }
-    if (raw.includes(COMMUNITY_CHAT_RENDER_FROM)) {
+    // Idempotent insert: if the source already carries the mount (a re-served or
+    // already-patched bundle) skip, or the group page renders two chat panels.
+    if (raw.includes(',e.jsx(Qa,{groupId:s,role:h.group.role})')) {
+      console.log('[CommunityChatPatch] chat panel already rendered — skipping');
+    } else if (raw.includes(COMMUNITY_CHAT_RENDER_FROM)) {
       raw = raw.replace(COMMUNITY_CHAT_RENDER_FROM, COMMUNITY_CHAT_RENDER_TO);
       console.log('[CommunityChatPatch] chat panel rendered in group page');
     } else { console.warn('[CommunityChatPatch] render anchor not found'); }
