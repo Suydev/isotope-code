@@ -179,12 +179,16 @@ jobs:
       # because the gallery has gone stale — that is exactly how the bot kept
       # committing duplicate login pages. Login-mode captures still fail loudly
       # (exit 1), because a broken login capture means the gallery itself is
-      # broken and nobody should notice.
+      # broken and nobody should notice. A warning alone does not fail the run —
+      # the gate MUST mark the step failed itself, so only demo-mode runs are
+      # silenced.
       - name: 🔧 Tolerate stale demo gallery
         if: ${{ steps.mode.outputs.mode == 'demo' && failure() }}
         run: |
           echo "::warning::Screenshot capture failed in demo mode — the gallery is stale, main is not blocked."
           echo "::notice::Add SHOT_EMAIL/SHOT_PASSWORD + SCREENSHOT_SUPABASE_* secrets and re-run in login mode to refresh."
+          echo "::error::demo capture failed — silenced for this run only (login mode still fails)"
+          exit 1
 
       - name: 📤 Upload screenshots as artifact
         if: always()
