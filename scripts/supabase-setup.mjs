@@ -437,6 +437,7 @@ async function verifySetup(client, ref, url, serviceKey) {
  */
 function writeEnvFile(ref, url, anon, service, pat, opts = {}) {
   const envPath = join(ROOT, '.env');
+  const envExamplePath = join(ROOT, '.env.example.generated');
   const oldPath = join(ROOT, '.env.old');
 
   // Keys this script must own, because they identify the project it just set up.
@@ -510,10 +511,24 @@ function writeEnvFile(ref, url, anon, service, pat, opts = {}) {
     lines.push('', '# carried over from the previous .env');
     for (const k of extra) lines.push(`${k}=${prev[k]}`);
   }
-
   writeFileSync(envPath, lines.join('\n') + '\n', { mode: 0o600 });
   console.log(`[setup] .env written (mode 600)${carried ? `, ${carried} setting(s) carried over` : ''}` +
     `${extra.length ? `, ${extra.length} unrecognised key(s) preserved` : ''}`);
+
+  // Ship a placeholder example alongside it (.env is gitignored). We write a
+  // separate .env.example.generated rather than overwriting this repo's hand-
+  // authored .env.example (which carries richer comments). Placeholders only —
+  // never the live secrets.
+  const exampleLines = lines.map((l) => {
+    const m = l.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (!m) return l;
+    const [, k, v] = m;
+    if (!v) return l;
+    if (k === 'SUPABASE_URL') return `${k}=https://<ref>.supabase.co`;
+    return `${k}=your-${k.toLowerCase().replace(/_/g, '-')}`;
+  });
+  writeFileSync(envExamplePath, exampleLines.join('\n') + '\n');
+  console.log('[setup] .env.example.generated written (placeholders only)');
   return { written: true, rotated: had, carried, extra: extra.length };
 }
 

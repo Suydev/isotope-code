@@ -497,13 +497,34 @@ async function backup(args, env) {
     }
   }
 
-  // auth.users (metadata only; encrypted_password carries the bcrypt hash)
+  // auth.users (metadata + bcrypt hash). instance_id IS included: hosted
+  // GoTrue filters users by instance_id ('00000000-…'), and dropping it leaves
+  // restored users with NULL — they become invisible to sign-in (login returns
+  // "Invalid login credentials" / 500 "Database error finding users").
+  // Transient SECRET tokens are still excluded; restore resets those to empty.
   const authCols = (colsByTable.get('auth.users') || []);
-  const authDump = authCols.filter((c) => c.is_generated !== 'ALWAYS' && !/(confirmation|recovery|change|reauth|otp|updated_|phone_change|email_change|invited|last_sign|is_anonymous|is_sso|is_phone)/i.test(c.column_name) && c.column_name !== 'instance_id');
+  const authDump = authCols.filter((c) => c.is_generated !== 'ALWAYS' && !/(confirmation|recovery|change|reauth|otp|updated_|phone_change|email_change|invited|last_sign|is_anonymous|is_sso|is_phone)/i.test(c.column_name));
   manifest.auth_columns = authDump.map((c) => ({ name: c.column_name, cast: castFor(c) }));
   const authRows = await sql.query(`select ${authDump.map((c) => `"${c.column_name}"`).join(', ')} from auth.users`);
   writeFileSync(join(args.out, 'db', 'auth.users.jsonl'), authRows.map((r) => JSON.stringify(r)).join('\n') + (authRows.length ? '\n' : ''));
   console.log(`[backup] auth.users: ${authRows.length} users`);
+
+  // auth.identities: MUST transfer too. Without it GoTrue cannot resolve the
+  // user's provider link, so OAuth (and often password) log-ins fail after a
+  // restore even when auth.users rows are present. As with auth.users, drop
+  // GENERATED columns (newer projects make `email` a STORED/generated column
+  // computed from identity_data) so the insert does not violate the no-write
+  // rule on a generated column.
+  const idCols = (colsByTable.get('auth.identities') || []).filter((c) => c.is_generated !== 'ALWAYS');
+  if (idCols.length) {
+    const idRows = await sql.query(`select ${idCols.map((c) => `"${c.column_name}"`).join(', ')} from auth.identities`);
+    manifest.auth_identities_columns = idCols.map((c) => ({ name: c.column_name, cast: castFor(c), generated: c.is_generated }));
+    writeFileSync(join(args.out, 'db', 'auth.identities.jsonl'), idRows.map((r) => JSON.stringify(r)).join('\n') + (idRows.length ? '\n' : ''));
+    console.log(`[backup] auth.identities: ${idRows.length} identities`);
+  } else {
+    manifest.auth_identities_columns = [];
+    manifest.notes.push('auth.identities: not present or no non-generated columns in source schema');
+  }
 
   // Routine / trigger / policy inventory. Recorded so verify can prove the
   // restored project actually has the code, not just the tables.
@@ -834,6 +855,57 @@ async function restore(args, env) {
     }
     console.log(`[restore] auth.users: ${ok} ok, ${failed} failed`);
     emit({ phase: 'auth', state: 'done', done: rows.length, total: rows.length, ok, failed });
+    // auth.users columns that GoTrue treats as non-null and that the backup
+    // intentionally does not copy (transient tokens like confirmation_token),
+    // plus instance_id. Without them restored users get NULL here, which makes
+    // GoTrue throw 500 "Database error finding users" and breaks ALL sign-in
+    // (password + OAuth). instance_id NULL makes GoTrue blind to the user even
+    // though the row exists, so it is defaulted to the hosted sentinel.
+    const INSTANCE_SENTINEL = '00000000-0000-0000-0000-000000000000';
+    await sql.query(`update auth.users set
+      instance_id = coalesce(instance_id, ${`'${INSTANCE_SENTINEL}'`}::uuid),
+      updated_at = coalesce(updated_at, created_at, now()),
+      confirmation_token = '',
+      recovery_token = '',
+      email_change = '',
+      email_change_token_new = '',
+      email_change_token_current = '',
+      phone_change = '',
+      phone_change_token = '',
+      reauthentication_token = '',
+      email_change_confirm_status = 0,
+      is_super_admin = false
+      where updated_at is null`);
+    console.log(`[restore] auth.users: token/updated_at defaults normalized`);
+
+    // auth.identities: must transfer or GoTrue cannot resolve the provider link,
+    // so OAuth (and often password) log-in fails. GENERATED columns (the `email`
+    // column on newer projects) are omitted from the insert. identity_data is
+    // emitted as a $json$...$json$::jsonb literal so braces/quotes survive.
+    const idFile = join(args.src, 'db', 'auth.identities.jsonl');
+    if (existsSync(idFile)) {
+      const idRows = readFileSync(idFile, 'utf8').split('\n').filter(Boolean).map(JSON.parse);
+      const idCols = (manifest.auth_identities_columns && manifest.auth_identities_columns.length)
+        ? manifest.auth_identities_columns.filter((c) => c.generated !== 'ALWAYS')
+        : ['provider_id', 'user_id', 'identity_data', 'provider', 'last_sign_in_at', 'created_at', 'updated_at', 'id'];
+      const colList = idCols.map((c) => `"${c.name}"`).join(', ');
+      const idLit = (r) => `(${idCols.map((c) => c.name === 'identity_data'
+        ? `$json$${JSON.stringify(r.identity_data)}$json$::jsonb`
+        : lit(r[c.name], c.cast)).join(', ')})`;
+      let iok = 0, ifail = 0;
+      for (let i = 0; i < idRows.length; i += 25) {
+        const chunk = idRows.slice(i, i + 25);
+        try {
+          const res = await sql.query(`insert into auth.identities (${colList}) values ${chunk.map(idLit).join(', ')} on conflict do nothing returning id`);
+          iok += Array.isArray(res) ? res.length : 0;
+        } catch (e) {
+          ifail += chunk.length;
+          console.log(`  [restore] identities batch FAILED: ${e.message.slice(0, 200)}`);
+        }
+      }
+      console.log(`[restore] auth.identities: ${iok} inserted, ${ifail} failed`);
+      emit({ phase: 'auth', state: 'done', done: idRows.length, total: idRows.length, ok: iok, failed: ifail });
+    }
   }
 
   // 3. data tables in FK order (guard against degenerate manifests from older
@@ -1043,8 +1115,27 @@ async function verify(args, env) {
   if (existsSync(authFile)) {
     const expectAuth = readFileSync(authFile, 'utf8').split('\n').filter(Boolean).length;
     const [r] = await sql.query('select count(*)::bigint as n from auth.users');
-    check(Number(r.n) === expectAuth, 'auth.users', `${r.n} ${Number(r.n) === expectAuth ? '==' : '!='} ${expectAuth}`);
-  }
+     check(Number(r.n) === expectAuth, 'auth.users', `${r.n} ${Number(r.n) === expectAuth ? '==' : '!='} ${expectAuth}`);
+   }
+
+   // auth.users.instance_id must be non-null on the target: a NULL instance_id
+   // makes GoTrue blind to the account (sign-in returns "Invalid login credentials").
+   // The restored count check above passes regardless, so this is what actually
+   // catches the classic "all users transferred but nobody can log in" failure.
+   {
+     const [s] = await sql.query('select count(*)::bigint as n from auth.users where instance_id is null');
+     check(Number(s.n) === 0, 'auth.users.instance_id', `${s.n} null — ${Number(s.n) === 0 ? 'all users have an instance_id' : 'run UPDATE auth.users set instance_id = ... '}`);
+   }
+
+   // auth.identities must transfer. GoTrue can't resolve the provider link without
+   // it, so OAuth log-ins fail. This is what caught the v3.6.4-style regression.
+   const idFile = join(src, 'db', 'auth.identities.jsonl');
+   if (existsSync(idFile)) {
+     const expectId = readFileSync(idFile, 'utf8').split('\n').filter(Boolean).length;
+     const [i] = await sql.query('select count(*)::bigint as n from auth.identities');
+     check(Number(i.n) === expectId, 'auth.identities', `${i.n} ${Number(i.n) === expectId ? '==' : '!='} ${expectId}`);
+   }
+
 
   // 4. storage buckets + object counts (needs service key)
   if (args['no-storage']) {
