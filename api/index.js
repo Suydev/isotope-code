@@ -9,7 +9,19 @@
 // Zero changes to server.mjs: it still validates env, builds its bundle-patch
 // caches, and dispatches every route (static assets, patched bundles, auth,
 // community, AI proxy) through the same code path it uses locally.
+//
+// Import specifiers are relative to THIS file (api/index.js), not to
+// server.mjs — Vercel's bundler starts the module graph at api/index.js and
+// would mis-resolve server.mjs's "./server/..." and "./public/..." imports
+// after copying them into the bundle. Importing via absolute-from-root
+// specifiers here keeps the bundler's copy of server.mjs anchored to
+// <project-root>/server.mjs so its relative imports still resolve.
 import http from 'http';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.resolve(__dirname, '..');
 
 let requestHandler = null;
 const realCreateServer = http.createServer;
@@ -31,7 +43,7 @@ http.createServer = (handler) => {
 };
 
 try {
-  await import('../server.mjs');
+  await import(pathToFileURL(path.join(ROOT_DIR, 'server.mjs')).href);
 } finally {
   http.createServer = realCreateServer;
 }
