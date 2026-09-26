@@ -1,4 +1,18 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "public/**",
+      "maxDuration": 300
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ],
   "headers": [
     {
       "source": "/auth",
@@ -7,14 +21,7 @@
         { "key": "Pragma", "value": "no-cache" },
         { "key": "Expires", "value": "0" }
       ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-      ]
     }
   ],
-  "cleanUrls": true,
-  "trailingSlash": false
+  "outputDirectory": ".vercel-empty-output"
 }
