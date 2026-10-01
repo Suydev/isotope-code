@@ -8,10 +8,45 @@ set -euo pipefail
 
 info() { printf '%s\n' "$*"; }
 warn() { printf 'WARN: %s\n' "$*" >&2; }
+die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
-if [ -z "${TERMUX_VERSION:-}" ] && ! printf '%s' "${PREFIX:-}" | grep -q 'com.termux'; then
-  warn "Termux not detected. This script is for Android Termux only."
-  warn "Continuing anyway — run on Android Termux for full functionality."
+# The Termux application package. Overridable for forks/repacks that ship under a
+# different package name; every path below is derived from it rather than
+# hardcoding com.termux.
+TERMUX_PKG="${TERMUX_PKG:-com.termux}"
+
+# Resolve the Termux prefix ($PREFIX). Order matters: when this script runs from
+# inside Termux, $PREFIX is authoritative and nothing else should be probed.
+resolve_termux_prefix() {
+  if [ -n "${PREFIX:-}" ] && [ -d "${PREFIX:-}" ]; then printf '%s' "$PREFIX"; return 0; fi
+  # /data/user/0 is the real path on modern Android; /data/data is the usual symlink.
+  local d
+  for d in "/data/data/$TERMUX_PKG/files/usr" "/data/user/0/$TERMUX_PKG/files/usr"; do
+    if [ -d "$d" ]; then printf '%s' "$d"; return 0; fi
+  done
+  return 1
+}
+
+IN_TERMUX=0
+if [ -n "${TERMUX_VERSION:-}" ] || printf '%s' "${PREFIX:-}" | grep -q "^/data/\(data\|user/0\)/$TERMUX_PKG"; then
+  IN_TERMUX=1
+fi
+
+if [ "$IN_TERMUX" -eq 0 ]; then
+  # This is the ADB / Shizuku case: `adb shell` is NOT Termux, so $HOME is not
+  # Termux's home and ~/.shortcuts would be written to the wrong place — producing
+  # widgets that silently cannot find anything. Refuse rather than half-install.
+  die "Not running inside $TERMUX_PKG (found neither TERMUX_VERSION nor a matching PREFIX).
+     Widget shortcuts MUST be created by Termux itself, or they land in the wrong
+     \$HOME and the widget does nothing.
+
+     With Shizuku/ADB, get into Termux first and run it there:
+       adb shell am start -n $TERMUX_PKG/.app.MainActivity
+       # then, inside Termux:
+       bash setup-termux-widget.sh
+
+     Not a Termux package? Set TERMUX_PKG to its package name, e.g.
+       TERMUX_PKG=com.example.termux bash setup-termux-widget.sh"
 fi
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,8 +60,9 @@ printf '%s\n' "$PROJECT_DIR" > "$ISO_HOME/project-path"
 
 # Resolve the isotope command at setup time and embed it in shortcuts.
 # Widget launches don't always inherit the interactive PATH.
-PREFIX_BIN_ISO="${PREFIX:-/data/data/com.termux/files/usr}/bin/isotope"
-TERMUX_BIN_ISO="/data/data/com.termux/files/usr/bin/isotope"
+TERMUX_PREFIX="$(resolve_termux_prefix)" || die "Could not locate the $TERMUX_PKG prefix."
+PREFIX_BIN_ISO="$TERMUX_PREFIX/bin/isotope"
+TERMUX_BIN_ISO="$TERMUX_PREFIX/bin/isotope"
 if [ -x "$PREFIX_BIN_ISO" ]; then
   GLOBAL_ISO="$PREFIX_BIN_ISO"
 elif [ -x "$TERMUX_BIN_ISO" ]; then

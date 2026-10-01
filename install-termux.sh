@@ -68,25 +68,65 @@ ok() {
 # ── Termux detection ──────────────────────────────────────────────────────────
 step "Checking environment..."
 
-if [ -z "${TERMUX_VERSION:-}" ] && ! printf '%s' "${PREFIX:-}" | grep -q 'com.termux'; then
-  fail "Termux not detected. This script is for Android Termux only.
-       Install Termux from F-Droid: https://f-droid.org/packages/com.termux/
-       Then re-run this script inside Termux."
+# The Termux application package. Overridable for forks/repacks that ship under a
+# different package name; every path below is derived from it.
+TERMUX_PKG="${TERMUX_PKG:-com.termux}"
+
+# Resolve the Termux prefix ($PREFIX). $PREFIX wins when this script runs from
+# inside Termux; otherwise probe the standard data dirs for the package, which is
+# what makes the script usable from `adb shell` (Shizuku) without hardcoding paths.
+resolve_termux_prefix() {
+  if [ -n "${PREFIX:-}" ] && [ -d "${PREFIX:-}" ]; then printf '%s' "$PREFIX"; return 0; fi
+  local d
+  for d in "/data/data/$TERMUX_PKG/files/usr" "/data/user/0/$TERMUX_PKG/files/usr"; do
+    if [ -d "$d" ]; then printf '%s' "$d"; return 0; fi
+  done
+  return 1
+}
+
+IN_TERMUX=0
+if [ -n "${TERMUX_VERSION:-}" ] || printf '%s' "${PREFIX:-}" | grep -q "^/data/\(data\|user/0\)/$TERMUX_PKG"; then
+  IN_TERMUX=1
 fi
-ok "Termux detected (TERMUX_VERSION=${TERMUX_VERSION:-unknown})"
+
+# Outside Termux (e.g. `adb shell` via Shizuku) the hard-fail below used to make the
+# installer unreachable: no TERMUX_VERSION and no PREFIX. That's now an actionable
+# warning, because the package can still be located on disk.
+if [ "$IN_TERMUX" -eq 0 ]; then
+  warn "Not running inside $TERMUX_PKG (no TERMUX_VERSION, no matching PREFIX)."
+  warn "This is normal from 'adb shell'. Continuing — but tools like termux-wake-lock"
+  warn "and termux-api will not work from outside Termux, so run this from the Termux"
+  warn "terminal for a complete install:"
+  warn "  adb shell am start -n $TERMUX_PKG/.app.MainActivity"
+fi
+
+TERMUX_PREFIX="$(resolve_termux_prefix)" || fail "$TERMUX_PKG is not installed.
+       Install Termux from F-Droid: https://f-droid.org/packages/$TERMUX_PKG/
+       Then re-run this script inside Termux.
+
+       Using a repack with a different package name? Set TERMUX_PKG, e.g.
+         TERMUX_PKG=com.example.termux bash install-termux.sh"
+ok "$TERMUX_PKG prefix: $TERMUX_PREFIX"
 
 # ── Warn about Play Store Termux ──────────────────────────────────────────────
 # The Play Store version stopped receiving updates in 2020 and has known bugs.
-# pkg info shows the source; alternatively check if pkg itself is very old.
-TERMUX_APK_SOURCE=""
-if has dpkg; then
-  TERMUX_APK_SOURCE="$(dpkg -l com.termux 2>/dev/null || true)"
-fi
-if [ -f "/data/data/com.termux/files/usr/etc/apt/sources.list" ]; then
-  if grep -q 'packages-24.termux.net\|termux.net' "/data/data/com.termux/files/usr/etc/apt/sources.list" 2>/dev/null; then
-    : # modern repo — fine
+# It is identified by its apt sources pointing at the legacy repo (the old
+# play.google.com host) rather than packages.termux.dev / packages-24.termux.net.
+LEGACY_SOURCES="$TERMUX_PREFIX/etc/apt/sources.list"
+if [ -f "$LEGACY_SOURCES" ] && grep -Eq 'play\.google\.com|termux.net' "$LEGACY_SOURCES" 2>/dev/null; then
+  warn "Your $TERMUX_PKG apt sources point at a legacy/Play Store repository"
+  warn "($LEGACY_SOURCES). That build stopped updating in 2020 and has known bugs."
+  warn "Reinstall from F-Droid or GitHub, from the SAME source:"
+  warn "  https://f-droid.org/packages/$TERMUX_PKG/"
+  warn "  https://github.com/termux/termux-app/releases"
+  warn "Then reinstall Termux:Widget from that same source."
+  if [ "$YES" -eq 0 ]; then
+    printf '  Continue anyway? [y/N]: '
+    IFS= read -r reply
+    case "$reply" in y|Y|yes|YES) : ;; *) fail "Aborted. Please upgrade Termux first." ;; esac
   fi
 fi
+
 # A simple heuristic: if the Termux version number is very old, warn.
 TERMUX_VER_NUM="${TERMUX_VERSION:-0}"
 case "$TERMUX_VER_NUM" in
@@ -94,7 +134,7 @@ case "$TERMUX_VER_NUM" in
     warn "Termux v${TERMUX_VER_NUM} appears to be very old (possibly Play Store version).
        The Play Store version stopped receiving updates in 2020 and may fail.
        Install Termux from F-Droid or GitHub instead:
-         https://f-droid.org/packages/com.termux/
+         https://f-droid.org/packages/$TERMUX_PKG/
          https://github.com/termux/termux-app/releases
        Then reinstall Termux:Widget from the same source."
     if [ "$YES" -eq 0 ]; then

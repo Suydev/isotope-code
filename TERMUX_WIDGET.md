@@ -161,6 +161,28 @@ isotope logs
 
 ## Troubleshooting
 
+**Running from `adb shell` / Shizuku instead of inside Termux:**
+`install-termux.sh` works from `adb shell` — it locates the Termux package on disk
+and continues, warning that `termux-wake-lock` and `termux-api` will not function
+outside Termux. But `setup-termux-widget.sh` **refuses** to run there, and that is
+deliberate: outside Termux, `$HOME` is not Termux's home, so the shortcuts would be
+written to the wrong place and the widget buttons would silently do nothing. Open
+Termux first, then run it:
+
+```bash
+adb shell am start -n com.termux/.app.MainActivity
+# then, inside Termux:
+bash setup-termux-widget.sh
+```
+
+**Using a Termux repack with a different package name:**
+Both scripts derive every path from `TERMUX_PKG` (default `com.termux`) instead of
+hardcoding it, so a fork under another package name works with:
+
+```bash
+TERMUX_PKG=com.example.termux bash install-termux.sh
+```
+
 **Widget button does nothing:**
 Run `bash setup-termux-widget.sh` to refresh shortcuts with the current command path.
 
@@ -169,6 +191,8 @@ Run `bash setup.sh` or `bash install-termux.sh` to reinstall the global command.
 
 **Play Store Termux warning during install:**
 Reinstall Termux from F-Droid or the GitHub release — the Play Store version is unmaintained.
+The installer detects it from the legacy apt sources in the package prefix
+(`$TERMUX_PREFIX/etc/apt/sources.list`) and points at the current repos.
 
 **Server started but browser shows error:**
 Your `.env` may be missing Supabase credentials. Run `isotope doctor` to check.
