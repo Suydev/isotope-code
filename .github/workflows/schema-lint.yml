@@ -154,6 +154,7 @@ jobs:
             -e 'http_request' \
             -e 'supabase_admin' \
             -e 'net\.http' \
+            -e 'supabase_vault' \
             isotope-complete.sql > /tmp/schema_test.sql
 
           echo "Running schema against PostgreSQL 16..."
