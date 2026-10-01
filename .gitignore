@@ -4,6 +4,10 @@ node_modules/
 .env.old
 .newenv.done
 .backup_env
+.pat
+.oldpat
+*.pat
+!.env.example
 backups/
 !.env.example
 *.local

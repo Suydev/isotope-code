@@ -1,6 +1,6 @@
 {
   "version": "3.4.1",
-  "sha": "3925a373a29bb33c16e4fdcb10b63399d2641bf8",
-  "message": "fix: offline shell fallback for first-visit cache miss",
-  "updated_at": "2026-08-16T00:00:00.000Z"
+  "sha": "d05358646f8a5bcc7d1faa702a6cb9020b99f475",
+  "message": "fix(boot): retry on Supabase quota/network errors so the app never gets stuck on the splash",
+  "updated_at": "2026-09-25T14:49:48.628Z"
 }

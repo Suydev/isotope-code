@@ -24,6 +24,46 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- **Login showed an error screen and then bounced to `/dashboard` (ISSUE-060).** Two
+  compounding defects, both in the Auth chunk:
+  1. `4cd4c7f` hand-edited the shipped `Auth-D0Y8CB1f.js` to add a 15s quota guard
+     and left an escaped quote in **code** (`b(\"/dashboard\"` instead of
+     `b("/dashboard"`) — a literal backslash outside any string. The committed
+     bundle was therefore not valid JavaScript. Repaired.
+  2. Because the same commit rewrote that submit handler, the serve-time patch
+     that routes sign-in through `window.__isoLogin` (self-hosted username auth)
+     no longer matched its literal anchor, so it silently stopped applying. Login
+     fell back to the upstream Supabase `signIn()`, which cannot succeed on this
+     deployment, producing the error screen. The login and signup patches are now
+     anchored on their two stable handler boundaries instead of the whole
+     (drifting) body, so a re-capture cannot silently disable them again.
+
+  A missed auth patch is now a **critical** patch failure: it renders the startup
+  warning banner rather than only logging a warning.
+
+- **Ambient sound kept playing after leaving the Focus tab, and the panel came
+  back showing "Off" (ISSUE-061).** The play effect created its `Audio` element in
+  a `useEffect` that returned no cleanup, so unmounting the Focus route left a
+  looping element with no reference to it; and the selected track plus volume lived
+  in bare `useState`, so they reset on remount — which is why the panel read "Off"
+  while the orphaned element was still audible. The effect now returns a cleanup
+  that pauses, clears and releases the element, and the selection/volume are
+  hydrated and persisted through the app's KV store (the same one the distraction
+  pad uses, so they inherit the IndexedDB migration and the backup fallback). A
+  `hydrated` ref guards the write so the first render cannot wipe a saved
+  selection, and a stored track id that no longer exists is ignored rather than
+  applied. Mirrored into the Android APK's baked `www/assets/` bundle.
+
+### Added
+
+- **Startup bundle syntax self-check.** `public/assets/` is hand-maintained, so a
+  bad hand edit used to ship as invalid JS and take a whole route down at import
+  time with no server-side symptom — that is how the ISSUE-060 Auth breakage hid
+  for so long. The server now parses every runtime-patched bundle with a real
+  ES-module parser (one child process, once, after the port opens) and pushes
+  failures into the existing critical-patch banner. Disable with
+  `ISOTOPE_SKIP_BUNDLE_CHECK=1`.
+
 - **The browser-triggered self-update path is gone.** `/api/update-now` (ISSUE-055) now
   returns `410 Gone` with `{ ok:false, error:'removed', message:'Browser-triggered
   updates were removed. Run `isotope update` in a terminal instead.' }`. The in-app

@@ -100,6 +100,11 @@ const RUNTIME_PATCHED_ASSET_PATHS = new Set([
   '/assets/Study-BXfkiHvM.js',
   '/assets/useNotificationStore-BTREori0.js',
   '/assets/CommunityVisuals-mHr4KGyg.js',
+  '/assets/Analytics-B1QTymFp.js',
+  '/assets/useCommunity-CBDFEeBe.js',
+  '/assets/WelcomeTeaser-C6jfNmJc.js',
+  '/assets/community-BTpNdnFf.css',
+  '/assets/index-LkPKl--4.css',
 ]);
 
 function isApiLike(url) {

@@ -263,12 +263,25 @@ For full project backups (schema + auth + storage + all users), a standalone CLI
 ./backup.sh backup           # create encrypted backup (sha256 sidecar + auto-verify)
 ./backup.sh restore <file>   # restore with pre-flight integrity check
 ./backup.sh verify <file>    # verify tables, row counts, auth, storage
-./backup.sh info             # list local backups with status
+./backup.sh info <file>      # describe ONE backup file (it takes an argument)
+./backup.sh ui               # web console on 127.0.0.1:8000
+./backup.sh status           # progress + ETA of the detached backup job
+./backup.sh stop             # kill the detached job
 ```
+
+`ui`, `status` and `stop` manage long backups that run detached. Note that
+`info` takes a backup file as its argument — there is no bare `./backup.sh info`
+that lists local backups.
 
 See the [sync & backup guide](https://suydev.github.io/isotope-code/sync-and-backup.html) for key precedence, scheduling, and safety notes.
 
-Keys are resolved from CLI flags > `.backup_env` (gitignored) > `.env`. The `.backup_env` file holds the **keeper project** credentials (separate from your working project in `.env`) so cloud backups never hit your live app DB.
+Keys are resolved from **CLI flags (`--supabase-url/--anon-key/--service-key/--pat`) > environment variables > `.backup_env` (gitignored) > `.env`**. `.backup_env` holds the **keeper project** credentials (separate from your working project in `.env`) so cloud backups never hit your live app DB.
+
+> If `.backup_env` does not exist, keys fall back to `.env`. `.env` only has to
+> carry `SUPABASE_URL` and `SUPABASE_ANON_KEY`; `SUPABASE_SERVICE_ROLE_KEY` and
+> `SUPABASE_ACCESS_TOKEN` are the two that actually authorise a backup, so
+> without them a backup can only fall back to remote-fetches and will be slow or
+> incomplete. Create `.backup_env` (chmod 600) before the first real backup.
 
 ## Admin Mode
 

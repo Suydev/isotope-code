@@ -164,11 +164,197 @@ const RUNTIME_PATCHED_ASSET_PATHS = new Set([
   // mobile header fix and the eased loading animation actually reach clients.
   '/assets/community-BTpNdnFf.css',
   '/assets/index-LkPKl--4.css',
+  '/assets/Analytics-B1QTymFp.js',
+  // Patched by getPatchedUseCommunityBundle(). Was in NEITHER set, so it
+  // matched isHashedStaticAsset and was served `immutable, max-age=1y`
+  // despite being rewritten every process (the redeemInvite mutation).
+  '/assets/useCommunity-CBDFEeBe.js',
 ]);
 
 function isRuntimePatchedAsset(pathname) {
   const clean = String(pathname || '/').split('?')[0] || '/';
   return RUNTIME_PATCHED_ASSET_PATHS.has(clean);
+}
+
+// Placeholder stubs are logged/flagged once each, not once per request.
+const _placeholderAssetsSeen = new Set();
+
+// Shared 404 for static assets. The Content-Type MUST match what the request
+// asked for: a bare 404 with no type makes a missing stylesheet report
+// "MIME type ('') is not a supported stylesheet MIME type", which sends
+// debugging after the MIME map instead of the real cause.
+function notFoundFor(urlPath, res, reason) {
+  const ext = String(urlPath).split('?')[0].split('.').pop().toLowerCase();
+  const type = MIME_TYPES[ext] || 'application/octet-stream';
+  const body = `/* 404 ${urlPath} — ${reason} */\n`;
+  res.writeHead(404, {
+    'Content-Type': type,
+    'Content-Length': Buffer.byteLength(body),
+    'Cache-Control': 'no-store',
+    'X-Isotope-Error': reason,
+  });
+  res.end(body);
+}
+
+// ── Patched-output syntax self-check ─────────────────────────────────────────
+//
+// selfCheckBundles() validates the on-disk files (catching bad hand edits).
+// This validates what the server actually SERVES, which is the only place a
+// malformed replacement can hide: patched bytes exist solely in memory, and a
+// browser rejects the chunk at import time with no server-side error. The audit
+// found several replacements that were unmatchable by construction and one whose
+// replacement was itself invalid JS.
+//
+// Runs the real getPatched*Bundle() functions, so it also acts as a smoke test
+// that none of them throw. Set ISOTOPE_SKIP_BUNDLE_CHECK=1 to disable.
+function selfCheckPatchedOutput() {
+  if (process.env.ISOTOPE_SKIP_BUNDLE_CHECK === '1') return;
+  // Opt-IN: this re-parses ~13 patched bundles (several hundred KB) in a child
+  // process. That is cheap on a laptop but competes with first paint on a slow
+  // or thermally-throttled host, so it runs only when explicitly requested:
+  //   ISOTOPE_CHECK_PATCHED_OUTPUT=1 node server.mjs
+  // It is a verification tool, not a runtime requirement — the patchers already
+  // run at warm-up and their per-anchor warnings surface any miss.
+  if (process.env.ISOTOPE_CHECK_PATCHED_OUTPUT !== '1') {
+    console.log('[PatchOutputCheck] skipped (set ISOTOPE_CHECK_PATCHED_OUTPUT=1 to run)');
+    return;
+  }
+  // [label, absolute path, patcher]
+  const jobs = [
+    ['app',            APP_BUNDLE_ABS,             getPatchedAppBundle],
+    ['auth',           AUTH_BUNDLE_ABS,            getPatchedAuthBundle],
+    ['focus',          FOCUS_BUNDLE_ABS,           getPatchedFocusBundle],
+    ['onboarding',     ONBOARDING_BUNDLE_ABS,      getPatchedOnboardingBundle],
+    ['singlegroup',    SINGLE_GROUP_BUNDLE_ABS,    getPatchedSingleGroupBundle],
+    ['leaderboard',    LEADERBOARD_BUNDLE_ABS,     getPatchedLeaderboardBundle],
+    ['settings',       SETTINGS_BUNDLE_ABS,        getPatchedSettingsBundle],
+    ['syncstore',      USE_SYNC_STORE_BUNDLE_ABS,  getPatchedUseSyncStoreBundle],
+    ['appaccessgate',  APP_ACCESS_GATE_BUNDLE_ABS, getPatchedAppAccessGateBundle],
+    ['sessionsync',    SESSION_SYNC_BUNDLE_ABS,    getPatchedSessionSyncBundle],
+    ['invites',        INVITES_BUNDLE_ABS,         getPatchedInvitesBundle],
+    ['dashboard',      DASHBOARD_BUNDLE_ABS,       getPatchedDashboardBundle],
+    ['analytics',      ANALYTICS_BUNDLE_ABS,       getPatchedAnalyticsBundle],
+  ];
+  const failed = [];
+  const emitted = [];
+  for (const [label, abs, patcher] of jobs) {
+    if (!fs.existsSync(abs)) continue;
+    let out = null;
+    try { out = patcher(); } catch (e) {
+      failed.push([label, 'patcher threw: ' + (e && e.message || e)]);
+      continue;
+    }
+    if (out == null) continue; // patcher opted out (anchor missed on purpose)
+    emitted.push([label, out.toString('utf8')]);
+  }
+  if (!emitted.length) { console.log('[PatchOutputCheck] no patched output to check'); return; }
+
+  // One child process parses every patched buffer with a real ES-module parser.
+  // Patched buffers are written to a temp dir rather than passed as argv: Linux
+  // caps a SINGLE argument at 128 KiB (MAX_ARG_STRLEN) and these bundles are
+  // 70-200 KiB each, so an argv payload fails with E2BIG and the check silently
+  // never runs.
+  let bad = [];
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'isotope-patchcheck-'));
+  const list = [];
+  try {
+    for (const [label, src] of emitted) {
+      const f = path.join(tmpDir, label + '.mjs');
+      fs.writeFileSync(f, src, 'utf8');
+      list.push([label, f]);
+    }
+    // Plain line protocol, not JSON: an error message can contain quotes,
+    // newlines and non-ASCII, and both stdout and a result file proved fragile
+    // channels here. One `LABEL\tMESSAGE` line per failure.
+    const script = [
+      "const fs=require('fs'),vm=require('vm');",
+      "for(const pair of JSON.parse(process.argv[1])){",
+      "  const label=pair[0],file=pair[1];",
+      "  let msg='';",
+      "  try{ new vm.SourceTextModule(fs.readFileSync(file,'utf8'),{identifier:label}); }",
+      "  catch(e){ msg=String(e&&e.message||e).replace(/[\\r\\n]+/g,' '); }",
+      "  if(msg) process.stdout.write('__BAD__'+label+'\\t'+msg+'\\n');",
+      "}",
+    ].join('\n');
+    const r = spawnSync(
+      process.execPath,
+      ['--experimental-vm-modules', '--no-warnings', '-e', script, JSON.stringify(list)],
+      { encoding: 'utf8', timeout: 60000 }
+    );
+    if (r.status !== 0) {
+      console.warn('[PatchOutputCheck] child failed (status ' + r.status +
+        ', stderr ' + String(r.stderr || '').slice(0, 200) + ')');
+    } else {
+      for (const line of String(r.stdout || '').split('\n')) {
+        if (!line.startsWith('__BAD__')) continue;
+        const rest = line.slice(7);
+        const tab = rest.indexOf('\t');
+        if (tab === -1) continue;
+        bad.push([rest.slice(0, tab), rest.slice(tab + 1)]);
+      }
+    }
+  } finally {
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
+  }
+  if (bad == null) return;
+  for (const [label, msg] of failed.concat(bad)) {
+    console.error('[PatchOutputCheck] INVALID PATCHED OUTPUT: ' + label + ' :: ' + msg);
+    _criticalPatchFailures.push('patched-output:' + label);
+  }
+  if (!failed.length && !bad.length) {
+    console.log('[PatchOutputCheck] ' + emitted.length + ' patched bundles parse as valid ES modules');
+  }
+}
+
+// ── Bundle syntax self-check (ISSUE-060) ─────────────────────────────────────
+//
+// public/assets/ is hand-maintained, so a bad hand edit ships as invalid JS and
+// takes a whole route down at import time with no server-side symptom. Parse
+// every runtime-patched bundle with a real ES-module parser and report failures
+// through _criticalPatchFailures (which renders the startup banner).
+//
+// Runs in ONE child process because vm.SourceTextModule needs
+// --experimental-vm-modules, and spawning per file would cost ~28 × 40ms.
+// Set ISOTOPE_SKIP_BUNDLE_CHECK=1 to disable (CI, constrained hosts).
+function selfCheckBundles() {
+  if (process.env.ISOTOPE_SKIP_BUNDLE_CHECK === '1') return;
+  const files = [...RUNTIME_PATCHED_ASSET_PATHS]
+    .filter((p) => p.endsWith('.js'))
+    .map((p) => path.join(PUBLIC_DIR, p.replace(/^\//, '')))
+    .filter((abs) => fs.existsSync(abs));
+  if (!files.length) return;
+
+  const script = `
+    const fs=require('fs'),vm=require('vm');
+    const bad=[];
+    for(const f of JSON.parse(process.argv[1])){
+      try{ new vm.SourceTextModule(fs.readFileSync(f,'utf8'),{identifier:f}); }
+      catch(e){ bad.push([f,String(e.message)]); }
+    }
+    process.stdout.write(JSON.stringify(bad));
+  `;
+  const out = spawnSync(
+    process.execPath,
+    ['--experimental-vm-modules', '--no-warnings', '-e', script, JSON.stringify(files)],
+    { encoding: 'utf8', timeout: 20000 }
+  );
+  if (out.status !== 0 || !out.stdout) {
+    console.warn('[BundleCheck] syntax self-check could not run (status ' + out.status + ')');
+    return;
+  }
+  let bad;
+  try { bad = JSON.parse(out.stdout); } catch {
+    console.warn('[BundleCheck] could not parse self-check output');
+    return;
+  }
+  if (!bad.length) {
+    console.log('[BundleCheck] ' + files.length + ' patched bundles parse as valid ES modules');
+    return;
+  }
+  for (const [file, msg] of bad) {
+    console.error('[BundleCheck] INVALID JS: ' + path.basename(file) + ' :: ' + msg);
+    _criticalPatchFailures.push('bundle-syntax:' + path.basename(file));
+  }
 }
 
 function isHashedStaticAsset(pathname) {
@@ -187,6 +373,10 @@ function cacheHeaderForRequest(pathname) {
 
 const GEMINI_API_KEY      = process.env.GEMINI_API_KEY      || '';
 const GROQ_API_KEY        = process.env.GROQ_API_KEY        || '';
+// Google OAuth client id (Web type) for this Supabase project. Read from .env so
+// One Tap cannot drift from the live auth config the way the baked bundle
+// literal did. Optional: if unset the server warns and leaves it alone.
+const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID     || '';
 
 // Default public cloud sync target for normal downloaded installs. These are
 // anon/public Supabase values only; service-role/admin credentials remain env-only.
@@ -1748,16 +1938,76 @@ function buildUsernameAuthScript() {
   })();
 
   // Hide Google Sign-In button (not configured for self-hosted domains)
+  // Dismiss button for the Tasks offline banner.
+  // The banner is a plain text node with no React state, so adding a control in
+  // the bundle would mean restructuring minified component state. Injecting it
+  // matches how the other runtime UI fixes here work, and dismissal is a pure
+  // presentation concern. Scoped to the tab session: going offline again on a
+  // fresh session shows it again, which is what you want for a stale-data notice.
+  (function () {
+    var KEY = 'iso_tasks_offline_banner_dismissed';
+    function dismissed() { try { return sessionStorage.getItem(KEY) === '1'; } catch (e) { return false; } }
+    function apply() {
+      var banner = document.querySelector('.task-offline-banner');
+      if (!banner) return;
+      if (dismissed()) { banner.remove(); return; }
+      if (banner.querySelector('[data-iso-offline-close]')) return;
+      banner.style.display = 'flex';
+      banner.style.alignItems = 'center';
+      banner.style.justifyContent = 'center';
+      banner.style.gap = '10px';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('data-iso-offline-close', '1');
+      btn.setAttribute('aria-label', 'Dismiss offline notice');
+      btn.textContent = '\u00d7';
+      btn.style.cssText = 'margin-left:2px;border:0;background:transparent;color:#fed7aa;font-size:18px;line-height:1;cursor:pointer;padding:0 4px;opacity:.75';
+      btn.addEventListener('click', function () {
+        try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+        banner.remove();
+      });
+      banner.appendChild(btn);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply);
+    else apply();
+    if (window.MutationObserver) {
+      var mo = new MutationObserver(apply);
+      document.addEventListener('DOMContentLoaded', function () { mo.observe(document.body, { childList: true, subtree: true }); });
+    }
+    window.addEventListener('online', function () { try { sessionStorage.removeItem(KEY); } catch (e) {} apply(); });
+  })();
+
   function hideGoogleUI() {
+    // Google sign-in is not configured on a self-hosted domain, so the button
+    // is removed. CRITICAL: hide ONLY the button.
+    //
+    // This previously also hid btn.parentElement, and the "Continue with
+    // Google" button is a DIRECT CHILD of the form's "div.space-y-6" container —
+    // so hiding the parent hid the ENTIRE login form. The auth page rendered its
+    // shell but shipped with display:none on the form, so no user could type a
+    // credential or submit. The form only reappeared when something else forced
+    // a re-render (toggling Sign In / Sign up).
+    //
+    // A container is only safe to hide when the button is all it holds.
+    function onlyChildIs(el, node) {
+      if (!el) return false;
+      var kids = Array.prototype.filter.call(el.children, function (c) { return c !== node; });
+      var text = (el.textContent || '').replace(node.textContent || '', '').trim();
+      return kids.length === 0 && text === '';
+    }
     document.querySelectorAll('button').forEach(function(btn) {
       if (btn.textContent && btn.textContent.trim().indexOf('Google') !== -1) {
         btn.style.display = 'none';
-        if (btn.parentElement) btn.parentElement.style.display = 'none';
+        var p = btn.parentElement;
+        if (p && onlyChildIs(p, btn)) p.style.display = 'none';
       }
     });
+    // Same guard for the "ALTERNATIVE SIGNUP" separator: only hide its wrapper
+    // when the wrapper holds nothing else.
     document.querySelectorAll('p,span,div').forEach(function(el) {
       if (el.children.length === 0 && el.textContent && el.textContent.trim() === 'ALTERNATIVE SIGNUP') {
-        if (el.parentElement) el.parentElement.style.display = 'none';
+        var p = el.parentElement;
+        if (p && onlyChildIs(p, el)) p.style.display = 'none';
       }
     });
   }
@@ -4520,6 +4770,53 @@ function getPatchedDashboardBundle() {
   return patchedDashboardBundle;
 }
 
+// ── Analytics patch: recover when the analytics Web Worker never answers ─────
+//
+// /analytics hung on "Loading analytics..." forever. Root cause is a broken
+// build artifact, not a data problem: public/assets/analyticsWorker-*.js is an
+// audit "FILE IDENTITY" placeholder (plain text, not JavaScript), so the Worker
+// the Analytics chunk constructs throws on load. The chunk only listens for the
+// worker's `message` event, so a worker that dies produces silence — `isLoading`
+// is set true and never cleared, and the tab shows the loading card indefinitely.
+//
+// The chunk already carries a main-thread implementation of the same pure
+// function (`Dr`, exposed as the `K` useCallback), which is what the existing
+// `typeof Worker === "undefined"` path uses. So the fix is to route worker
+// failure into that same path: an `error` listener plus a timeout, so any worker
+// that cannot boot — corrupt file, failed fetch, blocked by CSP — degrades to
+// main-thread computation instead of an eternal spinner.
+const ANALYTICS_BUNDLE_ABS    = path.join(PUBLIC_DIR, 'assets', 'Analytics-B1QTymFp.js');
+const ANALYTICS_WORKER_FROM = 'const te=H.current;I(!0);const De=re=>{re.data.id===N&&(re.data.data?C(re.data.data):C(K()),_(N),I(!1))};return te.addEventListener("message",De),te.postMessage(';
+const ANALYTICS_WORKER_TO = [
+  'const te=H.current;let __isoT=null;',
+  'const __isoFb=()=>{if(__isoT){clearTimeout(__isoT);__isoT=null}',
+  'try{te.terminate()}catch(_){}H.current=null;',
+  'C(K()),_(N),I(!1)};',
+  'I(!0);',
+  'const De=re=>{re.data.id===N&&(re.data.data?C(re.data.data):C(K()),_(N),I(!1),__isoT&&(clearTimeout(__isoT),__isoT=null))};',
+  // 'error' covers a worker that throws while booting; onerror also catches
+  // module-load failures that never surface as an ErrorEvent. The timeout is
+  // the backstop for a worker that loads but never replies.
+  'return te.addEventListener("message",De),te.addEventListener("error",__isoFb),te.onerror=__isoFb,',
+  '__isoT=setTimeout(__isoFb,8e3),te.postMessage(',
+].join('');
+let patchedAnalyticsBundle = null;
+function getPatchedAnalyticsBundle() {
+  if (patchedAnalyticsBundle) return patchedAnalyticsBundle;
+  try {
+    let raw = fs.readFileSync(ANALYTICS_BUNDLE_ABS, 'utf8');
+    if (raw.includes(ANALYTICS_WORKER_FROM)) {
+      raw = raw.replace(ANALYTICS_WORKER_FROM, ANALYTICS_WORKER_TO);
+      console.log('[AnalyticsPatch] worker-failure fallback added (no more endless "Loading analytics...")');
+    } else {
+      console.warn('[AnalyticsPatch] worker anchor not found — /analytics will hang if the worker bundle is broken');
+      _criticalPatchFailures.push('analytics-worker-fallback');
+    }
+    patchedAnalyticsBundle = Buffer.from(raw, 'utf8');
+  } catch { patchedAnalyticsBundle = null; }
+  return patchedAnalyticsBundle;
+}
+
 // ── Study patch: guard `syllabusIds` before `.includes` ─────────────────────────
 // Browser error bridge caught a runtime crash on /study:
 //   Cannot read properties of undefined (reading 'includes')
@@ -5173,6 +5470,15 @@ const AMBIENT_REMOTE = 'https://raw.githubusercontent.com/cookiecaker/Rain-World
 const AMBIENT_LOCAL = '/audio/ambient/';
 
 // Runs before the audio element is created; picks the format the browser admits.
+// ISSUE-063: module-level ambient audio controller (prepended to the Focus
+// bundle). Owns the Audio element OUTSIDE React so playback survives route
+// changes and remounts (fullscreen / PiP handoff); stops only when the user
+// picks a different track or "Off".
+const AMBIENT_DECLS_FROM = "const[n,g]=t.useState(null),[i,d]=t.useState(50),u=t.useRef(null),o=[";
+const AMBIENT_DECLS_TO = "const C=window.__isoAmbientCtl;const[n,g0]=t.useState(C?C.state.id:null),[i,d0]=t.useState(C?C.state.volume:50),u=t.useRef(null),o=[";
+const AMBIENT_EFFECTS_FROM = "return t.useEffect(()=>{if(u.current&&(u.current.pause(),u.current=null),n){const c=o.find(m=>m.id===n);if(c&&c.url){const m=new Audio(c.url);m.loop=!0,m.volume=i/100,m.play().catch(x=>console.error(\"Audio play failed:\",x)),u.current=m}}},[n]),t.useEffect(()=>{u.current&&(u.current.volume=i/100)},[i]),";
+const AMBIENT_EFFECTS_TO = "const g=v=>{C.setId(v);g0(v)},d=v=>{C.setVolume(v);d0(v)};return t.useEffect(()=>{C.init(Re,o);var un=C.subscribe(function(st){g0(st.id);d0(st.volume)});var h=C.state;g0(h.id);d0(h.volume);C.ensure();return un;},[]),";
+const AMBIENT_CTRL = "window.__isoAmbientCtl=window.__isoAmbientCtl||(function(){\nvar audio=null,id=null,volume=50,hydrated=false,subs=[],TRACKS=null,kv=null,started=false,token=0;\nvar KEY=\"focus-ambient\";\nfunction emit(){var st={id:id,volume:volume};for(var i=0;i<subs.length;i++){try{subs[i](st)}catch(e){}}}\nfunction persist(){\n  if(!hydrated||!kv||!kv.setItem)return;\n  try{kv.setItem(KEY,JSON.stringify({id:id,volume:volume})).catch(function(){})}catch(e){}\n}\nfunction pick(u){try{if(typeof window.__isoAmbient===\"function\")return window.__isoAmbient(u)}catch(e){}return u}\nfunction stop(){\n  if(!audio)return;\n  try{audio.pause()}catch(e){}\n  try{audio.removeAttribute(\"src\")}catch(e){}\n  try{audio.load()}catch(e){}\n  audio=null;\n}\nfunction play(u){\n  var mine=++token;\n  stop();\n  try{\n    var a=new Audio(pick(u));\n    a.loop=true;\n    a.volume=Math.max(0,Math.min(1,volume/100));\n    audio=a;\n    var pr=a.play();\n    if(pr&&pr.catch)pr.catch(function(x){\n      if(mine===token){console.error(\"Audio play failed:\",x);stop()}\n    });\n  }catch(e){console.error(\"Ambient audio failed:\",e)}\n}\nfunction apply(){if(id&&TRACKS&&TRACKS[id])play(TRACKS[id]);else stop();persist()}\nfunction start(){\n  if(started)return;started=true;\n  if(!kv||!kv.getItem){hydrated=true;apply();emit();return}\n  var q;\n  try{q=kv.getItem(KEY)}catch(e){q=null}\n  Promise.resolve(q).then(function(raw){\n    if(raw)try{\n      var p=JSON.parse(raw);\n      if(p&&typeof p.id===\"string\"&&TRACKS&&TRACKS[p.id])id=p.id;\n      if(p&&typeof p.volume===\"number\"&&isFinite(p.volume))\n        volume=Math.max(0,Math.min(100,p.volume));\n    }catch(e){console.error(\"Failed to parse ambient prefs:\",e)}\n  }).catch(function(e){console.error(\"Failed to load ambient prefs:\",e)})\n   .then(function(){hydrated=true;apply();emit()});\n}\nreturn {\n  init:function(store,tracks){\n    if(Array.isArray(tracks)){var m={};for(var i=0;i<tracks.length;i++){var t=tracks[i];if(t&&t.id)m[t.id]=t.url}tracks=m}\n    TRACKS=tracks||TRACKS;\n    kv=store||kv;\n    start();\n  },\n  get state(){return{id:id,volume:volume}},\n  get hydrated(){return hydrated},\n  setId:function(v){\n    if(v!==null&&v!==undefined&&!(TRACKS&&TRACKS[v]))return;\n    id=(v==null)?null:v;\n    hydrated=true;\n    apply();\n    emit();\n  },\n  setVolume:function(v){\n    volume=Math.max(0,Math.min(100,Number(v)||0));\n    if(audio)try{audio.volume=Math.max(0,Math.min(1,volume/100))}catch(e){}\n    persist();\n  },\n  ensure:function(){if(id&&TRACKS&&TRACKS[id]&&!audio)play(TRACKS[id])},\n  subscribe:function(f){subs.push(f);return function(){var i=subs.indexOf(f);if(i>=0)subs.splice(i,1)}},\n  _audio:function(){return audio}\n};\n})();";
 const AMBIENT_SHIM = 'window.__isoAmbient=window.__isoAmbient||(function(){var ok=null;function canOpus(){if(ok!==null)return ok;try{var a=document.createElement("audio");ok=!!(a.canPlayType&&a.canPlayType(\'audio/ogg; codecs="opus"\').replace(/no/,""));}catch(e){ok=false;}return ok;}return function(u){try{if(typeof u!=="string")return u;if(u.indexOf("/audio/ambient/")===-1)return u;return canOpus()?u:u.replace(/\\.opus$/,".m4a");}catch(e){return u;}};})();';
 
 const URL_PATCHES = [
@@ -5184,7 +5490,24 @@ const URL_PATCHES = [
   // Route the constructor through the format picker. Anchored on the exact
   // construction site so a future bundle that builds Audio elsewhere fails the
   // anchor loudly rather than silently losing the fallback.
-  ['const m=new Audio(c.url);', 'const m=new Audio(window.__isoAmbient(c.url));'],
+  [AMBIENT_DECLS_FROM, AMBIENT_DECLS_TO],
+  [AMBIENT_EFFECTS_FROM, AMBIENT_EFFECTS_TO],
+  // The `new Audio(c.url)` rewrite is no longer needed: AMBIENT_CTRL owns Audio
+  // construction now and routes every URL through the Opus/AAC picker itself
+  // (see `pick()` inside AMBIENT_CTRL).
+  // ISSUE-061/063: ambient audio ownership moves OUT of React.
+  //
+  // The Audio element used to be created inside the Focus component's effect,
+  // so its lifetime was tied to that component: leaving the tab orphaned a
+  // looping element, and ANY remount (entering fullscreen, the PiP handoff, a
+  // subtree swap) killed playback outright. The selection and volume also
+  // lived in bare useState, so they reset on remount — which is why the panel
+  // came back reading "Off" while an orphaned element was still audible.
+  //
+  // AMBIENT_CTRL (prepended below) owns the element at module scope and exposes
+  // ensure() to re-assert playback after a remount. The component keeps its
+  // ORIGINAL JSX: g()/d() become wrappers that write through to the controller,
+  // so every existing onClick/onChange is untouched.
   ['const p=prompt("Enter the URL of the image you want to use as background:");',
    'const p=(window.__isoBgP||prompt)("Enter the URL of the image you want to use as background:");'],
   ['alert("Please enter a valid image URL starting with http:// or https://")',
@@ -5208,7 +5531,7 @@ function getPatchedFocusBundle() {
     // AMBIENT_SHIM must precede the bundle: the component calls it during the
     // effect that creates the Audio element.
     patchedFocusBundle = Buffer.from(
-      PIP_POLYFILL + '\n' + AMBIENT_SHIM + '\n' + raw, 'utf8');
+      PIP_POLYFILL + '\n' + AMBIENT_SHIM + '\n' + AMBIENT_CTRL + '\n' + raw, 'utf8');
   } catch { patchedFocusBundle = null; }
   return patchedFocusBundle;
 }
@@ -5236,28 +5559,105 @@ function getPatchedAuthBundle() {
     p('"Sign In with Email"', '"Sign In"');
 
     // Sign In: route only after server verified profile/onboarding state.
-    p(
-      'p=async h=>{h.preventDefault(),u(null),(await j(s,t)).success&&setTimeout(()=>{b("/dashboard",{replace:!0})},100)},',
-      'p=async h=>{h.preventDefault(),u(null),m.setState({isLoading:!0,error:null});try{var __r=await window.__isoLogin(s,t);if(!__r.ok){m.setState({error:__r.err||"Login failed",isLoading:!1});return}window.location.href=__r.onboarding_completed===!1?"/onboarding":"/dashboard"}catch(__e){m.setState({error:__e&&__e.message?__e.message:"Login failed",isLoading:!1})}},'
-    );
+    //
+    // ISSUE-060: this used to be a literal `p()` anchor matching the plain
+    // handler `p=async h=>{h.preventDefault(),u(null),(await j(s,t)).success&&…`.
+    // Commit 4cd4c7f rewrote that handler in the shipped bundle to add a 15s
+    // Promise.race quota guard, so the literal stopped matching and the patch
+    // silently stopped applying — the app fell back to the upstream Supabase
+    // signIn(), which always fails on this self-hosted username deployment, so
+    // login showed the error screen and then bounced to /dashboard.
+    //
+    // The handler body changes whenever the bundle is re-captured, so anchor on
+    // its two stable boundaries (the `preventDefault` opener and the following
+    // reset-password handler) and rewrite whatever sits between them. A miss is
+    // CRITICAL: without this patch there is no working login at all.
+    {
+      const LOGIN_START = 'p=async h=>{h.preventDefault(),u(null),';
+      const LOGIN_END = ',N=async()=>{';
+      const si = raw.indexOf(LOGIN_START);
+      const ei = si === -1 ? -1 : raw.indexOf(LOGIN_END, si + LOGIN_START.length);
+      if (si === -1 || ei === -1) {
+        console.warn('[AuthPatch] CRITICAL MISS: login-submit handler boundaries not found');
+        _criticalPatchFailures.push('auth-login-submit');
+      } else {
+        raw = raw.slice(0, si) +
+          'p=async h=>{h.preventDefault(),u(null),m.setState({isLoading:!0,error:null});' +
+          'try{var __r=await window.__isoLogin(s,t);' +
+          'if(!__r||!__r.ok){m.setState({error:__r&&__r.err||"Login failed",isLoading:!1});return}' +
+          'window.location.href=__r.onboarding_completed===!1?"/onboarding":"/dashboard"}' +
+          'catch(__e){m.setState({error:__e&&__e.message?__e.message:"Login failed",isLoading:!1})}}' +
+          raw.slice(ei);
+        applied++;
+      }
+    }
 
-    // Sign Up: replace email-validation + signUp call → server-side signup
-    // Form variables: s = Full Name, t = Email, l = Password
-    // We pass t (email) + l (password) to server — real email used directly
-    p(
-      'const N=M(t);if(N){m.setState({error:N});return}(await j(s,t,l)).success&&d("/onboarding")',
-      "m.setState({isLoading:!0,error:null});try{var __r=await window.__isoUp(t,l);if(!__r.ok){m.setState({error:__r.err||'Signup failed',isLoading:!1});return}window.location.href='/onboarding'}catch(__e){m.setState({error:__e&&__e.message?__e.message:'Signup failed',isLoading:!1})}"
-    );
-    // The replacement above ends with a single '}' (catch close). The original
-    // '};return …' that follows supplies the handler's own closing brace — a
-    // second '}' here would close the handler early and put the component's
-    // top-level 'return' outside any function (SyntaxError: Illegal return
-    // statement), breaking the whole Auth chunk.
+    // Sign Up: replace email-validation + signUp call → server-side signup.
+    // Form variables: s = Full Name, t = Email, l = Password.
+    // We pass t (email) + l (password) to server — real email used directly.
+    // Boundary-anchored for the same reason as the login handler above: the
+    // bundle body drifts on every re-capture, the two edges do not.
+    {
+      const UP_START = 'f=async p=>{if(p.preventDefault(),l.length<6)';
+      const UP_END = '};return e.jsxs(y.div';
+      const si = raw.indexOf(UP_START);
+      const ei = si === -1 ? -1 : raw.indexOf(UP_END, si);
+      if (si === -1 || ei === -1) {
+        console.warn('[AuthPatch] CRITICAL MISS: signup-submit handler boundaries not found');
+        _criticalPatchFailures.push('auth-signup-submit');
+      } else {
+        // The replacement closes the try and catch blocks only; the '}' at the
+        // head of UP_END is the handler's own closing brace, so adding another
+        // here would close the component early and put its top-level 'return'
+        // outside any function (SyntaxError: Illegal return statement).
+        raw = raw.slice(0, si) +
+          'f=async p=>{p.preventDefault();' +
+          'if(l.length<6){m.setState({error:"Password must be at least 6 characters"});return}' +
+          'm.setState({isLoading:!0,error:null});' +
+          'try{var __r=await window.__isoUp(t,l);' +
+          "if(!__r||!__r.ok){m.setState({error:__r&&__r.err||'Signup failed',isLoading:!1});return}" +
+          "window.location.href='/onboarding'}" +
+          "catch(__e){m.setState({error:__e&&__e.message?__e.message:'Signup failed',isLoading:!1})}" +
+          raw.slice(ei);
+        applied++;
+      }
+    }
     // Sign Up: button label
     p('"Create Account with Email"', '"Create Account"');
 
     // Landing panel version badge: update stale hardcoded version string.
     p('children:"IsotopeAI v2.0"', 'children:"IsotopeAI v3.1"');
+
+    // Google One Tap client ID must match the project's live Supabase auth
+    // config, or One Tap fails for every web user. The bundle ships a baked
+    // literal that drifts (it pointed at a different Google project entirely),
+    // so normalise it from GOOGLE_CLIENT_ID at serve time and shout on mismatch.
+    // The OAuth redirect flow does NOT depend on this — it uses Supabase's own
+    // provider config — so only One Tap is affected.
+    {
+      // .env holds the bare client id; the bundle literal is domain-qualified.
+      let want = String(GOOGLE_CLIENT_ID || '').trim();
+      if (want && !want.includes('apps.googleusercontent.com')) {
+        want += '.apps.googleusercontent.com';
+      }
+      if (want) {
+        const found = new Set();
+        const re = /[0-9]{10,14}-[a-z0-9]{5,}\.apps\.googleusercontent\.com/g;
+        let m;
+        while ((m = re.exec(raw))) found.add(m[0]);
+        if (found.size !== 1) {
+          console.warn('[AuthPatch] expected exactly 1 baked Google client id, found ' + found.size);
+        } else if (found.has(want)) {
+          // already correct
+        } else {
+          const wrong = [...found][0];
+          raw = raw.split(wrong).join(want);
+          console.log('[AuthPatch] Google One Tap client id normalised: ' + wrong + ' -> ' + want);
+        }
+      } else {
+        console.warn('[AuthPatch] GOOGLE_CLIENT_ID not set - One Tap will use whatever the bundle ships');
+      }
+    }
 
     // BUG-003: Add autoComplete="current-password" to the password input
     // to silence browser accessibility warnings on every page load.
@@ -5267,6 +5667,14 @@ function getPatchedAuthBundle() {
     );
 
     console.log('[AuthPatch] ' + applied + '/7 patches applied to Auth bundle');
+    if (!_criticalPatchFailures.includes('auth-login-submit') && !raw.includes('window.__isoLogin')) {
+      console.warn('[AuthPatch] CRITICAL MISS: __isoLogin not present in patched bundle');
+      _criticalPatchFailures.push('auth-login-submit');
+    }
+    if (!_criticalPatchFailures.includes('auth-signup-submit') && !raw.includes('window.__isoUp')) {
+      console.warn('[AuthPatch] CRITICAL MISS: __isoUp not present in patched bundle');
+      _criticalPatchFailures.push('auth-signup-submit');
+    }
     patchedAuthBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[AuthPatch] Error:', e.message); patchedAuthBundle = null; }
   return patchedAuthBundle;
@@ -5320,13 +5728,18 @@ function getPatchedSingleGroupBundle() {
       'onDestroyed:()=>{l(t,!0);l("community_group_v1",!0)}})',
       'tour completion'
     );
-    // Fix: s.tags?.join(", ") throws if tags key absent on group object
-    patch(
-      '.tags?.join(", ")',
-      '(.tags||[])?.join?.(", ")',
-      'null-safe tags join'
-    );
-    console.log('[SingleGroupPatch] ' + applied + '/4 guided-tour patches applied');
+    // REMOVED: the `s.tags?.join(", ")` -> `(.tags||[])?.join?.(", ")` null-guard.
+    //
+    // It was corrupting the bundle. `patch()` replaces the anchor as a bare
+    // substring, so the receiver `s` was left dangling in front of the inserted
+    // paren: `s.tags?.join(", ")` became `s(.tags||[])?.join?.(", ")`, a
+    // SyntaxError. selfCheckPatchedOutput() caught this; the two sites were
+    // `g.useState(s.tags?.join(", ")||"")` and `w(s.tags?.join(", ")||"")`.
+    //
+    // It was also redundant: `s.tags?.join(...)` is ALREADY null-safe for a
+    // missing `tags` key, which is the only failure the comment described. The
+    // unguarded case is a missing `s`, which this anchor cannot reach.
+    console.log('[SingleGroupPatch] ' + applied + '/3 guided-tour patches applied');
     patchedSingleGroupBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[SingleGroupPatch] Error:', e.message); patchedSingleGroupBundle = null; }
   return patchedSingleGroupBundle;
@@ -5473,7 +5886,7 @@ patch('if(!v)return r.jsx(ie,{});',
     patch('if(s==="private"){if(y||l)return r.jsx(Y,{to:"/dashboard",replace:!0})}',
       'if(s==="private"){/* ISSUE-053: no gate bounce - boot router owns /onboarding routing */}',
       'private-mode bounce trusts boot onboarding decision');
-    console.log('[AppAccessGatePatch] ' + applied + '/2 patches applied');
+    console.log('[AppAccessGatePatch] ' + applied + '/4 patches applied');
     patchedAppAccessGateBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[AppAccessGatePatch] Error:', e.message); patchedAppAccessGateBundle = null; }
   return patchedAppAccessGateBundle;
@@ -5534,11 +5947,15 @@ function getPatchedInvitesBundle() {
   try {
     let raw = fs.readFileSync(INVITES_BUNDLE_ABS, 'utf8');
     const before = raw.length;
+    // Success must be measured by the substitution actually happening, NOT by
+    // `raw.includes('p_code')`: the bundle already uses p_code upstream, so that
+    // test reported success for a substitution that never ran.
+    const hadTokenInput = raw.includes('token_input');
     raw = raw.split('token_input').join('p_code');
-    if (raw.length !== before || raw.includes('p_code')) {
+    if (hadTokenInput) {
       console.log('[InvitesPatch] token_input → p_code (accept_invite + get_invite_details)');
     } else {
-      console.warn('[InvitesPatch] token_input not found — bundle may have changed');
+      console.log('[InvitesPatch] no-op — bundle already uses p_code (upstream fixed)');
     }
     patchedInvitesBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[InvitesPatch] Error:', e.message); patchedInvitesBundle = null; }
@@ -10313,6 +10730,10 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const buf = getPatchedDashboardBundle();
       if (buf) { send(buf); return; }
     }
+    if (fp === ANALYTICS_BUNDLE_ABS) {
+      const buf = getPatchedAnalyticsBundle();
+      if (buf) { send(buf); return; }
+    }
     if (fp === STUDY_BUNDLE_ABS) {
       const buf = getPatchedStudyBundle();
       if (buf) { send(buf); return; }
@@ -10328,6 +10749,45 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
     if (fp === STORE_BUNDLE_ABS || fp === EVENTS_BUNDLE_ABS) {
       send(REMOVED_FEATURE_MODULE);
       return;
+    }
+
+    // ISSUE-062: never serve an audit "FILE IDENTITY" placeholder.
+    //
+    // public/assets/ holds plain-text placeholder stubs where a build artifact
+    // was lost. They are syntactically invalid JS, so a browser rejects them at
+    // import/Worker-construction time. analyticsWorker-Dpw5jo6o.js is the live
+    // case: the Analytics chunk constructs it, only listens for its `message`
+    // event, and therefore hung on "Loading analytics..." forever.
+    //
+    // A 404 is strictly better than the placeholder: the consumer fails fast and
+    // visibly (and, for the worker, immediately reaches its main-thread
+    // fallback) instead of silently receiving a 200 of unparseable text. It also
+    // keeps the file out of the service-worker cache.
+    if (ext === '.js') {
+      let head = '';
+      try {
+        const fd = fs.openSync(fp, 'r');
+        const buf = Buffer.alloc(64);
+        const n = fs.readSync(fd, buf, 0, 64, 0);
+        fs.closeSync(fd);
+        head = buf.slice(0, n).toString('utf8');
+      } catch (_) { /* fall through to normal serving */ }
+      if (head.startsWith('FILE IDENTITY')) {
+        // Logged, not flagged as a critical patch failure. The placeholder is
+        // the *only* remaining copy of an artifact whose real source was purged
+        // long ago, and every consumer now has a working degradation path (the
+        // Analytics worker 404s and falls back to its main-thread compute).
+        // Raising the user-facing "features may not work correctly" banner for a
+        // condition that is already handled correctly is noise, and the banner is
+        // reserved for failures that actually break a feature.
+        if (!_placeholderAssetsSeen.has(urlPath)) {
+          _placeholderAssetsSeen.add(urlPath);
+          console.warn('[AssetGuard] refusing to serve placeholder artifact: ' + path.basename(fp) +
+            ' (404 by design; consumers fall back to main-thread compute)');
+        }
+        notFoundFor(urlPath, res, 'asset-placeholder');
+        return;
+      }
     }
 
     // A 404 for a static asset must carry the Content-Type the request asked
@@ -10442,8 +10902,31 @@ server.listen(port, '0.0.0.0', () => {
     safeWarm(COMMUNITY_HUB_BUNDLE_ABS, getPatchedCommunityHubBundle);
     safeWarm(COMMUNITY_VISUALS_BUNDLE_ABS, getPatchedCommunityVisualsBundle);
     safeWarm(DASHBOARD_BUNDLE_ABS, getPatchedDashboardBundle);
+    safeWarm(ANALYTICS_BUNDLE_ABS, getPatchedAnalyticsBundle);
     safeWarm(STUDY_BUNDLE_ABS, getPatchedStudyBundle);
     safeWarm(PWA_MANAGER_BUNDLE_ABS, getPatchedPWAManagerBundle);
+
+    // ISSUE-060 guard: the committed bundles under public/assets/ are
+    // hand-maintained (serve-time patches rewrite them, and fixes get applied
+    // by editing the shipped file directly). A hand edit that leaves invalid JS
+    // ships silently: the browser rejects the chunk at import time, so the
+    // affected route dies with "A page bundle failed to load" while every
+    // health check still passes. That is exactly how 4cd4c7f broke login — it
+    // wrote an escaped quote into code and the Auth chunk stopped parsing.
+    //
+    // Parse every runtime-patched bundle with a real ES-module parser and push
+    // failures into _criticalPatchFailures, which already renders a startup
+    // banner. One child process, run once, after the port is open.
+    setTimeout(() => { try { selfCheckBundles(); } catch (e) { /* never fatal */ } }, 1500);
+    // Second pass over the PATCHED output, not the on-disk file. The first pass
+    // catches bad hand edits; this one catches a patch that emits invalid JS,
+    // which is otherwise undetectable (the bytes are only ever produced in
+    // memory, and a browser rejects the chunk at import time with no server
+    // symptom). Deferred so it never delays startup.
+    setTimeout(() => {
+      try { selfCheckPatchedOutput(); }
+      catch (e) { console.error('[PatchOutputCheck] threw:', (e && e.stack) || e); }
+    }, 4000);
 
     // Pre-gzip all patched bundles so first client request is instant.
     // Each bundle is already in memory; gzip runs once in the background.

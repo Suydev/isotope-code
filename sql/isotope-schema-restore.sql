@@ -1238,6 +1238,32 @@ CREATE OR REPLACE FUNCTION "public"."_is_group_member"(gid uuid, uid uuid)
 
   SELECT EXISTS (SELECT 1 FROM public.group_members WHERE group_id = gid AND user_id = uid);
 $iso_fn$;
+
+-- ISSUE-064: RLS-bypassed helpers so group_members' own policies never have to
+-- select from group_members (that self-reference is the infinite recursion).
+CREATE OR REPLACE FUNCTION "public"."_my_group_ids"(uid uuid)
+ RETURNS SETOF uuid
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET search_path TO 'public'
+ AS $iso_fn$
+
+
+  SELECT gm.group_id FROM public.group_members gm WHERE gm.user_id = uid;
+$iso_fn$;
+
+CREATE OR REPLACE FUNCTION "public"."_is_group_admin"(gid uuid, uid uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET search_path TO 'public'
+ AS $iso_fn$
+
+
+  SELECT EXISTS (SELECT 1 FROM public.group_members gm WHERE gm.group_id = gid AND gm.user_id = uid AND gm.role IN ('owner', 'admin'));
+$iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."_sync_group_member_count"()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -3495,9 +3521,12 @@ CREATE POLICY "group_invites_insert_managers" ON "public"."group_invites" AS PER
 DROP POLICY IF EXISTS "group_invites_read_managers" ON "public"."group_invites";
 CREATE POLICY "group_invites_read_managers" ON "public"."group_invites" AS PERMISSIVE FOR SELECT TO anon, authenticated USING (((created_by = ( SELECT auth.uid() AS uid)) OR private.can_manage_group(group_id, ( SELECT auth.uid() AS uid))));
 DROP POLICY IF EXISTS "gm_delete_admin" ON "public"."group_members";
-CREATE POLICY "gm_delete_admin" ON "public"."group_members" AS PERMISSIVE FOR DELETE  USING (((auth.uid() IS NOT NULL) AND (EXISTS ( SELECT 1
-   FROM group_members gm2
-  WHERE ((gm2.group_id = group_members.group_id) AND (gm2.user_id = auth.uid()) AND (gm2.role = ANY (ARRAY['admin'::text, 'owner'::text])))))));
+-- ISSUE-064: a policy on group_members must never query group_members, or RLS
+-- recurses ("infinite recursion detected in policy for relation
+-- group_members") and the Community > Groups tab 500s. Route self-references
+-- through SECURITY DEFINER helpers (RLS-bypassed) instead. See
+-- sql/027_group_members_rls_recursion.sql for the standalone migration.
+CREATE POLICY "gm_delete_admin" ON "public"."group_members" AS PERMISSIVE FOR DELETE  USING (((auth.uid() IS NOT NULL) AND (public._is_group_admin(group_id, auth.uid()))));
 DROP POLICY IF EXISTS "gm_delete_self" ON "public"."group_members";
 CREATE POLICY "gm_delete_self" ON "public"."group_members" AS PERMISSIVE FOR DELETE  USING (((auth.uid() IS NOT NULL) AND (user_id = auth.uid())));
 DROP POLICY IF EXISTS "gm_insert" ON "public"."group_members";
@@ -3521,7 +3550,12 @@ CREATE POLICY "gm_owner_update" ON "public"."group_members" AS PERMISSIVE FOR UP
    FROM groups
   WHERE (groups.owner_id = auth.uid())))));
 DROP POLICY IF EXISTS "gm_read" ON "public"."group_members";
-CREATE POLICY "gm_read" ON "public"."group_members" AS PERMISSIVE FOR SELECT  USING ((auth.role() = 'authenticated'::text));
+-- ISSUE-064: replaces the permissive "any authenticated user reads every row"
+-- gm_read with the membership-scoped version that the live DB uses, and
+-- does so via the SECURITY DEFINER helper so it cannot recurse into RLS.
+DROP POLICY IF EXISTS "gm_read" ON "public"."group_members";
+CREATE POLICY "gm_read_members" ON "public"."group_members" AS PERMISSIVE FOR SELECT
+  USING ((group_id IN ( SELECT public._my_group_ids(auth.uid()))));
 DROP POLICY IF EXISTS "gm_self_delete" ON "public"."group_members";
 CREATE POLICY "gm_self_delete" ON "public"."group_members" AS PERMISSIVE FOR DELETE TO authenticated USING ((user_id = auth.uid()));
 DROP POLICY IF EXISTS "gm_update_own_row" ON "public"."group_members";
