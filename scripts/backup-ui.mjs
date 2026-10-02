@@ -325,15 +325,22 @@ const server = http.createServer(async (req, res) => {
     if (route === '/api/start' && req.method === 'POST') {
       const body = await readBody(req);
       const { kind, pat, ref, confirmRef, mode } = body;
-      if (!kind || !pat || !ref) return json(res, 400, { error: 'kind, pat and ref required' });
+      // `transfer` carries its own two PATs, so the single-project fields are not
+      // required for it — checked separately below.
+      if (kind !== 'transfer' && (!kind || !pat || !ref)) {
+        return json(res, 400, { error: 'kind, pat and ref required' });
+      }
 
-      const keys = await fetchKeys(pat, ref);
-      const env = {
-        SUPABASE_URL: `https://${ref}.supabase.co`,
-        SUPABASE_ANON_KEY: keys.anon,
-        SUPABASE_SERVICE_ROLE_KEY: keys.service,
-        SUPABASE_ACCESS_TOKEN: pat,
-      };
+      let env;
+      if (kind !== 'transfer') {
+        const keys = await fetchKeys(pat, ref);
+        env = {
+          SUPABASE_URL: `https://${ref}.supabase.co`,
+          SUPABASE_ANON_KEY: keys.anon,
+          SUPABASE_SERVICE_ROLE_KEY: keys.service,
+          SUPABASE_ACCESS_TOKEN: pat,
+        };
+      }
 
       let args;
       let script = 'supabase-backup.mjs';
@@ -355,6 +362,35 @@ const server = http.createServer(async (req, res) => {
         // repointing a machine's .env from a browser tab is the kind of side
         // effect nobody expects from a button labelled "Set up this project".
         if (body.writeEnv === false) args.push('--no-env');
+      } else if (kind === 'transfer') {
+        // Both PATs together, one job. transfer.mjs creates the tarball and consumes
+        // it, so there is no window where the operator can point step 2 at a stale
+        // artifact from a previous run.
+        const { srcPat, srcRef, dstPat, dstRef } = body;
+        if (!srcPat || !srcRef || !dstPat || !dstRef) {
+          return json(res, 400, { error: 'both projects required: source (pat+ref) and target (pat+ref)' });
+        }
+        if (srcRef === dstRef) {
+          return json(res, 400, { error: 'source and target are the same project' });
+        }
+        // Resolve both up front so a typo'd PAT fails here, before anything is written,
+        // rather than halfway through the restore.
+        await fetchKeys(srcPat, srcRef);
+        await fetchKeys(dstPat, dstRef);
+        // Overwrites the target, so require a typed confirmation like `restore` does.
+        if (confirmRef !== dstRef) {
+          return json(res, 400, {
+            error: `type the target ref (${dstRef}) to confirm — this overwrites the target project`,
+          });
+        }
+        env = {
+          ISO_SRC_PAT: srcPat, ISO_SRC_REF: srcRef,
+          ISO_DST_PAT: dstPat, ISO_DST_REF: dstRef,
+          ISO_MODE: mode || 'full',
+        };
+        if (body.noStorage) env.ISO_NO_STORAGE = '1';
+        script = 'transfer.mjs';
+        args = [];
       } else if (kind === 'backup') {
         args = ['backup', '--out', PATHS.DIR];
       } else if (kind === 'verify' || kind === 'restore') {
@@ -381,7 +417,11 @@ const server = http.createServer(async (req, res) => {
         return json(res, 400, { error: `unknown kind: ${kind}` });
       }
 
-      const job = startJob({ kind, args, env, targetRef: ref, script, meta: { mode: mode || 'full' } });
+      const job = startJob({
+        kind, args, env, script,
+        targetRef: kind === 'transfer' ? `${srcRef} → ${dstRef}` : ref,
+        meta: { mode: mode || 'full' },
+      });
       json(res, 200, { job });
       return;
     }

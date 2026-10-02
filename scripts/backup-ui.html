@@ -570,6 +570,57 @@ summary svg.chev{transition:transform var(--dur) var(--ease-out)}
       <p class="hint" id="tarball"></p>
     </div>
 
+    <!-- Cross-project transfer: both PATs at once, one job, one summary. -->
+    <details style="margin-top:var(--s-5);border-top:1px solid var(--line);padding-top:var(--s-3)"
+             id="x-transfer">
+      <summary>
+        <svg class="ico chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        Copy a whole project &rarr; another
+      </summary>
+      <p class="hint" style="margin-top:var(--s-3)">Backs up the source project and
+      restores it into the target as one job. Paste a token for <em>each</em>
+      project &mdash; the anon and service keys are fetched for you and never reach
+      this page. Everything (tables, rows, users, identities, buckets, files) is
+      transferred, then the summary reports what actually landed.</p>
+
+      <div class="field">
+        <label for="x-src-pat">Source token <span class="req" aria-hidden="true">*</span>
+          <span class="sr">required</span></label>
+        <input id="x-src-pat" type="password" autocomplete="off" spellcheck="false"
+               placeholder="sbp_&hellip;" enterkeyhint="next">
+        <div class="field">
+          <label for="x-src-ref">Source project ref <span class="req" aria-hidden="true">*</span>
+            <span class="sr">required</span></label>
+          <input id="x-src-ref" class="mono" autocomplete="off" spellcheck="false"
+                 placeholder="abcdefghijklmnopqrst" enterkeyhint="next">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="x-dst-pat">Target token <span class="req" aria-hidden="true">*</span>
+          <span class="sr">required</span></label>
+        <input id="x-dst-pat" type="password" autocomplete="off" spellcheck="false"
+               placeholder="sbp_&hellip;" enterkeyhint="next">
+        <div class="field">
+          <label for="x-dst-ref">Target project ref <span class="req" aria-hidden="true">*</span>
+            <span class="sr">required</span></label>
+          <input id="x-dst-ref" class="mono" autocomplete="off" spellcheck="false"
+                 placeholder="abcdefghijklmnopqrst" enterkeyhint="go">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="x-confirm">Type the target ref to unlock</label>
+        <input id="x-confirm" autocomplete="off" spellcheck="false" class="mono">
+        <p class="err-msg" id="x-err" role="alert"></p>
+      </div>
+
+      <button id="b-transfer" class="danger" disabled>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M12 3l-4 4M12 3l4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        Transfer everything
+      </button>
+    </details>
+
     <!-- Destructive action, kept behind a disclosure and visually separated. -->
     <details style="margin-top:var(--s-5);border-top:1px solid var(--line);padding-top:var(--s-3)">
       <summary>
@@ -1147,6 +1198,53 @@ summary svg.chev{transition:transform var(--dur) var(--ease-out)}
     }).then(function (go) { if (go) start('restore', 'full', btn); });
   });
 
+  // ── cross-project transfer ────────────────────────────────────────────────
+  // The button only unlocks once all four fields are filled AND the typed ref
+  // matches the target. The server enforces all of it again; this is the affordance.
+  function transferReady() {
+    return $('x-src-pat').value.trim() && $('x-src-ref').value.trim() &&
+           $('x-dst-pat').value.trim() && $('x-dst-ref').value.trim();
+  }
+  function syncTransfer() {
+    var dst = $('x-dst-ref').value.trim();
+    var ok = transferReady() && $('x-confirm').value.trim() === dst &&
+             $('x-src-ref').value.trim() !== dst;
+    $('b-transfer').disabled = !ok;
+    var e = $('x-err');
+    if (transferReady() && dst && $('x-src-ref').value.trim() === dst) {
+      e.textContent = 'Source and target are the same project.';
+    } else if (transferReady() && dst && $('x-confirm').value.trim() !== dst) {
+      e.textContent = 'Type ' + dst + ' to confirm.';
+    } else { e.textContent = ''; }
+  }
+  ['x-src-pat', 'x-src-ref', 'x-dst-pat', 'x-dst-ref', 'x-confirm']
+    .forEach(function (id) {
+      var el = $(id);
+      el.addEventListener('input', syncTransfer);
+      el.addEventListener('change', syncTransfer);
+    });
+  $('b-transfer').addEventListener('click', function () {
+    var btn = this;
+    var dst = $('x-dst-ref').value.trim();
+    confirmDialog({
+      danger: true,
+      title: 'Overwrite ' + dst + '?',
+      body: 'Every table, row, user, identity and file from the source project will ' +
+            'be written into ' + dst + ', replacing what is there. This cannot be ' +
+            'undone from here.',
+      confirm: 'Transfer everything'
+    }).then(function (go) {
+      if (!go) return;
+      start('transfer', 'full', btn, {
+        srcPat: $('x-src-pat').value.trim(),
+        srcRef: $('x-src-ref').value.trim(),
+        dstPat: $('x-dst-pat').value.trim(),
+        dstRef: dst,
+        confirmRef: $('x-confirm').value.trim()
+      });
+    });
+  });
+
   $('b-stop').addEventListener('click', function () {
     var btn = this;
     confirmDialog({
@@ -1159,7 +1257,11 @@ summary svg.chev{transition:transform var(--dur) var(--ease-out)}
   });
 
   function start(kind, mode, btn, extra) {
-    var body = { kind: kind, pat: state.pat, ref: state.ref, mode: mode };
+    // A transfer carries its own two PATs, so it must not also receive the
+    // connected project's credentials.
+    var body = (kind === 'transfer')
+      ? { kind: kind, mode: mode }
+      : { kind: kind, pat: state.pat, ref: state.ref, mode: mode };
     if (extra) Object.keys(extra).forEach(function (k) { body[k] = extra[k]; });
     if (kind === 'restore') body.confirmRef = $('confirm').value.trim();
     busy(btn, true, 'Starting\u2026');
@@ -1184,7 +1286,9 @@ summary svg.chev{transition:transform var(--dur) var(--ease-out)}
     if (!job) return;
     $('c-progress').classList.remove('hidden');
 
-    $('p-kind').textContent = job.kind + (job.mode && job.kind === 'restore' ? ' \u00b7 ' + job.mode : '');
+    $('p-kind').textContent = job.kind +
+      (job.kind === 'transfer' && job.targetRef ? ' \u00b7 ' + job.targetRef : '') +
+      (job.mode && job.kind === 'restore' ? ' \u00b7 ' + job.mode : '');
 
     var st = $('p-state');
     st.textContent = job.state;

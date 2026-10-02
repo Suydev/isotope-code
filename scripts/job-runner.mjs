@@ -142,7 +142,7 @@ export function startJob({ kind, args, env, targetRef, script = 'supabase-backup
   // Allow-list, not interpolation: `script` reaches here from an HTTP body, and
   // spawning an arbitrary path because a request asked for it would turn a
   // loopback console into a local code-execution endpoint.
-  const WORKERS = new Set(['supabase-backup.mjs', 'supabase-setup.mjs']);
+  const WORKERS = new Set(['supabase-backup.mjs', 'supabase-setup.mjs', 'transfer.mjs']);
   if (!WORKERS.has(script)) throw new Error(`unknown worker: ${script}`);
   const workerPath = path.join(ROOT, 'scripts', script);
   if (!fs.existsSync(workerPath)) throw new Error(`worker not found: ${script}`);
