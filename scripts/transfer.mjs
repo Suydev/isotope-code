@@ -140,6 +140,50 @@ async function main() {
   const srcKeys = await fetchKeys(SRC_PAT, SRC_REF, 'source');
   const dstKeys = await fetchKeys(DST_PAT, DST_REF, 'target');
 
+  // ── Establish the target's schema BEFORE restoring anything ──────────────────
+  //
+  // The restore log says it plainly: `[restore] no schema.sql — assuming target
+  // already has schema`. A backup carries DATA, not schema, so against an
+  // un-provisioned or under-provisioned target the data lands in whatever shape
+  // the tables happen to have. That is how 13 user_presence rows were rejected
+  // with `column "subject_id" does not exist` on a target whose table had only
+  // 10 of the 14 columns.
+  //
+  // supabase-clone.mjs already does this (provision -> migrate -> backup ->
+  // restore). transfer.mjs skipped straight to backup, so a transfer into an
+  // existing project produced a target missing both the schema baseline and
+  // every migration. Both are applied here.
+  say('-- step 0/4 establish target schema + apply all migrations --');
+  await run('supabase-setup.mjs', ['--ref', DST_REF, '--pat', DST_PAT, '--no-env', '--force'], {
+    SUPABASE_URL: `https://${DST_REF}.supabase.co`,
+    SUPABASE_ACCESS_TOKEN: DST_PAT,
+  }, '0/4 schema baseline');
+
+  // Migrations are a SUPPLEMENT here, not the source of truth: the schema dump
+  // above applied 1773 statements with zero failures. On a freshly provisioned
+  // target the numbered migrations that fail are ones that cannot succeed there:
+  //
+  //   012_seed_community_data.sql — inserts demo rows with hardcoded author ids,
+  //     so it hits a foreign-key violation on an empty project. Those rows are
+  //     the very data the restore is about to bring from the source, so seeding
+  //     them first is not merely pointless, it is overwritten anyway.
+  //   013b_harden_rls_security.sql — a CREATE OR REPLACE that changes a return
+  //     type, which Postgres refuses (42P13). The dump already created the
+  //     function with its current signature, so there is nothing to change.
+  //
+  // Neither is a reason to abandon the transfer, and neither is a reason to
+  // report success as if nothing happened — so log the failure, count it, and
+  // carry on to the restore, which is what actually populates the project.
+  let migrationFailures = 0;
+  try {
+    await run('backend-switch.mjs', ['migrate', '--ref', DST_REF, '--from', process.env.ISO_MIGRATE_FROM || '009', '--pat', DST_PAT], {
+      SUPABASE_ACCESS_TOKEN: DST_PAT,
+    }, '0/4 migrations 009..latest');
+  } catch (e) {
+    migrationFailures = 1;
+    say(`[transfer] migrations reported failures (${e.message}); continuing — the schema dump already applied cleanly and the restore supplies the data`);
+  }
+
   const stamp = new Date().toISOString().slice(0, 10);
   const outDir = path.join(ROOT, 'backups', `transfer-${stamp}-${DST_REF}`);
   fs.mkdirSync(outDir, { recursive: true });
@@ -152,7 +196,7 @@ async function main() {
     SUPABASE_ANON_KEY: srcKeys.anon,
     SUPABASE_SERVICE_ROLE_KEY: srcKeys.service,
     SUPABASE_ACCESS_TOKEN: SRC_PAT,
-  }, '1/2 backup from source');
+  }, '2/4 backup from source');
 
   // Only now read the dir back — a stale manifest from an earlier run in the same
   // directory would otherwise be restored while believing it is today's data.
@@ -178,17 +222,46 @@ async function main() {
   if (process.env.ISO_MODE === 'schema-only') restoreArgs.push('--schema-only');
   if (process.env.ISO_NO_STORAGE === '1') restoreArgs.push('--no-storage');
 
+  // Truncate before restoring, so the target ends up a copy of the source and
+  // never an accumulation.
+  //
+  // Step 0 applies the numbered migrations, and one of them
+  // (012_seed_community_data.sql) inserts demo rows with hardcoded author ids.
+  // The restore only inserts, so those survive it: the target came out with 20
+  // group_members rows against the source's 17, which verify caught as the one
+  // failing check out of 102.
+  //
+  // Safe here because step 0 has just rebuilt the schema, so anything present is
+  // seeded or left over — exactly what the restore is about to replace. auth.users
+  // and auth.identities are deliberately left alone: the restore upserts users and
+  // matches them against existing identities.
+  try {
+    const r = await mgmt(DST_PAT, `/v1/projects/${DST_REF}/database/query`, {
+      method: 'POST',
+      body: JSON.stringify({
+        query: 'truncate table public.group_members, public.group_challenges, public.group_announcements, public.community_join_requests, public.community_start_alerts cascade',
+      }),
+    });
+    // TRUNCATE returns no rowset, so an empty array here means "ran", not
+    // "truncated nothing" — saying otherwise was misleading in the log.
+    say(`[transfer] truncated seeded rows before restore`);
+  } catch (e) {
+    // Not fatal: the restore still runs, and verify is the gate that decides.
+    say(`[transfer] truncate skipped (${(e.message || '').slice(0, 90)})`);
+  }
+
   await run('supabase-backup.mjs', restoreArgs, {
     SUPABASE_URL: `https://${DST_REF}.supabase.co`,
     SUPABASE_ANON_KEY: dstKeys.anon,
     SUPABASE_SERVICE_ROLE_KEY: dstKeys.service,
     SUPABASE_ACCESS_TOKEN: DST_PAT,
-  }, '2/2 restore into target');
+  }, '3/4 restore into target');
 
   const after = await countRows(DST_PAT, DST_REF, 'select count(*) n from auth.users');
   const summary = {
     source: SRC_REF,
     target: DST_REF,
+    migrationFailures,
     dir: outDir,
     tables: tableCount,
     rows: rowTotal,
@@ -208,7 +281,10 @@ async function main() {
     say(`  WARNING  only ${moved} of ${usersInBackup} users landed — check the restore log for conflicts`);
   }
   say(`  local    ${outDir}`);
-  emit({ kind: 'done', message: 'transfer complete', summary });
+  // Terminal event. job-runner's lastPhaseDone() looks for `phase === kind` with
+  // `state === 'done'`; emitting only `kind: 'done'` left every completed transfer
+  // labelled `orphaned` in the UI, i.e. a finished job reported as a dead one.
+  emit({ kind: 'done', phase: 'transfer', state: 'done', message: 'transfer complete', summary });
   console.log(JSON.stringify(summary));
 }
 

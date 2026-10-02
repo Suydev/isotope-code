@@ -422,6 +422,11 @@ for (const s of SCHEMAS) {
   join pg_namespace n on n.oid = c.relnamespace and n.nspname = '${s.replace(/'/g, "''")}'
   cross join lateral aclexplode(c.relacl) g
   where c.relkind in ('r','S','v','m') and g.grantee::regrole::text in ('anon','authenticated','service_role')
+    -- MAINTAIN is a Postgres 17 privilege. The hosted project runs PG17, so it
+    -- appears in relacl, but a fresh install on PG16 (and the PG16 CI shim)
+    -- rejects it as an unrecognized privilege type. It is meaningless for these
+    -- API roles (RLS governs access), so drop it and keep the dump PG16-safe.
+    and g.privilege_type <> 'MAINTAIN'
     -- Do not emit grants for extension-owned relations we no longer create.
     and not exists (
       select 1 from pg_depend d
@@ -456,11 +461,21 @@ for (const s of SCHEMAS) {
       where d.objid = p.oid and d.classid = 'pg_proc'::regclass and d.deptype in ('i','e'))
     and (select l.lanname from pg_language l where l.oid = p.prolang) <> 'c'
   order by p.proname, ident, grantee;`);
-  let prevSig = '';
+  // No de-duplication here. `aclexplode` already returns exactly one row per
+  // (signature, grantee) — that is what it does — and the rows are ordered by
+  // proname, ident, grantee, so consecutive rows with the same signature are
+  // DIFFERENT grantees, not duplicates.
+  //
+  // A `prevSig` skip therefore kept only the alphabetically-first grantee per
+  // signature and silently discarded the rest. Measured against the live
+  // project: 231 grants over 81 signatures became 81 grants — every
+  // `service_role` grant (75) and 79 of 80 `authenticated` grants vanished. A
+  // restored project would hold none of its RPCs for the roles that call them,
+  // and 58 of the 77 functions still granted to `anon` are SECURITY DEFINER
+  // (community_create_group, community_transfer_group, _auto_add_super_admin,
+  // handle_new_user, …), so the surviving grant handed elevated functions to the
+  // anonymous role.
   for (const r of rows) {
-    const sig = `${r.proname}|${r.ident}`;
-    if (sig === prevSig) continue;
-    prevSig = sig;
     add(`GRANT EXECUTE ON FUNCTION ${scIdent(s)}.${quoteIdent(r.proname)}(${r.ident}) TO ${r.grantee};`);
     counts.fnGrants++;
   }

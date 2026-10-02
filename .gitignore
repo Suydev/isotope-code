@@ -1,4 +1,6 @@
 node_modules/
+n
+.newpat
 .env
 .env.*
 .env.old
@@ -39,3 +41,9 @@ message.md
 supabase_advisor.json
 .vercel
 .env*
+
+# Skill/tooling payloads installed by `npx skills add` — vendored copies,
+# not project source. Regenerate with `npx skills add <pkg> -y`.
+.agents/skills/
+skills-lock.json
+.claude/

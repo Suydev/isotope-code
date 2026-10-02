@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Database — IsotopeAI docs</title>
-    <meta name="description" content="IsotopeAI database reference: 42 tables, 82 functions, 169 row-level security policies, 15 triggers and 66 indexes, counted from isotope-complete.sql.">
+    <meta name="description" content="IsotopeAI database reference: 42 tables, 82 functions, 191 row-level security policies, 15 triggers and 108 indexes, counted from isotope-complete.sql.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
@@ -156,8 +156,8 @@
     <div class="grid cols-4" style="margin-top:var(--s-6)">
       <div><span class="ticker" data-ticker="42">42</span><span class="ticker-label">Tables</span></div>
       <div><span class="ticker" data-ticker="82">82</span><span class="ticker-label">Functions</span></div>
-      <div><span class="ticker" data-ticker="169">169</span><span class="ticker-label">RLS policies</span></div>
-      <div><span class="ticker" data-ticker="66">66</span><span class="ticker-label">Indexes (66 in isotope-complete.sql)</span></div>
+      <div><span class="ticker" data-ticker="191">191</span><span class="ticker-label">RLS policies</span></div>
+      <div><span class="ticker" data-ticker="108">108</span><span class="ticker-label">Indexes (108 in isotope-complete.sql)</span></div>
     </div>
 
     <div class="note ok glass">
@@ -499,12 +499,12 @@ where n.nspname = 'public' and p.prosecdef and p.proconfig is null;
 
     <h2 class="rise" id="indexes">Indexes <a class="anchor" href="#indexes" aria-label="Link to this section">#</a></h2>
 
-    <p><strong>66 declared indexes, 124 in total.</strong> Both numbers are correct and
+    <p><strong>108 declared indexes, 124 in total.</strong> Both numbers are correct and
     the difference is not a discrepancy: a <code>PRIMARY KEY</code> or
     <code>UNIQUE</code> constraint creates an index of its own, so
     <code>pg_indexes</code> reports 124 while <code>isotope-complete.sql</code>
-    contains 66 explicit <code>CREATE INDEX</code> statements. If you are checking a
-    project against the schema file, 66 is the figure to compare; if you are reading
+    contains 108 explicit <code>CREATE INDEX</code> statements. If you are checking a
+    project against the schema file, 108 is the figure to compare; if you are reading
     <code>pg_indexes</code>, expect 124.</p>
 
     <p>The ones that matter most for perceived speed:</p>
