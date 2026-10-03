@@ -1,6 +1,6 @@
 -- =============================================================================
 -- IsotopeAI — full portable schema dump (NO user data)
--- Generated: 2026-10-02 16:59:13 UTC
+-- Generated: 2026-10-03 05:17:14 UTC
 -- Project ref: iwckbhehmescrqjicbrz
 -- Schemas: private, rpc_private, public
 --
@@ -31,8 +31,6 @@ GRANT USAGE ON SCHEMA "public" TO anon;
 GRANT USAGE ON SCHEMA "public" TO authenticated;
 GRANT USAGE ON SCHEMA "public" TO service_role;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
-CREATE EXTENSION IF NOT EXISTS "hypopg";
-CREATE EXTENSION IF NOT EXISTS "index_advisor";
 CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "plpgsql";

@@ -133,6 +133,95 @@ The server serves the PREMIUM (new) build from `public/assets/` and patches each
 15. **Leaderboard 401 FIXED** (server.mjs `COMMUNITY_API_CHAT_TO` ~3566): `__lbTok` picker now decodes JWT `exp` and picks the freshest non-expired token from localStorage (prior: first arbitrary hit — often expired `__migrated__*__isotope-auth-token`). Verified live: `/__leaderboard` 200, rankings render.
 16. Aug 9: **Group chat scrollbar REAL fix**: `h-[28rem]` class never applied — Tailwind JIT didn't generate the arbitrary-value rule for the injected bundle → panel grew full height (clientHeight 1683, no scrollbar). Fixed by adding `height:28rem` INLINE to the injected `.community-chat-scroll` style tag (server.mjs ~3349). Verified live: clientHeight 448, scrollHeight 1683, canScroll true. Proof shot: `screenshots/group-chat-scrollbar.png`.
 
+## Schema is generated, migrations are NOT replayed (audited 2026-10-02)
+
+**`isotope-complete.sql` is a full introspection of the live project**, produced by
+`scripts/schema-dump.mjs` (it reads `pg_catalog`; it never reads a `.sql` migration).
+It is therefore the single source of truth for a fresh project, and the numbered
+migrations in `isotope-apk/supabase/` are **history, not a replay script**.
+
+Audited file-by-file against live (`iwckbhehmescrqjicbrz`):
+
+- The dump already contains the end state of **22 of the 24** numbered migrations.
+- **Replaying the directory does not reproduce the live schema.** Four definitions of
+  `accept_invite(text)` / `get_invite_details(text)` exist (`009`, `013b`,
+  `repair_invite_rpc_slug_contract`); live matches `009`, but filename order would
+  end on `013b` and change the return type — the `42P13 cannot change return type`
+  error seen in every transfer log.
+- `012_seed_community_data.sql` is the only seed file: 32 rows, 41 hardcoded UUIDs,
+  fails FK against `public.users`/`public.groups` on any fresh project. It cannot
+  succeed and its data comes from the restore instead.
+- The six `_rollback_*.sql` files are **not** migrations. `_rollback_search_path.sql`
+  restores a malformed 6-quote `search_path` on 23 functions — the most destructive
+  file in the tree. Never replay them.
+
+**NUMBER COLLISION — a real hazard.** `isotope-code/sql/` and `isotope-apk/supabase/`
+reuse the same numbers for *different* migrations:
+
+| number | `isotope-code/sql/` | `isotope-apk/supabase/` |
+|---|---|---|
+| 011 | join guard (**+ the `community_join_requests` table**) | join guard (function only) |
+| 012 | `012_universal_leaderboard.sql` | `012_seed_community_data.sql` |
+| 013 | `013_join_group_notifications.sql` | `013_fix_missing_grants…` + `013b/c/d` |
+
+Anything that merges both directories into one ordered stream applies the wrong file.
+`006_security_policy_cleanup.sql` exists only in `isotope-code/sql/`.
+
+### The dump silently dropped 154 grants (fixed)
+
+`schema-dump.mjs` de-duplicated function grants with `prevSig = proname|ident` while
+its query used `aclexplode`, which returns **one row per (signature, grantee)**. It
+kept only the alphabetically-first grantee per function:
+
+```
+live 231 grants / 81 signatures   anon 77 · authenticated 79 · service_role 75
+dump  81 grants / 81 signatures   anon 77 · authenticated  4 · service_role  0
+```
+
+154 grants lost. A restore would have had none of its RPCs callable by
+`service_role`, while 58 of the 77 still granted to `anon` are SECURITY DEFINER
+(`community_create_group`, `handle_new_user`, `_auto_add_super_admin`, …). **Counts
+alone never showed it** — tables, functions, policies and triggers were all intact.
+
+`GRANT MAINTAIN` (a PG17 privilege, illegal on the PG16 CI shim) was filtered from
+the *function* grants query only, so the 126 table-level ones returned on every
+regeneration. Both queries filter now; the dump has 0.
+
+### Verify the dump still matches live — before trusting anything
+
+```bash
+SUPABASE_ACCESS_TOKEN=$(cat .pat) node scripts/verify-schema-drift.mjs --ref iwckbhehmescrqjicbrz
+```
+
+Compares **by name, per class, both directions**, with return types in the function
+identity and grants broken out per role. Current result: 42 tables · 42 RLS · 78
+functions · 15 triggers · 167+24 policies · 108 indexes · 43 FK · 16 UNIQUE ·
+5 buckets · 880 table grants · 224 function grants — **no drift**.
+
+Run it after ANY schema change. Regenerate with
+`node scripts/schema-dump.mjs`, then copy `sql/isotope-schema-restore.sql` over
+`isotope-complete.sql` (the two must stay identical) and update the docs counts,
+which `scripts/validate-docs.mjs` checks.
+
+### The Management API silently under-applies batches
+
+`POST /v1/projects/<ref>/database/query` **can return success for a multi-statement
+payload while applying only part of it.** Observed repeatedly: a 50-statement batch
+reported success, 22 RLS policies never landed, and `setup.mjs` printed
+`1809 applied, 0 skipped, 0 failed`. A single statement always lands.
+
+Every bulk SQL path credits `ok += chunk.length` on success, so partial application
+invisible. Three consequences to remember:
+- Never trust an applied counter — converge on the object count from `pg_catalog`
+  and re-apply the missing set **one statement per request**.
+- `CREATE POLICY` must be applied individually; batched policy application moves no
+  rows and reports success.
+- A batch whose statements depend on each other is unreliable — `rpc_private.purchase_store_item`
+  was dropped from a successful batch, which then failed 4 dependents, and the retry
+  pass (which only re-ran statements that *failed*) could never recover it. Repair by
+  NAME: read the object out of the error, find the `CREATE` that defines it, apply
+  that alone, then re-run the dependents.
+
 ## Known quirks
 - `/api/check-update` compares VERSION.sha vs local; pill shows when mismatch. Pushed sha now `c017e20...`; local prep is same so pill hides until a new push. Server restart changes stamp (server.mjs mtime) → pill reappears until dismissed.
 - Browser service worker caches old shell caches with OLD names — after a change, need `caches.keys()` purge or hard reload; `public/sw.js` SHELL list is hand-maintained.

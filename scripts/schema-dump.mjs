@@ -100,6 +100,12 @@ rows = await query("select extname from pg_extension order by extname;");
 const PLATFORM_ONLY_EXTENSIONS = new Set([
   'supabase_vault', 'pg_graphql', 'pgsodium', 'pg_net',
   'pgjwt', 'wrappers', 'pg_jsonschema', 'supabase_functions',
+  // Optional development helpers. Not on stock Postgres at ANY version, so
+  // `CREATE EXTENSION` aborts the schema under `psql -v ON_ERROR_STOP=1` — which
+  // is how hypopg turned SQL Schema Validation red. Their functions and views
+  // are already excluded as extension-owned further down, so omitting the
+  // extension here is consistent, not a partial fix.
+  'hypopg', 'index_advisor',
 ]);
 for (const r of rows) {
   if (PLATFORM_ONLY_EXTENSIONS.has(r.extname)) continue;

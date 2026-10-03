@@ -236,7 +236,7 @@ async function main() {
   // and auth.identities are deliberately left alone: the restore upserts users and
   // matches them against existing identities.
   try {
-    const r = await mgmt(DST_PAT, `/v1/projects/${DST_REF}/database/query`, {
+    await mgmt(DST_PAT, `/v1/projects/${DST_REF}/database/query`, {
       method: 'POST',
       body: JSON.stringify({
         query: 'truncate table public.group_members, public.group_challenges, public.group_announcements, public.community_join_requests, public.community_start_alerts cascade',
