@@ -1,8 +1,9 @@
 -- =============================================================================
 -- IsotopeAI — full portable schema dump (NO user data)
--- Generated: 2026-10-03 05:17:14 UTC
+-- Generated: 2026-10-03 12:24:21 UTC
 -- Project ref: iwckbhehmescrqjicbrz
 -- Schemas: private, rpc_private, public
+-- Schema-watermark: 028
 --
 -- HOW TO RESTORE INTO A FRESH SUPABASE PROJECT:
 --   1. Create a new Supabase project.

@@ -69,6 +69,30 @@ where n.nspname not in (${EXCLUDE_SCHEMAS})
   and n.nspname not like 'pg_temp%'
   and n.nspname not like 'pg_toast_temp%'
 order by n.nspname;`);
+/**
+ * Highest numbered migration already reflected in the live project, and therefore
+ * already baked into this dump.
+ *
+ * This is what makes the migration set EXTENSIBLE without becoming a replay script.
+ * `supabase/` is history: the dump above already contains the end state of 22 of the
+ * 24 numbered files, and filename order cannot reproduce live (four conflicting
+ * definitions of accept_invite / get_invite_details). So applying that directory to
+ * a freshly-provisioned target is redundant at best and destructive at worst.
+ *
+ * Instead: the dump is the baseline, and only files numbered ABOVE the watermark are
+ * new work. Drop `029_your_fix.sql` into `supabase/`, apply it to the live project,
+ * bump this file to 029, regenerate — and every future backup and transfer picks it
+ * up automatically, with nothing else to remember.
+ */
+const APPLIED_FILE = join(ROOT, '..', 'isotope-apk', 'supabase', '.applied');
+function appliedWatermark() {
+  try {
+    const v = readFileSync(APPLIED_FILE, 'utf8').trim();
+    const m = v.match(/(\d{1,3})/);
+    return m ? m[1].padStart(3, '0') : '000';
+  } catch { return '000'; }
+}
+
 const SCHEMAS = rows.map((r) => r.nspname).sort((a, b) => (a === 'public' ? 1 : b === 'public' ? -1 : a.localeCompare(b)));
 console.log('schemas to dump:', SCHEMAS.join(', ') + ' (public last so dependent schemas/functions come first)');
 const schemaAcl = Object.fromEntries(rows.map((r) => [r.nspname, r.acl]));
@@ -558,6 +582,7 @@ const header = `-- =============================================================
 -- Generated: ${new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC
 -- Project ref: ${project}
 -- Schemas: ${SCHEMAS.join(', ')}
+-- Schema-watermark: ${appliedWatermark()}
 --
 -- HOW TO RESTORE INTO A FRESH SUPABASE PROJECT:
 --   1. Create a new Supabase project.

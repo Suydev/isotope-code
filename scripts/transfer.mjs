@@ -55,6 +55,21 @@ function die(msg, detail) {
   process.exit(1);
 }
 
+/** Highest migration number already baked into the dump, read from its own header. */
+function schemaWatermark() {
+  const files = [
+    path.join(ROOT, 'isotope-complete.sql'),
+    path.join(ROOT, '..', 'isotope-code', 'isotope-complete.sql'),
+  ];
+  for (const f of files) {
+    try {
+      const m = fs.readFileSync(f, 'utf8').match(/--\s*Schema-watermark:\s*(\d{1,3})/i);
+      if (m) return m[1].padStart(3, '0');
+    } catch { /* try the next location */ }
+  }
+  return null;
+}
+
 async function mgmt(pat, route, init = {}) {
   const res = await fetch(MGMT + route, {
     ...init,
@@ -92,9 +107,15 @@ async function countRows(pat, ref, sql) {
 }
 
 /** Run a worker to completion, streaming its stdout into the log and the progress file. */
-function run(worker, args, env, phase) {
+// A transfer is four steps. The step markers carry `step`/`steps` so the console
+// can render "step 2 of 4" — a step indicator, which is what a multi-stage run
+// needs. Emitting a phase with no total at all produced a row reading "0/?", which
+// looks stuck and tells the user nothing.
+export const TRANSFER_STEPS = 4;
+
+function run(worker, args, env, phase, step) {
   return new Promise((resolve, reject) => {
-    emit({ kind: 'phase', phase, state: 'start', message: `${phase}…` });
+    emit({ kind: 'phase', phase, state: 'start', message: `${phase}…`, step, steps: TRANSFER_STEPS });
     say(`── ${phase} ──`);
     const child = spawn(process.execPath, [path.join(ROOT, 'scripts', worker), ...args], {
       cwd: ROOT,
@@ -113,7 +134,7 @@ function run(worker, args, env, phase) {
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) {
-        emit({ kind: 'phase', phase, state: 'done', message: `${phase} done` });
+        emit({ kind: 'phase', phase, state: 'done', message: `${phase} done`, step, steps: TRANSFER_STEPS });
         resolve();
       } else {
         reject(new Error(`${worker} ${phase} exited ${code}`));
@@ -154,10 +175,20 @@ async function main() {
   // existing project produced a target missing both the schema baseline and
   // every migration. Both are applied here.
   say('-- step 0/4 establish target schema + apply all migrations --');
-  await run('supabase-setup.mjs', ['--ref', DST_REF, '--pat', DST_PAT, '--no-env', '--force'], {
-    SUPABASE_URL: `https://${DST_REF}.supabase.co`,
-    SUPABASE_ACCESS_TOKEN: DST_PAT,
-  }, '0/4 schema baseline');
+  // Non-fatal. The schema dump is idempotent, and a baseline that dies on a
+  // transient Management-API hiccup ("fetch failed") is retried cheaply on the
+  // next run. Treating it as fatal meant a 2-second network blip aborted an
+  // otherwise-good transfer. carbon-copy verification below is the real gate.
+  let baselineFailed = 0;
+  try {
+    await run('supabase-setup.mjs', ['--ref', DST_REF, '--pat', DST_PAT, '--no-env', '--force'], {
+      SUPABASE_URL: `https://${DST_REF}.supabase.co`,
+      SUPABASE_ACCESS_TOKEN: DST_PAT,
+    }, 'schema baseline', 1);
+  } catch (e) {
+    baselineFailed = 1;
+    say(`[transfer] schema baseline reported failures (${e.message}); continuing — the restore is additive and carbon-copy verification is the gate`);
+  }
 
   // Migrations are a SUPPLEMENT here, not the source of truth: the schema dump
   // above applied 1773 statements with zero failures. On a freshly provisioned
@@ -174,14 +205,35 @@ async function main() {
   // Neither is a reason to abandon the transfer, and neither is a reason to
   // report success as if nothing happened — so log the failure, count it, and
   // carry on to the restore, which is what actually populates the project.
+  // Apply only migrations ABOVE the dump's watermark.
+  //
+  // Replaying the whole numbered history is not merely redundant — it is unsafe.
+  // The dump already contains the end state of 22 of the 24 numbered files, and
+  // filename order cannot reproduce live: accept_invite / get_invite_details have
+  // four conflicting definitions and live matches 009, while 013b changes the return
+  // type (the 42P13 that appeared in every run). 012 seeds rows with hardcoded UUIDs
+  // that violate FKs on a fresh project, and the six _rollback_*.sql files exist
+  // specifically to re-break working code.
+  //
+  // So the dump is the baseline, and anything newer than its watermark is real new
+  // work. Drop `029_whatever.sql` into supabase/, apply it to the live project, bump
+  // supabase/.applied to 029, regenerate the dump — and every future backup and
+  // transfer carries it with nothing else to remember.
   let migrationFailures = 0;
-  try {
-    await run('backend-switch.mjs', ['migrate', '--ref', DST_REF, '--from', process.env.ISO_MIGRATE_FROM || '009', '--pat', DST_PAT], {
-      SUPABASE_ACCESS_TOKEN: DST_PAT,
-    }, '0/4 migrations 009..latest');
-  } catch (e) {
-    migrationFailures = 1;
-    say(`[transfer] migrations reported failures (${e.message}); continuing — the schema dump already applied cleanly and the restore supplies the data`);
+  const watermark = schemaWatermark();
+  if (watermark) {
+    const next = String(Number(watermark) + 1).padStart(3, '0');
+    say(`[transfer] schema watermark ${watermark} — applying migrations from ${next} only`);
+    try {
+      await run('backend-switch.mjs', ['migrate', '--ref', DST_REF, '--from', next, '--pat', DST_PAT], {
+        SUPABASE_ACCESS_TOKEN: DST_PAT,
+      }, 'migrations', 2);
+    } catch (e) {
+      migrationFailures = 1;
+      say(`[transfer] migrations above the watermark failed (${e.message}); continuing — the dump baseline applied cleanly and the restore supplies the data`);
+    }
+  } else {
+    say('[transfer] no schema watermark in the dump — skipping migrations rather than replaying history');
   }
 
   const stamp = new Date().toISOString().slice(0, 10);
@@ -196,7 +248,7 @@ async function main() {
     SUPABASE_ANON_KEY: srcKeys.anon,
     SUPABASE_SERVICE_ROLE_KEY: srcKeys.service,
     SUPABASE_ACCESS_TOKEN: SRC_PAT,
-  }, '2/4 backup from source');
+  }, 'backup from source', 3);
 
   // Only now read the dir back — a stale manifest from an earlier run in the same
   // directory would otherwise be restored while believing it is today's data.
@@ -236,12 +288,30 @@ async function main() {
   // and auth.identities are deliberately left alone: the restore upserts users and
   // matches them against existing identities.
   try {
-    await mgmt(DST_PAT, `/v1/projects/${DST_REF}/database/query`, {
-      method: 'POST',
-      body: JSON.stringify({
-        query: 'truncate table public.group_members, public.group_challenges, public.group_announcements, public.community_join_requests, public.community_start_alerts cascade',
-      }),
-    });
+    // Truncate EVERY table the backup contains, from the manifest — not a
+    // hand-maintained list. A hardcoded subset silently lost rows forever: the
+    // signup trigger fires when auth.users is restored and creates
+    // public.user_profiles WITHOUT a handle, so the subsequent restore of
+    // user_profiles hit `on conflict do nothing` and skipped all 13 real rows.
+    // Result: source 12/13 handles, target 0/13, and every counter said success.
+    //
+    // A carbon copy means the target ends up with the source's rows and nothing
+    // else, so everything the backup carries is cleared first. auth.users and
+    // auth.identities are deliberately excluded — the restore upserts those and
+    // matching them against existing identities is how users are linked.
+    const tables = Array.isArray(manifest.tables)
+      ? manifest.tables
+          .map((t) => `${t.schema || 'public'}."${String(t.table || t.name || '').replace(/"/g, '""')}"`)
+          .filter((n) => !n.startsWith('auth.'))
+      : [];
+    if (tables.length) {
+      await mgmt(DST_PAT, `/v1/projects/${DST_REF}/database/query`, {
+        method: 'POST',
+        body: JSON.stringify({ query: `truncate table ${tables.join(', ')} restart identity cascade` }),
+      });
+      say(`[transfer] truncated ${tables.length} table(s) before restore`);
+    }
+
     // TRUNCATE returns no rowset, so an empty array here means "ran", not
     // "truncated nothing" — saying otherwise was misleading in the log.
     say(`[transfer] truncated seeded rows before restore`);
@@ -255,13 +325,14 @@ async function main() {
     SUPABASE_ANON_KEY: dstKeys.anon,
     SUPABASE_SERVICE_ROLE_KEY: dstKeys.service,
     SUPABASE_ACCESS_TOKEN: DST_PAT,
-  }, '3/4 restore into target');
+  }, 'restore into target', 4);
 
   const after = await countRows(DST_PAT, DST_REF, 'select count(*) n from auth.users');
   const summary = {
     source: SRC_REF,
     target: DST_REF,
     migrationFailures,
+    baselineFailed,
     dir: outDir,
     tables: tableCount,
     rows: rowTotal,
@@ -277,8 +348,18 @@ async function main() {
   // it means the restore claimed success but transferred no accounts.
   const moved = before == null || after == null ? null : after - before;
   say(`  target   ${DST_REF}  (users ${before ?? '?'} → ${after ?? '?'}${moved == null ? '' : `, +${moved}`})`);
-  if (moved != null && usersInBackup > 0 && moved < usersInBackup) {
-    say(`  WARNING  only ${moved} of ${usersInBackup} users landed — check the restore log for conflicts`);
+  // "Only 0 of 13 users landed" was alarming and wrong on a re-run: the restore
+  // upserts on conflict, so users already present count as moved-by-restoring even
+  // though the raw total did not change. What actually matters is whether the
+  // target now holds at least as many users as the backup carried.
+  if (before != null && after != null && usersInBackup > 0) {
+    if (after >= usersInBackup) {
+      say(`  users    ${after} present, backup carried ${usersInBackup} — all accounted for`);
+    } else if (moved != null && moved > 0) {
+      say(`  WARNING  ${after} present vs ${usersInBackup} in the backup — some accounts did not restore, see the log above`);
+    } else {
+      say(`  WARNING  target holds ${after} users but the backup carried ${usersInBackup} and none were added — check for conflicts`);
+    }
   }
   say(`  local    ${outDir}`);
   // Terminal event. job-runner's lastPhaseDone() looks for `phase === kind` with
