@@ -462,9 +462,28 @@ for (const s of SCHEMAS) {
       select 1 from pg_depend d
       where d.objid = c.oid and d.classid = 'pg_class'::regclass and d.deptype = 'e')
   order by c.relname, grantee, priv;`);
+  // REVOKE before GRANT, per (object, role).
+  //
+  // Supabase grants anon / authenticated / service_role full privileges on every
+  // table by default, so a fresh project starts MORE permissive than the source.
+  // The source had privileges narrowed by migrations (013b revokes anon's SELECT
+  // on group_invites) — but a dump emits only GRANTs, never REVOKEs, so none of
+  // that narrowing was carried over. Every restored project therefore regained
+  // privileges the source does not have: measured 882 table grants against the
+  // source's 880, the extra two being anon INSERT/SELECT on group_invites.
+  //
+  // Emitting REVOKE first makes the dump state the complete privilege set rather
+  // than a delta on top of whatever default the target happens to use.
+  const revoked = new Set();
   for (const r of rows) {
     const kind = r.relkind === 'S' ? 'SEQUENCE' : 'TABLE';
-    add(`GRANT ${r.priv} ON ${kind} ${scIdent(s)}.${quoteIdent(r.relname)} TO ${r.grantee}${r.is_grantable ? ' WITH GRANT OPTION' : ''};`);
+    const obj = `${scIdent(s)}.${quoteIdent(r.relname)}`;
+    const key = `${kind}|${obj}|${r.grantee}`;
+    if (!revoked.has(key)) {
+      revoked.add(key);
+      add(`REVOKE ALL ON ${kind} ${obj} FROM ${r.grantee};`);
+    }
+    add(`GRANT ${r.priv} ON ${kind} ${obj} TO ${r.grantee}${r.is_grantable ? ' WITH GRANT OPTION' : ''};`);
     counts.tableGrants++;
   }
 }
@@ -505,8 +524,17 @@ for (const s of SCHEMAS) {
   // (community_create_group, community_transfer_group, _auto_add_super_admin,
   // handle_new_user, …), so the surviving grant handed elevated functions to the
   // anonymous role.
+  // Same reasoning as tables: Supabase grants EXECUTE by default, and narrowing
+  // on the source was never carried over without an explicit REVOKE.
+  const fnRevoked = new Set();
   for (const r of rows) {
-    add(`GRANT EXECUTE ON FUNCTION ${scIdent(s)}.${quoteIdent(r.proname)}(${r.ident}) TO ${r.grantee};`);
+    const fn = `${scIdent(s)}.${quoteIdent(r.proname)}(${r.ident})`;
+    const key = `${fn}|${r.grantee}`;
+    if (!fnRevoked.has(key)) {
+      fnRevoked.add(key);
+      add(`REVOKE ALL ON FUNCTION ${fn} FROM ${r.grantee};`);
+    }
+    add(`GRANT EXECUTE ON FUNCTION ${fn} TO ${r.grantee};`);
     counts.fnGrants++;
   }
 }
