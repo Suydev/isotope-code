@@ -16,7 +16,7 @@
     "push": "node scripts/push-to-github.js"
   },
   "dependencies": {
-    "@capacitor/android": "6.2.1",
+    "@capacitor/android": "6.2.2",
     "@capacitor/app": "6.0.3",
     "@capacitor/core": "6.2.1",
     "@capacitor/filesystem": "6.0.4",
