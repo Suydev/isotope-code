@@ -1,2 +1,8 @@
+# Kept in sync with renderRobots() in server.mjs — Vercel serves this static file
+# ahead of the api/index rewrite, so the handler alone would never reach production.
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /__
+
+Sitemap: https://isotopeai.dpdns.org/sitemap.xml

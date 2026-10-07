@@ -376,8 +376,7 @@ info('Checking CI workflow...');
 const CI = readText('.github/workflows/ci.yml');
 if (CI) {
   ok('.github/workflows/ci.yml exists');
-  const hasDocs = CI.includes('validate-docs') || CI.includes('docs');
-  if (hasDocs) {
+  if (CI.includes('validate-docs') || CI.includes('docs')) {
     ok('CI includes docs validation step');
   } else {
     warn('CI does not appear to include docs validation — add: node scripts/validate-docs.mjs');
@@ -385,6 +384,28 @@ if (CI) {
 } else {
   warn('.github/workflows/ci.yml not found');
 }
+
+// ── 7a. Crawler routes ────────────────────────────────────────────────────────
+//
+// public/robots.txt is served by Vercel AHEAD of the api/index rewrite, so the
+// handler in server.mjs never runs in production. The static copy is the one that
+// actually ships — and the two drifted apart silently: the handler gained a
+// Sitemap: line while the file Vercel serves kept saying only "Allow: /".
+info('Checking crawler routes...');
+const robotsBody = readText('public/robots.txt');
+if (robotsBody === null) {
+  error('public/robots.txt exists', 'the file crawlers read is missing');
+} else {
+  if (/^Sitemap:\s*\S+/mi.test(robotsBody)) ok('public/robots.txt declares a sitemap');
+  else error('public/robots.txt declares a sitemap', 'no "Sitemap:" line — crawlers get no map of the site');
+  if (/^Allow:\s*\/$/mi.test(robotsBody)) ok('public/robots.txt allows the site root');
+  else error('public/robots.txt allows the site root', 'no longer allows /');
+}
+const serverSrc = readText('server.mjs') || '';
+if (serverSrc.includes("urlPath === '/sitemap.xml'")) ok('server.mjs serves /sitemap.xml');
+else error('server.mjs serves /sitemap.xml', 'the SPA fallback answers it with the app shell instead');
+if (serverSrc.includes("urlPath === '/robots.txt'")) ok('server.mjs serves /robots.txt');
+else error('server.mjs serves /robots.txt', 'self-hosted runs get HTML for robots.txt');
 
 // ── 7b. Content drift: pages vs the code they describe ──────────────────────
 // Everything above checks STRUCTURE. Structure has been fine the whole time —
