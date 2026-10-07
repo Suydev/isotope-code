@@ -1,6 +1,6 @@
 -- =============================================================================
 -- IsotopeAI — full portable schema dump (NO user data)
--- Generated: 2026-10-05 11:13:48 UTC
+-- Generated: 2026-10-07 12:36:12 UTC
 -- Project ref: iwckbhehmescrqjicbrz
 -- Schemas: private, rpc_private, public
 -- Schema-watermark: 028
@@ -4319,8 +4319,6 @@ DROP POLICY IF EXISTS "group_milestones_read_members" ON "public"."group_milesto
 CREATE POLICY "group_milestones_read_members" ON "public"."group_milestones" AS PERMISSIVE FOR SELECT TO anon, authenticated USING (private.is_group_member(group_id, ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "groups_auth_insert" ON "public"."groups";
 CREATE POLICY "groups_auth_insert" ON "public"."groups" AS PERMISSIVE FOR INSERT  WITH CHECK ((auth.role() = 'authenticated'::text));
-DROP POLICY IF EXISTS "groups_auth_policy" ON "public"."groups";
-CREATE POLICY "groups_auth_policy" ON "public"."groups" AS PERMISSIVE FOR ALL  USING (true) WITH CHECK (true);
 DROP POLICY IF EXISTS "groups_delete_own" ON "public"."groups";
 CREATE POLICY "groups_delete_own" ON "public"."groups" AS PERMISSIVE FOR DELETE TO authenticated USING ((owner_id = ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "groups_insert_own" ON "public"."groups";
@@ -4441,10 +4439,6 @@ DROP POLICY IF EXISTS "users_own" ON "public"."users";
 CREATE POLICY "users_own" ON "public"."users" AS PERMISSIVE FOR ALL  USING ((id = auth.uid())) WITH CHECK ((id = auth.uid()));
 DROP POLICY IF EXISTS "users_read_member_profiles" ON "public"."users";
 CREATE POLICY "users_read_member_profiles" ON "public"."users" AS PERMISSIVE FOR SELECT TO authenticated USING ((deleted_at IS NULL));
-DROP POLICY IF EXISTS "users_read_public" ON "public"."users";
-CREATE POLICY "users_read_public" ON "public"."users" AS PERMISSIVE FOR SELECT  USING (true);
-DROP POLICY IF EXISTS "users_select_display" ON "public"."users";
-CREATE POLICY "users_select_display" ON "public"."users" AS PERMISSIVE FOR SELECT  USING (true);
 DROP POLICY IF EXISTS "users_select_own" ON "public"."users";
 CREATE POLICY "users_select_own" ON "public"."users" AS PERMISSIVE FOR SELECT TO authenticated USING ((id = ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "users_select_policy" ON "public"."users";

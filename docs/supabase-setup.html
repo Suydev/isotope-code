@@ -168,7 +168,7 @@
       <table>
         <thead><tr><th>Phase</th><th>What it does</th></tr></thead>
         <tbody>
-          <tr><td><strong>schema</strong></td><td>1,812 statements in batches of 50 — 42 tables, 80 public functions, 15 triggers, 191 policies. Aborts on the first real failure rather than continuing against a half-built database.</td></tr>
+          <tr><td><strong>schema</strong></td><td>1,812 statements in batches of 50 — 42 tables, 80 public functions, 15 triggers, 188 policpolicies. Aborts on the first real failure rather than continuing against a half-built database.</td></tr>
           <tr><td><strong>storage</strong></td><td>All four buckets with their size caps and MIME allow-lists. Clamps any cap above the project's plan limit instead of failing.</td></tr>
           <tr><td><strong>auth</strong></td><td>The signup trigger on <code>auth.users</code>. This is the step the manual route cannot express — see below.</td></tr>
           <tr><td><strong>verify</strong></td><td>Eight assertions that the project can actually run the app, not just that the SQL returned success.</td></tr>
@@ -285,7 +285,7 @@ SUPABASE_ACCESS_TOKEN</pre>
     <div class="stat-strip">
       <div><span class="ticker" data-ticker="42" aria-hidden="true">0</span><span class="sr-only">42</span><span class="ticker-label">Tables</span></div>
       <div><span class="ticker" data-ticker="82" aria-hidden="true">0</span><span class="sr-only">82</span><span class="ticker-label">Functions</span></div>
-      <div><span class="ticker" data-ticker="191" aria-hidden="true">0</span><span class="sr-only">191</span><span class="ticker-label">RLS policies</span></div>
+      <div><span class="ticker" data-ticker="188" aria-hidden="true">0</span><span class="sr-only">188</span><span class="ticker-label">RLS policies</span></div>
       <div><span class="ticker" data-ticker="15" aria-hidden="true">0</span><span class="sr-only">15</span><span class="ticker-label">Triggers</span></div>
     </div>
 

@@ -1039,6 +1039,17 @@ async function restore(args, env) {
     }
   }
 
+  // Fail loudly. Only the SCHEMA phase had a gate — a data phase where every insert
+  // failed printed `[restore] DONE` and exited 0, so the caller (transfer.mjs,
+  // supabase-clone.mjs) saw success over a target that lost most of its rows. The
+  // error text is already captured in `firstErr`.
+  if (tablesFailed > 0) {
+    const msg = `restore failed on ${tablesFailed} of ${order.length} table(s) — the target is incomplete`;
+    console.error(`[restore] ${msg}`);
+    emit({ phase: 'restore', level: 'error', msg });
+    throw new Error(msg);
+  }
+
   console.log(`[restore] DONE (${project})`);
   emit({ phase: 'restore', state: 'done', msg: `restore finished on ${project}` });
 }

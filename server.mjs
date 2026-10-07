@@ -397,6 +397,21 @@ if (_missingEnv.length) {
   process.exit(1);
 }
 
+/**
+ * Encode a value for interpolation into a <script> block.
+ *
+ * These scripts are emitted as JavaScript source, so a value spliced into a quoted
+ * literal can terminate that literal and append arbitrary statements. The startup
+ * check at SUPABASE_URL only validates the protocol and that the hostname ends in
+ * .supabase.co — the path, query and fragment pass through untouched, so
+ * `https://x.supabase.co/';document.title='pwned';var z='` validates cleanly and
+ * renders as executable script on every page for every visitor.
+ *
+ * JSON.stringify produces a valid JS literal, and escaping "<" keeps a "</script>"
+ * in the value from closing the block early.
+ */
+const jsLit = (v) => JSON.stringify(String(v == null ? '' : v)).replace(/</g, '\\u003c');
+
 try {
   const u = new URL(process.env.SUPABASE_URL);
   if (!/^https?:$/.test(u.protocol) || !u.hostname.endsWith('.supabase.co')) {
@@ -645,8 +660,8 @@ function buildUsernameAuthScript() {
 (function(){
   'use strict';
   var SUPA_REF = '${supaRef}';
-  var SUPA_URL_BASE = '${SUPA_URL}';
-  var SUPA_ANON = '${SUPA_ANON_KEY}';
+  var SUPA_URL_BASE = ${jsLit(SUPA_URL)};
+  var SUPA_ANON = ${jsLit(SUPA_ANON_KEY)};
 
   // ── JWT deep-extractor ────────────────────────────────────────────────────
   // Recursively scans any JSON value for a JWT-shaped string (eyJ…).
@@ -2551,8 +2566,8 @@ const USERNAME_AUTH_SCRIPT = buildUsernameAuthScript();
 const ORIGIN_SCRIPT = `<script>
 (function(){
   window.__ISO_ORIGIN__   = window.location.origin;
-  window.__ISO_SUPA_URL__ = '${SUPA_URL}';
-  window.__ISO_ANON__     = '${SUPA_ANON_KEY}';
+  window.__ISO_SUPA_URL__ = ${jsLit(SUPA_URL)};
+  window.__ISO_ANON__     = ${jsLit(SUPA_ANON_KEY)};
 })();
 </script>`;
 
@@ -2703,8 +2718,8 @@ const PREMIUM_SCRIPT = `<script>
 (function(){
   'use strict';
   var _orig = window.fetch;
-  var SUPA  = '${SUPA_URL}';
-  var ANON  = '${SUPA_ANON_KEY}';
+  var SUPA  = ${jsLit(SUPA_URL)};
+  var ANON  = ${jsLit(SUPA_ANON_KEY)};
   var _upgradedUsers = {};
 
   // ── Upgrade user's real Supabase profile to ranker ──────────────────────────
