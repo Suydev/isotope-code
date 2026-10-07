@@ -15,67 +15,286 @@
      * It defines no new colour, spacing or radius token. Every value below
        resolves to an existing --c-*, --s-*, --r-* or --dur-* custom property
        from site.css, so the dashboard cannot drift out of the palette: change
-       the token and the dashboard follows, same as every other page.
+       the token and the dashboard follows, same as every other page. The four
+       raw values that appear are reuse, not invention, and each carries its
+       measurement inline: #8b929c / #6e648a (the 3:1 control-boundary values
+       site.css already measures for .sidebar-search), #4c1d95 (the light value
+       of --c-accent-hover, pinned onto the light mesh — see below), and the
+       mesh hairlines site.css already pins for .hero-mesh .stat-strip.
      * It defines no new @keyframes. Entrance motion is the existing system —
-       pageOpen, wordRise/wordUp, swapCycle, auroraIn, reveal-3d, enterUp,
+       pageOpen, wordRise/wordUp, swapCycle, auroraIn, rise, reveal-3d, enterUp,
        edgeSpin — all of which already carry a prefers-reduced-motion path.
        Adding motion here would mean adding a second set of reduced-motion
        opt-outs, which is how a site ends up with one of them missed.
 
+   ── The hierarchy this page is built around ─────────────────────────────────
+   The previous pass put the five schema counts in a hairline strip at the
+   bottom of the hero at the same optical weight as the group notes and the
+   card tags, so the page read as four flat bands where it needed six. The
+   order below is the argument the page makes, and each level is separated from
+   the last by a real step rather than by 2px:
+
+     1  statement    .hero-title            clamp(2.75rem → 6.5rem)  700
+     2  control      .askbar                48px pill, brand CTA
+     3  evidence     .dash-stats .ticker    clamp(1.625rem → 2.25rem) 600
+     4  navigation   .dash-group-head h3    clamp(1.25rem → 1.5rem)  600
+     5  card title   .dash-card h4          1.125rem                600
+     6  card body    .card p                .875rem                 400
+
+   Level 4 was previously 1.25rem against level 5's 1.125rem — a 2px gap, which
+   is not a distinction. It is now a ~33% step.
+
    Conventions match the rest of the docs: 4px spacing scale, semantic colour
-   tokens only, every interactive target at or above the 44px floor, focus
-   always visible and never removed.
+   tokens only, focus always visible and never removed. Interactive targets hold
+   the site's 44px floor everywhere except the area chips below 760px, which sit
+   at 40px — that one exception is argued in full at .dash-area, and it still
+   clears SC 2.5.8 (24×24) by a wide margin.
    ========================================================================= */
 
-/* ── Hero ─────────────────────────────────────────────────────────────────── */
+/* ── Accent on the mesh ─────────────────────────────────────────────────────
+   site.css pins --c-text / --c-text-muted / --c-text-faint inside .hero-mesh
+   for a good reason: the mesh is light in BOTH themes and cannot be inverted
+   without losing the effect.
 
-.dash-hero-lead {
-  max-width: 46ch;
-  margin-inline: auto;
+   --c-accent was missed. In dark mode it resolves to a LIGHT tonal variant
+   (#c4b5fd, or #a78bfa / #e879f9 / #22d3ee / #818cf8 / #fbbf24 by backdrop) —
+   and the hero search results panel is hardcoded #fff in site.css. So on a
+   dark-theme dashboard the focus ring around a search result, and the link
+   inside the empty state, rendered light-violet or light-amber on white —
+   1.6:1 and 2.5:1. The focus indicator became the least visible thing on the
+   page, in the one component that is entirely keyboard-driven.
+
+   Pinned to --c-accent-hover's light value, which measures 11.07:1 on white.
+
+   The `:root` prefix is load-bearing, not decoration. site.css assigns the
+   per-page accent as `:root[data-bg='2'] { --c-accent: … }` and friends, which
+   is a specificity of 0,2,0. A bare `.hero-mesh` is 0,1,0 and loses to all five
+   of them — so the pin below would have held on exactly one page in five (the
+   one whose hash happens to land on data-bg=1) and silently done nothing on the
+   other four. `:root .hero-mesh` is also 0,2,0, and ties are broken by source
+   order: dashboard.css is linked after site.css in the <head>, so this wins. */
+:root .hero-mesh {
+  --c-accent: #4c1d95;
+  --accent-tint: #4c1d95;
+}
+/* The dark variants in site.css are `:root[data-theme='dark'][data-bg='N']`,
+   specificity 0,3,0 — higher than the 0,2,0 above, so the light pin would not
+   hold once dark mode resolved them. This selector is 0,3,0 too, so it ties and
+   wins on source order. Inside the mesh the surface is ALWAYS the light mesh,
+   whichever theme is active, so the dark tonal variants have no business here:
+   they exist to be readable on a near-black page, and this page has none. */
+:root[data-theme='dark'] .hero-mesh {
+  --c-accent: #4c1d95;
+  --accent-tint: #4c1d95;
 }
 
-/* Five-column stat strip. `.stat-strip` on the landing page is a four-up grid;
-   this one carries five counts, so it is its own class rather than a modifier
-   that would fight the existing column count. Same hairline treatment, same
-   `--ticker`, same `--dur-enter` easing — it reads as the same component. */
+/* ── Hero ────────────────────────────────────────────────────────────────── */
 
+.dash-hero-lead { max-width: 46ch; margin-inline: auto; }
+
+/* ── The figure block ───────────────────────────────────────────────────────
+   The five counts are the reason this page is not just a link farm: they are
+   read off the schema dump, not asserted. They are therefore framed as
+   EVIDENCE — a mono kicker and its provenance caption above the row — rather
+   than as a row of numbers floating under the search field. */
+
+.dash-figures { margin-top: clamp(2.5rem, 6vh, 4rem); }
+
+.dash-fig-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-5);
+  margin-bottom: var(--s-3);
+}
+
+.dash-fig-src {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-text-muted);
+}
+/* `<code>` inside the caption is a filename, not a code sample: drop the chip
+   chrome so the caption reads as one line of text. */
+.dash-fig-src code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+}
+
+.dash-fig-note {
+  margin: var(--s-3) 0 0;
+  max-width: 58ch;
+  font-size: var(--t-xs);
+  line-height: 1.55;
+  color: var(--c-text-faint);
+}
+/* The provenance caption is the one place on this page where a 13px violet link
+   appears on the mesh. --c-accent is pinned above to 11.07:1 on white, so this
+   is comfortably over the 4.5:1 bar rather than at it. */
+.dash-fig-note a { color: var(--c-accent); text-decoration: underline; }
+.dash-fig-note code { font-family: var(--f-mono); }
+
+/* ── The mono kicker: one label idiom, used for every section and group head.
+   --t-xs is 13px, so the 4.5:1 bar applies. --c-text-faint measures 7.6:1 on
+   the mesh, 6.62:1 on the flat page and 6.22:1 in dark — all clear. */
+.dash-kicker {
+  margin: 0;
+  font: 600 var(--t-xs)/1.35 var(--f-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+
+/* Section heads on this page only. site.css's `.section-head` is fine for the
+   prose pages but wrong here: it sits at 44rem with no rule beneath it, so on a
+   grid page it reads as a paragraph that happens to be bold — the same optical
+   weight as the group notes forty pixels below it.
+
+   Three changes, and they are one idea: this is an INDEX, not an essay, so the
+   heading has to look like the top of a table of contents.
+     1. A mono kicker above it, which is the label idiom used everywhere else
+        on this page (figure provenance, group area names). One idiom, not three.
+     2. A hairline under the whole head, so the head is a caption for the grid
+        below rather than floating in the section's padding.
+     3. The heading and its note sit on one baseline row at desktop, so the
+        note reads as belonging to the heading instead of starting a new block. */
+.dash-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-5);
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+}
+.dash-section > div { flex: 1 1 22rem; }
+.dash-section h2 {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -.028em;
+  line-height: 1.1;
+}
+/* Scoped to the note, not to every <p> in the head. `.dash-kicker` is also a
+   <p>, and an unscoped descendant selector here would silently overwrite its
+   mono/uppercase treatment with sans body text — the exact drift the kicker
+   exists to prevent. */
+.dash-section > div > p:not(.dash-kicker) {
+  margin: var(--s-2) 0 0;
+  max-width: 44ch;
+  font-size: var(--t-sm);
+  line-height: 1.55;
+  color: var(--c-text-muted);
+}
+.dash-section .dash-kicker { margin-bottom: var(--s-2); }
+
+/* An optional right-hand slot — a live count or a link out of the section.
+   Pulled to the end of the row so it aligns with the section edge and the
+   head still reads as one left-aligned block. */
+.dash-section-aside {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-text-faint);
+}
+.dash-section-aside a { color: var(--c-accent); text-decoration: none; }
+.dash-section-aside a:hover { text-decoration: underline; }
+
+/* ── Figure row ──────────────────────────────────────────────────────────────
+   Five columns of counts. One class rather than a modifier of .stat-strip,
+   because that one is a four-up grid and a modifier would have to fight it.
+
+   Hairline logic per breakpoint, stated once so it stays true: the rule is
+   horizontal (row separators) below 700px and vertical (column separators)
+   at or above it. A single border-bottom on every cell — what this used to
+   do — leaves a dangling rule under the last row; a single border-inline-start
+   on every non-first cell leaves a stray vertical rule down the right edge at
+   two columns. Each cell sets both edges; the leading ones are zeroed at the
+   same breakpoint that created them. */
 .dash-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  margin-top: clamp(3rem, 7vh, 5rem);
   border-top: 1px solid rgba(17, 24, 39, .14);
 }
 @media (min-width: 700px)  { .dash-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1000px) { .dash-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 
+/* Below 700px: rows of two, rule above each cell except the first row. */
 .dash-stats > div {
-  padding: var(--s-5) var(--s-4) var(--s-5) 0;
-  border-bottom: 1px solid rgba(17, 24, 39, .14);
+  padding: var(--s-4) var(--s-4) var(--s-4) 0;
+  border-top: 1px solid rgba(17, 24, 39, .14);
 }
+.dash-stats > div:nth-child(-n+2) { border-top: 0; }
+
 @media (min-width: 700px) {
+  /* Rows of three, rule above each cell except the first row. */
   .dash-stats > div {
-    padding-inline-end: var(--s-5);
-    border-inline-start: 1px solid rgba(17, 24, 39, .14);
+    padding: var(--s-4);
+    border-top: 1px solid rgba(17, 24, 39, .14);
   }
-  .dash-stats > div:nth-child(2n + 1) { border-inline-start: 0; }
+  .dash-stats > div:nth-child(-n+3) { border-top: 0; }
+  /* Column separators. Applied to every cell, then the leading cell of each
+     row is zeroed — after the general rule, so source order decides. */
+  .dash-stats > div:not(:first-child) { border-inline-start: 1px solid rgba(17, 24, 39, .14); }
+  .dash-stats > div:nth-child(3n+1) { border-inline-start: 0; }
+  .dash-stats > div:nth-child(3n+1):not(:first-child) { padding-inline-start: 0; }
 }
 @media (min-width: 1000px) {
-  .dash-stats > div { border-bottom: 0; }
-  .dash-stats > div:first-child { border-inline-start: 0; }
+  /* One row of five: no top rule at all, the container's border is enough. */
+  .dash-stats > div { border-top: 0; }
+  .dash-stats > div:first-child { padding-inline-start: 0; border-inline-start: 0; }
+  .dash-stats > div:not(:first-child) { padding-inline-start: var(--s-4); }
 }
 
-/* ── Browse: filters ──────────────────────────────────────────────────────── */
+/* One step below .stat-strip's 2.5rem ceiling. The search bar is this hero's
+   action and the counts are its supporting evidence; at the same size the two
+   compete, and the one you can act on loses. Same weight and tracking as the
+   landing page's strip so the component still reads as one component. */
+.dash-stats .ticker {
+  font-size: clamp(1.625rem, 2.6vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1;
+}
+.dash-stats .ticker-label {
+  margin-top: var(--s-2);
+  font-size: var(--t-xs);
+  letter-spacing: .01em;
+  color: var(--c-text-faint);
+}
+
+/* ── Browse: the control row ───────────────────────────────────────────────
+   One row holding the filter field and the area chips. At desktop the field
+   takes a fixed measure and the chips fill the rest, so the eye lands on the
+   field first — it is the primary control — and the chips read as a secondary
+   index. Below 760px everything stacks.
+
+   The live result count is deliberately NOT in this row. It lives in the section
+   head above, where it reads as a caption on the whole list rather than as the
+   output of whichever control you happened to touch last. */
 
 .dash-browse-head {
   display: grid;
-  gap: var(--s-5);
-  margin-bottom: var(--s-7);
+  gap: var(--s-4);
+  align-items: center;
+  margin-bottom: var(--s-6);
+}
+@media (min-width: 760px) {
+  .dash-browse-head {
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    column-gap: var(--s-5);
+  }
 }
 
-/* The filter field is a model of `.sidebar-search`, not a copy of it: same 3:1
+/* The filter field is a model of .sidebar-search, not a copy of it: same 3:1
    border (measured there — the --c-border tokens are divider-tuned and fail
-   1.4.11 as a control boundary), same 44px floor, same ring-on-container
+   1.4.11 as a control boundary), same 48px field height, same ring-on-container
    behaviour. Only the width differs, because this one is full-bleed. */
 .dash-field {
   position: relative;
@@ -85,13 +304,13 @@
   width: 100%;
   padding-inline: var(--s-4);
   background: var(--c-surface);
-  border: 1px solid #8b929c;
+  border: 1px solid #8b929c;            /* 3.14:1 on white — see site.css */
   border-radius: var(--r-md);
   box-shadow: var(--e-1);
   transition: border-color var(--dur-fast) var(--ease),
               box-shadow var(--dur-fast) var(--ease);
 }
-:root[data-theme='dark'] .dash-field { border-color: #6e648a; }
+:root[data-theme='dark'] .dash-field { border-color: #6e648a; }  /* 3.63:1 */
 
 .dash-field:focus-within {
   border-color: var(--c-accent);
@@ -139,7 +358,7 @@
 .dash-field-clear svg { width: 16px; height: 16px; }
 .dash-field-clear[hidden] { display: none; }
 
-/* Area toggles. Real <button>s with aria-pressed rather than a styled <div>:
+/* Area chips. Real <button>s with aria-pressed rather than a styled <div>:
    they are in the tab order, they answer Enter and Space for free, and a screen
    reader announces the pressed state without any ARIA being invented. */
 .dash-areas {
@@ -155,13 +374,13 @@
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
-  min-height: 44px;                 /* touch target floor, same as .btn */
-  padding: var(--s-2) var(--s-4);
+  min-height: 40px;                     /* comfortable chip; see note below */
+  padding: var(--s-2) var(--s-3);
   border: 1px solid var(--c-border-strong);
   border-radius: var(--r-full);
   background: var(--c-surface);
   color: var(--c-text-muted);
-  font: 500 var(--t-sm)/1 var(--f-sans);
+  font: 500 var(--t-xs)/1 var(--f-sans);
   white-space: nowrap;
   cursor: pointer;
   transition: background-color var(--dur-fast) var(--ease),
@@ -169,6 +388,21 @@
               border-color var(--dur-fast) var(--ease);
 }
 .dash-area:hover { color: var(--c-text); background: var(--c-bg-subtle); }
+
+/* 40px on narrow screens, 44px from 760px up.
+
+   The 40px case is a deliberate, documented departure from the 44px floor the
+   rest of this site holds, so here is the whole argument. These chips are a
+   narrow filter over one already-visible list — never a primary navigation
+   target, and never the only route to a page. WCAG 2.2 SC 2.5.8 (Target Size,
+   Minimum, AA) sets the bar at 24×24 CSS px, which 40px clears by a wide
+   margin; the 44px figure on this site is a stronger internal convention taken
+   from the Apple HIG, not a requirement. Six 44px pills wrap to two rows and
+   push the page grid below the fold on a 360px phone, which costs more than
+   the extra 4px of chip height buys. Every other target on the page — the
+   filter field (48), the clear button, the cards, the release links — is at or
+   above 44, and from 760px the chips reach 44 too. */
+@media (min-width: 760px) { .dash-area { min-height: 44px; } }
 
 /* Pressed state inverts. --c-text on --c-bg is 18.4:1 light / 16.5:1 dark, so
    the label stays far above the floor after inversion; the alternative — a
@@ -189,33 +423,42 @@
 }
 
 /* Result count. role="status" so the change is announced without stealing focus
-   from the field the reader is still typing in. */
-.dash-status {
-  margin: var(--s-4) 0 0;
-  font-family: var(--f-mono);
-  font-size: var(--t-xs);
-  color: var(--c-text-faint);
-}
+   from the field the reader is still typing in. Monospace, faint, and the
+   smallest type on the page — it is a confirmation, not a heading. It is styled
+   through .dash-section-aside, where it sits at the end of the heading row. */
+.dash-status { margin: 0; }
 
 /* ── Browse: groups + grid ────────────────────────────────────────────────── */
 
 .dash-group { margin-bottom: var(--s-8); }
 .dash-group[hidden] { display: none; }
 
+/* The group head is a two-column bar: the area name carries real weight and
+   the note sits to its right as supporting context. This is the clearest
+   hierarchy fix on the page — the h3 is now a step above the card titles
+   rather than 2px above them, and the note is a step below the h3. */
 .dash-group-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--s-3);
-  margin-bottom: var(--s-4);
+  gap: var(--s-2) var(--s-4);
+  margin-bottom: var(--s-5);
   padding-bottom: var(--s-3);
   border-bottom: 1px solid var(--c-border);
 }
 .dash-group-head h3 {
-  font-size: var(--t-h3);
+  font-size: clamp(1.25rem, 1.6vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  color: var(--c-text);
+  text-wrap: balance;
 }
 .dash-group-head .dash-group-note {
+  flex: 1 1 20rem;
   margin: 0;
   font-size: var(--t-sm);
+  line-height: 1.5;
   color: var(--c-text-faint);
 }
 
@@ -228,6 +471,14 @@
 @media (min-width: 1000px) { .dash-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 .dash-card[hidden] { display: none; }
+
+/* Cards are links, so their whole surface is the hit target — well above the
+   44px floor. A soft focus ring on the whole card keeps the boundary obvious. */
+.dash-card:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 3px;
+  border-radius: var(--r-lg);
+}
 
 /* site.css sizes `.card h3`, and these cards sit one heading level deeper
    (h1 page → h2 section → h3 group → h4 card), so the shared rule does not
@@ -288,15 +539,33 @@
   font-weight: 600;
 }
 
-/* ── Recent changes ───────────────────────────────────────────────────────── */
-
+/* ── Recent changes ─────────────────────────────────────────────────────────
+   `data-latest` is set by dashboard.js on the first parsed release. The rest of
+   the panel is a flat grid of equal cards, which is right — a changelog is a
+   list, and inventing a hierarchy between three versions of the same thing
+   would be noise. But the LATEST one is a different kind of fact from the
+   other two: it is the only one a reader is likely to act on, so it earns a
+   raised surface and a brand hairline. The difference is a 1px edge and a
+   shadow, not a colour change — a reader who cannot separate the accent hue
+   still sees the card sitting above the others. */
 .dash-rel-list {
   display: grid;
   gap: var(--s-4);
   grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 @media (min-width: 820px)  { .dash-rel-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1100px) { .dash-rel-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* The <li> is the grid item; the <a> inside it fills the cell so the whole
+   card remains one hit target. `display: block` on the li would drop it out of
+   the grid flow in some engines, so it stays a block box and the grid places
+   it; height:100% on the link lets the card stretch to the tallest in its row,
+   which keeps the three release cards the same height. */
+.dash-rel-item { display: block; margin: 0; padding: 0; }
+.dash-rel-item > .dash-rel { height: 100%; }
 
 .dash-rel {
   display: flex;
@@ -319,6 +588,40 @@
   transform: translateY(-2px);
   color: inherit;
 }
+/* The latest release, hover state first.
+
+   Order matters: this rule sets `box-shadow`, so it must come AFTER :hover or
+   it would clobber the hover elevation on every hover of the latest card.
+   :hover is declared above; this combined selector keeps the inset accent bar
+   AND the lifted shadow together on hover. */
+.dash-rel:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 3px;
+}
+
+/* The latest release.
+
+   The accent bar is an INSET shadow rather than a border. A `border-inline-start`
+   would widen the content box by 2px relative to the two cards beside it, and
+   because the grid stretches its columns equally, one card gaining a border
+   makes all three cards 2px narrower and the row reflows on every release.
+   An inset shadow paints inside the existing box: no layout involvement, so
+   marking the latest release cannot move anything. */
+.dash-rel[data-latest='true'] {
+  box-shadow: inset 2px 0 0 0 var(--c-accent), var(--e-2);
+  border-color: color-mix(in srgb, var(--c-accent) 34%, var(--c-border-strong));
+}
+/* On hover the latest card keeps its accent bar but should lift like any other.
+   Because the accent is the FIRST shadow in the list, it must be restated here
+   or it would be lost when the lift replaces the resting shadow. */
+.dash-rel[data-latest='true']:hover {
+  box-shadow: inset 2px 0 0 0 var(--c-accent), var(--e-3);
+}
+/* Hoisting is expressed as an ink change on the version, which is the one
+   element that is already brand-adjacent. --c-text and --c-accent both clear
+   4.5:1 on the card surface, so the emphasis survives a greyscale print and a
+   reader who cannot separate the accent hue from the body text. */
+.dash-rel[data-latest='true'] .dash-rel-version { color: var(--c-accent); }
 
 .dash-rel-head {
   display: flex;
@@ -367,8 +670,13 @@
   color: var(--c-text-muted);
 }
 
+/* ── Reduced motion ──────────────────────────────────────────────────────────
+   The transitions below are the page's own hover/press states. Under
+   prefers-reduced-motion they are removed here as well as by site.css's global
+   `transition-duration: .01ms` reset, so the intent is recorded where the
+   rules are, not only in the shared sheet. */
 @media (prefers-reduced-motion: reduce) {
   .dash-field { transition: none; }
-  .dash-area, .dash-field-clear, .dash-rel { transition: none; }
-  .dash-rel:hover { transform: none; }
+  .dash-area, .dash-field-clear, .dash-rel, .dash-card { transition: none; }
+  .dash-rel:hover, a.dash-card:hover { transform: none; }
 }

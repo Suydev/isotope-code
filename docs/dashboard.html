@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dashboard — IsotopeAI docs</title>
-<meta name="description" content="Documentation dashboard for IsotopeAI: live schema counts, all 22 documentation pages grouped by area and filterable, full-text search across 245 sections, and the most recent releases.">
+<meta name="description" content="Documentation dashboard for IsotopeAI: the live schema counts read from isotope-complete.sql (42 tables, 83 functions, 184 policies, 16 triggers, 108 indexes), all 22 documentation pages grouped by area and filterable, full-text search across 245 sections, and the most recent releases.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
@@ -154,19 +154,33 @@
       <p class="askbar-hint" id="dash-search-status" role="status" data-dash-search-status></p>
       <ul class="askbar-results" id="dash-search-results" data-dash-search-results hidden></ul>
 
-      <!-- Schema counts. `.ticker` counts up on reveal and is paired with an
-           sr-only span holding the final value, exactly as index.html does it —
-           the number is the content; the count-up is presentation. -->
-      <div class="dash-stats" data-enter="5">
-        <div><span class="ticker" data-ticker="42" aria-hidden="true">0</span><span class="sr-only">42</span><span class="ticker-label">Database tables</span></div>
-        <div><span class="ticker" data-ticker="83" aria-hidden="true">0</span><span class="sr-only">83</span><span class="ticker-label">Postgres functions</span></div>
-        <div><span class="ticker" data-ticker="184" aria-hidden="true">0</span><span class="sr-only">184</span><span class="ticker-label">RLS policies</span></div>
-        <div><span class="ticker" data-ticker="16" aria-hidden="true">0</span><span class="sr-only">16</span><span class="ticker-label">Triggers</span></div>
-        <div><span class="ticker" data-ticker="108" aria-hidden="true">0</span><span class="sr-only">108</span><span class="ticker-label">Indexes</span></div>
+      <!-- Schema counts, framed as evidence rather than as decoration.
+
+           `.ticker` counts up on reveal and is paired with an sr-only span
+           holding the final value, exactly as index.html does it — the number
+           is the content; the count-up is presentation.
+
+           These five figures are the reason this page is not a link farm: they
+           are read off isotope-complete.sql, and validate-docs.mjs re-derives
+           them from that file on every CI run. The caption says so, because a
+           number with no provenance reads as marketing and a number with
+           provenance reads as a measurement. Both halves are on the page. -->
+      <div class="dash-figures" data-enter="5">
+        <div class="dash-fig-head">
+          <p class="dash-kicker" id="dash-figures-label">In the schema</p>
+          <p class="dash-fig-src">isotope-complete.sql</p>
+        </div>
+
+        <div class="dash-stats" role="list" aria-labelledby="dash-figures-label">
+          <div role="listitem"><span class="ticker" data-ticker="42" aria-hidden="true">0</span><span class="sr-only">42</span><span class="ticker-label">Database tables</span></div>
+          <div role="listitem"><span class="ticker" data-ticker="83" aria-hidden="true">0</span><span class="sr-only">83</span><span class="ticker-label">Postgres functions</span></div>
+          <div role="listitem"><span class="ticker" data-ticker="184" aria-hidden="true">0</span><span class="sr-only">184</span><span class="ticker-label">RLS policies</span></div>
+          <div role="listitem"><span class="ticker" data-ticker="16" aria-hidden="true">0</span><span class="sr-only">16</span><span class="ticker-label">Triggers</span></div>
+          <div role="listitem"><span class="ticker" data-ticker="108" aria-hidden="true">0</span><span class="sr-only">108</span><span class="ticker-label">Indexes</span></div>
+        </div>
+
+        <p class="dash-fig-note">Counted from <code>isotope-complete.sql</code> at the repository root, and re-derived from that file by the docs validator on every CI run. The <a href="./database.html">database reference</a> lists every one of them.</p>
       </div>
-      <p class="dash-stats-note">
-        <span class="faint">Counted from <code>isotope-complete.sql</code> at the repository root, and checked by the docs validator on every CI run.</span>
-      </p>
     </div>
   </section>
 
@@ -175,10 +189,18 @@
        The filter enhances it; it is not what makes the page navigable. -->
   <section class="section" aria-labelledby="browse-heading">
     <div class="wrap">
-      <div class="section-head">
-        <h2 id="browse-heading">Browse the documentation</h2>
-        <p>Twenty-two pages in five areas. Filter by area, or type to narrow the
-           list — the filter matches titles, summaries and keywords.</p>
+      <!-- The head is a caption for an index, not a section intro: kicker,
+           heading, one-line scope note, and a live count on the right. The
+           count is the same element the filter updates, so it can never
+           disagree with the grid below it. -->
+      <div class="dash-section rise">
+        <div>
+          <p class="dash-kicker">The index</p>
+          <h2 id="browse-heading">Browse the documentation</h2>
+          <p>Twenty-two pages in five areas. Filter by area, or type to narrow the
+             list — the filter matches titles, summaries and keywords.</p>
+        </div>
+        <p class="dash-section-aside" role="status" data-dash-status>22 of 22 pages</p>
       </div>
 
       <div class="dash-browse-head">
@@ -187,6 +209,7 @@
           <label class="sr-only" for="dash-filter">Filter documentation pages</label>
           <input class="dash-field-input" id="dash-filter" type="search" autocomplete="off"
                  placeholder="Filter these pages — “sync”, “rls”, “cli”…"
+                 aria-describedby="dash-filter-hint"
                  data-dash-filter>
           <button class="dash-field-clear" type="button" data-dash-clear aria-label="Clear the page filter" hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -204,9 +227,9 @@
           <button class="dash-area" type="button" data-dash-area="ref" aria-pressed="false">Reference <span class="dash-area-count" aria-hidden="true">4</span></button>
           <button class="dash-area" type="button" data-dash-area="project" aria-pressed="false">Project <span class="dash-area-count" aria-hidden="true">3</span></button>
         </div>
-
-        <p class="dash-status" role="status" data-dash-status>22 of 22 pages</p>
       </div>
+
+      <p class="sr-only" id="dash-filter-hint">Filters the page list below as you type. Press Escape to clear.</p>
 
       <div class="dash-groups" data-dash-groups>
 
@@ -445,14 +468,18 @@
        carries a working link, so it is never a heading over an empty box. -->
   <section class="section" aria-labelledby="recent-heading">
     <div class="wrap">
-      <div class="section-head">
-        <h2 id="recent-heading">Recent changes</h2>
-        <p>Parsed straight from the changelog, so this panel cannot drift from
-           what actually shipped. The changelog remains the authoritative record.</p>
+      <div class="dash-section rise">
+        <div>
+          <p class="dash-kicker">What changed</p>
+          <h2 id="recent-heading">Recent changes</h2>
+          <p>Parsed straight from the changelog, so this panel cannot drift from
+             what actually shipped. The changelog remains the authoritative record.</p>
+        </div>
+        <p class="dash-section-aside"><a href="./changelog.html">Full changelog &rarr;</a></p>
       </div>
 
       <ul class="dash-rel-list" data-dash-releases>
-        <li class="dash-rel"><span class="dash-rel-head"><span class="dash-rel-version">Loading releases…</span></span></li>
+        <li class="dash-rel-item"><a class="dash-rel" href="./changelog.html" aria-disabled="true"><span class="dash-rel-head"><span class="dash-rel-version">Loading releases…</span></span></a></li>
       </ul>
       <!-- Cleared on success and on failure alike; the panel is never left
            showing this placeholder as if it were a release. -->

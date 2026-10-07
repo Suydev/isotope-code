@@ -533,13 +533,24 @@
         var latest = cards[0].id;
 
         list.innerHTML = cards.map(function (c) {
-          return '<a class="dash-rel reveal-3d" href="' + esc(pageHref('changelog.html', c.id)) + '">' +
+          // data-latest drives the raised surface + accent bar in dashboard.css.
+          // It is a data attribute rather than a class so the styling rule can
+          // key off a fact ("is this the newest release?") rather than a
+          // position that would break the moment a card were reordered.
+          //
+          // Each release is an <li> wrapping an <a>, because the container is a
+          // <ul>: only <li> is a valid child of a list. The <li> is the grid
+          // item and the link fills it, so the visible card is still one hit
+          // target and the list is announced as a list of releases.
+          return '<li class="dash-rel-item">' +
+          '<a class="dash-rel reveal-3d" data-latest="' + (c.id === latest ? 'true' : 'false') +
+            '" href="' + esc(pageHref('changelog.html', c.id)) + '">' +
             '<span class="dash-rel-head">' +
               '<span class="dash-rel-version">' + esc(c.version) + '</span>' +
               (c.date ? '<span class="dash-rel-date">' + esc(c.date) + '</span>' : '') +
               (c.id === latest
-                ? '<span class="pill neutral">latest</span>'
-                : '<span class="pill post">' + esc(c.version) + '</span>') +
+                ? '<span class="pill post">latest</span>'
+                : '') +
             '</span>' +
             (c.summary ? '<p class="dash-rel-sum">' + esc(c.summary) + '</p>' : '') +
             (c.bullets.length
@@ -547,7 +558,7 @@
                   return '<li>' + esc(b.length > 150 ? b.slice(0, 150) + '…' : b) + '</li>';
                 }).join('') + '</ul>'
               : '') +
-          '</a>';
+          '</a></li>';
         }).join('');
 
         if (note) note.hidden = true;
