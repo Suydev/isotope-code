@@ -320,10 +320,14 @@ CREATE POLICY daily_select_all ON public.daily_user_stats
 -- User emails, passwords, and other sensitive fields are NOT in the users table
 -- (those live in auth.users which is always restricted).  This public-read policy
 -- only exposes the public-facing display fields the leaderboard already shows.
-DROP POLICY IF EXISTS users_select_display ON public.users;
-CREATE POLICY users_select_display ON public.users
-  FOR SELECT
-  USING (TRUE);
+-- REMOVED 2026-10-07. This re-created `users_select_display FOR SELECT USING (true)`
+-- with no `TO` clause, so it applied to `anon` and exposed every column of
+-- public.users — email, coins, gems, plan_type, billing_status, device_id — to
+-- anyone with no account. Measured on live: 13 of 13 rows readable. It was dropped
+-- in 701a2e6 and the dump regenerated; this file was silently putting it back on
+-- any install that ran the documented order (isotope-complete.sql → performance-patch.sql).
+-- `users_read_member_profiles` (TO authenticated) is the correct leaderboard source,
+-- and `user_display_profiles` is the intended public surface.
 
 -- ── Done ──────────────────────────────────────────────────────────────────
 -- Verification:

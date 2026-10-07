@@ -36,6 +36,15 @@ setInterval(() => {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
+// Without this, ANY synchronous throw inside a request handler, a setInterval
+// callback, or an event listener terminates the process — this is a long-running
+// self-hosted daemon, so one malformed request could take the app down for
+// everyone. Log loudly and keep serving; a later unhandledRejection or a health
+// probe will surface the fault.
+process.on('uncaughtException', (err) => {
+  console.error('[Runtime] UNCAUGHT EXCEPTION (server kept alive):', err && err.stack ? err.stack : err);
+});
+
 process.on('unhandledRejection', (err) => {
   console.error('[Runtime] Unhandled promise rejection:', err && err.message ? err.message : err);
 });
@@ -7522,6 +7531,14 @@ const appStateStore = { timerState: null, localStorage: {} };
 // polls GET /api/pip/state (served from this cache — cheap for 10ms polling) and
 // POSTs actions to /api/pip/action, which are fanned out to every connected
 // browser tab via the SSE stream at GET /__pip/events.
+// Leaderboard response cache. Previously written as `__LEADERBOARD_CACHE__ =
+// __LEADERBOARD_CACHE__ || {}` with no declaration anywhere — in an ES module that
+// throws ReferenceError BEFORE the handler's own try/catch, so every /__leaderboard
+// request rejected unhandled and the client hung until timeout. The community
+// leaderboard (whose only caller is the getLeaderboard() this server injects into
+// communityApi-*.js) never rendered for anyone.
+const __LEADERBOARD_CACHE__ = Object.create(null);
+
 let pipStateCache = null;
 let pipStateAt = 0;
 let pipSeq = 0;
@@ -8023,9 +8040,19 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ ok: true, ts: Date.now(), proxy: ADMIN_MODE_READY }));
     return;
   }
-  if (req.method === 'GET' && req.url === '/api/health') {
+  // REMOVED 2026-10-07. A second /api/health handler sat here and matched
+  // `req.url === '/api/health'` — the EXACT string an operator, a monitor or the
+  // installer uses. It returned `{ok:true, status:'ok'}` with no Supabase contact
+  // whatsoever, and because the dispatch is a linear if-chain this one always won.
+  // The real diagnostic further down (`adminPath === '/api/health'`, which probes
+  // REST + auth + storage and returns 503 when degraded) was therefore dead code,
+  // reachable only via a query string. Bare /api/health reported healthy with
+  // Supabase fully down, and the built-in self-test asserted `status === 'ok'`,
+  // so it could not detect the outage either.
+  if (req.method === 'GET' && req.url === '/api/ping') {
+    // Cheap liveness probe: the process is up. Says nothing about dependencies.
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-    res.end(JSON.stringify({ ok: true, status: 'ok', ts: Date.now(), version: LOCAL_VERSION?.version || null }));
+    res.end(JSON.stringify({ ok: true, ts: Date.now() }));
     return;
   }
   // REMOVED: deferred-scripts.js route. All scripts are now injected inline
@@ -9586,7 +9613,7 @@ function copySQL(){
   }
 
   // ── /__admin/verify — full automated test suite ───────────────────────────
-  if (req.method === 'GET' && new URL('http://x' + req.url).pathname === '/__admin/verify') {
+  if (req.method === 'GET' && adminPath === '/__admin/verify') {
     (async () => {
       const t0 = Date.now();
       const supaHost = new URL(SUPA_URL).hostname;
@@ -10541,7 +10568,13 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
         if(p==='monthly'){ return Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,1)-n; }
         return 3600000; // hourly for group leaderboard
       };
-      __LEADERBOARD_CACHE__ = __LEADERBOARD_CACHE__ || {};
+      // Prune expired entries on write so the map cannot grow without bound. It is
+      // keyed per user|period|group and `_rateLimiter` already has the equivalent
+      // sweep; this one had expiry checked on read but never deleted.
+      const nowMs = Date.now();
+      for (const k of Object.keys(__LEADERBOARD_CACHE__)) {
+        if (__LEADERBOARD_CACHE__[k].expiresAt <= nowMs) delete __LEADERBOARD_CACHE__[k];
+      }
       var __lbKey = uid + '|' + period + '|' + (groupId || '');
       if (!LB_CACHE_DISABLED) {
         var __cb = __LEADERBOARD_CACHE__[__lbKey];

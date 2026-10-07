@@ -33,6 +33,10 @@ function loadEnv() {
 
 const env = loadEnv();
 if (!env.SUPABASE_URL || !env.SUPABASE_ACCESS_TOKEN) {
+  // Still exit 0 (a fork PR has no secrets and must not be blocked), but say so in
+  // a form CI records. Silently exiting 0 makes "checked and clean" and "never
+  // ran" indistinguishable in the job log.
+  console.log('::warning::schema drift check SKIPPED — no SUPABASE_URL/SUPABASE_ACCESS_TOKEN. No drift was verified on this run.');
   console.log('SKIP: SUPABASE_URL / SUPABASE_ACCESS_TOKEN not set — cannot compare against a live project.');
   process.exit(0);
 }
@@ -70,7 +74,24 @@ function query(sql) {
 }
 
 const src = readFileSync(join(ROOT, 'isotope-complete.sql'), 'utf8');
-const declared = [...new Set([...src.matchAll(/CREATE TABLE IF NOT EXISTS public\.([a-z_]+)/g)].map(m => m[1]))].sort();
+// The dump QUOTES identifiers: `CREATE TABLE IF NOT EXISTS "public"."name"`. The
+// previous unquoted pattern matched none of the 42 real tables, so `declared` was
+// empty, the per-table loop below iterated zero times, and the script printed
+// "No column drift." on every run while detecting nothing. This is the exact class
+// of drift the file exists to catch, and it has been invisible since the dump
+// started being emitted with quoted identifiers.
+const declared = [...new Set([...src.matchAll(/CREATE TABLE IF NOT EXISTS "public"\."([a-z_0-9]+)"/g)].map(m => m[1]))].sort();
+
+// Never report success on an empty extraction. A check that silently compares
+// nothing is worse than no check, because it is trusted.
+const realTableCount = (src.match(/^CREATE TABLE IF NOT EXISTS /gm) || []).length;
+if (declared.length === 0) {
+  console.error(`FAIL: parsed 0 declared tables but the dump declares ${realTableCount} — the extraction regex no longer matches the dump format`);
+  process.exit(1);
+}
+if (declared.length < realTableCount) {
+  console.warn(`warning: parsed ${declared.length} of ${realTableCount} tables; some may not match the pattern`);
+}
 
 // A column counts as "covered" if it appears in the CREATE TABLE body, in an
 // `ADD COLUMN IF NOT EXISTS`, or in an information_schema guard (the pattern the
