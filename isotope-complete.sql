@@ -1,6 +1,6 @@
 -- =============================================================================
 -- IsotopeAI — full portable schema dump (NO user data)
--- Generated: 2026-10-07 12:36:12 UTC
+-- Generated: 2026-10-07 13:31:00 UTC
 -- Project ref: iwckbhehmescrqjicbrz
 -- Schemas: private, rpc_private, public
 -- Schema-watermark: 028
@@ -4113,8 +4113,6 @@ DROP POLICY IF EXISTS "ce_read_public" ON "public"."community_events";
 CREATE POLICY "ce_read_public" ON "public"."community_events" AS PERMISSIVE FOR SELECT  USING ((is_active = true));
 DROP POLICY IF EXISTS "ce_service_write" ON "public"."community_events";
 CREATE POLICY "ce_service_write" ON "public"."community_events" AS PERMISSIVE FOR ALL  USING ((auth.role() = 'service_role'::text));
-DROP POLICY IF EXISTS "community_events_auth_policy" ON "public"."community_events";
-CREATE POLICY "community_events_auth_policy" ON "public"."community_events" AS PERMISSIVE FOR ALL  USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
 DROP POLICY IF EXISTS "community_events_read_active" ON "public"."community_events";
 CREATE POLICY "community_events_read_active" ON "public"."community_events" AS PERMISSIVE FOR SELECT TO anon, authenticated USING ((is_active = true));
 DROP POLICY IF EXISTS "community_friends_auth_policy" ON "public"."community_friends";
@@ -4143,8 +4141,6 @@ DROP POLICY IF EXISTS "join_requests_select" ON "public"."community_join_request
 CREATE POLICY "join_requests_select" ON "public"."community_join_requests" AS PERMISSIVE FOR SELECT  USING (((auth.uid() = user_id) OR (EXISTS ( SELECT 1
    FROM group_members gm
   WHERE ((gm.group_id = community_join_requests.group_id) AND (gm.user_id = auth.uid()) AND (gm.left_at IS NULL))))));
-DROP POLICY IF EXISTS "community_reports_auth_policy" ON "public"."community_reports";
-CREATE POLICY "community_reports_auth_policy" ON "public"."community_reports" AS PERMISSIVE FOR ALL  USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
 DROP POLICY IF EXISTS "community_reports_insert" ON "public"."community_reports";
 CREATE POLICY "community_reports_insert" ON "public"."community_reports" AS PERMISSIVE FOR INSERT  WITH CHECK ((auth.uid() = reporter_user_id));
 DROP POLICY IF EXISTS "community_reports_select" ON "public"."community_reports";
@@ -4201,8 +4197,6 @@ CREATE POLICY "gann_manager_write" ON "public"."group_announcements" AS PERMISSI
   WHERE ((group_members.user_id = ( SELECT auth.uid() AS uid)) AND (group_members.role = ANY (ARRAY['owner'::text, 'admin'::text, 'moderator'::text])))))));
 DROP POLICY IF EXISTS "gann_read" ON "public"."group_announcements";
 CREATE POLICY "gann_read" ON "public"."group_announcements" AS PERMISSIVE FOR SELECT  USING (_is_group_member(group_id, ( SELECT auth.uid() AS uid)));
-DROP POLICY IF EXISTS "group_announcements_auth_policy" ON "public"."group_announcements";
-CREATE POLICY "group_announcements_auth_policy" ON "public"."group_announcements" AS PERMISSIVE FOR ALL  USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
 DROP POLICY IF EXISTS "group_announcements_delete_managers" ON "public"."group_announcements";
 CREATE POLICY "group_announcements_delete_managers" ON "public"."group_announcements" AS PERMISSIVE FOR DELETE TO anon, authenticated USING (((author_id = ( SELECT auth.uid() AS uid)) AND private.can_manage_group(group_id, ( SELECT auth.uid() AS uid))));
 DROP POLICY IF EXISTS "group_announcements_insert_managers" ON "public"."group_announcements";
@@ -4313,8 +4307,6 @@ DROP POLICY IF EXISTS "group_members_auth_policy" ON "public"."group_members";
 CREATE POLICY "group_members_auth_policy" ON "public"."group_members" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
 DROP POLICY IF EXISTS "gmile_read" ON "public"."group_milestones";
 CREATE POLICY "gmile_read" ON "public"."group_milestones" AS PERMISSIVE FOR SELECT  USING (_is_group_member(group_id, auth.uid()));
-DROP POLICY IF EXISTS "group_milestones_auth_policy" ON "public"."group_milestones";
-CREATE POLICY "group_milestones_auth_policy" ON "public"."group_milestones" AS PERMISSIVE FOR ALL  USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
 DROP POLICY IF EXISTS "group_milestones_read_members" ON "public"."group_milestones";
 CREATE POLICY "group_milestones_read_members" ON "public"."group_milestones" AS PERMISSIVE FOR SELECT TO anon, authenticated USING (private.is_group_member(group_id, ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "groups_auth_insert" ON "public"."groups";

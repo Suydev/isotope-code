@@ -4120,7 +4120,10 @@ const ERROR_BOUNDARY_SCRIPT = `<script>
 // ── Docs link badge — always-visible link to GitHub Pages documentation ───────
 // Floats in the bottom-right corner; appears on the login page and throughout
 // the app so first-time users can find setup instructions without searching.
-const DOCS_LINK_HTML = `<a href="https://suydev.github.io/isotope-code/" target="_blank" rel="noopener noreferrer" id="iso-docs-badge" title="IsotopeAI documentation" style="position:fixed;bottom:14px;right:18px;z-index:9998;background:rgba(10,10,20,0.82);border:1px solid rgba(124,58,237,0.38);border-radius:999px;padding:6px 14px;font-size:11px;font-family:system-ui,-apple-system,sans-serif;color:#a78bfa;text-decoration:none;backdrop-filter:blur(6px);letter-spacing:0.02em;pointer-events:auto;user-select:none" onmouseover="this.style.background='rgba(124,58,237,0.22)';this.style.borderColor='rgba(124,58,237,0.7)'" onmouseout="this.style.background='rgba(10,10,20,0.82)';this.style.borderColor='rgba(124,58,237,0.38)'">📖 Docs</a>`;
+// Docs are served alongside the app, not from GitHub Pages — that site was never
+// enabled, so every link to it 404d, including this badge, which renders on the
+// unauthenticated login screen.
+const DOCS_LINK_HTML = `<a href="https://isotopeai.dpdns.org/docs/" target="_blank" rel="noopener noreferrer" id="iso-docs-badge" title="IsotopeAI documentation" style="position:fixed;bottom:14px;right:18px;z-index:9998;background:rgba(10,10,20,0.82);border:1px solid rgba(124,58,237,0.38);border-radius:999px;padding:6px 14px;font-size:11px;font-family:system-ui,-apple-system,sans-serif;color:#a78bfa;text-decoration:none;backdrop-filter:blur(6px);letter-spacing:0.02em;pointer-events:auto;user-select:none" onmouseover="this.style.background='rgba(124,58,237,0.22)';this.style.borderColor='rgba(124,58,237,0.7)'" onmouseout="this.style.background='rgba(10,10,20,0.82)';this.style.borderColor='rgba(124,58,237,0.38)'">📖 Docs</a>`;
 
 // ── Crawler metadata ─────────────────────────────────────────────────────────
 //

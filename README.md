@@ -10,25 +10,25 @@
 
 <p align="center">
   <a href="./CHANGELOG.md"><img alt="Version" src="https://img.shields.io/badge/version-3.4.1-314f28"></a>
-  <a href="https://suydev.github.io/isotope-code/"><img alt="Docs" src="https://img.shields.io/badge/docs-animated%20GitHub%20Pages-8df31f"></a>
+  <a href="https://isotopeai.dpdns.org/"><img alt="Docs" src="https://img.shields.io/badge/docs-animated%20GitHub%20Pages-8df31f"></a>
 </p>
 
 <p align="center">
-  <a href="https://suydev.github.io/isotope-code/">Animated docs</a>
+  <a href="https://isotopeai.dpdns.org/">Animated docs</a>
   ·
-  <a href="https://suydev.github.io/isotope-code/getting-started.html">Install</a>
+  <a href="https://isotopeai.dpdns.org/getting-started.html">Install</a>
   ·
-  <a href="https://suydev.github.io/isotope-code/sync-and-backup.html">Sync &amp; backup</a>
+  <a href="https://isotopeai.dpdns.org/sync-and-backup.html">Sync &amp; backup</a>
   ·
-  <a href="https://suydev.github.io/isotope-code/admin.html">Admin</a>
+  <a href="https://isotopeai.dpdns.org/admin.html">Admin</a>
   ·
-  <a href="https://suydev.github.io/isotope-code/database.html">Database</a>
+  <a href="https://isotopeai.dpdns.org/database.html">Database</a>
   ·
-  <a href="https://suydev.github.io/isotope-code/android-apk.html">Android APK</a>
+  <a href="https://isotopeai.dpdns.org/android-apk.html">Android APK</a>
 </p>
 
 <p align="center">
-  <a href="https://suydev.github.io/isotope-code/">
+  <a href="https://isotopeai.dpdns.org/">
     <img src="./screenshots/landingpage.png" alt="IsotopeAI landing page screenshot" width="860">
   </a>
 </p>
@@ -43,21 +43,21 @@ It includes:
 
 Start here:
 
-- Documentation home: https://suydev.github.io/isotope-code/
-- Getting started: https://suydev.github.io/isotope-code/getting-started.html
-- Configuration: https://suydev.github.io/isotope-code/configuration.html
-- Supabase setup: https://suydev.github.io/isotope-code/supabase-setup.html
-- Sync & backup: https://suydev.github.io/isotope-code/sync-and-backup.html
-- Architecture: https://suydev.github.io/isotope-code/architecture.html
-- API reference: https://suydev.github.io/isotope-code/api-reference.html
-- Database: https://suydev.github.io/isotope-code/database.html
-- CLI: https://suydev.github.io/isotope-code/cli.html
-- Android APK: https://suydev.github.io/isotope-code/android-apk.html
-- Admin console: https://suydev.github.io/isotope-code/admin.html
-- Troubleshooting: https://suydev.github.io/isotope-code/troubleshooting.html
+- Documentation home: https://isotopeai.dpdns.org/
+- Getting started: https://isotopeai.dpdns.org/getting-started.html
+- Configuration: https://isotopeai.dpdns.org/configuration.html
+- Supabase setup: https://isotopeai.dpdns.org/supabase-setup.html
+- Sync & backup: https://isotopeai.dpdns.org/sync-and-backup.html
+- Architecture: https://isotopeai.dpdns.org/architecture.html
+- API reference: https://isotopeai.dpdns.org/api-reference.html
+- Database: https://isotopeai.dpdns.org/database.html
+- CLI: https://isotopeai.dpdns.org/cli.html
+- Android APK: https://isotopeai.dpdns.org/android-apk.html
+- Admin console: https://isotopeai.dpdns.org/admin.html
+- Troubleshooting: https://isotopeai.dpdns.org/troubleshooting.html
 - Admin guide: [ADMIN.md](./ADMIN.md)
-- Sync, storage layout and backup CLI: https://suydev.github.io/isotope-code/sync-and-backup.html
-- Feature-to-Supabase map and SQL run order: https://suydev.github.io/isotope-code/architecture.html
+- Sync, storage layout and backup CLI: https://isotopeai.dpdns.org/sync-and-backup.html
+- Feature-to-Supabase map and SQL run order: https://isotopeai.dpdns.org/architecture.html
 
 ## Pick Your Device
 
@@ -273,7 +273,7 @@ For full project backups (schema + auth + storage + all users), a standalone CLI
 `info` takes a backup file as its argument — there is no bare `./backup.sh info`
 that lists local backups.
 
-See the [sync & backup guide](https://suydev.github.io/isotope-code/sync-and-backup.html) for key precedence, scheduling, and safety notes.
+See the [sync & backup guide](https://isotopeai.dpdns.org/sync-and-backup.html) for key precedence, scheduling, and safety notes.
 
 Keys are resolved from **CLI flags (`--supabase-url/--anon-key/--service-key/--pat`) > environment variables > `.backup_env` (gitignored) > `.env`**. `.backup_env` holds the **keeper project** credentials (separate from your working project in `.env`) so cloud backups never hit your live app DB.
 

@@ -905,9 +905,14 @@ ALTER TABLE public.group_milestones             ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
 
   -- users: public read (for avatar/username display); own row for writes
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='users' AND policyname='users_read_public') THEN
-    CREATE POLICY users_read_public ON public.users FOR SELECT USING (true);
-  END IF;
+  -- REMOVED 2026-10-07: users_read_public FOR SELECT USING (true). No `TO` clause,
+  -- so it applied to `anon` and exposed every column of public.users — email, coins,
+  -- gems, plan_type, billing_status, device_id, access_source. Measured on live:
+  -- 13 of 13 rows readable with no account. Dropped in 701a2e6; these patch files
+  -- (served by /__admin/patch) silently re-created it. `users_read_member_profiles`
+  -- (TO authenticated) is the correct read path; `user_display_profiles` is the
+  -- intended public surface and exposes only id, username, name, avatar_url.
+
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='users' AND policyname='users_own') THEN
     CREATE POLICY users_own ON public.users
       FOR ALL USING (id = auth.uid()) WITH CHECK (id = auth.uid());
