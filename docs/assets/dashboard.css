@@ -229,15 +229,34 @@
 
 .dash-card[hidden] { display: none; }
 
+/* site.css sizes `.card h3`, and these cards sit one heading level deeper
+   (h1 page → h2 section → h3 group → h4 card), so the shared rule does not
+   reach them. Without this the title falls back to the browser's default h4
+   size and the cards stop matching the six on the landing page. Same values,
+   restated rather than overridden, so changing --t-h3 moves both. */
+.dash-card h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -.016em;
+  line-height: 1.15;
+  color: var(--c-text);
+  text-wrap: balance;
+}
+
 /* Cards carry the search keywords as a visible tag row rather than hiding them
    in an attribute. It means the reader can see why a filter matched, and it
    means the terms are real text — reachable by find-in-page, not just by the
-   script that happens to be looking. */
+   script that happens to be looking.
+
+   `auto` is deliberately NOT used here. .card is a flex column, and two
+   elements claiming the free space split it between them — the tags would drift
+   into the middle of the card while the arrow sat below. Only the last child
+   absorbs the slack, which is what pins the arrow to the bottom edge. */
 .dash-card .dash-tags {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-1);
-  margin-top: auto;
+  margin-top: var(--s-2);
   padding-top: var(--s-3);
 }
 .dash-card .dash-tags .pill { font-weight: 500; }

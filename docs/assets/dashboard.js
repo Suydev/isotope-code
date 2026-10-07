@@ -79,8 +79,8 @@
 
     function matches(card, q) {
       if (!q) return true;
-      // One haystack per card, built once below rather than per keystroke.
-      return (card.getAttribute('data-dash-hay') || '').indexOf(q) !== -1;
+      // Prebuilt haystack — see the WeakMap below.
+      return (haystacks.get(card) || '').indexOf(q) !== -1;
     }
 
     function apply() {
@@ -122,16 +122,25 @@
           : shown + ' of ' + total + ' pages · ' + areaLabel;
       }
 
-      if (clearBtn) clearBtn.hidden = !input.value;
+      if (clearBtn) clearBtn.hidden = !(input && input.value);
     }
 
-    // Build the haystack once. Without it, every keystroke concatenates the
-    // textContent of 22 cards; with it, each keystroke is 22 indexOf calls.
+    /* Build the haystack once. Without it, every keystroke concatenates the
+       textContent of 22 cards; with it, each keystroke is 22 indexOf calls.
+
+       Kept in a WeakMap rather than written back as a data- attribute: the
+       concatenation is ~60 words per card, and round-tripping a duplicate of
+       every keyword list into the DOM costs more than it saves. Nothing outside
+       this closure reads it. */
+    var haystacks = new WeakMap();
+
     cards.forEach(function (card) {
-      var hay = (card.getAttribute('data-dash-search') || card.textContent)
-        .replace(/\s+/g, ' ')
-        .toLowerCase();
-      card.setAttribute('data-dash-hay', hay);
+      haystacks.set(
+        card,
+        (card.getAttribute('data-dash-search') || card.textContent)
+          .replace(/\s+/g, ' ')
+          .toLowerCase()
+      );
     });
 
     /* Stagger, capped. `.reveal-3d` reads --i off its own attribute for the
@@ -325,6 +334,9 @@
 
     function render(hits, q) {
       active = -1;
+      // aria-expanded tracks whether the list is showing, so the field's state
+      // matches what a screen reader is being told exists.
+      input.setAttribute('aria-expanded', 'true');
       if (!hits.length) {
         list.innerHTML = '<li class="askbar-empty">No match for <strong>' + esc(q) + '</strong>' +
           '<small>Try <em>sync</em>, <em>rls</em>, <em>pip</em> or <em>black screen</em></small></li>';
@@ -350,6 +362,13 @@
 
     function items() { return list.querySelectorAll('a'); }
 
+    // One place that closes the list, so aria-expanded can never drift out of
+    // step with what is actually on screen.
+    function closeList() {
+      list.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+    }
+
     function setActive(next) {
       var all = items();
       if (!all.length) return;
@@ -370,7 +389,7 @@
       clearTimeout(debounce);
       debounce = setTimeout(function () {
         var q = input.value.trim().toLowerCase();
-        if (q.length < 2) { list.hidden = true; list.innerHTML = ''; if (status) status.textContent = ''; return; }
+        if (q.length < 2) { list.innerHTML = ''; closeList(); if (status) status.textContent = ''; return; }
         if (!index) {
           // Render a "searching" state rather than nothing: a box that
           // silently ignores the first keystrokes reads as broken.
@@ -394,9 +413,9 @@
         e.preventDefault();
         setActive(active - 1);
       } else if (e.key === 'Escape') {
-        if (!input.value) { list.hidden = true; return; }
+        if (!input.value) { closeList(); return; }
         input.value = '';
-        list.hidden = true;
+        closeList();
         if (status) status.textContent = '';
       } else if (e.key === 'Enter' && active >= 0 && all[active]) {
         e.preventDefault();
@@ -421,7 +440,7 @@
     });
 
     document.addEventListener('click', function (e) {
-      if (!form.contains(e.target) && !list.contains(e.target)) list.hidden = true;
+      if (!form.contains(e.target) && !list.contains(e.target)) closeList();
     });
 
     document.addEventListener('keydown', function (e) {
@@ -461,16 +480,20 @@
         var doc = new DOMParser().parseFromString(html, 'text/html');
         var scope = doc.querySelector('.content') || doc.body;
 
-        /* Each release is an <h2> whose id starts with "v", plus the <p class="muted">
-           summary and the bullet list that follows it, up to the next <h2>.
-           Anchoring on the heading rather than on a position is what lets this
-           survive someone reordering the page or adding a section. */
+        /* Each release is an <h2 id="v…"> plus the <p class="muted"> summary and the
+           bullet list that follows it, up to the next <h2>. Anchoring on the
+           heading rather than on a position is what lets this survive someone
+           reordering the page or adding a section to it. */
         var cards = [];
         var headings = Array.prototype.slice.call(scope.querySelectorAll('h2[id]'));
 
         headings.forEach(function (h, i) {
           var id = h.getAttribute('id') || '';
-          if (id.charAt(0) !== 'v') return;                 // unreleased/versioning/earlier
+          /* Version headings only: `v` followed by a digit. A bare first-letter
+             test would also match #versioning, which is a prose section about
+             semver and has nothing to do with any release. #unreleased is
+             excluded too, and deliberately — this panel says what shipped. */
+          if (!/^v\d/.test(id)) return;
 
           // Stop at the next h2 — collect siblings until the boundary.
           var summary = '';
@@ -503,12 +526,18 @@
 
         if (!cards.length) throw new Error('no releases parsed');
 
+        // The first parsed release IS the latest one — that is what "first"
+        // means in a newest-first changelog. Deriving it here rather than
+        // hardcoding a version string is the difference between this panel
+        // updating itself on the next release and quietly going stale.
+        var latest = cards[0].id;
+
         list.innerHTML = cards.map(function (c) {
           return '<a class="dash-rel reveal-3d" href="' + esc(pageHref('changelog.html', c.id)) + '">' +
             '<span class="dash-rel-head">' +
               '<span class="dash-rel-version">' + esc(c.version) + '</span>' +
               (c.date ? '<span class="dash-rel-date">' + esc(c.date) + '</span>' : '') +
-              (c.id === 'v341'
+              (c.id === latest
                 ? '<span class="pill neutral">latest</span>'
                 : '<span class="pill post">' + esc(c.version) + '</span>') +
             '</span>' +
