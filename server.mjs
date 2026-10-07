@@ -4098,7 +4098,98 @@ const ERROR_BOUNDARY_SCRIPT = `<script>
 // the app so first-time users can find setup instructions without searching.
 const DOCS_LINK_HTML = `<a href="https://suydev.github.io/isotope-code/" target="_blank" rel="noopener noreferrer" id="iso-docs-badge" title="IsotopeAI documentation" style="position:fixed;bottom:14px;right:18px;z-index:9998;background:rgba(10,10,20,0.82);border:1px solid rgba(124,58,237,0.38);border-radius:999px;padding:6px 14px;font-size:11px;font-family:system-ui,-apple-system,sans-serif;color:#a78bfa;text-decoration:none;backdrop-filter:blur(6px);letter-spacing:0.02em;pointer-events:auto;user-select:none" onmouseover="this.style.background='rgba(124,58,237,0.22)';this.style.borderColor='rgba(124,58,237,0.7)'" onmouseout="this.style.background='rgba(10,10,20,0.82)';this.style.borderColor='rgba(124,58,237,0.38)'">📖 Docs</a>`;
 
-function injectScripts(html) {
+// ── Crawler metadata ─────────────────────────────────────────────────────────
+//
+// The canonical origin. Overridable because the same build is served from a custom
+// domain, from localhost during development, and from Vercel — and a canonical tag
+// that names the wrong origin teaches a crawler to ignore the wrong one.
+// SITE_ORIGIN wins; otherwise derive it per-request from the Host header, which is
+// correct in every deployment without needing a rebuild.
+function siteOrigin(req) {
+  if (process.env.SITE_ORIGIN) return String(process.env.SITE_ORIGIN).replace(/\/+$/, '');
+  const proto = (req.headers['x-forwarded-proto'] || '').split(',')[0].trim() || 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  if (host) return proto + '://' + String(host).split(',')[0].trim();
+  return 'https://isotopeai.dpdns.org';
+}
+
+const SEO_DESCRIPTION = 'AI-powered study planner with a focus timer, syllabus tracking, exam analytics and study groups. Self-hosted, local-first, for JEE, NEET, CUET and board students.';
+const SEO_TITLE = 'IsotopeAI — AI Study Planner, Focus Timer & Analytics';
+
+/**
+ * Injected into <head> on every served document.
+ *
+ * `<!--SEO_HEAD-->` is a no-op marker in index.html: when a static host serves the
+ * built file directly the comment survives and nothing is injected, so the file
+ * stays valid HTML. Only this server substitutes it.
+ *
+ * Deliberately NOT here: SoftwareApplication JSON-LD carrying a rating or install
+ * count. The marketing copy shows "6,000+ logged in users"; encoding that as an
+ * aggregateRating would be fabricated structured data, which is the one thing
+ * worth never doing — it is a manual-action risk and it is not true.
+ */
+function seoHeadTags(req) {
+  const origin = siteOrigin(req);
+  const url = origin + '/';
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const jsonld = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'IsotopeAI',
+    applicationCategory: 'EducationalApplication',
+    operatingSystem: 'Web, Android, Windows, macOS, Linux',
+    url,
+    description: SEO_DESCRIPTION,
+    license: 'https://github.com/Suydev/isotope-code/blob/main/LICENSE',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  };
+  return [
+    '<link rel="canonical" href="' + esc(url) + '">',
+    '<meta property="og:type" content="website">',
+    '<meta property="og:site_name" content="IsotopeAI">',
+    '<meta property="og:title" content="' + esc(SEO_TITLE) + '">',
+    '<meta property="og:description" content="' + esc(SEO_DESCRIPTION) + '">',
+    '<meta property="og:url" content="' + esc(url) + '">',
+    '<meta property="og:image" content="' + esc(origin) + '/opengraph.jpg">',
+    '<meta name="twitter:card" content="summary_large_image">',
+    '<meta name="twitter:title" content="' + esc(SEO_TITLE) + '">',
+    '<meta name="twitter:description" content="' + esc(SEO_DESCRIPTION) + '">',
+    '<meta name="twitter:image" content="' + esc(origin) + '/opengraph.jpg">',
+    '<script type="application/ld+json">' + JSON.stringify(jsonld).replace(/</g, '\\u003c') + '</script>',
+  ].join('\n');
+}
+
+function renderSitemap(req) {
+  const origin = (typeof req !== 'undefined' && req) ? siteOrigin(req) : (process.env.SITE_ORIGIN || 'https://isotopeai.dpdns.org').replace(/\/+$/, '');
+  // Only genuinely indexable surfaces. The app is an authenticated SPA: every
+  // in-app route redirects to the auth wall, so listing them would advertise URLs
+  // that resolve to a sign-in form. /auth is omitted for the same reason.
+  const urls = ['/'];
+  const body = urls.map((u) =>
+    '  <url>\n    <loc>' + origin + u + '</loc>\n    <changefreq>weekly</changefreq>\n    <priority>' + (u === '/' ? '1.0' : '0.8') + '</priority>\n  </url>'
+  ).join('\n');
+  return '<?xml version="1.0" encoding="UTF-8"?>\n'
+    + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    + body + '\n'
+    + '</urlset>\n';
+}
+
+function renderRobots(req) {
+  const origin = (typeof req !== 'undefined' && req) ? siteOrigin(req) : (process.env.SITE_ORIGIN || 'https://isotopeai.dpdns.org').replace(/\/+$/, '');
+  return [
+    'User-agent: *',
+    'Allow: /',
+    // Nothing here is secret, but the authenticated API surface has no business in
+    // a crawl budget and returns 404 HTML to bots today.
+    'Disallow: /api/',
+    'Disallow: /__',
+    '',
+    'Sitemap: ' + origin + '/sitemap.xml',
+    '',
+  ].join('\n');
+}
+
+function injectScripts(html, req) {
   // Critical scripts in <head> (run before React):
   //  1. ORIGIN_SCRIPT   — sets window.__ISO_ORIGIN__, __ISO_SUPA_URL__, __ISO_ANON__
   //  2. LOCAL_DATA_GUARD_SCRIPT — per-user local workspace isolation
@@ -4113,7 +4204,12 @@ function injectScripts(html) {
   // pill, /update-checker.js poller) is removed from the served site entirely —
   // users cannot run local commands from a hosted web page, and the banner was
   // confusing. Also strip the static <script src="/update-checker.js"> tag.
-  let out = html.replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + '</head>');
+  // Canonical + Open Graph + JSON-LD go in through the <!--SEO_HEAD--> marker in
+  // index.html. It stays a literal comment for a static host serving the built
+  // file, so this cannot produce invalid markup there.
+  let out = html
+    .replace('<!--SEO_HEAD-->', req ? seoHeadTags(req) : '')
+    .replace('</head>', ORIGIN_SCRIPT + LOCAL_DATA_GUARD_SCRIPT + AUTH_GUARD_SCRIPT + '</head>');
   out = out.replace(/<script[^>]*src=["'][^"']*update-checker\.js["'][^>]*>\s*<\/script>/, '');
   let deferred = [
     ERROR_BOUNDARY_SCRIPT,
@@ -4141,8 +4237,8 @@ function injectScripts(html) {
   }
   return out;
 }
-function injectKeys(htmlBuffer) {
-  return Buffer.from(injectScripts(htmlBuffer.toString('utf8')), 'utf8');
+function injectKeys(htmlBuffer, req) {
+  return Buffer.from(injectScripts(htmlBuffer.toString('utf8'), req), 'utf8');
 }
 
 // ── Auth bridge credential substitution ──────────────────────────────────────
@@ -10509,6 +10605,26 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
   const safePath = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, '');
   const filePath = path.join(PUBLIC_DIR, safePath);
 
+  // ── Crawler routes (must precede the static handler) ─────────────────────────
+  //
+  // Both of these were being swallowed by the SPA fallback and answered with the
+  // full app shell and HTTP 200: `curl /sitemap.xml` returned the HTML document.
+  // A crawler fetches the sitemap, sees markup instead of a urlset, and discards
+  // it — so the site had, in practice, no sitemap at all while the file appeared
+  // to exist.
+  if (req.method === 'GET' && urlPath === '/sitemap.xml') {
+    res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+    res.end(renderSitemap());
+    return;
+  }
+  if (req.method === 'GET' && urlPath === '/robots.txt') {
+    // public/robots.txt still ships for static hosts; this handler covers self-hosted
+    // runs where the SPA fallback would otherwise answer with HTML.
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+    res.end(renderRobots());
+    return;
+  }
+
   // /login, /signup, and /reset-password are not standalone React routes in the
   // shipped SPA. Send direct visits back to the auth shell at /.
   if (req.method === 'GET' && (urlPath === '/login' || urlPath === '/signup' || urlPath === '/reset-password')) {
@@ -10551,7 +10667,7 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
   const serveHtml = (buf) => {
     res.setHeader('Cache-Control', cacheHeaderForRequest('/index.html'));
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(injectKeys(buf));
+    res.end(injectKeys(buf, req));
   };
   const spaFallback = () => {
     const indexPath = path.join(__dirname, 'index.html');
