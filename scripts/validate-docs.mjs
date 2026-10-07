@@ -387,25 +387,26 @@ if (CI) {
 
 // ── 7a. Crawler routes ────────────────────────────────────────────────────────
 //
-// public/robots.txt is served by Vercel AHEAD of the api/index rewrite, so the
-// handler in server.mjs never runs in production. The static copy is the one that
-// actually ships — and the two drifted apart silently: the handler gained a
-// Sitemap: line while the file Vercel serves kept saying only "Allow: /".
+// Vercel serves files from public/ BEFORE the api/index rewrite, so a
+// public/robots.txt would shadow the handler in server.mjs. That is exactly what
+// happened: the handler carried a `Sitemap:` line that production never saw,
+// because the static copy shadowed it. A catch-all SPA fallback made it invisible
+// too — an unmatched /sitemap.xml returned the app shell with HTTP 200, which looks
+// like a working file but is discarded as malformed XML.
+//
+// So: one owner per path. The handler must exist, and public/ must NOT shadow it.
 info('Checking crawler routes...');
-const robotsBody = readText('public/robots.txt');
-if (robotsBody === null) {
-  error('public/robots.txt exists', 'the file crawlers read is missing');
-} else {
-  if (/^Sitemap:\s*\S+/mi.test(robotsBody)) ok('public/robots.txt declares a sitemap');
-  else error('public/robots.txt declares a sitemap', 'no "Sitemap:" line — crawlers get no map of the site');
-  if (/^Allow:\s*\/$/mi.test(robotsBody)) ok('public/robots.txt allows the site root');
-  else error('public/robots.txt allows the site root', 'no longer allows /');
-}
 const serverSrc = readText('server.mjs') || '';
 if (serverSrc.includes("urlPath === '/sitemap.xml'")) ok('server.mjs serves /sitemap.xml');
 else error('server.mjs serves /sitemap.xml', 'the SPA fallback answers it with the app shell instead');
 if (serverSrc.includes("urlPath === '/robots.txt'")) ok('server.mjs serves /robots.txt');
 else error('server.mjs serves /robots.txt', 'self-hosted runs get HTML for robots.txt');
+if (existsSync(join(ROOT, 'public/robots.txt'))) {
+  error('public/robots.txt does not shadow the handler',
+    'Vercel serves public/ ahead of the rewrite, so the handler never runs in production');
+} else {
+  ok('public/robots.txt does not shadow the handler');
+}
 
 // ── 7b. Content drift: pages vs the code they describe ──────────────────────
 // Everything above checks STRUCTURE. Structure has been fine the whole time —
