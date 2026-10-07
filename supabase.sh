@@ -64,7 +64,13 @@ load_env_keys() {
       k="${BASH_REMATCH[1]}"; v="${BASH_REMATCH[2]%$'\r'}"
       case "$k" in
         SUPABASE_ACCESS_TOKEN|SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY)
-          [[ -n "${!k:-}" ]] || declare -g "$k=${v//\"/}" ;;
+          # `declare -g` creates the variable in the GLOBAL SCOPE but does NOT
+          # export it, so it was invisible to the child process. `cmd_setup`
+          # `exec`s scripts/supabase-setup.mjs, which read process.env — meaning
+          # a PAT sitting in .env/.backup_env was loaded into this shell and then
+          # not passed on, and setup failed demanding a token the operator had
+          # just supplied. `export` is what makes it reach the exec'd Node.
+          [[ -n "${!k:-}" ]] || { declare -g "$k=${v//\"/}"; export "$k"; } ;;
       esac
     done < "$f"
   done

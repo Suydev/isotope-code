@@ -22,6 +22,7 @@
   <div class="globalbar-inner">
     <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
     <nav class="globalbar-links" aria-label="Sections">
+      <a href="./dashboard.html">Dashboard</a>
       <a href="./getting-started.html">Get started</a>
       <a href="./architecture.html">Architecture</a>
       <a href="./api-reference.html">API</a>
@@ -70,6 +71,8 @@
 </header>
 
 <div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Overview</p>
+  <a href="./dashboard.html">Dashboard</a>
   <p class="drawer-label">Guides</p>
   <a href="./getting-started.html">Getting started</a>
   <a href="./configuration.html">Configuration</a>
@@ -192,7 +195,7 @@ const useServiceKey = ADMIN_MODE_READY && isAdminAuthed(req);</pre>
     </div>
 
     <h2 class="rise" id="rls">Row-level security <a class="anchor" href="#rls" aria-label="Link to this section">#</a></h2>
-    <p>Enabled on all 42 tables, 153 policies. Three patterns cover nearly everything: own-row only, public-read with own-write, and membership-gated.</p>
+    <p>Enabled on all 42 tables, 184 policies. Three patterns cover nearly everything: own-row only, public-read with own-write, and membership-gated.</p>
     <p>Membership checks never query <code>group_members</code> directly from a policy on that table — that recurses and Postgres aborts. They go through <code>SECURITY DEFINER</code> helpers with pinned <code>search_path</code>:</p>
     <div class="codeblock" data-lang="sql">
 <pre>create or replace function public._is_group_member(gid uuid, uid uuid)
@@ -224,7 +227,7 @@ npm run security:verify</pre>
         <thead><tr><th>Route</th><th>Authorisation</th></tr></thead>
         <tbody>
           <tr><td><code>/__admin/*</code></td><td>Requires <code>ADMIN_MODE_READY</code> plus a signed cookie or an admin Supabase session.</td></tr>
-           <tr><td><code>/api/update-now</code></td><td>Admin cookie <em>or</em> loopback. Rejects any request carrying <code>x-forwarded-*</code>, since that indicates a proxy and a non-local caller. <strong>Stubbed on Vercel and in the Android APK</strong> — the hosted build returns <code>410 Gone</code> and never runs <code>isotope update</code> (see <a href="./architecture.html#updater">Architecture → Updater</a>).</td></tr>
+           <tr><td><code>/api/update-now</code></td><td>Admin cookie <em>or</em> loopback. Rejects any request carrying <code>x-forwarded-*</code>, since that indicates a proxy and a non-local caller. <strong>Stubbed on Vercel and in the Android APK</strong> — the hosted build returns <code>410 Gone</code> and never runs <code>isotope update</code> (see <a href="./architecture.html#injection">Architecture → HTML script injection</a>).</td></tr>
           <tr><td><code>/__auth/*</code></td><td>Bearer token, verified server-side.</td></tr>
           <tr><td><code>/__leaderboard</code></td><td>Caller’s own JWT. Never the service key.</td></tr>
           <tr><td><code>/__supa/*</code></td><td>Caller’s JWT, escalated only for an authenticated admin.</td></tr>

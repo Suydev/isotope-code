@@ -96,17 +96,33 @@ if (declared.length < realTableCount) {
 // A column counts as "covered" if it appears in the CREATE TABLE body, in an
 // `ADD COLUMN IF NOT EXISTS`, or in an information_schema guard (the pattern the
 // generated-column blocks use).
+//
+// All three patterns are written for the dump's ACTUAL form, which quotes every
+// identifier: `CREATE TABLE IF NOT EXISTS "public"."name"`, columns indented two
+// spaces and quoted (`  "id" uuid not null,`), `ALTER TABLE "public"."name"`, and
+// `table_name='<t>' AND column_name='<c>'`.
+//
+// The three unquoted patterns matched nothing at all — the table-name extraction
+// was fixed to the quoted form in an earlier commit but these were not, so
+// `coveredColumns()` returned an EMPTY set for all 42 tables. Every live column
+// then looked uncovered and `miss` should have been non-empty… except the
+// per-table loop compares against `live.get(t)`, so with an empty coverage set
+// the script reported drift for every table it could see, and for tables the
+// regex failed to anchor on, nothing. Either way it was not measuring the
+// schema. Quoting them is what makes the check do its job.
 function coveredColumns(table) {
   const cols = new Set();
-  const body = src.match(new RegExp(`CREATE TABLE IF NOT EXISTS public\\.${table}\\s*\\(([\\s\\S]*?)\\n\\);`));
+  const esc = table.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // CREATE TABLE body: `CREATE TABLE IF NOT EXISTS "public"."<t>" (` … `\n);`
+  const body = src.match(new RegExp(`CREATE TABLE IF NOT EXISTS "public"\\."${esc}"\\s*\\(([\\s\\S]*?)\\n\\);`));
   if (body) {
     for (const line of body[1].split('\n')) {
-      const m = line.match(/^ {2}([a-z_]+)\s/);
+      const m = line.match(/^ {2}"([a-z_0-9]+)"\s/);
       if (m) cols.add(m[1]);
     }
   }
-  for (const m of src.matchAll(new RegExp(`ALTER TABLE public\\.${table}\\s+ADD COLUMN IF NOT EXISTS\\s+([a-z_]+)`, 'g'))) cols.add(m[1]);
-  for (const m of src.matchAll(new RegExp(`table_name='${table}' AND column_name='([a-z_]+)'`, 'g'))) cols.add(m[1]);
+  for (const m of src.matchAll(new RegExp(`ALTER TABLE "public"\\."${esc}"\\s+ADD COLUMN IF NOT EXISTS\\s+"?([a-z_0-9]+)"?`, 'g'))) cols.add(m[1]);
+  for (const m of src.matchAll(new RegExp(`table_name='${esc}' AND column_name='([a-z_0-9]+)'`, 'g'))) cols.add(m[1]);
   return cols;
 }
 
@@ -122,13 +138,28 @@ for (const r of rows) {
 
 let drift = 0;
 const missingTables = [];
+// A table the file declares but whose coverage set comes back EMPTY means the
+// extraction regexes no longer match the dump's format — not that the table has
+// no columns. That is precisely the failure this script has already had once:
+// three unquoted patterns matched 0 of 42 tables, the loop found nothing to
+// compare, and it printed "No column drift." on every run. Collect them and fail
+// rather than pass a check that measured nothing.
+const zeroCoverage = [];
 for (const t of declared) {
   if (!live.has(t)) { missingTables.push(t); continue; }
-  const miss = [...live.get(t)].filter((c) => !coveredColumns(t).has(c)).sort();
+  const covered = coveredColumns(t);
+  if (covered.size === 0) { zeroCoverage.push(t); continue; }
+  const miss = [...live.get(t)].filter((c) => !covered.has(c)).sort();
   if (miss.length) {
     drift++;
     console.error(`DRIFT  public.${t} — live has columns the schema file never creates: ${miss.join(', ')}`);
   }
+}
+if (zeroCoverage.length) {
+  console.error(`FAIL: ${zeroCoverage.length} declared table(s) yielded ZERO columns from isotope-complete.sql ` +
+    `(e.g. ${zeroCoverage.slice(0, 5).join(', ')}${zeroCoverage.length > 5 ? ' …' : ''}) — ` +
+    'the extraction patterns no longer match the dump format, so this run compared nothing.');
+  process.exit(1);
 }
 
 // Tables that exist live but are not in the schema file at all.

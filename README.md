@@ -16,6 +16,8 @@
 <p align="center">
   <a href="https://isotopeai.dpdns.org/">Animated docs</a>
   ·
+  <a href="https://isotopeai.dpdns.org/dashboard.html">Dashboard</a>
+  ·
   <a href="https://isotopeai.dpdns.org/getting-started.html">Install</a>
   ·
   <a href="https://isotopeai.dpdns.org/sync-and-backup.html">Sync &amp; backup</a>
@@ -44,6 +46,7 @@ It includes:
 Start here:
 
 - Documentation home: https://isotopeai.dpdns.org/
+- Documentation dashboard: https://isotopeai.dpdns.org/dashboard.html
 - Getting started: https://isotopeai.dpdns.org/getting-started.html
 - Configuration: https://isotopeai.dpdns.org/configuration.html
 - Supabase setup: https://isotopeai.dpdns.org/supabase-setup.html

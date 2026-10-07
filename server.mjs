@@ -216,16 +216,26 @@ function notFoundFor(urlPath, res, reason) {
 //
 // Runs the real getPatched*Bundle() functions, so it also acts as a smoke test
 // that none of them throw. Set ISOTOPE_SKIP_BUNDLE_CHECK=1 to disable.
+// Runs by DEFAULT. It re-parses the patched bundles in ONE child process after
+// the port is open, and it is the only check that validates the bytes actually
+// SERVED rather than the files on disk — patched bytes exist solely in memory,
+// so a malformed replacement is invisible to every other test and to the browser
+// (which just rejects the chunk at import time, taking a route down with no
+// server-side symptom).
+//
+// It was previously opt-in via ISOTOPE_CHECK_PATCHED_OUTPUT=1, and that flag was
+// set nowhere in the repo, so on every real deployment the one detector of a
+// broken patch never ran. That is the same failure class as ISSUE-060.
+//
+// It stays off the critical path: invoked from a setTimeout after listen(), with
+// a bounded child-process timeout, and behind the existing
+// ISOTOPE_SKIP_BUNDLE_CHECK=1 kill switch for CI and thermally-constrained
+// hosts. To force it off without touching ISOTOPE_SKIP_BUNDLE_CHECK:
+//   ISOTOPE_SKIP_PATCH_OUTPUT_CHECK=1
 function selfCheckPatchedOutput() {
   if (process.env.ISOTOPE_SKIP_BUNDLE_CHECK === '1') return;
-  // Opt-IN: this re-parses ~13 patched bundles (several hundred KB) in a child
-  // process. That is cheap on a laptop but competes with first paint on a slow
-  // or thermally-throttled host, so it runs only when explicitly requested:
-  //   ISOTOPE_CHECK_PATCHED_OUTPUT=1 node server.mjs
-  // It is a verification tool, not a runtime requirement — the patchers already
-  // run at warm-up and their per-anchor warnings surface any miss.
-  if (process.env.ISOTOPE_CHECK_PATCHED_OUTPUT !== '1') {
-    console.log('[PatchOutputCheck] skipped (set ISOTOPE_CHECK_PATCHED_OUTPUT=1 to run)');
+  if (process.env.ISOTOPE_SKIP_PATCH_OUTPUT_CHECK === '1') {
+    console.log('[PatchOutputCheck] skipped (ISOTOPE_SKIP_PATCH_OUTPUT_CHECK=1)');
     return;
   }
   // [label, absolute path, patcher]
@@ -243,6 +253,22 @@ function selfCheckPatchedOutput() {
     ['invites',        INVITES_BUNDLE_ABS,         getPatchedInvitesBundle],
     ['dashboard',      DASHBOARD_BUNDLE_ABS,       getPatchedDashboardBundle],
     ['analytics',      ANALYTICS_BUNDLE_ABS,       getPatchedAnalyticsBundle],
+    // The three auth/sync core patchers and the whole community surface were
+    // previously unchecked. The core three matter most: they rewrite the
+    // Supabase URL/anon key the login and sync paths authenticate against, and a
+    // malformed output there breaks authentication with no server-side error.
+    ['core',           MARKETING_CORE_BUNDLE_ABS,  getPatchedCoreBundle],
+    ['authstore',      USE_AUTH_STORE_BUNDLE_ABS,  getPatchedAuthStoreBundle],
+    ['entry',          ENTRY_BUNDLE_ABS,           getPatchedEntryBundle],
+    ['community',      COMMUNITY_BUNDLE_ABS,       getPatchedCommunityBundle],
+    ['communityapi',   COMMUNITY_API_BUNDLE_ABS,   getPatchedCommunityApiBundle],
+    ['usecommunity',   USE_COMMUNITY_BUNDLE_ABS,   getPatchedUseCommunityBundle],
+    ['communityhub',   COMMUNITY_HUB_BUNDLE_ABS,   getPatchedCommunityHubBundle],
+    ['communityvis',   COMMUNITY_VISUALS_BUNDLE_ABS, getPatchedCommunityVisualsBundle],
+    ['study',          STUDY_BUNDLE_ABS,           getPatchedStudyBundle],
+    ['pwamanager',     PWA_MANAGER_BUNDLE_ABS,     getPatchedPWAManagerBundle],
+    ['welcometeaser',  WELCOME_TEASER_BUNDLE_ABS,  getPatchedWelcomeTeaserBundle],
+    ['notifstore',     NOTIF_STORE_ABS,            getPatchedNotifStore],
   ];
   const failed = [];
   const emitted = [];
@@ -2404,7 +2430,21 @@ function buildUsernameAuthScript() {
     // shows them via useNotificationStore (browser push + in-app panel).
     // Bridge: the app's useNotificationStore can register itself here so
     // poller notifications go through the app's UI instead of raw browser API.
-    window.__isoNotificationStore = null;
+    //
+    // Only initialise when nothing has registered yet. This script can be
+    // evaluated more than once per session (re-injected on a client-side
+    // navigation, or re-run when the boot sequence restarts the poller), and an
+    // unconditional assignment here destroyed the bridge each time: the patched
+    // useNotificationStore chunk registers the real store at import time, and
+    // this line then wiped it, so the consumer at __isoPollNotifications fell
+    // back to a raw new Notification() call — no in-app panel, no per-category
+    // preferences. The patched chunk itself is idempotent (it only assigns when
+    // the global is unset), so preserving an existing value here is consistent.
+    if (typeof window.__isoNotificationStore === 'undefined' || window.__isoNotificationStore === null) {
+      // A re-registration is still needed when the store chunk has not loaded
+      // yet; the patched bundle re-runs on every chunk load and will claim it.
+      window.__isoNotificationStore = null;
+    }
     var _lastNotifCheck = 0;
     var _notifPollTimer = null;
 
@@ -2838,9 +2878,13 @@ const PREMIUM_SCRIPT = `<script>
       var isGroupAn = url.indexOf('get-group-analytics')   !== -1;
       var sortCol   = period === 'monthly' ? 'monthly_hours' : 'weekly_hours';
       // BUG FIX: Use user JWT for leaderboard REST queries so the
-      // stats_select_all / daily_select_all / users_select_display RLS policies
-      // (added in performance-patch.sql §6) allow reading across all users.
-      // Using ANON key alone gives auth.uid()=NULL which returns 0 rows.
+      // stats_read_all / daily_read_all / users_read_member_profiles RLS
+      // policies allow reading across all users.
+      // Using ANON key alone gives auth.uid()=NULL: users_read_member_profiles
+      // is TO authenticated, so anon gets 0 rows from public.users and the
+      // name/avatar enrichment in fetchUsers() comes back empty. The stats
+      // tables themselves stay anon-readable by design (see the R6 notes on
+      // stats_read_all / daily_read_all in isotope-complete.sql).
       // getJwt() is a function declaration so it is hoisted within this scope.
       var _lbJwt    = getJwt();
 
@@ -4308,12 +4352,80 @@ function getPatchedNotifStore() {
   if (patchedNotifStore) return patchedNotifStore;
   try {
     let raw = fs.readFileSync(NOTIF_STORE_ABS, 'utf8');
-    // Append bridge after the export — exposes sendNotification globally.
-    // The poller calls window.__isoNotificationStore.sendNotification(...)
-    const BRIDGE = '\n;if(typeof window!=="undefined"&&!window.__isoNotificationStore){try{var __ns=_.getState();window.__isoNotificationStore={sendNotification:function(e,i,t){__ns.sendNotification(e,i,t||{})}}}catch(_e){}}';
+    // Resolve the zustand store from the bundle's OWN export list, then bind the
+    // bridge to that LOCAL identifier.
+    //
+    // The original bridge hardcoded `_`, which in this build is the notification
+    // TYPE ENUM (`var _=(r=>(r.STUDY_REMINDER="study_reminder",...))(_||{})`), not
+    // the store. `_.getState` threw, `catch(_e){}` swallowed it, and
+    // window.__isoNotificationStore stayed null forever — so every DB notification
+    // fell through to the poller's raw `new Notification(...)` branch, losing the
+    // in-app panel and every per-category preference.
+    //
+    // `getState` is a zustand RUNTIME method, so it appears 0 times in the bundle
+    // source and cannot identify anything. Two things do:
+    //   1. A store is produced by CALLING the factory — `T=l()(N((r,c)=>({...})))`.
+    //      The enum is a bare IIFE with no second call, so requiring the factory call
+    //      rejects it. In this build that leaves exactly one candidate, `T`.
+    //   2. `sendNotification:` lives inside the store's own object literal, so it
+    //      must appear shortly AFTER that export's assignment. A file-wide
+    //      `includes` would match the enum instead, which is the trap here.
+    //
+    // NOTE on the export-list alternative: adding `T as __isoNotifStore` to
+    // `export{...}` does NOT create a module-local binding — an export clause only
+    // publishes a name, it never introduces one. A bridge referencing that alias
+    // throws `ReferenceError: __isoNotifStore is not defined`, swallowed by the same
+    // silent catch. (Verified directly; see the note below.) The store is reachable
+    // as the local it already is, which is why resolution happens here instead.
+    const exportRe = /export\{([^}]*)\};?\s*$/;
+    const em = raw.match(exportRe);
+    if (!em) {
+      console.warn('[NotifStorePatch] no export list found — bridge NOT injected; ' +
+        'DB notifications fall back to raw browser popups');
+      _criticalPatchFailures.push('notif-store-bridge');
+      return null;
+    }
+    const locals = em[1].split(',')
+      .map((entry) => entry.trim().split(/\s+as\s+/)[0].trim())
+      .filter((name) => /^[A-Za-z$_][\w$]*$/.test(name));
+    const ctorRe = (name) => new RegExp('(?:^|[^\\w$.])' + name + '\\s*=\\s*[\\w$]+\\(\\)\\(');
+    const definesStoreShape = (name) => {
+      const m = ctorRe(name).exec(raw);
+      return !!m && raw.slice(m.index, m.index + 4000).includes('sendNotification:');
+    };
+    const candidates = locals.filter((name) => ctorRe(name).test(raw));
+    const storeLocal = candidates.find(definesStoreShape);
+    if (!storeLocal) {
+      console.warn('[NotifStorePatch] could not identify the notification store among exports ' +
+        JSON.stringify(locals) + ' (factory-call candidates: ' + JSON.stringify(candidates) +
+        ') — bridge NOT injected; DB notifications fall back to raw browser popups');
+      _criticalPatchFailures.push('notif-store-bridge');
+      return null;
+    }
+    if (candidates.length > 1) {
+      console.warn('[NotifStorePatch] ' + candidates.length + ' factory-call exports (' +
+        candidates.join(', ') + '); bound to `' + storeLocal + '` by proximity to sendNotification:');
+    }
+    // The poller calls window.__isoNotificationStore.sendNotification(...).
+    //
+    // getState() is resolved per CALL rather than snapshotted at module-evaluation
+    // time: the store is built with the persist middleware, which replaces the state
+    // object on rehydration. A snapshot taken at import can predate hydration, so its
+    // sendNotification would deliver against stale preferences. Reading through the
+    // hook on every call always sees the live state.
+    //
+    // The init catch now WARNS instead of swallowing: a silent failure here is
+    // indistinguishable from "no notifications configured" from the operator's side,
+    // which is exactly how the original bug stayed invisible.
+    const BRIDGE = '\n;if(typeof window!=="undefined"&&!window.__isoNotificationStore){try{var __nsHook=' +
+      storeLocal + ';if(typeof __nsHook.getState!=="function")throw new Error("resolved export is not a store");' +
+      'window.__isoNotificationStore={sendNotification:function(e,i,t){return __nsHook.getState()' +
+      '.sendNotification(e,i,t||{})}}}catch(_e){console.warn("[NotifStorePatch] bridge init failed:",_e)}}';
     raw = raw + BRIDGE;
     patchedNotifStore = Buffer.from(raw, 'utf8');
-    console.log('[NotifStorePatch] bridge added — window.__isoNotificationStore exposed');
+    console.log('[NotifStorePatch] bridge added — window.__isoNotificationStore bound to store `' +
+      storeLocal + '`');
+    return patchedNotifStore;
     return patchedNotifStore;
   } catch (e) {
     console.warn('[NotifStorePatch] read failed:', e && e.message);
@@ -4696,14 +4808,14 @@ function getPatchedCommunityBundle() {
     } else { console.warn('[InviteCode] buddy state anchor not found'); _criticalPatchFailures.push('invite-code-state'); }
 
     const INVITE_HANDLER_FROM = 'r({tone:"success",message:"Buddy invite copied."})};return e.jsxs(B,{title:"Add a buddy",description:"Use their exact username, or send a private invite link.",';
-    const INVITE_HANDLER_TO   = 'r({tone:"success",message:"Buddy code copied."})},__join=async()=>{if(!__code)return;const __r=await x.redeemInvite.mutateAsync({token:__code.trim().toLowerCase()});if(!__r.success)return r({tone:"error",message:__r.error==="invite_invalid"?"That code isn\'t valid or has expired.":__r.error==="invite_blocked"?"You can\'t join this person\'s circle.":__r.error||"That code could not be used."});r({tone:"success",message:"Buddy added."}),s()};return e.jsxs(B,{title:"Add a buddy",description:"Use their exact username, or join with an invite code.",';
+    const INVITE_HANDLER_TO   = 'r({tone:"success",message:"Buddy code copied."})},__join=async()=>{if(!__code)return;const __r=x&&x.redeemInvite&&x.redeemInvite.mutateAsync?await x.redeemInvite.mutateAsync({token:__code.trim().toLowerCase()}):{success:!1,error:"invite_unavailable"};if(!__r.success)return r({tone:"error",message:__r.error==="invite_invalid"?"That code isn\'t valid or has expired.":__r.error==="invite_blocked"?"You can\'t join this person\'s circle.":__r.error||"That code could not be used."});r({tone:"success",message:"Buddy added."}),s()};return e.jsxs(B,{title:"Add a buddy",description:"Use their exact username, or join with an invite code.",';
     if (raw.includes(INVITE_HANDLER_FROM)) {
       raw = raw.replace(INVITE_HANDLER_FROM, INVITE_HANDLER_TO);
       console.log('[InviteCode] buddy popup: join-by-code handler added');
     } else { console.warn('[InviteCode] buddy handler anchor not found'); _criticalPatchFailures.push('invite-code-handler'); }
 
     const INVITE_UI_FROM = 'e.jsxs("button",{type:"button",onClick:a,className:"community-control-button inline-flex min-h-11 w-full items-center justify-center gap-2 font-bold",children:[e.jsx(be,{className:"h-4 w-4"}),"Copy private invite link"]}),d&&e.jsx("p",{className:"mt-3 break-all text-xs text-zinc-500",children:d})';
-    const INVITE_UI_TO   = 'e.jsx("div",{className:"mt-4",children:[e.jsx("label",{className:"text-sm font-semibold",htmlFor:"buddy-code",children:"Have an invite code?"}),e.jsxs("div",{className:"mt-2 flex gap-2",children:[e.jsx("input",{id:"buddy-code",value:__code,onChange:u=>__setCode(u.target.value),placeholder:"e.g. 4f9a2b7c",maxLength:32,className:"min-h-12 min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-4 font-mono uppercase outline-none focus:border-brand-500 dark:border-white/15 dark:bg-zinc-900"}),e.jsx("button",{type:"button",disabled:x.redeemInvite.isPending||!__code.trim(),onClick:__join,className:"community-primary-button min-h-12 px-5 font-bold",children:"Join"})]})]}),e.jsxs("button",{type:"button",onClick:a,className:"community-control-button mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 font-bold",children:[e.jsx(be,{className:"h-4 w-4"}),"Generate my buddy code"]}),d&&e.jsx("p",{className:"mt-3 break-all rounded-lg bg-black/5 px-3 py-2 text-center font-mono text-sm tracking-wider text-zinc-700 dark:bg-white/10 dark:text-zinc-200",children:d})';
+    const INVITE_UI_TO   = 'e.jsx("div",{className:"mt-4",children:[e.jsx("label",{className:"text-sm font-semibold",htmlFor:"buddy-code",children:"Have an invite code?"}),e.jsxs("div",{className:"mt-2 flex gap-2",children:[e.jsx("input",{id:"buddy-code",value:__code,onChange:u=>__setCode(u.target.value),placeholder:"e.g. 4f9a2b7c",maxLength:32,className:"min-h-12 min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-4 font-mono uppercase outline-none focus:border-brand-500 dark:border-white/15 dark:bg-zinc-900"}),e.jsx("button",{type:"button",disabled:!!(x&&x.redeemInvite&&x.redeemInvite.isPending)||!__code.trim(),onClick:__join,className:"community-primary-button min-h-12 px-5 font-bold",children:"Join"})]})]}),e.jsxs("button",{type:"button",onClick:a,className:"community-control-button mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 font-bold",children:[e.jsx(be,{className:"h-4 w-4"}),"Generate my buddy code"]}),d&&e.jsx("p",{className:"mt-3 break-all rounded-lg bg-black/5 px-3 py-2 text-center font-mono text-sm tracking-wider text-zinc-700 dark:bg-white/10 dark:text-zinc-200",children:d})';
     if (raw.includes(INVITE_UI_FROM)) {
       raw = raw.replace(INVITE_UI_FROM, INVITE_UI_TO);
       console.log('[InviteCode] buddy popup: enter-code field + generate button');
@@ -4717,7 +4829,7 @@ function getPatchedCommunityBundle() {
     } else { console.warn('[InviteCode] groups state anchor not found'); _criticalPatchFailures.push('invite-groups-state'); }
 
     const GROUP_CODE_HANDLER_FROM = ':"Request declined."})};return';
-    const GROUP_CODE_HANDLER_TO   = ':"Request declined."})},__join=async()=>{if(!__gc)return;const g=await m.redeemInvite.mutateAsync({token:__gc.trim().toLowerCase()});if(!g.success)return d({tone:"error",message:g.error==="invite_invalid"?"That code isn\'t valid or has expired.":g.error||"That code could not be used."});d({tone:"success",message:"Joined the group."}),__so(!1),__sgc("")};return';
+    const GROUP_CODE_HANDLER_TO   = ':"Request declined."})},__join=async()=>{if(!__gc)return;const g=m&&m.redeemInvite&&m.redeemInvite.mutateAsync?await m.redeemInvite.mutateAsync({token:__gc.trim().toLowerCase()}):{success:!1,error:"invite_unavailable"};if(!g.success)return d({tone:"error",message:g.error==="invite_invalid"?"That code isn\'t valid or has expired.":g.error||"That code could not be used."});d({tone:"success",message:"Joined the group."}),__so(!1),__sgc("")};return';
     if (raw.includes(GROUP_CODE_HANDLER_FROM)) {
       raw = raw.replace(GROUP_CODE_HANDLER_FROM, GROUP_CODE_HANDLER_TO);
       console.log('[InviteCode] groups tab: join-by-code handler added');
@@ -4743,7 +4855,7 @@ function getPatchedCommunityBundle() {
     } else { console.warn('[InviteCode] groups return-open anchor not found'); _criticalPatchFailures.push('invite-groups-ret-open'); }
 
     const GROUP_CODE_DIALOG_FROM = 'action:"Find a group",onAction:o,icon:Le})]})},ss=({filters:';
-    const GROUP_CODE_DIALOG_TO   = 'action:"Find a group",onAction:o,icon:Le})]}),__oc&&e.jsx(B,{title:"Join a group",description:"Enter the invite code you were given.",onClose:()=>__so(!1),children:[e.jsx("label",{className:"text-sm font-semibold",htmlFor:"group-code",children:"Invite code"}),e.jsxs("div",{className:"mt-2 flex gap-2",children:[e.jsx("input",{id:"group-code",value:__gc,onChange:u=>__sgc(u.target.value),placeholder:"e.g. 4f9a2b7c",maxLength:32,className:"min-h-12 min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-4 font-mono uppercase outline-none focus:border-brand-500 dark:border-white/15 dark:bg-zinc-900"}),e.jsx("button",{type:"button",disabled:m.redeemInvite.isPending||!__gc.trim(),onClick:__join,className:"community-primary-button min-h-12 px-5 font-bold",children:"Join"})]})]})]})},ss=({filters:';
+    const GROUP_CODE_DIALOG_TO   = 'action:"Find a group",onAction:o,icon:Le})]}),__oc&&e.jsx(B,{title:"Join a group",description:"Enter the invite code you were given.",onClose:()=>__so(!1),children:[e.jsx("label",{className:"text-sm font-semibold",htmlFor:"group-code",children:"Invite code"}),e.jsxs("div",{className:"mt-2 flex gap-2",children:[e.jsx("input",{id:"group-code",value:__gc,onChange:u=>__sgc(u.target.value),placeholder:"e.g. 4f9a2b7c",maxLength:32,className:"min-h-12 min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-4 font-mono uppercase outline-none focus:border-brand-500 dark:border-white/15 dark:bg-zinc-900"}),e.jsx("button",{type:"button",disabled:!!(m&&m.redeemInvite&&m.redeemInvite.isPending)||!__gc.trim(),onClick:__join,className:"community-primary-button min-h-12 px-5 font-bold",children:"Join"})]})]})]})},ss=({filters:';
     if (raw.includes(GROUP_CODE_DIALOG_FROM)) {
       raw = raw.replace(GROUP_CODE_DIALOG_FROM, GROUP_CODE_DIALOG_TO);
       console.log('[InviteCode] groups tab: join-by-code dialog added');
@@ -5000,14 +5112,29 @@ function getPatchedCommunityApiBundle() {
   if (patchedCommunityApiBundle) return patchedCommunityApiBundle;
   try {
     let raw = fs.readFileSync(COMMUNITY_API_BUNDLE_ABS, 'utf8');
+    // GATE must land before CHAT. The injected chat methods branch on `s()`, which
+    // is the imported premium check: the GATE patch is what rebinds `s` to `()=>!1`
+    // so those branches take the real RPC path. If GATE misses but CHAT still
+    // applies, `s()` stays the genuine premium predicate — so `getGroupMessages`
+    // returns a hardcoded `{messages:[]}` and `getLeaderboard` returns the five
+    // hardcoded demo fixtures (Arnav/Isha/Kabir/Meera/Dev), which the UI renders as
+    // if they were this install's real data. Half-applying the pair is worse than
+    // applying neither, so CHAT is now gated on GATE having actually applied.
+    let gateApplied = false;
     if (raw.includes(COMMUNITY_API_GATE_FROM)) {
       raw = raw.replace(COMMUNITY_API_GATE_FROM, COMMUNITY_API_GATE_TO);
+      gateApplied = true;
       console.log('[CommunityApiPatch] premium demo-gate neutralised -> real RPC path enabled');
     } else {
       console.warn('[CommunityApiPatch] import gate anchor not found; community may show demo data');
       _criticalPatchFailures.push('community-api-gate');
     }
-    if (raw.includes(COMMUNITY_API_CHAT_FROM)) {
+    if (!gateApplied) {
+      console.warn('[CommunityApiPatch] skipping chat/leaderboard injection: it depends on the ' +
+        'neutralised premium check, and without it the injected methods would serve hardcoded ' +
+        'demo fixtures as real data');
+      _criticalPatchFailures.push('community-api-chat-skipped');
+    } else if (raw.includes(COMMUNITY_API_CHAT_FROM)) {
       raw = raw.replace(COMMUNITY_API_CHAT_FROM, COMMUNITY_API_CHAT_TO);
       console.log('[CommunityApiPatch] group chat methods (getGroupMessages/sendGroupMessage) added');
     } else {
@@ -5722,30 +5849,51 @@ function getPatchedAuthBundle() {
     // bundle body drifts on every re-capture, the two edges do not.
     {
       const UP_START = 'f=async p=>{if(p.preventDefault(),l.length<6)';
-      const UP_END = '};return e.jsxs(y.div';
-      const si = raw.indexOf(UP_START);
-      const ei = si === -1 ? -1 : raw.indexOf(UP_END, si);
-      if (si === -1 || ei === -1) {
-        console.warn('[AuthPatch] CRITICAL MISS: signup-submit handler boundaries not found');
+      // UP_END is extended past the shared `};return e.jsxs(y.div` opener with the
+      // signup panel's own first children. That opener occurs TWICE in this bundle
+      // (SignIn's return and SignUp's return), so the short form only worked because
+      // the search began after UP_START — a re-minified bundle that reorders or
+      // hoists the components would let the search swallow the SignIn handler or any
+      // unrelated `};return e.jsxs(y.div` in between, and the replacement would then
+      // splice across component boundaries and kill login/signup.
+      //
+      // The distinguishing tail is the signup form's first error banner, which uses
+      // signup-only identifiers (`c` = error, `x` = clearError). The sign-in twin has
+      // the same prop list over DIFFERENT variables, so it cannot match.
+      const UP_END_TAIL = '};return e.jsxs(y.div,{initial:a?!1:{opacity:0},animate:{opacity:1},' +
+        'exit:a?void 0:{opacity:0},className:"space-y-6",children:[e.jsx(I,{children:c&&e.jsx(E,{message:c,onDismiss:x})})';
+      // Self-check: the tail must occur exactly once, and be unique on its own — not
+      // merely first-after-UP_START. If it does not, refuse to patch rather than
+      // splice at an ambiguous position.
+      const tailCount = raw.split(UP_END_TAIL).length - 1;
+      if (tailCount !== 1) {
+        console.warn('[AuthPatch] CRITICAL MISS: signup panel end anchor is not unique (found ' +
+          tailCount + 'x) — refusing to splice at an ambiguous position');
         _criticalPatchFailures.push('auth-signup-submit');
       } else {
-        // The replacement closes the try and catch blocks only; the '}' at the
-        // head of UP_END is the handler's own closing brace, so adding another
-        // here would close the component early and put its top-level 'return'
-        // outside any function (SyntaxError: Illegal return statement).
-        raw = raw.slice(0, si) +
-          'f=async p=>{p.preventDefault();' +
-          'if(l.length<6){m.setState({error:"Password must be at least 6 characters"});return}' +
-          'm.setState({isLoading:!0,error:null});' +
-          'try{var __r=await window.__isoUp(t,l);' +
-          "if(!__r||!__r.ok){m.setState({error:__r&&__r.err||'Signup failed',isLoading:!1});return}" +
-          "window.location.href='/onboarding'}" +
-          "catch(__e){m.setState({error:__e&&__e.message?__e.message:'Signup failed',isLoading:!1})}" +
-          raw.slice(ei);
-        applied++;
+        const si = raw.indexOf(UP_START);
+        const ei = raw.indexOf(UP_END_TAIL, si);
+        if (si === -1 || ei === -1 || ei <= si) {
+          console.warn('[AuthPatch] CRITICAL MISS: signup-submit handler boundaries not found');
+          _criticalPatchFailures.push('auth-signup-submit');
+        } else {
+          // The replacement closes the try and catch blocks only; the '}' at the
+          // head of UP_END is the handler's own closing brace, so adding another
+          // here would close the component early and put its top-level 'return'
+          // outside any function (SyntaxError: Illegal return statement).
+          raw = raw.slice(0, si) +
+            'f=async p=>{p.preventDefault();' +
+            'if(l.length<6){m.setState({error:"Password must be at least 6 characters"});return}' +
+            'm.setState({isLoading:!0,error:null});' +
+            'try{var __r=await window.__isoUp(t,l);' +
+            "if(!__r||!__r.ok){m.setState({error:__r&&__r.err||'Signup failed',isLoading:!1});return}" +
+            "window.location.href='/onboarding'}" +
+            "catch(__e){m.setState({error:__e&&__e.message?__e.message:'Signup failed',isLoading:!1})}" +
+            raw.slice(ei);
+          applied++;
+        }
       }
     }
-    // Sign Up: button label
     p('"Create Account with Email"', '"Create Account"');
 
     // Landing panel version badge: update stale hardcoded version string.
@@ -5970,6 +6118,19 @@ const APP_ACCESS_GATE_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'AppAccessGat
 let patchedAppAccessGateBundle = null;
 function getPatchedAppAccessGateBundle() {
   if (patchedAppAccessGateBundle) return patchedAppAccessGateBundle;
+  // Escape hatch for debugging a boot loop. It used to be checked in the serve
+  // path instead, which skipped this function entirely — so every per-anchor
+  // warning AND the _criticalPatchFailures escalation inside the patcher were
+  // bypassed too, and the raw unpatched gate chunk was served with total
+  // silence. All three ISSUE-050/051/053 fixes revert at once (the
+  // /onboarding <-> /dashboard loop, the protected-route hang, the private-mode
+  // bounce) with nothing logged and no startup banner. Checking here means a
+  // deliberate skip is still loud.
+  if (process.env.DISABLE_GATE_PATCH === '1') {
+    console.warn('[AppAccessGatePatch] DISABLED via DISABLE_GATE_PATCH=1 — serving unpatched gate chunk');
+    _criticalPatchFailures.push('appaccessgate-disabled');
+    return null;
+  }
   try {
     let raw = fs.readFileSync(APP_ACCESS_GATE_BUNDLE_ABS, 'utf8');
     let applied = 0;
@@ -5986,9 +6147,21 @@ function getPatchedAppAccessGateBundle() {
     // renders, so c?.isOnboarded is still false and protected routes bounce to
     // /onboarding, which itself bounces authed users back — a /onboarding
     // <-> /dashboard reload loop that never lets /community mount. Trust the
-    // boot router's server-verified decision first.
-    const BOOT_TRUST_FROM = 'if(c?.isOnboarded!==!0&&!y)return r.jsx(Y,{to:"/onboarding",replace:!0})';
-    const BOOT_TRUST_TO   = 'const __isoBoot=window.__ISO_BOOT_STATE__;if(!(__isoBoot&&(__isoBoot.onboarding&&__isoBoot.onboarding.completed===true||__isoBoot.state==="syncFailed"))){if(!__isoBoot||!__isoBoot.bootResolved)return r.jsx(ie,{});if(c?.isOnboarded!==!0&&!y)return r.jsx(Y,{to:"/onboarding",replace:!0})}';
+    // boot router's server-verified decision first: when boot already resolved
+    // onboarding as complete (or as syncFailed), do not bounce on the stale
+    // local flag.
+    //
+    // This was previously written as two bare constants that were NEVER applied
+    // — the only anchors in this function not routed through patch(), so the
+    // ISSUE-050 loop was live the whole time while the comment claimed otherwise.
+    // It is now a real patch, and the replacement is an EXPRESSION rather than
+    // the `const __isoBoot=...` form the original comment sketched: the anchor
+    // sits in statement position, but the statement that follows it begins with
+    // the closing brace of an enclosing else-block, so introducing a `const`
+    // there is a SyntaxError and would kill the whole gate chunk.
+    patch('if(c?.isOnboarded!==!0&&!y)return r.jsx(Y,{to:"/onboarding",replace:!0})',
+      'if(!(window.__ISO_BOOT_STATE__&&(window.__ISO_BOOT_STATE__.onboarding&&window.__ISO_BOOT_STATE__.onboarding.completed===true||window.__ISO_BOOT_STATE__.state==="syncFailed"))){if(c?.isOnboarded!==!0&&!y)return r.jsx(Y,{to:"/onboarding",replace:!0})}',
+      'ISSUE-050 onboarding bounce trusts boot state');
     // ISSUE-052: this patch deadlocks protected routes (render abandoned mid-flight, shell skeleton forever).
     // h/v boot-trust patches below already fix the cold-load wait without it.
     // ISSUE-051: the gate also waits on the sync store's bootstrapChecked
@@ -6009,7 +6182,7 @@ patch('if(!v)return r.jsx(ie,{});',
     patch('if(s==="private"){if(y||l)return r.jsx(Y,{to:"/dashboard",replace:!0})}',
       'if(s==="private"){/* ISSUE-053: no gate bounce - boot router owns /onboarding routing */}',
       'private-mode bounce trusts boot onboarding decision');
-    console.log('[AppAccessGatePatch] ' + applied + '/4 patches applied');
+    console.log('[AppAccessGatePatch] ' + applied + '/5 patches applied');
     patchedAppAccessGateBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[AppAccessGatePatch] Error:', e.message); patchedAppAccessGateBundle = null; }
   return patchedAppAccessGateBundle;
@@ -10861,7 +11034,7 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const buf = getPatchedUseSyncStoreBundle();
       if (buf) { send(buf); return; }
     }
-    if (fp === APP_ACCESS_GATE_BUNDLE_ABS && process.env.DISABLE_GATE_PATCH !== "1") {
+    if (fp === APP_ACCESS_GATE_BUNDLE_ABS) {
       const buf = getPatchedAppAccessGateBundle();
       if (buf) { send(buf); return; }
     }

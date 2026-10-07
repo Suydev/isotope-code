@@ -60,7 +60,7 @@ const EXCLUDE_SCHEMAS = new Set([
 // source project was missing some, and `verify` fails when one is absent. The
 // database is no longer the only source of truth about what the app needs.
 //
-// Limits and mime lists match supabase/023_wire_missing_storage_buckets.sql;
+// Limits and mime lists match REQUIRED_BUCKETS in scripts/supabase-setup.mjs;
 // if you change one, change both.
 //
 // `notes` is deliberately absent. It had a 10 MB limit, zero objects, and zero
@@ -206,26 +206,13 @@ function createSqlClient(projectRef, pat) {
     }
     try { return JSON.parse(text); } catch { return []; }
   }
-  async function runBatched(sql, onProgress, batchSize = 30) {
-    const stmts = splitStatements(sql);
-    let ok = 0, failed = 0;
-    for (let i = 0; i < stmts.length; i += batchSize) {
-      const chunk = stmts.slice(i, i + batchSize).join(';\n');
-      if (!chunk.trim()) continue;
-      try {
-        await query(chunk);
-        ok += batchSize;
-        if (onProgress) onProgress(Math.min(i + batchSize, stmts.length), stmts.length);
-      } catch (e) {
-        for (const stmt of stmts.slice(i, i + batchSize)) {
-          try { await query(stmt); ok++; }
-          catch { failed++; if (onProgress) onProgress(`ERROR ${e.message.slice(0, 200)}`); }
-        }
-      }
-    }
-    return { total: stmts.length, ok, failed };
-  }
-  return { query, runBatched };
+  // NOTE: there was a `runBatched` here that batched statements and reported
+  // `ok += batchSize` for a batch that succeeded — so on a 1772-statement
+  // schema `ok` could exceed `total` and still read as a clean run. It had no
+  // callers: the schema phase batches inline (see `restore`) and the data phase
+  // counts `returning` rows. It was deleted rather than patched so the only
+  // batching in this file is the one that measures what it did.
+  return { query };
 }
 
 // Split SQL on top-level ';' — aware of quotes, comments and dollar-quoting.
@@ -268,6 +255,31 @@ function splitStatements(sql) {
 }
 
 // ── Storage access via REST API ─────────────────────────────────────────────
+
+/** The project's own global storage cap in bytes, or null when it cannot be read.
+ *
+ *  On the free plan this is 50 MB and cannot be raised:
+ *      PATCH /v1/projects/<ref>/config/storage {"fileSizeLimit":104857600}
+ *        -> 402 "File size limit more than 52,428,800 bytes. Please upgrade…"
+ *  so creating a bucket whose `file_size_limit` exceeds the cap is rejected with
+ *      413 {"statusCode":"413","error":"Payload too large"}
+ *  and a bucket the app needs never comes into existence. Returns null instead
+ *  of throwing when the config is unreadable, so a PAT without that scope
+ *  degrades to "do not clamp" — the same choice supabase-setup.mjs makes, and
+ *  the create then reports its own 413, which the caller now counts as fatal. */
+async function projectStorageCap(projectRef, pat) {
+  try {
+    const res = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/config/storage`, {
+      headers: { Authorization: `Bearer ${pat}` },
+    });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return Number(body && body.fileSizeLimit) || null;
+  } catch {
+    return null;
+  }
+}
+
 function createStorageClient(baseUrl, serviceKey) {
   const H = { apikey: serviceKey, authorization: `Bearer ${serviceKey}` };
   const url = (p) => `${baseUrl.replace(/\/$/, '')}/storage/v1/${p}`;
@@ -624,14 +636,73 @@ async function backup(args, env) {
     }
   }
 
+  // A table whose SELECT failed never reaches manifest.tables, so the manifest
+  // itself comes out short one table and looks internally consistent. That made
+  // a partial dump indistinguishable from a complete one: backup printed DONE,
+  // exit 0, and the table was noticed only much later when row counts
+  // disagreed. The count is recorded IN the manifest — set before it is
+  // serialised, so restore and verify can see it — and the run then FAILS,
+  // because a silently partial backup is the one thing a backup must never be.
+  manifest.dump_failed = dumpFailed;
   writeFileSync(join(args.out, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+  if (manifest.notes.length) console.log('[backup] notes:\n  ' + manifest.notes.join('\n  '));
+  if (dumpFailed > 0) {
+    const msg = `backup failed to read ${dumpFailed} of ${tables.length} table(s) — the dump is incomplete`;
+    console.error(`[backup] ERROR: ${msg}`);
+    emit({ phase: 'backup', level: 'error', msg });
+    throw new Error(msg);
+  }
   console.log(`[backup] DONE: ${manifest.tables.length} tables, ${authRows.length} auth users, ${manifest.storage_files.length} storage files`);
   emit({ phase: 'backup', state: 'done', tables: manifest.tables.length, users: authRows.length, files: manifest.storage_files.length });
-  if (manifest.notes.length) console.log('[backup] notes:\n  ' + manifest.notes.join('\n  '));
+}
+
+// ── RESTORE ─────────────────────────────────────────────────────────────────
+// ── auth trigger suppression ────────────────────────────────────────────────
+//
+// Restoring auth.users fires `on_auth_user_created` → handle_new_user() on every
+// row, and that trigger writes into public.users with DERIVED values under
+// `on conflict (id) do update`. The data phase restores public.users AFTERWARDS
+// with `on conflict do nothing`, so the trigger's placeholder rows win and the
+// real username / plan_expires_at / access_ends_at are discarded while the
+// counter still reads "43 ok, 0 failed".
+//
+// `session_replication_role = replica` is the cheap way to suppress it, but it is
+// transaction/session scoped: the Management API executes each query in its own
+// session, so `set local` would expire before the next INSERT and the trigger
+// would still fire. `ALTER TABLE ... DISABLE TRIGGER USER` is a catalog change
+// that persists across sessions.
+//
+// DISABLE TRIGGER USER takes an ACCESS EXCLUSIVE lock on auth.users, so it is
+// given a lock_timeout: without one it can queue behind a concurrent signup for
+// minutes instead of failing fast. Only user triggers are disabled (not
+// internally-constraint triggers); re-enabling with USER restores exactly that
+// set. Anything the caller cannot re-enable is reported loudly rather than left
+// silently disabled — a project whose signup trigger is off produces broken
+// accounts that still "succeed".
+async function suppressAuthTriggers(sql, disable) {
+  const verb = disable ? 'DISABLE' : 'ENABLE';
+  const sqlText = `
+    set local lock_timeout = '10s';
+    alter table auth.users ${verb} trigger user;
+  `;
+  try {
+    await sql.query(sqlText);
+  } catch (e) {
+    const msg = `could not ${verb.toLowerCase()} user triggers on auth.users — the signup trigger ` +
+      `${disable ? 'is still live and will clobber restored public.users rows' : 'was re-enabled by hand, NOT by this restore'}: ` +
+      String((e && e.message) || e).replace(/\s+/g, ' ').slice(0, 200);
+    if (disable) {
+      // Restoring with the trigger live is exactly the silent-corruption bug this
+      // exists to prevent, so a failure to suppress must abort the restore.
+      throw new Error(msg);
+    }
+    console.error(`[restore] ERROR: ${msg}`);
+  }
 }
 
 // ── RESTORE ─────────────────────────────────────────────────────────────────
 async function restore(args, env) {
+
   const url = args['supabase-url'] || env.SUPABASE_URL;
   const service = args['service-key'] || env.SUPABASE_SERVICE_ROLE_KEY;
   const pat = args.pat || env.SUPABASE_ACCESS_TOKEN;
@@ -640,6 +711,16 @@ async function restore(args, env) {
   const project = new URL(url).hostname.split('.')[0];
   const sql = createSqlClient(project, pat);
   const manifest = JSON.parse(readFileSync(join(args.src, 'manifest.json'), 'utf8'));
+
+  // Refuse a manifest that says it is incomplete. Restoring it would produce a
+  // target that is quietly missing whatever the source dump could not read, and
+  // the missing table is not in manifest.tables, so nothing downstream can tell.
+  // `backup` now fails on the same condition; this covers manifests already on
+  // disk from before that, and ones edited by hand.
+  if (Number(manifest.dump_failed) > 0) {
+    throw new Error(`this backup is incomplete — ${manifest.dump_failed} table(s) failed to read at backup time. ` +
+      'Re-run the backup; restoring it would silently drop those tables.');
+  }
 
   console.log(`[restore] target project ${project}`);
 
@@ -814,6 +895,15 @@ async function restore(args, env) {
   const schemaOnly = Boolean(args['schema-only']);
   if (schemaOnly) console.log('[restore] --schema-only: skipping auth users, table rows and storage files');
 
+  // Run-level failure counters, all folded into the gate at the end.
+  //
+  // Auth-phase failures used to be counted, printed and then dropped: a restore
+  // that created ZERO accounts still printed `[restore] DONE` and exited 0, so
+  // transfer.mjs and supabase-clone.mjs saw success over a target nobody can
+  // sign in to. Bucket failures had the same shape — a 413 swallowed by a
+  // console.log loses the bucket and every file in it, silently.
+  let authUsersFailed = 0, authIdentitiesFailed = 0, bucketFailures = 0;
+
   // 2. auth.users (must come before user tables that FK to it)
   const authFile = join(args.src, 'db', 'auth.users.jsonl');
   if (!schemaOnly && existsSync(authFile)) {
@@ -829,82 +919,145 @@ async function restore(args, env) {
     // trips. On batch failure, fall back to per-row so a single bad user cannot
     // hide the other 42 — and so its error is still reported by email.
     const AUTH_BATCH = 25;
-    for (let i = 0; i < rows.length; i += AUTH_BATCH) {
-      const chunk = rows.slice(i, i + AUTH_BATCH);
-      try {
-        await sql.query(`insert into auth.users (${colList}) values ${chunk.map(valuesFor).join(', ')} on conflict (id) do nothing`);
-        ok += chunk.length;
-        continue;
-      } catch (e) { /* fall through to per-row */ }
-      for (const r of chunk) {
+
+    // ── Suppress on_auth_user_created for the whole auth phase ────────────────
+    //
+    // `auth.users` carries an AFTER INSERT trigger `on_auth_user_created` →
+    // handle_new_user(), which INSERTs into public.users with a DERIVED username
+    // (raw_user_meta_data->>'username', else the email local part, else
+    // 'user_' || left(id::text,8)) and `on conflict (id) do update`, plus a row
+    // each in user_profiles / user_points / user_stats_summary / user_presence.
+    //
+    // The data phase (§3) runs AFTER this one and inserts the real rows with
+    // `on conflict do nothing`. With the trigger live, step 2 pre-creates those
+    // rows and step 3's inserts conflict on the primary key and silently skip, so
+    // the target keeps the trigger's placeholders: public.users prints
+    // "43 ok, 0 failed" while 100% of username / plan_expires_at / access_ends_at
+    // are wrong, and the other four tables keep empty placeholder rows. This is
+    // the worst kind of restore failure — a full-looking counter over wrong data.
+    //
+    // `set local session_replication_role = replica` cannot be used here: it is
+    // transaction-scoped and the management API opens a NEW session per query, so
+    // it would expire before the next insert. The catalog change below DOES
+    // persist across sessions. `disable trigger user` takes the table lock, so
+    // the write must be wrapped in a lock timeout — without it this can queue
+    // behind a long-running signup and hang the restore instead of failing it.
+    await suppressAuthTriggers(sql, true);
+    try {
+      for (let i = 0; i < rows.length; i += AUTH_BATCH) {
+        const chunk = rows.slice(i, i + AUTH_BATCH);
         try {
-          await sql.query(`insert into auth.users (${colList}) values ${valuesFor(r)} on conflict (id) do nothing`);
-          ok++;
-        } catch (e) {
-          // ON CONFLICT can fail if the PK constraint name differs on the target
+          // `returning id` so `ok` counts rows the database actually ACCEPTED.
+          // `on conflict do nothing` returns an empty rowset for a user that was
+          // already there (re-run, or a target that already had the account) and
+          // the old `ok += chunk.length` credited it as inserted anyway.
+          const res = await sql.query(`insert into auth.users (${colList}) values ${chunk.map(valuesFor).join(', ')} on conflict (id) do nothing returning id`);
+          ok += Array.isArray(res) ? res.length : 0;
+          continue;
+        } catch (e) { /* fall through to per-row */ }
+        for (const r of chunk) {
           try {
-            await sql.query(`insert into auth.users (${colList}) values ${valuesFor(r)}`);
-            ok++;
-          } catch (e2) {
-            failed++;
-            emit({ phase: 'auth', level: 'error', msg: `${r.email || r.id}: ${e2.message.slice(0, 180)}` });
-            if (failed <= 10) console.log(`  auth user ${r.email || r.id} FAILED: ${e2.message.slice(0, 200)}`);
+            const res1 = await sql.query(`insert into auth.users (${colList}) values ${valuesFor(r)} on conflict (id) do nothing returning id`);
+            if (Array.isArray(res1) && res1.length) ok++; else continue;
+          } catch (e) {
+            // ON CONFLICT can fail if the PK constraint name differs on the target
+            try {
+              const res2 = await sql.query(`insert into auth.users (${colList}) values ${valuesFor(r)} returning id`);
+              if (Array.isArray(res2) && res2.length) ok++;
+            } catch (e2) {
+              failed++;
+              emit({ phase: 'auth', level: 'error', msg: `${r.email || r.id}: ${e2.message.slice(0, 180)}` });
+              if (failed <= 10) console.log(`  auth user ${r.email || r.id} FAILED: ${e2.message.slice(0, 200)}`);
+            }
           }
         }
       }
-    }
-    console.log(`[restore] auth.users: ${ok} ok, ${failed} failed`);
-    emit({ phase: 'auth', state: 'done', done: rows.length, total: rows.length, ok, failed });
-    // auth.users columns that GoTrue treats as non-null and that the backup
-    // intentionally does not copy (transient tokens like confirmation_token),
-    // plus instance_id. Without them restored users get NULL here, which makes
-    // GoTrue throw 500 "Database error finding users" and breaks ALL sign-in
-    // (password + OAuth). instance_id NULL makes GoTrue blind to the user even
-    // though the row exists, so it is defaulted to the hosted sentinel.
-    const INSTANCE_SENTINEL = '00000000-0000-0000-0000-000000000000';
-    await sql.query(`update auth.users set
-      instance_id = coalesce(instance_id, ${`'${INSTANCE_SENTINEL}'`}::uuid),
-      updated_at = coalesce(updated_at, created_at, now()),
-      confirmation_token = '',
-      recovery_token = '',
-      email_change = '',
-      email_change_token_new = '',
-      email_change_token_current = '',
-      phone_change = '',
-      phone_change_token = '',
-      reauthentication_token = '',
-      email_change_confirm_status = 0,
-      is_super_admin = false
-      where updated_at is null`);
-    console.log(`[restore] auth.users: token/updated_at defaults normalized`);
-
-    // auth.identities: must transfer or GoTrue cannot resolve the provider link,
-    // so OAuth (and often password) log-in fails. GENERATED columns (the `email`
-    // column on newer projects) are omitted from the insert. identity_data is
-    // emitted as a $json$...$json$::jsonb literal so braces/quotes survive.
-    const idFile = join(args.src, 'db', 'auth.identities.jsonl');
-    if (existsSync(idFile)) {
-      const idRows = readFileSync(idFile, 'utf8').split('\n').filter(Boolean).map(JSON.parse);
-      const idCols = (manifest.auth_identities_columns && manifest.auth_identities_columns.length)
-        ? manifest.auth_identities_columns.filter((c) => c.generated !== 'ALWAYS')
-        : ['provider_id', 'user_id', 'identity_data', 'provider', 'last_sign_in_at', 'created_at', 'updated_at', 'id'];
-      const colList = idCols.map((c) => `"${c.name}"`).join(', ');
-      const idLit = (r) => `(${idCols.map((c) => c.name === 'identity_data'
-        ? `$json$${JSON.stringify(r.identity_data)}$json$::jsonb`
-        : lit(r[c.name], c.cast)).join(', ')})`;
-      let iok = 0, ifail = 0;
-      for (let i = 0; i < idRows.length; i += 25) {
-        const chunk = idRows.slice(i, i + 25);
-        try {
-          const res = await sql.query(`insert into auth.identities (${colList}) values ${chunk.map(idLit).join(', ')} on conflict do nothing returning id`);
-          iok += Array.isArray(res) ? res.length : 0;
-        } catch (e) {
-          ifail += chunk.length;
-          console.log(`  [restore] identities batch FAILED: ${e.message.slice(0, 200)}`);
-        }
+      authUsersFailed = failed;
+      console.log(`[restore] auth.users: ${ok} ok, ${failed} failed`);
+      emit({ phase: 'auth', state: 'done', done: rows.length, total: rows.length, ok, failed });
+      // auth.users columns that GoTrue treats as non-null and that the backup
+      // intentionally does not copy (transient tokens like confirmation_token),
+      // plus instance_id. Without them restored users get NULL here, which makes
+      // GoTrue throw 500 "Database error finding users" and breaks ALL sign-in
+      // (password + OAuth). instance_id NULL makes GoTrue blind to the user even
+      // though the row exists, so it is defaulted to the hosted sentinel.
+      const INSTANCE_SENTINEL = '00000000-0000-0000-0000-000000000000';
+      //
+      // Two UPDATEs, not one. The single statement was `where updated_at is
+      // null`, which on any re-run matches nothing: every restored user already
+      // has an updated_at, so the whole statement was a no-op — including the
+      // `instance_id` backfill and the token clearing it also guarded — while
+      // still logging "normalized". A user restored before that column was
+      // populated stays NULL forever and GoTrue 500s on sign-in for them.
+      //
+      // Split so each half targets what it actually fixes, and each reports the
+      // rows it touched instead of claiming work it may not have done.
+      const nullId = await sql.query(`update auth.users set
+        instance_id = coalesce(instance_id, ${`'${INSTANCE_SENTINEL}'`}::uuid)
+        where instance_id is null
+        returning 1 as n`);
+      const nullUpd = await sql.query(`update auth.users set
+        updated_at = coalesce(created_at, now())
+        where updated_at is null
+        returning 1 as n`);
+      // Backfilled unconditionally: these are transient fields the backup does
+      // not copy, and a stale value from a previous restore would let a
+      // confirmation/recovery link resolve against the wrong account.
+      const cleared = await sql.query(`update auth.users set
+        confirmation_token = '',
+        recovery_token = '',
+        email_change = '',
+        email_change_token_new = '',
+        email_change_token_current = '',
+        phone_change = '',
+        phone_change_token = '',
+        reauthentication_token = '',
+        email_change_confirm_status = 0,
+        is_super_admin = false
+        returning 1 as n`);
+      const cnt = (r) => (Array.isArray(r) && r[0] ? Number(r[0].n || 0) : null);
+      console.log(`[restore] auth.users: instance_id backfilled on ${cnt(nullId) ?? '?'} row(s), ` +
+        `updated_at on ${cnt(nullUpd) ?? '?'}, tokens reset on ${cnt(cleared) ?? '?'}`);
+      if (cnt(nullId) || cnt(nullUpd)) {
+        console.log(`[restore] WARN: ${(cnt(nullId) || 0) + (cnt(nullUpd) || 0)} restored user(s) had a NULL ` +
+          'instance_id or updated_at — GoTrue returns 500 "Database error finding users" until it is set');
       }
-      console.log(`[restore] auth.identities: ${iok} inserted, ${ifail} failed`);
-      emit({ phase: 'auth', state: 'done', done: idRows.length, total: idRows.length, ok: iok, failed: ifail });
+
+      // auth.identities: must transfer or GoTrue cannot resolve the provider link,
+      // so OAuth (and often password) log-in fails. GENERATED columns (the `email`
+      // column on newer projects) are omitted from the insert. identity_data is
+      // emitted as a $json$...$json$::jsonb literal so braces/quotes survive.
+      const idFile = join(args.src, 'db', 'auth.identities.jsonl');
+      if (existsSync(idFile)) {
+        const idRows = readFileSync(idFile, 'utf8').split('\n').filter(Boolean).map(JSON.parse);
+        const idCols = (manifest.auth_identities_columns && manifest.auth_identities_columns.length)
+          ? manifest.auth_identities_columns.filter((c) => c.generated !== 'ALWAYS')
+          : ['provider_id', 'user_id', 'identity_data', 'provider', 'last_sign_in_at', 'created_at', 'updated_at', 'id'];
+        const colList = idCols.map((c) => `"${c.name}"`).join(', ');
+        const idLit = (r) => `(${idCols.map((c) => c.name === 'identity_data'
+          ? `$json$${JSON.stringify(r.identity_data)}$json$::jsonb`
+          : lit(r[c.name], c.cast)).join(', ')})`;
+        let iok = 0, ifail = 0;
+        for (let i = 0; i < idRows.length; i += 25) {
+          const chunk = idRows.slice(i, i + 25);
+          try {
+            const res = await sql.query(`insert into auth.identities (${colList}) values ${chunk.map(idLit).join(', ')} on conflict do nothing returning id`);
+            iok += Array.isArray(res) ? res.length : 0;
+          } catch (e) {
+            ifail += chunk.length;
+            console.log(`  [restore] identities batch FAILED: ${e.message.slice(0, 200)}`);
+          }
+        }
+        authIdentitiesFailed = ifail;
+        console.log(`[restore] auth.identities: ${iok} inserted, ${ifail} failed`);
+        emit({ phase: 'auth', state: 'done', done: idRows.length, total: idRows.length, ok: iok, failed: ifail });
+      }
+    } finally {
+      // Unconditional: if this throws anywhere above, the project MUST NOT be
+      // left without its signup trigger — every subsequent signup would create an
+      // auth identity and none of the five rows the app reads.
+      await suppressAuthTriggers(sql, false);
+      console.log('[restore] auth.users: on_auth_user_created re-enabled');
     }
   }
 
@@ -928,7 +1081,7 @@ async function restore(args, env) {
     if (!rows.length) { console.log(`[restore] ${key}: 0 rows`); continue; }
     const cols = info.columns;
     const colList = cols.map((c) => `"${c.name}"`).join(', ');
-    let ok = 0, failed = 0;
+    let ok = 0, failed = 0, skipped = 0;
     // Keep the FIRST reason per table. Previously the per-row fallback was
     // `catch { failed++; }`, which discarded the message entirely — so a restore
     // reported "public.users: 0 ok, 11 failed" with no way to tell whether that
@@ -939,14 +1092,23 @@ async function restore(args, env) {
       const values = chunk.map((r) => `(${cols.map((c) => lit(r[c.name], c.cast)).join(', ')})`).join(', ');
       for (const over of [true, false]) {
         try {
-          await sql.query(`insert into "${info.schema}"."${info.table}" (${colList})${over ? ' overriding system value' : ''} values ${values} on conflict do nothing`);
-          ok += chunk.length; break;
+          // `returning 1` + counting the returned rows, because
+          // `on conflict do nothing` silently SKIPS a conflicting row and
+          // `ok += chunk.length` credited all 100 as inserted. The counter then
+          // reported "43 ok, 0 failed" over rows the database had refused —
+          // which is exactly how the on_auth_user_created clobber stayed
+          // invisible. On a partial conflict the counter now shows the real
+          // number accepted.
+          const res = await sql.query(`insert into "${info.schema}"."${info.table}" (${colList})${over ? ' overriding system value' : ''} values ${values} on conflict do nothing returning 1`);
+          ok += Array.isArray(res) ? res.length : chunk.length;
+          skipped += Array.isArray(res) ? chunk.length - res.length : 0;
+          break;
         } catch (e) {
           if (over) continue;
           for (const r of chunk) {
             try {
-              await sql.query(`insert into "${info.schema}"."${info.table}" (${colList}) overriding system value values (${cols.map((c) => lit(r[c.name], c.cast)).join(', ')}) on conflict do nothing`);
-              ok++;
+              const res1 = await sql.query(`insert into "${info.schema}"."${info.table}" (${colList}) overriding system value values (${cols.map((c) => lit(r[c.name], c.cast)).join(', ')}) on conflict do nothing returning 1`);
+              if (Array.isArray(res1) && res1.length) ok++; else skipped++;
             } catch (e2) {
               failed++;
               if (!firstErr) firstErr = String(e2 && e2.message || e2).replace(/\s+/g, ' ').slice(0, 260);
@@ -955,7 +1117,7 @@ async function restore(args, env) {
         }
       }
     }
-    console.log(`[restore] ${key}: ${ok} ok, ${failed} failed${firstErr ? ` — first error: ${firstErr}` : ''}`);
+    console.log(`[restore] ${key}: ${ok} ok, ${skipped} already present, ${failed} failed${firstErr ? ` — first error: ${firstErr}` : ''}`);
     tablesDone++;
     if (failed) tablesFailed++;
     if (failed) {
@@ -1000,14 +1162,37 @@ async function restore(args, env) {
         // supplies a default for buckets the source did not have at all.
         wanted.set(b.id, { id: b.id, public: b.public, cfg });
       }
+      // Clamp every bucket limit to the project's own cap, exactly as
+      // supabase-setup.mjs does. Without it `study-material` at 100 MB is
+      // refused on the free plan with 413 "Payload too large", the create throws,
+      // the caller only console.logged it — and the bucket plus every file in it
+      // were silently lost while the restore still printed `[restore] DONE` and
+      // exited 0. Clamping means the bucket exists and accepts uploads up to
+      // whatever the plan allows, which is strictly better than not existing.
+      const cap = await projectStorageCap(project, pat);
+      if (cap) console.log(`[restore] project storage cap: ${(cap / 1048576).toFixed(0)} MB`);
       for (const b of wanted.values()) {
-        const { public: _pub, ...opts } = b.cfg;
+        const { public: _pub, ...cfgOpts } = b.cfg;
+        const opts = { ...cfgOpts };
+        if (opts.file_size_limit && cap && opts.file_size_limit > cap) {
+          console.log(`[restore] ${b.id}: ${(opts.file_size_limit / 1048576).toFixed(0)} MB exceeds the project cap — ` +
+            `using ${(cap / 1048576).toFixed(0)} MB (upgrade the project to raise it)`);
+          opts.file_size_limit = cap;
+        }
         try {
           await st.createBucket(b.id, b.public, opts);
           const extra = REQUIRED_BUCKETS[b.id] && !manifest.buckets.some((m) => m.id === b.id)
             ? ' (required by the app; absent from the backup)' : '';
           console.log(`[restore] bucket ${b.id} ready (public=${b.public})${extra}`);
-        } catch (e) { console.log(`[restore] bucket ${b.id}: ${e.message.slice(0, 150)}`); }
+        } catch (e) {
+          // Not a log line: a bucket that cannot be created is data loss for
+          // every file it holds, and the old `catch { console.log }` let the run
+          // report success over exactly that loss.
+          bucketFailures++;
+          const msg = `bucket ${b.id}: ${String((e && e.message) || e).replace(/\s+/g, ' ').slice(0, 150)}`;
+          console.log(`[restore] ${msg}`);
+          emit({ phase: 'storage', level: 'error', msg });
+        }
       }
       let ok = 0, failed = 0;
       emit({ phase: 'storage', state: 'running', done: 0, total: manifest.storage_files.length, failed: 0 });
@@ -1043,8 +1228,18 @@ async function restore(args, env) {
   // failed printed `[restore] DONE` and exited 0, so the caller (transfer.mjs,
   // supabase-clone.mjs) saw success over a target that lost most of its rows. The
   // error text is already captured in `firstErr`.
-  if (tablesFailed > 0) {
-    const msg = `restore failed on ${tablesFailed} of ${order.length} table(s) — the target is incomplete`;
+  //
+  // The auth phase is in this gate too: auth.users and auth.identities failures
+  // were counted and printed but never acted on, so a restore that created zero
+  // accounts reported success. A target with no accounts cannot sign anyone in,
+  // whatever the table counters say.
+  const fatal = [];
+  if (tablesFailed > 0) fatal.push(`${tablesFailed} of ${order.length} table(s)`);
+  if (authUsersFailed > 0) fatal.push(`${authUsersFailed} auth.users row(s)`);
+  if (authIdentitiesFailed > 0) fatal.push(`${authIdentitiesFailed} auth.identities row(s)`);
+  if (bucketFailures > 0) fatal.push(`${bucketFailures} storage bucket(s)`);
+  if (fatal.length) {
+    const msg = `restore failed on ${fatal.join(', ')} — the target is incomplete`;
     console.error(`[restore] ${msg}`);
     emit({ phase: 'restore', level: 'error', msg });
     throw new Error(msg);

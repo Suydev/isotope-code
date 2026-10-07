@@ -22,6 +22,7 @@
   <div class="globalbar-inner">
     <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
     <nav class="globalbar-links" aria-label="Sections">
+      <a href="./dashboard.html">Dashboard</a>
       <a href="./getting-started.html">Get started</a>
       <a href="./architecture.html">Architecture</a>
       <a href="./api-reference.html">API</a>
@@ -70,6 +71,8 @@
 </header>
 
 <div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Overview</p>
+  <a href="./dashboard.html">Dashboard</a>
   <p class="drawer-label">Guides</p>
   <a href="./getting-started.html">Getting started</a>
   <a href="./configuration.html">Configuration</a>
@@ -387,7 +390,7 @@ where status != 'offline'
   partly broken. You can never create a connection for the others to act on.</p>
     </div>
 
-    <p>Fixed in <code>supabase/021_fix_buddy_handle_and_overview.sql</code>: bootstrap now
+    <p>Fixed in the shipped schema (<code>isotope-complete.sql</code>): bootstrap now
     writes the column and the JSONB key, and <code>request_buddy</code> accepts either, plus
     <code>users.username</code> — so accounts that enrolled before the fix, or never enrolled
     at all, stay findable. Underneath both was a third defect: <code>user_profiles</code> had
@@ -451,7 +454,7 @@ where status != 'offline'
       rights and so read nothing. Both preview RPCs were made
       <code>SECURITY DEFINER</code> (this is baked into <code>isotope-complete.sql</code>
       &mdash; the migration that first applied it is not split out as a separate
-      <code>supabase/020_…sql</code> file) rather than by adding a policy, since a preview is
+      <code>sql/…sql</code> file) rather than by adding a policy, since a preview is
       deliberately pre-authorisation and any policy permissive enough to allow it would mean
       &ldquo;anyone may read any invite row&rdquo;.</p>
     </div>
@@ -533,7 +536,7 @@ using ( public._has_group_role(group_id, (select auth.uid()), array['owner']) )<
       <a class="card tilt glass" href="./database.html">
         <span class="sheen" aria-hidden="true"></span>
         <h3 class="lift-sm">Database</h3>
-        <p>The 10 community tables and all 30 community functions.</p>
+        <p>The 8 community tables and all 30 community functions.</p>
         <span class="card-more">Read →</span>
       </a>
       <a class="card tilt glass" href="./troubleshooting.html">

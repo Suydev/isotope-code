@@ -99,7 +99,10 @@ load_env_keys() {
       case "$k" in
         SUPABASE_URL|SUPABASE_ANON_KEY|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ACCESS_TOKEN)
           v="${v%$'\r'}"
-          [[ -n "${!k:-}" ]] || declare -g "$k=$v"
+          # `declare -g` does NOT export — see note in supabase.sh. cmd_setup /
+          # cmd_check exec Node, which reads process.env, so the key must be
+          # exported here, not just set in the shell.
+          [[ -n "${!k:-}" ]] || { declare -g "$k=$v"; export "$k"; }
           ;;
       esac
     done < "$f"
@@ -190,6 +193,14 @@ resolve_service_key() {
       [[ "${1:-warn}" == "warn" ]] && warn "no valid SUPABASE_SERVICE_ROLE_KEY — storage will NOT be included"
     fi
   fi
+  # The function's exit status is the status of its LAST command. With no key
+  # found, that last command is the `[[ … ]] && warn …` test, which evaluates to
+  # FALSE — a return status of 1. Under `set -e` a bare `resolve_service_key`
+  # call therefore ABORTED the script at that line: a PAT-only or key-less
+  # backup died mid-flight with no error message, right after the credentials
+  # check had already passed. Callers treat this function as best-effort (they
+  # warn and continue with `--no-storage` semantics), so it must return 0.
+  return 0
 }
 
 # ── backup ──────────────────────────────────────────────────────────────────
@@ -230,8 +241,17 @@ cmd_backup() {
   export SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY SUPABASE_ACCESS_TOKEN
 
   mkdir -p "$BACKUP_DIR"
-  # prune any leftover work dirs from aborted runs
-  find "$BACKUP_DIR" -maxdepth 1 -type d -name 'work-*' -exec rm -rf {} + 2>/dev/null || true
+  # Prune leftover work dirs from ABORTED runs — but only ones old enough to be
+  # abandoned, and never this run's own directory.
+  #
+  # `find … -name 'work-*' -exec rm -rf` deleted EVERY work-* dir at the start of
+  # every run, so two concurrent backups (the console runs them detached, and a
+  # user can start one from the CLI at the same time) destroyed each other's
+  # half-written dumps mid-flight. The first run then "succeeded" with the
+  # second's files missing from it. A 1-day floor cannot belong to a live run,
+  # because a backup that has been going for a day is already broken.
+  find "$BACKUP_DIR" -maxdepth 1 -type d -name 'work-*' -mtime +1 \
+       ! -name "work-$TS" -exec rm -rf {} + 2>/dev/null || true
   local work="$BACKUP_DIR/work-$TS"
   mkdir -p "$work/db"
   CLEANUP+=( "$work" )

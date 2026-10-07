@@ -1,0 +1,355 @@
+/* ============================================================================
+   IsotopeAI Documentation — Dashboard
+   ----------------------------------------------------------------------------
+   Styles for docs/dashboard.html ONLY.
+
+   Why a separate file rather than a block appended to site.css: this page ships
+   22 siblings that are hand-built and visually frozen. A new selector block in
+   the shared sheet is a shared-sheet regression surface — a mistyped `.card`
+   or a `.grid` override repaints pages nobody was testing. Everything here is
+   namespaced under `.dash-`, and the whole file loads from one <link> that only
+   dashboard.html carries. Zero blast radius by construction.
+
+   What it does NOT do, deliberately:
+
+     * It defines no new colour, spacing or radius token. Every value below
+       resolves to an existing --c-*, --s-*, --r-* or --dur-* custom property
+       from site.css, so the dashboard cannot drift out of the palette: change
+       the token and the dashboard follows, same as every other page.
+     * It defines no new @keyframes. Entrance motion is the existing system —
+       pageOpen, wordRise/wordUp, swapCycle, auroraIn, reveal-3d, enterUp,
+       edgeSpin — all of which already carry a prefers-reduced-motion path.
+       Adding motion here would mean adding a second set of reduced-motion
+       opt-outs, which is how a site ends up with one of them missed.
+
+   Conventions match the rest of the docs: 4px spacing scale, semantic colour
+   tokens only, every interactive target at or above the 44px floor, focus
+   always visible and never removed.
+   ========================================================================= */
+
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
+
+.dash-hero-lead {
+  max-width: 46ch;
+  margin-inline: auto;
+}
+
+/* Five-column stat strip. `.stat-strip` on the landing page is a four-up grid;
+   this one carries five counts, so it is its own class rather than a modifier
+   that would fight the existing column count. Same hairline treatment, same
+   `--ticker`, same `--dur-enter` easing — it reads as the same component. */
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin-top: clamp(3rem, 7vh, 5rem);
+  border-top: 1px solid rgba(17, 24, 39, .14);
+}
+@media (min-width: 700px)  { .dash-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .dash-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+.dash-stats > div {
+  padding: var(--s-5) var(--s-4) var(--s-5) 0;
+  border-bottom: 1px solid rgba(17, 24, 39, .14);
+}
+@media (min-width: 700px) {
+  .dash-stats > div {
+    padding-inline-end: var(--s-5);
+    border-inline-start: 1px solid rgba(17, 24, 39, .14);
+  }
+  .dash-stats > div:nth-child(2n + 1) { border-inline-start: 0; }
+}
+@media (min-width: 1000px) {
+  .dash-stats > div { border-bottom: 0; }
+  .dash-stats > div:first-child { border-inline-start: 0; }
+}
+
+/* ── Browse: filters ──────────────────────────────────────────────────────── */
+
+.dash-browse-head {
+  display: grid;
+  gap: var(--s-5);
+  margin-bottom: var(--s-7);
+}
+
+/* The filter field is a model of `.sidebar-search`, not a copy of it: same 3:1
+   border (measured there — the --c-border tokens are divider-tuned and fail
+   1.4.11 as a control boundary), same 44px floor, same ring-on-container
+   behaviour. Only the width differs, because this one is full-bleed. */
+.dash-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding-inline: var(--s-4);
+  background: var(--c-surface);
+  border: 1px solid #8b929c;
+  border-radius: var(--r-md);
+  box-shadow: var(--e-1);
+  transition: border-color var(--dur-fast) var(--ease),
+              box-shadow var(--dur-fast) var(--ease);
+}
+:root[data-theme='dark'] .dash-field { border-color: #6e648a; }
+
+.dash-field:focus-within {
+  border-color: var(--c-accent);
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+.dash-field .askbar-icon { color: var(--c-text-faint); }
+
+.dash-field-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  background: none;
+  /* 16px floor: below it iOS zooms the page on focus. */
+  font: 400 1rem/1.4 var(--f-sans);
+  color: var(--c-text);
+}
+.dash-field-input::placeholder { color: var(--c-text-faint); }
+.dash-field-input:focus,
+.dash-field-input:focus-visible { outline: none; }
+.dash-field-input::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+/* A clear button appears only once there is something to clear. Kept in the DOM
+   and toggled with `hidden` so it cannot shift the field's contents when it
+   appears — an input that reflows as you type is a cursor that moves under you. */
+.dash-field-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--c-text-faint);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease),
+              background-color var(--dur-fast) var(--ease);
+}
+.dash-field-clear:hover { color: var(--c-text); background: var(--c-bg-subtle); }
+.dash-field-clear svg { width: 16px; height: 16px; }
+.dash-field-clear[hidden] { display: none; }
+
+/* Area toggles. Real <button>s with aria-pressed rather than a styled <div>:
+   they are in the tab order, they answer Enter and Space for free, and a screen
+   reader announces the pressed state without any ARIA being invented. */
+.dash-areas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.dash-area {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;                 /* touch target floor, same as .btn */
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+  color: var(--c-text-muted);
+  font: 500 var(--t-sm)/1 var(--f-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease);
+}
+.dash-area:hover { color: var(--c-text); background: var(--c-bg-subtle); }
+
+/* Pressed state inverts. --c-text on --c-bg is 18.4:1 light / 16.5:1 dark, so
+   the label stays far above the floor after inversion; the alternative — a
+   brand fill — measured 4.2:1 at the top of the gradient and would have been a
+   fail. Weight is raised as well as colour, so the state survives a greyscale
+   print and a reader who cannot separate the two. */
+.dash-area[aria-pressed='true'] {
+  background: var(--c-text);
+  border-color: var(--c-text);
+  color: var(--c-bg);
+  font-weight: 600;
+}
+
+.dash-area-count {
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  opacity: .75;
+}
+
+/* Result count. role="status" so the change is announced without stealing focus
+   from the field the reader is still typing in. */
+.dash-status {
+  margin: var(--s-4) 0 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-text-faint);
+}
+
+/* ── Browse: groups + grid ────────────────────────────────────────────────── */
+
+.dash-group { margin-bottom: var(--s-8); }
+.dash-group[hidden] { display: none; }
+
+.dash-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--c-border);
+}
+.dash-group-head h3 {
+  font-size: var(--t-h3);
+}
+.dash-group-head .dash-group-note {
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--c-text-faint);
+}
+
+.dash-grid {
+  display: grid;
+  gap: var(--s-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 620px)  { .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .dash-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.dash-card[hidden] { display: none; }
+
+/* Cards carry the search keywords as a visible tag row rather than hiding them
+   in an attribute. It means the reader can see why a filter matched, and it
+   means the terms are real text — reachable by find-in-page, not just by the
+   script that happens to be looking. */
+.dash-card .dash-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  margin-top: auto;
+  padding-top: var(--s-3);
+}
+.dash-card .dash-tags .pill { font-weight: 500; }
+
+/* A card is a link, so its accessible name is everything inside it. The tag row
+   is part of that name — good, because it is genuinely what the page is about,
+   and a reader hearing "Database, …, schema, migration, rls" is better served
+   than one hearing only the title. */
+.dash-card .dash-arrow {
+  margin-top: auto;
+  padding-top: var(--s-3);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--c-accent);
+}
+
+.dash-empty {
+  padding: var(--s-6);
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--r-lg);
+  background: var(--c-bg-subtle);
+  text-align: center;
+}
+.dash-empty[hidden] { display: none; }
+.dash-empty p { margin: 0 0 var(--s-2); color: var(--c-text-muted); }
+.dash-empty .dash-empty-q {
+  font-family: var(--f-mono);
+  color: var(--c-text);
+  font-weight: 600;
+}
+
+/* ── Recent changes ───────────────────────────────────────────────────────── */
+
+.dash-rel-list {
+  display: grid;
+  gap: var(--s-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 820px)  { .dash-rel-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .dash-rel-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.dash-rel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-5);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+  box-shadow: var(--e-1);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--dur) var(--ease),
+              box-shadow var(--dur) var(--ease),
+              transform var(--dur) var(--ease);
+}
+.dash-rel:hover {
+  border-color: var(--c-border-strong);
+  box-shadow: var(--e-2);
+  transform: translateY(-2px);
+  color: inherit;
+}
+
+.dash-rel-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.dash-rel-version {
+  font: 700 1.125rem/1.2 var(--f-mono);
+  letter-spacing: -.02em;
+  color: var(--c-text);
+}
+
+.dash-rel-date {
+  font-size: var(--t-xs);
+  color: var(--c-text-faint);
+  font-family: var(--f-mono);
+}
+
+.dash-rel-sum {
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--c-text-muted);
+  line-height: 1.55;
+}
+
+/* Two highlights per release. Three pushes the card past the fold on a laptop
+   and the changelog is one click away anyway — the point of this panel is what
+   changed recently, not the whole entry. */
+.dash-rel-points {
+  margin: 0;
+  padding-inline-start: var(--s-4);
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--c-text-faint);
+}
+.dash-rel-points li + li { margin-top: var(--s-1); }
+
+/* The list is populated by dashboard.js after fetching changelog.html. Until it
+   lands — and permanently if the fetch fails — this holds the way out, so the
+   section is never an empty box with a heading promising content. */
+.dash-rel-note {
+  margin: var(--s-4) 0 0;
+  font-size: var(--t-sm);
+  color: var(--c-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-field { transition: none; }
+  .dash-area, .dash-field-clear, .dash-rel { transition: none; }
+  .dash-rel:hover { transform: none; }
+}

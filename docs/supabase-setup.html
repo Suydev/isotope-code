@@ -28,6 +28,7 @@
   <div class="globalbar-inner">
     <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
     <nav class="globalbar-links" aria-label="Sections">
+      <a href="./dashboard.html">Dashboard</a>
       <a href="./getting-started.html" aria-current="true">Get started</a>
       <a href="./architecture.html">Architecture</a>
       <a href="./api-reference.html">API</a>
@@ -64,6 +65,8 @@
 </header>
 
 <div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Overview</p>
+  <a href="./dashboard.html">Dashboard</a>
   <p class="drawer-label">Guides</p>
   <a href="./getting-started.html">Getting started</a>
   <a href="./configuration.html">Configuration</a>
@@ -168,7 +171,7 @@
       <table>
         <thead><tr><th>Phase</th><th>What it does</th></tr></thead>
         <tbody>
-          <tr><td><strong>schema</strong></td><td>1,812 statements in batches of 50 — 42 tables, 80 public functions, 15 triggers, 188 policpolicies. Aborts on the first real failure rather than continuing against a half-built database.</td></tr>
+          <tr><td><strong>schema</strong></td><td>2,274 statements in batches of 50 — 42 tables, 76 public functions, 16 triggers, 184 policies. Aborts on the first real failure rather than continuing against a half-built database.</td></tr>
           <tr><td><strong>storage</strong></td><td>All four buckets with their size caps and MIME allow-lists. Clamps any cap above the project's plan limit instead of failing.</td></tr>
           <tr><td><strong>auth</strong></td><td>The signup trigger on <code>auth.users</code>. This is the step the manual route cannot express — see below.</td></tr>
           <tr><td><strong>verify</strong></td><td>Eight assertions that the project can actually run the app, not just that the SQL returned success.</td></tr>
@@ -274,7 +277,7 @@ SUPABASE_ACCESS_TOKEN</pre>
       <table>
         <thead><tr><th>Fact</th><th>Consequence</th></tr></thead>
         <tbody>
-          <tr><td><code>isotope-complete.sql</code> is <strong>272&nbsp;KB / 5,368 lines</strong></td><td>Paste it as a file upload, not into the editor box. The browser SQL editor will accept it, but a paste that large is slow and easy to truncate silently.</td></tr>
+          <tr><td><code>isotope-complete.sql</code> is <strong>339&nbsp;KB / 6,189 lines</strong></td><td>Paste it as a file upload, not into the editor box. The browser SQL editor will accept it, but a paste that large is slow and easy to truncate silently.</td></tr>
           <tr><td>The whole file is wrapped in <code>BEGIN; … COMMIT;</code></td><td>It is one transaction. Either the entire schema lands or none of it does — there is no half-applied state to clean up.</td></tr>
         </tbody>
       </table>
@@ -284,9 +287,9 @@ SUPABASE_ACCESS_TOKEN</pre>
 
     <div class="stat-strip">
       <div><span class="ticker" data-ticker="42" aria-hidden="true">0</span><span class="sr-only">42</span><span class="ticker-label">Tables</span></div>
-      <div><span class="ticker" data-ticker="82" aria-hidden="true">0</span><span class="sr-only">82</span><span class="ticker-label">Functions</span></div>
+      <div><span class="ticker" data-ticker="83" aria-hidden="true">0</span><span class="sr-only">83</span><span class="ticker-label">Functions</span></div>
       <div><span class="ticker" data-ticker="184" aria-hidden="true">0</span><span class="sr-only">184</span><span class="ticker-label">RLS policies</span></div>
-      <div><span class="ticker" data-ticker="15" aria-hidden="true">0</span><span class="sr-only">15</span><span class="ticker-label">Triggers</span></div>
+      <div><span class="ticker" data-ticker="16" aria-hidden="true">0</span><span class="sr-only">16</span><span class="ticker-label">Triggers</span></div>
     </div>
 
     <p>Row-level security is enabled on <strong>all 42</strong> tables — not most of them. If
@@ -361,7 +364,7 @@ SUPABASE_ACCESS_TOKEN</pre>
         <tbody>
           <tr><td><code>pgcrypto</code></td><td><code>gen_random_uuid()</code> for primary keys.</td></tr>
           <tr><td><code>uuid-ossp</code></td><td>Legacy UUID generation, kept for older function bodies.</td></tr>
-          <tr><td><code>plpgsql</code></td><td>The language every one of the 82 functions is written in.</td></tr>
+          <tr><td><code>plpgsql</code></td><td>The language every one of the 83 functions is written in.</td></tr>
           <tr><td><code>pg_stat_statements</code></td><td>Query statistics. Used when diagnosing a slow leaderboard.</td></tr>
           <tr><td><code>supabase_vault</code></td><td>Supabase's own secret storage. Present in the dump because the platform expects it.</td></tr>
         </tbody>
@@ -398,7 +401,7 @@ SUPABASE_ACCESS_TOKEN</pre>
   returned <code>404 NoSuchBucket</code>. Nothing caught it because the backup tool's reference
   point was the database — it dumped three buckets, compared against three, and passed. If you
   are on an older project, apply
-  <code>supabase/023_wire_missing_storage_buckets.sql</code> or run
+  <code>supabase-setup</code> or run
   <code>./supabase.sh check</code>, which now asserts the required set rather than whatever
   happens to be there.</p>
     </div>
@@ -408,7 +411,7 @@ SUPABASE_ACCESS_TOKEN</pre>
     in any reachable bundle. Its only mention anywhere was a health check asserting it existed,
     which is worse than no check: it could only ever fail for a reason nobody should act on,
     and it passed happily while the two buckets above were absent. If your project still has
-    it, <code>supabase/024_drop_unused_notes_bucket.sql</code> removes it — and refuses if it
+    it, <code>supabase-check</code> reports it — and refuses if it
     turns out to contain anything.</p>
 
     <div class="note warn glass">
@@ -721,7 +724,7 @@ curl -s http://127.0.0.1:3000/api/health | python3 -m json.tool</pre>
 
     <h2 class="rise" id="upgrading">Upgrading an existing project <a class="anchor" href="#upgrading" aria-label="Link to this section">#</a></h2>
     <p><code>isotope-complete.sql</code> is safe to re-run and will add anything missing.
-    Measured on a live project: 1771 statements, 0 failures on the first run and 0 on a
+    Measured on a live project: 2,274 statements, 0 failures on the first run and 0 on a
     second run over the same database, with table, policy, function, trigger, index and
     constraint counts identical afterwards. Three patches apply only to older projects:</p>
 
@@ -737,9 +740,9 @@ curl -s http://127.0.0.1:3000/api/health | python3 -m json.tool</pre>
     <code>daily_read_all</code> policies.</td><td><strong>Yes</strong> — drops 7 policies and re-creates 4, so re-running converges rather than accumulating</td></tr>
           <tr><td><code>community-patch-v6.sql</code></td><td>The cumulative community patch, also served by
     <code>/__admin/patch</code>. Supersedes v4. <strong>Also removes Events and Store</strong>
-    — see the warning below.</td><td><strong>Yes</strong> — 932 statements. Every <code>CREATE</code> is <code>IF NOT EXISTS</code> or <code>OR REPLACE</code>, and every <code>DROP</code> is <code>IF EXISTS</code></td></tr>
+    — see the warning below.</td><td><strong>Yes</strong> — 533 statements. Every <code>CREATE</code> is <code>IF NOT EXISTS</code> or <code>OR REPLACE</code>, and every <code>DROP</code> is <code>IF EXISTS</code></td></tr>
           <tr><td><code>performance-patch.sql</code></td><td>Indexes for RLS membership subqueries and leaderboard date sorts.
-    Adds 9 indexes and re-creates 28 policies over a fresh install.</td><td><strong>Yes</strong> — 73 statements, all idempotent</td></tr>
+    Adds 9 indexes and re-creates 28 policies over a fresh install.</td><td><strong>Yes</strong> — 63 statements, all idempotent</td></tr>
         </tbody>
       </table>
     </div>

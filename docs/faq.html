@@ -22,6 +22,7 @@
   <div class="globalbar-inner">
     <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
     <nav class="globalbar-links" aria-label="Sections">
+      <a href="./dashboard.html">Dashboard</a>
       <a href="./getting-started.html">Get started</a>
       <a href="./architecture.html">Architecture</a>
       <a href="./api-reference.html">API</a>
@@ -70,6 +71,8 @@
 </header>
 
 <div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Overview</p>
+  <a href="./dashboard.html">Dashboard</a>
   <p class="drawer-label">Guides</p>
   <a href="./getting-started.html">Getting started</a>
   <a href="./configuration.html">Configuration</a>
@@ -203,7 +206,7 @@
     <p>In <code>.env</code>, read only by server handlers. It is never injected into a page and never sent to the browser. Only needed for admin mode and startup backfills.</p>
 
     <h2 class="rise" id="rls">Is my data protected from other users? <a class="anchor" href="#rls" aria-label="Link to this section">#</a></h2>
-    <p>Row-level security is enabled on all 42 tables with 153 policies. Reads and writes from the browser are filtered by policy using the caller’s own JWT. Group content is membership-gated through <code>SECURITY DEFINER</code> helpers. See <a href="./database.html#rls-model">Database</a>.</p>
+    <p>Row-level security is enabled on all 42 tables with 184 policies. Reads and writes from the browser are filtered by policy using the caller’s own JWT. Group content is membership-gated through <code>SECURITY DEFINER</code> helpers. See <a href="./database.html#rls-model">Database</a>.</p>
 
     <h2 class="rise" id="contribute">Can I contribute? <a class="anchor" href="#contribute" aria-label="Link to this section">#</a></h2>
     <p>Yes. See <a href="./contributing.html">Contributing</a> for repository layout, the CI gates and how to verify a change locally.</p>

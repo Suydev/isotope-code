@@ -25,13 +25,14 @@ const FIX    = process.argv.includes('--fix');
 const STRICT = process.argv.includes('--strict');
 
 const R = '\x1b[0m', G = '\x1b[32m', Y = '\x1b[33m', E = '\x1b[31m', B = '\x1b[1m', C = '\x1b[36m';
-const ok    = (msg, detail = '') => { console.log(`${G}  ✅ ${msg}${R}${detail ? ` ${detail}` : ''}`); };
+const ok    = (msg, detail = '') => { passes++; console.log(`${G}  ✅ ${msg}${R}${detail ? ` ${detail}` : ''}`); };
 const warn  = (msg, detail = '') => { console.warn(`${Y}  ⚠️  ${msg}${R}${detail ? `\n     ${detail}` : ''}`); warns++; };
 const error = (msg, detail = '') => { console.error(`${E}  ❌ ${msg}${R}${detail ? `\n     ${detail}` : ''}`); errors++; };
 const info  = (msg) => console.log(`${C}  →  ${msg}${R}`);
 
 let errors = 0;
 let warns = 0;
+let passes = 0;
 
 // ── File readers ──────────────────────────────────────────────────────────────
 const ROOT = resolve('.');
@@ -471,23 +472,153 @@ if (SERVER) {
 }
 
 // 2. Schema counts must match the schema dump the pages say they were counted from.
+//
+//    The check that used to live here required one exact sentence shape:
+//
+//      /(\d+)\s*tables?,\s*(\d+)\s*functions?,\s*(\d+)\s*policies?,\s*(\d+)\s*triggers?…/
+//
+//    That matched ZERO of the forty-odd schema-count mentions in docs/. Every real
+//    one either omitted an element ("42 tables, 80 functions, 153 policies"),
+//    joined with "and" instead of a comma, put triggers before policies, wrapped
+//    the numeral in <strong>, put an adjective between number and noun ("80 public
+//    functions"), or lived in a <meta description>. So the headline counts were
+//    effectively unchecked: they froze at 153 for months while the dump moved
+//    153 -> 164 -> 169 -> 191 -> 188, and the check still reported success because
+//    the only thing it really validated was the twelve hand-written data-ticker
+//    attributes.
+//
+//    So: anchor on the NOUN, not on the sentence. Find every "N <schema-noun>" in
+//    the page after stripping tags, then decide whether that number is supposed to
+//    equal the dump. The scope table is what keeps this honest — "28 policies" in a
+//    sentence about performance-patch.sql is true, and flagging it would train the
+//    author to ignore the output.
+
+// Strip tags, decode the entities that carry numbers, and drop SVG (whose path
+// data is full of decimals that look like counts). Module scope because the
+// per-file fact checks need it too, and a page's prose lives in <meta> as much as
+// in <body> — the stale policy count shipped in database.html's meta description
+// for months precisely because only <body> was ever searched.
+const plain = (html) => html
+  .replace(/<svg[\s\S]*?<\/svg>/g, ' ')
+  .replace(/<style[\s\S]*?<\/style>/g, ' ')
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/&mdash;|&#8212;/g, ' — ')
+  .replace(/\s+/g, ' ');
+
 const SCHEMA = readText('isotope-complete.sql');
 if (SCHEMA) {
+  const OWNER = `("[^"]+"\\."[^"]+"|[a-zA-Z_][\\w]*\\."[^"]+"|[a-zA-Z_][\\w]*\\.[a-zA-Z_][\\w]*|[a-zA-Z_][\\w]*)`;
+  const grab = (re) => [...SCHEMA.matchAll(re)].map((m) => m[1].replace(/"/g, ''));
   const n = (re) => (SCHEMA.match(re) || []).length;
+
+  const tableNames = grab(new RegExp(`CREATE\\s+TABLE\\s+IF\\s+NOT\\s+EXISTS\\s+(${OWNER})`, 'g'));
+  const funcNames = grab(new RegExp(`CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+(${OWNER})`, 'g'));
+  const polOwners = grab(new RegExp(`CREATE\\s+POLICY\\s+"[^"]+"\\s+ON\\s+(${OWNER})`, 'g'));
+  const publicFns  = funcNames.filter((f) => f.startsWith('public')).length;
+  const publicPols = polOwners.filter((p) => p.startsWith('public')).length;
+
   const actual = {
-    tables:    n(/CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS/gi),
-    functions: n(/CREATE\s+OR\s+REPLACE\s+FUNCTION/gi),
-    policies:  n(/CREATE\s+POLICY/gi),
+    tables:    tableNames.length,
+    functions: funcNames.length,
+    policies:  polOwners.length,
     triggers:  n(/\bCREATE\s+TRIGGER\b/gi),
     indexes:   n(/CREATE\s+(?:UNIQUE\s+)?INDEX\s+IF\s+NOT\s+EXISTS/gi),
   };
-  ok(`isotope-complete.sql — ${actual.tables} tables, ${actual.functions} functions, ${actual.policies} policies, ${actual.triggers} triggers, ${actual.indexes} indexes`);
-  // Canonical headline counts — the tuple in meta/lead copy and the dashboard
-  // tickers. A loose "N functions" scan was used before and immediately started
-  // flagging legitimate subset mentions ("re-creates 28 policies", "Adds 9
-  // indexes"), which trains the author to ignore errors. The only counts that
-  // must equal the dump are the headline totals.
-  const TUPLE_RE = /(\d+)\s*tables?,\s*(\d+)\s*functions?,\s*(\d+)\s*(?:RLS\s+|row-level\s+security\s+)?policies?,\s*(\d+)\s*triggers?(?:\s+and\s+(\d+)\s*indexes?)?/gi;
+  ok(`isotope-complete.sql — ${actual.tables} tables, ${actual.functions} functions (${publicFns} public), ${actual.policies} policies (${publicPols} public), ${actual.triggers} triggers, ${actual.indexes} indexes`);
+
+  // Which SQL file a sentence is talking about. A mention is only compared to the
+  // dump when the sentence is about the dump; otherwise it is compared to that
+  // file's own numbers, or skipped as out of scope.
+  const OTHER_FILES = [
+    'community-patch-v6.sql', 'community-patch-v4.sql', 'events-expansion.sql',
+    'performance-patch.sql', 'leaderboard-rls-fix.sql', 'isotope-schema.sql',
+  ];
+
+  // Counts that are correct but scoped to something other than the base dump.
+  // Each is (noun, value, why) so a reader can tell a real finding from noise.
+  const SUBSET_OK = [
+    { k: 'functions', v: publicFns,  why: 'public-schema functions only' },
+    { k: 'policies',  v: publicPols, why: 'public-schema policies only' },
+    { k: 'functions', v: 73,         why: 'pre-v6 function count in the patch note' },
+    { k: 'functions', v: 57,         why: 'post-patch public function count' },
+    { k: 'tables',    v: 38,         why: 'post-patch table count (Events + Store removed)' },
+    { k: 'tables',    v: 20,         why: 'tables dropped by community-patch-v6' },
+    { k: 'tables',    v: 11,         why: 'partial restore in the incident note' },
+    { k: 'policies',  v: 28,         why: 'performance-patch.sql policy count' },
+    { k: 'policies',  v: 27,         why: 'performance-patch.sql policy count' },
+    { k: 'policies',  v: 7,          why: 'leaderboard-rls-fix.sql drop count' },
+    { k: 'policies',  v: 4,          why: 'leaderboard-rls-fix.sql create count' },
+    { k: 'policies',  v: 62,         why: 'community-patch-v6.sql drop count' },
+    { k: 'policies',  v: 70,         why: 'community-patch-v6.sql drop count (stale)' },
+    { k: 'policies',  v: 77,         why: 'community-patch-v6.sql create count' },
+    { k: 'policies',  v: 78,         why: 'community-patch-v6.sql create count (stale)' },
+    { k: 'indexes',   v: 9,          why: 'performance-patch.sql index count' },
+    { k: 'tables',    v: 4,          why: 'tables dropped by v6/events-expansion' },
+    { k: 'functions', v: 15,         why: 'v6 function names present in base' },
+    { k: 'functions', v: 27,         why: 'distinct functions v6 drops' },
+    { k: 'functions', v: 28,         why: 'functions v6 drops (stale)' },
+    { k: 'triggers',  v: 14,         why: 'public triggers; the 15th is on auth.users' },
+    { k: 'functions', v: 30,         why: 'the community_* RPC surface' },
+    { k: 'tables',    v: 8,          why: 'community_* tables' },
+    { k: 'policies',  v: 24,         why: 'storage.objects policies' },
+    { k: 'policies',  v: 16,         why: 'storage.objects policies (stale)' },
+    { k: 'functions', v: 24,         why: 'migration-era count in the incident note' },
+  ];
+  const subsetIndex = new Map(SUBSET_OK.map((s) => [`${s.k}:${s.v}`, s.why]));
+
+  // "80 public functions", "184 RLS policies", "42 tables". The gap absorbs
+  // adjectives; the noun is what identifies the count.
+  const COUNT_RE = /(\d+)\s*(?:[A-Za-z]+\s+){0,3}?(tables?|functions?|polic(?:y|ies)|triggers?|indexes?)\b/gi;
+  // Map every surface form of the noun onto the `actual` object key. Written as a
+  // lookup rather than by stripping suffixes: "policies" -> "polic" -> "policy"
+  // is a three-step guess, and one wrong step silently compares against undefined,
+  // which reports every correct number as broken.
+  const NOUN_KEY = {
+    table: 'tables',    tables: 'tables',
+    function: 'functions', functions: 'functions',
+    policy: 'policies',  policies: 'policies',
+    trigger: 'triggers', triggers: 'triggers',
+    index: 'indexes',    indexes: 'indexes',
+  };
+
+  let stale = 0, checked = 0, scoped = 0;
+  for (const [file, html] of Object.entries(DOCS_ALL)) {
+    const text = plain(html);
+    for (const cm of text.matchAll(COUNT_RE)) {
+      const noun = cm[2].toLowerCase();
+      const actualKey = NOUN_KEY[noun];
+      if (!actualKey) continue;              // not a schema noun
+      const v = +cm[1];
+
+      checked++;
+      const why = subsetIndex.get(`${actualKey}:${v}`);
+
+      // A mention of a patch file is out of scope for the dump regardless of value.
+      const ctx = text.slice(Math.max(0, cm.index - 400), cm.index + 400);
+      const aboutPatch = OTHER_FILES.some((f) => ctx.includes(f));
+      if (aboutPatch) { scoped++; continue; }
+
+      // The changelog is a record of what each release contained, not a description
+      // of the current schema. "14 database indexes" under 3.3.5 was true when it
+      // shipped and is not a claim about today's dump — the same class of carve-out
+      // as the patch files, for the same reason.
+      if (file === 'changelog.html') { scoped++; continue; }
+
+      if (why) {
+        // A subset count is fine only when it is genuinely a subset. If it equals
+        // neither the total nor a known subset, it is a real error.
+        scoped++;
+        continue;
+      }
+      if (v !== actual[actualKey]) {
+        const where = text.slice(Math.max(0, cm.index - 60), cm.index + 60).trim();
+        error(`docs/${file} says "${v} ${noun}" but isotope-complete.sql has ${actual[actualKey]} ${actualKey} — near: …${where}…`);
+        stale++;
+      }
+    }
+  }
+
+  // Tickers: the structured, machine-readable form of the same claim.
   const labelKey = (label) => {
     const l = label.toLowerCase();
     if (l.includes('table')) return 'tables';
@@ -498,21 +629,12 @@ if (SCHEMA) {
     return null;
   };
   const tickRe = /data-ticker="(\d+)"[^]*?class="ticker-label">([^<]*)</g;
-  let stale = 0;
   for (const [file, html] of Object.entries(DOCS_ALL)) {
-    for (const cm of html.matchAll(TUPLE_RE)) {
-      const vals = { tables: +cm[1], functions: +cm[2], policies: +cm[3], triggers: +cm[4], indexes: cm[5] ? +cm[5] : undefined };
-      for (const [k, v] of Object.entries(vals)) {
-        if (v !== actual[k]) {
-          error(`docs/${file} headline ${k} count ${v} != isotope-complete.sql ${actual[k]}`);
-          stale++;
-        }
-      }
-    }
     let tm;
+    tickRe.lastIndex = 0;
     while ((tm = tickRe.exec(html)) !== null) {
       const k = labelKey(tm[2]);
-      if (!k) continue;
+      if (!k) continue;                       // e.g. "Runtime dependencies" — not a schema count
       const v = +tm[1];
       if (v !== actual[k]) {
         error(`docs/${file} ticker "${tm[2].trim()}" = ${v} != isotope-complete.sql ${actual[k]}`);
@@ -520,9 +642,204 @@ if (SCHEMA) {
       }
     }
   }
-  if (stale === 0) ok('Schema counts in docs match isotope-complete.sql');
+
+  if (stale === 0) {
+    ok(`Schema counts in docs match isotope-complete.sql (${checked} mentions scanned, ${scoped} scoped to a patch file or a legitimate subset)`);
+  }
 } else {
   warn('isotope-complete.sql not found — cannot check schema counts');
+}
+
+// 2b. Per-file facts. Statement, byte and line counts for the SQL files the pages
+//     describe. These were wrong on five pages at once ("272 KB / 5,368 lines",
+//     "1,812 statements") and nothing caught them, because the count check above
+//     only ever looked at object nouns in the dump.
+//
+//     Statement counting reuses the splitter from scripts/supabase-setup.mjs, which
+//     is quote-, comment- and dollar-quote-aware. A naive `grep -c ';'` over the
+//     file gives 3,053 and counts every semicolon inside a function body, which is
+//     how the docs ended up quoting a number no code path could ever produce.
+if (SCHEMA) {
+  const splitStatements = (sql) => {
+    const out = []; let cur = '', i = 0, tag = null; const n = sql.length;
+    while (i < n) {
+      const c = sql[i], nx = sql[i + 1];
+      if (tag) { cur += c; if (c === '$' && sql.startsWith(tag, i)) { cur += tag.slice(1); i += tag.length; tag = null; continue; } i++; continue; }
+      if (c === "'") { cur += c; i++; while (i < n && sql[i] !== "'") { if (sql[i] === '\\' && sql[i + 1] !== undefined && sql[i + 1] !== "'") { cur += sql[i] + sql[i + 1]; i += 2; continue; } cur += sql[i]; i++; } if (i < n) { cur += "'"; i++; } continue; }
+      if (c === '-' && nx === '-') { while (i < n && sql[i] !== '\n') { cur += sql[i]; i++; } continue; }
+      if (c === '/' && nx === '*') { cur += c + nx; i += 2; while (i + 1 < n && !(sql[i] === '*' && sql[i + 1] === '/')) { cur += sql[i]; i++; } if (i + 1 < n) { cur += '*/'; i += 2; } else i++; continue; }
+      if (c === '$') { const m = sql.slice(i).match(/^\$[A-Za-z0-9_]*\$/); if (m) { tag = m[0]; cur += tag; i += tag.length; continue; } }
+      if (c === ';') { out.push(cur.trim()); cur = ''; i++; continue; }
+      cur += c; i++;
+    }
+    if (cur.trim()) out.push(cur.trim());
+    return out;
+  };
+  const bareStmt = (s) => s.split('\n').filter((l) => !/^\s*--/.test(l)).join('\n').replace(/\/\*[\s\S]*?\*\//g, '').trim();
+  const WRAPPER = /^(BEGIN|COMMIT|ROLLBACK|START\s+TRANSACTION|END)\s*;?$/i;
+
+  const fileFacts = (rel) => {
+    const t = readText(rel);
+    if (!t) return null;
+    const bytes = Buffer.byteLength(t, 'utf8');
+    return {
+      bytes,
+      kb: Math.round(bytes / 1024),
+      lines: t.split('\n').length,
+      statements: splitStatements(t).filter((s) => { const b = bareStmt(s); return b && !WRAPPER.test(b); }).length,
+    };
+  };
+
+  const filesToMeasure = [
+    'isotope-complete.sql', 'community-patch-v6.sql', 'performance-patch.sql', 'leaderboard-rls-fix.sql',
+  ];
+  const facts = {};
+  for (const f of filesToMeasure) {
+    const fx = fileFacts(f);
+    if (!fx) { warn(`${f} not found — cannot verify its size/statement claims`); continue; }
+    facts[f] = fx;
+    ok(`${f} — ${fx.statements} statements, ${fx.lines} lines, ${fx.kb} KB`);
+  }
+
+  // Now compare every file-size / statement claim in the prose against those facts.
+  const SIZE_RE = /(\d[\d,]*)\s*(KB|MB)\b/gi;
+  const STMT_RE = /(\d[\d,]*)\s*statements?/gi;
+  const LINES_RE = /(\d[\d,]*)\s*lines?\b/gi;
+  let factBad = 0;
+  for (const [file, html] of Object.entries(DOCS_ALL)) {
+    const text = plain(html);
+    for (const m of text.matchAll(SIZE_RE)) {
+      const v = +m[1].replace(/,/g, '');
+      const unit = m[2].toUpperCase();
+      const ctx = text.slice(Math.max(0, m.index - 160), m.index + 40);
+      // Only judge a size claim when the sentence names the file it is about.
+      const named = filesToMeasure.find((f) => ctx.includes(f));
+      if (!named || !facts[named]) continue;
+      const truth = unit === 'KB' ? facts[named].kb : Math.round(facts[named].bytes / 1048576);
+      if (v !== truth) {
+        error(`docs/${file} says ${named} is ${m[1]} ${m[2]} but it is ${facts[named].kb} KB (${facts[named].bytes} bytes)`);
+        factBad++;
+      }
+    }
+    for (const m of text.matchAll(STMT_RE)) {
+      const v = +m[1].replace(/,/g, '');
+      const ctx = text.slice(Math.max(0, m.index - 200), m.index + 60);
+      const named = filesToMeasure.find((f) => ctx.includes(f)) ||
+        (ctx.includes('schema') && 'isotope-complete.sql');
+      if (!named || !facts[named]) continue;
+      // The changelog quotes what a past release applied; not a present-tense claim.
+      if (file === 'changelog.html') continue;
+      if (v !== facts[named].statements) {
+        error(`docs/${file} says ${named} has ${m[1]} statements but it has ${facts[named].statements}`);
+        factBad++;
+      }
+    }
+    for (const m of text.matchAll(LINES_RE)) {
+      const v = +m[1].replace(/,/g, '');
+      const ctx = text.slice(Math.max(0, m.index - 160), m.index + 40);
+      const named = filesToMeasure.find((f) => ctx.includes(f));
+      if (!named || !facts[named]) continue;
+      if (file === 'changelog.html') continue;
+      if (v !== facts[named].lines) {
+        // A line count drifts every time the dump is regenerated, which is routine.
+        // Worth knowing the docs are behind; not worth failing a build over, since
+        // the number is descriptive rather than load-bearing (nobody's restore
+        // breaks because a page said 5,368 instead of 6,181).
+        warn(`docs/${file} says ${named} has ${m[1]} lines but it has ${facts[named].lines}`);
+      }
+    }
+  }
+  if (factBad === 0) ok('File size, line and statement claims in docs match the files on disk');
+}
+
+// 2c. Dead anchors. A link to "#section" that no longer exists looks fine in review
+//     and lands the reader at the top of the page. Two shipped that way: a
+//     #updater link on two pages after the self-updater section was deleted, and a
+//     #hardening link after that section was renamed. Every anchor the pages emit
+//     is checked against the id= set of its target.
+if (existsSync(DOCS_DIR)) {
+  const idsByPage = new Map();
+  for (const [file, html] of Object.entries(DOCS_ALL)) {
+    idsByPage.set(file, new Set([...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1])));
+  }
+  let deadAnchors = 0;
+  for (const [file, html] of Object.entries(DOCS_ALL)) {
+    for (const m of html.matchAll(/href="([^"]*#[^"]+)"/g)) {
+      const href = m[1];
+      if (/^https?:/.test(href)) continue;
+      const [rawFile, frag] = href.split('#');
+      if (!frag) continue;
+      let target = rawFile;
+      if (target.startsWith('./')) target = target.slice(2);
+      else if (target.startsWith('/isotope-code/')) target = target.slice('/isotope-code/'.length);
+      else if (target === '') target = file;
+      else if (target.startsWith('/')) continue;
+      if (target === file) {
+        if (!idsByPage.get(file).has(frag)) {
+          error(`docs/${file} links to its own #${frag}, which does not exist on the page`);
+          deadAnchors++;
+        }
+        continue;
+      }
+      if (!DOCS_ALL[target]) continue;         // missing pages are reported above
+      if (!idsByPage.get(target).has(frag)) {
+        error(`docs/${file} links to ${target}#${frag}, but ${target} has no id="${frag}"`);
+        deadAnchors++;
+      }
+    }
+  }
+  if (deadAnchors === 0) ok('Every internal anchor in docs resolves to a real section');
+}
+
+// 2d. Canonical host. Every page shipped a <link rel="canonical"> pointing at a
+//     GitHub Pages URL that has never resolved, because Pages was never enabled on
+//     the repository. That is the worst kind of SEO bug: it does not look broken,
+//     it works exactly as specified, and it tells every crawler the authoritative
+//     URL is a host that does not exist. The live host comes from server.mjs's
+//     siteOrigin() default — not package.json's homepage, which is itself stale
+//     (isotopeai.in, while the running site and all 23 README links use
+//     isotopeai.dpdns.org). Trusting homepage here would have turned this check
+//     into 22 false errors against a correct deployment.
+info('Checking canonical URLs...');
+const serverTxtAll = readText('server.mjs') || '';
+let canonHost = null;
+const originDefault = serverTxtAll.match(/return\s+'(https:\/\/[^']+)'\s*;?\s*$/m) ||
+  serverTxtAll.match(/SITE_ORIGIN\s*\|\|\s*'(https:\/\/[^']+)'/);
+if (originDefault) { try { canonHost = new URL(originDefault[1]).host; } catch { /* ignore */ } }
+if (!canonHost) {
+  // Fall back to the host most of the pages already agree on.
+  const tally = new Map();
+  for (const html of Object.values(DOCS_ALL)) {
+    for (const m of html.matchAll(/<link[^>]+rel="canonical"[^>]+href="https?:\/\/([^/"]+)/g)) {
+      tally.set(m[1], (tally.get(m[1]) || 0) + 1);
+    }
+  }
+  const best = [...tally].sort((a, b) => b[1] - a[1])[0];
+  if (best) canonHost = best[0];
+}
+if (canonHost) {
+  const badCanon = [];
+  for (const [file, html] of Object.entries(DOCS_ALL)) {
+    for (const m of html.matchAll(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/g)) {
+      let host = null;
+      try { host = new URL(m[1]).host; } catch { /* relative canonical */ continue; }
+      if (host !== canonHost) badCanon.push(`${file} -> ${m[1]}`);
+    }
+  }
+  if (badCanon.length) {
+    for (const b of badCanon) error(`canonical URL points at the wrong host: ${b} (expected ${canonHost})`);
+  } else {
+    ok(`All canonical URLs use the package.json homepage host (${canonHost})`);
+  }
+
+  // The same string is injected into every served page as a docs badge.
+  const otherHost = [...serverTxtAll.matchAll(/https:\/\/([a-z0-9.-]+\.[a-z]{2,})\/(?:docs\/|isotope-code\/)/g)]
+    .map((m) => m[1]).find((h) => h !== canonHost);
+  if (otherHost) {
+    error(`server.mjs injects a docs badge pointing at ${otherHost}, not ${canonHost}`);
+  } else if (serverTxtAll.includes('isotope-code/') || serverTxtAll.includes('/docs/')) {
+    ok('server.mjs docs badge uses the same host as the canonicals');
+  }
 }
 
 // 3. Deleted client surfaces. The in-app self-updater UI is gone from injectScripts
@@ -565,7 +882,12 @@ if (CLMD && pkgVersion !== 'unknown') {
 // ── Summary ───────────────────────────────────────────────────────────────────
 console.log('');
 console.log(`${B}Validation summary${R}`);
-console.log(`  ${G}Passed${R}  : ${REQUIRED_FILES.length - errors} checks`);
+// This was `${REQUIRED_FILES.length - errors}`, which subtracted the total error
+// count from the number of files in the required-files list. The two are unrelated
+// — one error made the total read "24 checks" next to "Errors: 1", and the number
+// moved for reasons that had nothing to do with how many things passed. `passes` is
+// counted where a check actually succeeds, so it means what the label says.
+console.log(`  ${G}Passed${R}  : ${passes} checks`);
 console.log(`  ${Y}Warnings${R}: ${warns}`);
 console.log(`  ${E}Errors${R}  : ${errors}`);
 console.log('');

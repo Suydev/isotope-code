@@ -44,9 +44,9 @@ const REQUIRED_BUCKETS = ['user-content', 'avatars', 'group-icons', 'study-mater
 //                     schema-dump.mjs reports; 124 is what pg_indexes returns.
 const EXPECT = {
   tables: 42,
-  functionsPublic: 73,
-  policies: 153,
-  indexes: 124,
+  functionsPublic: 75,
+  policies: 184,
+  indexes: 108,
 };
 
 // Tables handle_new_user() writes on signup. If any is absent the trigger fires
@@ -193,10 +193,10 @@ const [t] = await tryQ(`
 
 add(Number(t.trg) === 1, 'auth', 'signup trigger on auth.users',
   Number(t.trg) === 1 ? 'present' : 'MISSING — every new account will be broken',
-  'apply supabase/022_restore_signup_trigger.sql');
+  './supabase.sh setup --ref ' + ref);
 add(Number(t.orphaned) === 0, 'auth', 'accounts with app rows',
   Number(t.orphaned) === 0 ? `${t.auth_users}/${t.auth_users}` : `${t.orphaned} of ${t.auth_users} auth user(s) have no public.users row`,
-  'apply supabase/022_restore_signup_trigger.sql (it backfills)');
+  './supabase.sh setup --ref ' + ref + ' (the schema applies the trigger and backfills)');
 
 // ── community / buddy ────────────────────────────────────────────────────────
 const [b] = await tryQ(`
@@ -209,7 +209,7 @@ const [b] = await tryQ(`
 if (Number(b.profiles) > 0) {
   add(Number(b.handles) > 0, 'community', 'buddy handles populated',
     `${b.handles}/${b.profiles} profiles have a handle`,
-    'apply supabase/021_fix_buddy_handle_and_overview.sql');
+    './supabase.sh setup --ref ' + ref);
 } else {
   add(true, 'community', 'buddy handles populated', 'no profiles yet', '');
 }
@@ -221,7 +221,7 @@ if (overviewRows === null) {
   const overviewKeys = overviewRows.map((r) => r.k).sort();
   add(overviewKeys.includes('buddies'), 'community', 'overview returns buddies',
     overviewKeys.join(', ') || '(none)',
-    'apply supabase/021_fix_buddy_handle_and_overview.sql');
+    './supabase.sh setup --ref ' + ref);
 }
 
 // The buddy payload SHAPE, not just its presence.
@@ -260,7 +260,7 @@ const [src] = await tryQ(`
     missing.length
       ? `MISSING ${missing.join(', ')} — Community crashes on the first accepted buddy`
       : 'presence{state,subject,task} + flat status/currentSubject',
-    'apply supabase/021_fix_buddy_handle_and_overview.sql');
+    './supabase.sh setup --ref ' + ref);
 }
 
 // ── storage ──────────────────────────────────────────────────────────────────
@@ -271,11 +271,11 @@ const missingBuckets = buckets.map((r) => r.b);
 add(missingBuckets.length === 0, 'storage', 'buckets',
   missingBuckets.length ? `MISSING ${missingBuckets.join(', ')} — uploads to them return 404`
     : `${REQUIRED_BUCKETS.length}/${REQUIRED_BUCKETS.length}`,
-  'apply supabase/023_wire_missing_storage_buckets.sql');
+  './supabase.sh setup --ref ' + ref);
 
 const [sp] = await q("select count(*)::int as n from pg_policies where schemaname = 'storage' and tablename = 'objects'");
-add(Number(sp.n) >= 8, 'storage', 'object policies', `${sp.n} (expect 16)`,
-  Number(sp.n) >= 8 ? '' : 'apply supabase/023_wire_missing_storage_buckets.sql');
+add(Number(sp.n) >= 8, 'storage', 'object policies', `${sp.n} (expect 24)`,
+  Number(sp.n) >= 8 ? '' : './supabase.sh setup --ref ' + ref);
 
 // ── report ───────────────────────────────────────────────────────────────────
 const failed = rows.filter((r) => !r.ok);

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Database — IsotopeAI docs</title>
-    <meta name="description" content="IsotopeAI database reference: 42 tables, 82 functions, 188 row-level security policpolicies, 15 triggers and 108 indexes, counted from isotope-complete.sql.">
+    <meta name="description" content="IsotopeAI database reference: 42 tables, 83 functions, 184 row-level security policies, 16 triggers and 108 indexes, counted from isotope-complete.sql.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
@@ -23,6 +23,7 @@
   <div class="globalbar-inner">
     <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
     <nav class="globalbar-links" aria-label="Sections">
+      <a href="./dashboard.html">Dashboard</a>
       <a href="./getting-started.html">Get started</a>
       <a href="./architecture.html">Architecture</a>
       <a href="./api-reference.html">API</a>
@@ -69,6 +70,8 @@
 </header>
 
 <div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Overview</p>
+  <a href="./dashboard.html">Dashboard</a>
   <p class="drawer-label">Guides</p>
   <a href="./getting-started.html">Getting started</a>
   <a href="./configuration.html">Configuration</a>
@@ -155,7 +158,7 @@
 
     <div class="grid cols-4" style="margin-top:var(--s-6)">
       <div><span class="ticker" data-ticker="42">42</span><span class="ticker-label">Tables</span></div>
-      <div><span class="ticker" data-ticker="82">82</span><span class="ticker-label">Functions</span></div>
+      <div><span class="ticker" data-ticker="83">83</span><span class="ticker-label">Functions</span></div>
       <div><span class="ticker" data-ticker="184">184</span><span class="ticker-label">RLS policies</span></div>
       <div><span class="ticker" data-ticker="108">108</span><span class="ticker-label">Indexes (108 in isotope-complete.sql)</span></div>
     </div>
@@ -332,7 +335,7 @@ $$;
       <p><span class="note-title"><code>buddy_invites</code> is an orphan</span>
       It has RLS enabled with <strong>zero policies</strong>, so no anonymous or
       authenticated caller can read or write it. Nothing references it — not
-      <code>isotope-complete.sql</code>, not <code>server.mjs</code>, and none of the 80
+      <code>isotope-complete.sql</code>, not <code>server.mjs</code>, and none of the 83
       functions. Buddy functionality runs entirely through
       <code>community_friends</code>. This is leftover from an earlier design. It is not a
       security hole, because RLS with no policies fails closed, but it is dead weight and
@@ -371,7 +374,7 @@ $$;
 
     <h2 class="rise" id="triggers">Triggers <a class="anchor" href="#triggers" aria-label="Link to this section">#</a></h2>
 
-    <p>15 triggers. Fourteen live in <code>public</code>, and six of those fire on
+    <p>16 triggers. Fifteen live in <code>public</code>, and six of those fire on
     <code>public.users</code> so a new account is never missing a satellite row — the
     alternative is an empty leaderboard or a non-functional community tab, caused by a row
     that was never created.</p>
@@ -381,7 +384,7 @@ $$;
 
     <div class="note danger glass">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
-      <p><span class="note-title">The 14 above are the second stage, not the first</span>
+      <p><span class="note-title">The 15 above are the second stage, not the first</span>
   Every trigger in the table fires on <code>INSERT INTO public.users</code>. Nothing in
   <code>public</code> copies <code>auth.users</code> → <code>public.users</code> — that is
   <code>on_auth_user_created</code> on <code>auth.users</code>, calling
@@ -397,7 +400,7 @@ $$;
     <div class="codeblock" data-lang="sql">
 <pre>select count(*) from auth.users u
  where not exists (select 1 from public.users p where p.id = u.id);
--- non-zero => the trigger is missing; supabase/022 restores it and backfills</pre>
+-- non-zero => the trigger is missing; re-run the schema to restore it and backfill</pre>
     </div>
 
     <p>Or run <code>./supabase.sh check</code>, which asserts it unconditionally.</p>
@@ -435,7 +438,7 @@ $$;
 
     <h2 class="rise" id="functions">Functions <a class="anchor" href="#functions" aria-label="Link to this section">#</a></h2>
 
-    <p>80 <code>CREATE FUNCTION</code> statements covering 72 distinct names — eight are
+    <p>83 <code>CREATE FUNCTION</code> statements covering 77 distinct names — six are
     overloads sharing a name with a different signature. 30 of them are the
     <code>community_*</code> RPC surface the frontend
     calls directly through PostgREST.</p>

@@ -13,7 +13,7 @@
  * with a personal access token and nothing else.
  *
  * What it provisions, in dependency order:
- *   1. schema   — 42 tables, 73 public functions, 15 triggers, 153 policies
+ *   1. schema   — 42 tables, 75 public functions, 15 triggers, 184 policies
  *   2. storage  — 4 buckets + owner-scoped policies
  *   3. auth     — the signup trigger, without which every new account is broken
  *   4. verify   — asserts all of the above actually landed
@@ -44,9 +44,9 @@ function emit(event) {
   } catch { /* progress must never fail the job it reports on */ }
 }
 
-// Buckets the app uploads to. Kept in sync with supabase-backup.mjs
-// REQUIRED_BUCKETS and supabase/023_wire_missing_storage_buckets.sql — three
-// copies is two too many, but the setup path must work with no backup present.
+// Buckets the app uploads to. Kept in sync with the REQUIRED_BUCKETS list in
+// supabase-backup.mjs — two copies is one too many, but the setup path must
+// work with no backup present.
 //
 // `notes` is deliberately NOT here. It existed with a 10 MB limit, zero objects,
 // and zero references: no upload path in android-bridge.js, no reachable web
