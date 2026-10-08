@@ -106,6 +106,22 @@ const MUTATIONS = [
     'a({currentStep:C}),await r({isOnboarded:!0,onboardingCompletedAt:new Date().toISOString()})', 'getPatchedOnboardingBundle'],
   ['leaderboard-local-stats', 'assets/useLeaderboard-BpvH5FXA.js', 'patchedLeaderboardBundle',
     'async function N(){try{const s=await S.getSessions();return A(s)}catch', 'getPatchedLeaderboardBundle'],
+  ['authstore-session-mirror', 'assets/useAuthStore-Aw1au7RF.js', null,
+    'vs={getItem:async a=>{const e=await M.getItem(a);return typeof e=="string"?e:null}', 'getPatchedAuthStoreBundle'],
+  ['authstore-pkce-config', 'assets/useAuthStore-Aw1au7RF.js', null,
+    'auth:{autoRefreshToken:!1,persistSession:!0,detectSessionInUrl:!0,storage:vs,storageKey:"isotope-auth-token"}', 'getPatchedAuthStoreBundle'],
+  ['authstore-plan-default', 'assets/useAuthStore-Aw1au7RF.js', null,
+    'planType:"free"', 'getPatchedAuthStoreBundle'],
+  ['authstore-circuit-breaker', 'assets/useAuthStore-Aw1au7RF.js', null,
+    'function x(a){if(!a)return!1;if(typeof a=="object"){const t=a.status??a.statusCode;', 'getPatchedAuthStoreBundle'],
+  ['community-chat-component', 'assets/Community-CEnEgsrd.js', 'patchedCommunityBundle',
+    '};export{Is as default};', 'getPatchedCommunityBundle'],
+  ['community-chat-render', 'assets/Community-CEnEgsrd.js', 'patchedCommunityBundle',
+    ',g&&e.jsxs(B,{title:"Group settings"', 'getPatchedCommunityBundle'],
+  ['community-leaderboard-tab', 'assets/Community-CEnEgsrd.js', 'patchedCommunityBundle',
+    'const Ve=[{id:"overview",label:"Overview"},{id:"buddies",label:"Buddies"},{id:"groups",label:"Groups"},{id:"discover",label:"Discover"}],', 'getPatchedCommunityBundle'],
+  ['community-leaderboard-render', 'assets/Community-CEnEgsrd.js', 'patchedCommunityBundle',
+    'er:()=>a("discover"),onNotice:f}):e.jsx(ss,{filters:k', 'getPatchedCommunityBundle'],
 ];
 
 // ── Pass 1: happy path ───────────────────────────────────────────────────────
@@ -186,7 +202,7 @@ for (const c of globalThis.__C) {
   // assignment to the binding. globalThis[c.reset] = null compiles and runs
   // without error but clears nothing, so the patcher returns its first (clean)
   // result and the mutation is never observed.
-  eval(c.reset + ' = null');
+  if (c.reset) eval(c.reset + ' = null');
   globalThis._criticalPatchFailures.length = 0;
   try { globalThis[c.patcher](); } catch (_) {}
   fs.readFileSync = __origRead;

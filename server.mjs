@@ -4798,7 +4798,7 @@ function getPatchedCommunityBundle() {
     if (raw.includes(COMMUNITY_CHAT_COMPONENT_FROM)) {
       raw = raw.replace(COMMUNITY_CHAT_COMPONENT_FROM, COMMUNITY_CHAT_COMPONENT_TO);
       console.log('[CommunityChatPatch] chat component appended to Community bundle');
-    } else { console.warn('[CommunityChatPatch] component anchor not found'); }
+    } else { console.warn('[CommunityChatPatch] component anchor not found'); noteAnchorMiss('community-chat-component'); }
     // Idempotent insert: if the source already carries the mount (a re-served or
     // already-patched bundle) skip, or the group page renders two chat panels.
     if (raw.includes(',e.jsx(Qa,{groupId:s,role:h.group.role})')) {
@@ -4806,7 +4806,7 @@ function getPatchedCommunityBundle() {
     } else if (raw.includes(COMMUNITY_CHAT_RENDER_FROM)) {
       raw = raw.replace(COMMUNITY_CHAT_RENDER_FROM, COMMUNITY_CHAT_RENDER_TO);
       console.log('[CommunityChatPatch] chat panel rendered in group page');
-    } else { console.warn('[CommunityChatPatch] render anchor not found'); }
+    } else { console.warn('[CommunityChatPatch] render anchor not found'); noteAnchorMiss('community-chat-render'); }
     if (raw.includes(COMMUNITY_CREATE_BTN_FROM)) {
       raw = raw.replace(COMMUNITY_CREATE_BTN_FROM, COMMUNITY_CREATE_BTN_TO);
       console.log('[CommunityChatPatch] Create group button added to header actions');
@@ -4816,11 +4816,11 @@ function getPatchedCommunityBundle() {
     if (raw.includes(COMMUNITY_LB_TAB_FROM)) {
       raw = raw.replace(COMMUNITY_LB_TAB_FROM, COMMUNITY_LB_TAB_TO);
       console.log('[LeaderboardPatch] Leaderboard tab added to community nav');
-    } else { console.warn('[LeaderboardPatch] nav anchor not found'); }
+    } else { console.warn('[LeaderboardPatch] nav anchor not found'); noteAnchorMiss('community-leaderboard-tab'); }
     if (raw.includes(COMMUNITY_LB_RENDER_FROM)) {
       raw = raw.replace(COMMUNITY_LB_RENDER_FROM, COMMUNITY_LB_RENDER_TO);
       console.log('[LeaderboardPatch] leaderboard view rendered in community page');
-    } else { console.warn('[LeaderboardPatch] render anchor not found'); }
+    } else { console.warn('[LeaderboardPatch] render anchor not found'); noteAnchorMiss('community-leaderboard-render'); }
     // ── Code-only invites ──────────────────────────────────────────────────
     // community_create_invite already returns an 8-char token; the compiled
     // bundle wraps it as `${origin}/invite/<code>`, which is only useful in a
@@ -5358,14 +5358,14 @@ function getPatchedAuthStoreBundle() {
     if (patched.includes(CB_FROM)) {
       patched = patched.split(CB_FROM).join(CB_TO);
       console.log('[AuthStorePatch] Circuit breaker disabled');
-    } else { console.warn('[AuthStorePatch] Circuit breaker anchor not found'); }
+    } else { console.warn('[AuthStorePatch] Circuit breaker anchor not found'); noteAnchorMiss('authstore-circuit-breaker'); }
 
     // Default account plan → ranker (premium) instead of "free".
     const PLAN_COUNT = (patched.split('planType:"free"').length - 1);
     if (PLAN_COUNT > 0) {
       patched = patched.split('planType:"free"').join('planType:"ranker"');
       console.log(`[AuthStorePatch] default planType → ranker (${PLAN_COUNT})`);
-    } else { console.warn('[AuthStorePatch] planType:"free" anchor not found'); }
+    } else { console.warn('[AuthStorePatch] planType:"free" anchor not found'); noteAnchorMiss('authstore-plan-default'); }
 
     // Session persistence: the upstream client persists the session through the
     // custom IndexedDB adapter (`vs` → `ws`/`M`), so restore-and-launch.js can
@@ -5378,7 +5378,7 @@ function getPatchedAuthStoreBundle() {
     if (patched.includes(VS_FROM)) {
       patched = patched.split(VS_FROM).join(VS_TO);
       console.log('[AuthStorePatch] auth-token mirrored to plain localStorage');
-    } else { console.warn('[AuthStorePatch] vs storage adapter anchor not found'); }
+    } else { console.warn('[AuthStorePatch] vs storage adapter anchor not found'); noteAnchorMiss('authstore-session-mirror'); }
 
     // Session freshness + PKCE flow:
     // - autoRefreshToken disabled (offline-safe): rely on boot refresh only
@@ -5389,7 +5389,7 @@ function getPatchedAuthStoreBundle() {
     if (patched.includes(AR_FROM)) {
       patched = patched.replace(AR_FROM, AR_TO);
       console.log('[AuthStorePatch] PKCE flow enabled + autoRefreshToken kept disabled');
-    } else { console.warn('[AuthStorePatch] auth config anchor not found'); }
+    } else { console.warn('[AuthStorePatch] auth config anchor not found'); noteAnchorMiss('authstore-pkce-config'); }
 
     // Avatar reliability: the app persists profile.avatar (data-URL) by pushing
     // user_profiles.profile_data straight from the browser. On devices where
