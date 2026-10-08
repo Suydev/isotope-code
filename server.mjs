@@ -5312,19 +5312,35 @@ function replaceSupabaseUrlConstants(bundle) {
   return out;
 }
 
+// Memoised, like every other patcher. This one re-read a 210 KiB file and ran
+// two full-bundle regex sweeps on EVERY request: both assets are in
+// RUNTIME_PATCHED_ASSET_PATHS, so they are served `no-store` and never hit the
+// browser cache. Measured at ~10 ms per request for this bundle alone, on the
+// synchronous path that blocks the event loop.
+let patchedCoreBundle = null;
 function getPatchedCoreBundle() {
+  if (patchedCoreBundle !== null) return patchedCoreBundle;
   try {
     const raw = fs.readFileSync(MARKETING_CORE_BUNDLE_ABS, 'utf8');
     let patched = replaceSupabaseUrlConstants(raw);
     patched = replaceSupabaseJwtConstants(patched);
-    return patched;
+    patchedCoreBundle = Buffer.from(patched, 'utf8');
+    return patchedCoreBundle;
   } catch (e) {
+    // Deliberately NOT cached: a transient read failure must not memoise an
+    // unpatched bundle for the life of the process.
     console.warn('[CorePatch] read failed:', e && e.message);
     return null;
   }
 }
 
+// Memoised, like every other patcher. This one re-read a 190 KiB file, ran two
+// full-bundle regex sweeps and applied nine substring patches on EVERY request
+// (~25 ms measured), blocking the event loop. Served `no-store`, so the browser
+// cache never absorbs it. Warm it at startup like the others.
+let patchedAuthStoreBundleCache = null;
 function getPatchedAuthStoreBundle() {
+  if (patchedAuthStoreBundleCache !== null) return patchedAuthStoreBundleCache;
   try {
     const raw = fs.readFileSync(USE_AUTH_STORE_BUNDLE_ABS, 'utf8');
     let patched = replaceSupabaseUrlConstants(raw);
@@ -5406,14 +5422,21 @@ function getPatchedAuthStoreBundle() {
       patched = patched.split(AV_FROM).join(AV_TO);
       console.log('[AuthStorePatch] avatar upload mirrored to local /__auth/profile path');
     } else { console.warn('[AuthStorePatch] avatar mirror anchor not found'); }
-    return patched;
+    patchedAuthStoreBundleCache = Buffer.from(patched, 'utf8');
+    return patchedAuthStoreBundleCache;
   } catch (e) {
+    // Not cached: a transient read failure must not memoise an unpatched bundle.
     console.warn('[AuthStorePatch] read failed:', e && e.message);
     return null;
   }
 }
 
+// Memoised, like every other patcher -- this one re-read the file and ran two
+// full-bundle regex passes on every request. Served `no-store`, so the browser
+// cache never absorbs it.
+let patchedEntryBundle = null;
 function getPatchedEntryBundle() {
+  if (patchedEntryBundle !== null) return patchedEntryBundle;
   try {
     const raw = fs.readFileSync(ENTRY_BUNDLE_ABS, 'utf8');
     let patched = raw;
@@ -5429,8 +5452,10 @@ function getPatchedEntryBundle() {
       patched = patched.split(TRACE_FROM).join('tracesSampleRate:0,tracePropagationTargets:[],replaysSessionSampleRate:0,replaysOnErrorSampleRate:0,enableLogs:!1');
       console.log('[EntryPatch] Sentry sampling zeroed');
     } else { console.warn('[EntryPatch] Sentry sampling anchor not found'); }
-    return patched;
+    patchedEntryBundle = Buffer.from(patched, 'utf8');
+    return patchedEntryBundle;
   } catch (e) {
+    // Not cached: a transient read failure must not memoise an unpatched bundle.
     console.warn('[EntryPatch] read failed:', e && e.message);
     return null;
   }
@@ -11419,6 +11444,11 @@ server.listen(port, '0.0.0.0', () => {
     safeWarm(SESSION_SYNC_BUNDLE_ABS, getPatchedSessionSyncBundle);
     safeWarm(INVITES_BUNDLE_ABS, getPatchedInvitesBundle);
     safeWarm(COMMUNITY_BUNDLE_ABS, getPatchedCommunityBundle);
+    // These three were the only patchers that re-read the file and re-ran their
+    // regex sweeps on every request. Warm them so the first hit is cached too.
+    safeWarm(MARKETING_CORE_BUNDLE_ABS, getPatchedCoreBundle);
+    safeWarm(USE_AUTH_STORE_BUNDLE_ABS, getPatchedAuthStoreBundle);
+    safeWarm(ENTRY_BUNDLE_ABS, getPatchedEntryBundle);
     safeWarm(COMMUNITY_API_BUNDLE_ABS, getPatchedCommunityApiBundle);
     safeWarm(USE_COMMUNITY_BUNDLE_ABS, getPatchedUseCommunityBundle);
     safeWarm(COMMUNITY_HUB_BUNDLE_ABS, getPatchedCommunityHubBundle);
