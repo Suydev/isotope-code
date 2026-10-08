@@ -4327,7 +4327,13 @@ function getPatchedAuthBridge() {
     const urlRe   = /var DEFAULT_SUPA_URL\s*=\s*'[^']*';/;
     const anonRe  = /var DEFAULT_SUPA_ANON\s*=\s*'[^']*';/;
     if (!urlRe.test(raw) || !anonRe.test(raw)) {
+      // Returning null here serves public/auth-bridge.js VERBATIM, which ships a
+      // hardcoded Supabase URL and anon key for the upstream project. A self
+      // host's logins would then target the wrong project with no server-side
+      // signal at all. The client logs a console.warn, but that is the browser,
+      // not the operator's startup log.
       console.warn('[AuthBridgeEnv] fallback literal anchors not found — serving unmodified');
+      noteAnchorMiss('authbridge-fallback-creds');
       return null;
     }
     raw = raw.replace(urlRe,  "var DEFAULT_SUPA_URL = '" + String(process.env.SUPABASE_URL).replace(/'/g, '') + "';");
@@ -4337,6 +4343,7 @@ function getPatchedAuthBridge() {
     return patchedAuthBridge;
   } catch (e) {
     console.warn('[AuthBridgeEnv] read failed:', e && e.message);
+    noteAnchorMiss('authbridge-read-failed');
     return null;
   }
 }
@@ -4426,9 +4433,11 @@ function getPatchedNotifStore() {
     console.log('[NotifStorePatch] bridge added — window.__isoNotificationStore bound to store `' +
       storeLocal + '`');
     return patchedNotifStore;
-    return patchedNotifStore;
   } catch (e) {
+    // A missed bridge means DB notifications never reach the in-app panel: the
+    // sync engine has no store to push through, with no server-side symptom.
     console.warn('[NotifStorePatch] read failed:', e && e.message);
+    noteAnchorMiss('notifstore-read-failed');
     return null;
   }
 }
@@ -5330,6 +5339,7 @@ function getPatchedCoreBundle() {
     // Deliberately NOT cached: a transient read failure must not memoise an
     // unpatched bundle for the life of the process.
     console.warn('[CorePatch] read failed:', e && e.message);
+    noteAnchorMiss('core-read-failed');
     return null;
   }
 }
@@ -5427,6 +5437,7 @@ function getPatchedAuthStoreBundle() {
   } catch (e) {
     // Not cached: a transient read failure must not memoise an unpatched bundle.
     console.warn('[AuthStorePatch] read failed:', e && e.message);
+    noteAnchorMiss('authstore-read-failed');
     return null;
   }
 }
@@ -5457,6 +5468,7 @@ function getPatchedEntryBundle() {
   } catch (e) {
     // Not cached: a transient read failure must not memoise an unpatched bundle.
     console.warn('[EntryPatch] read failed:', e && e.message);
+    noteAnchorMiss('entry-read-failed');
     return null;
   }
 }
