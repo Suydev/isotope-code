@@ -389,6 +389,16 @@ jobs:
           # asserts one client cannot observe another's slot.
           node scripts/test-isotope-state-scoping.mjs
 
+          # server.mjs patches a set of well-known anchors in the shipped bundle.
+          # Every one of those patchers used to fail SILENTLY — a renamed or
+          # reordered anchor returned the file unmodified and nothing said so,
+          # which is why four separate commits had to escalate warn-only sites
+          # into a startup banner by hand. This test mutation-tests every
+          # load-bearing anchor miss and asserts each one escalates. It guards
+          # all of that work, and it was never wired into CI despite existing
+          # in package.json since 838748b.
+          node scripts/test-bundle-patch-escalation.mjs
+
       - name: 🗄️  Supabase tooling parses
         run: |
           set -euo pipefail
