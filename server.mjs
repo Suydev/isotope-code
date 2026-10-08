@@ -8495,20 +8495,34 @@ const server = http.createServer((req, res) => {
       dirty_count: 0,
       dirty_files: [],
       branch: null,
+      // Whether git was actually consulted, and whether it worked. Without these
+      // the response is unreadable: git missing, not installed, or failing all
+      // produce the same `dirty:false, branch:null` as a genuinely clean repo, so
+      // the Update button would offer to `git pull` over a tree whose state nobody
+      // checked. `spawnSync` does not throw on a non-zero exit, so the catch below
+      // never fired for a failing git — only for a spawn that could not start at all.
+      git_status_checked: false,
+      git_status_available: false,
+      branch_checked: false,
     };
     try {
       const st = spawnSync('git', ['status', '--porcelain', '--untracked-files=no'], {
         cwd: __dirname, encoding: 'utf8', timeout: 5000,
       });
+      payload.git_status_checked = true;
+      payload.git_status_available = st.status === 0;
       if (st.status === 0) {
         const lines = String(st.stdout || '').split('\n').map(l => l.trim()).filter(Boolean);
         payload.dirty = lines.length > 0;
         payload.dirty_count = lines.length;
         payload.dirty_files = lines.slice(0, 12).map(l => l.replace(/^\S+\s+/, ''));
+      } else {
+        payload.git_error = st.error ? st.error.message : `git status exited ${st.status}`;
       }
       const br = spawnSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
         cwd: __dirname, encoding: 'utf8', timeout: 5000,
       });
+      payload.branch_checked = true;
       if (br.status === 0) payload.branch = String(br.stdout || '').trim() || null;
     } catch (e) {
       payload.git_error = (e && e.message) || 'git unavailable';
