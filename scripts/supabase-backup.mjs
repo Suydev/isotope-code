@@ -432,6 +432,38 @@ function topoSort(tables, fks) {
 }
 
 // ── BACKUP ──────────────────────────────────────────────────────────────────
+/** Every real object key in a bucket, recursing through folder prefixes.
+ *
+ *  Supabase'/object/list' is NOT recursive: for a nested layout it returns
+ *  pseudo-folder entries (no .id / .metadata) at the root. Counting only entries
+ *  with an id therefore undercounts every bucket whose objects live under
+ *  `<uid>/...`, which is the layout the app actually uses.
+ *
+ *  Returned as full keys (prefix included) so a caller can diff one list against
+ *  another, rather than two counts it cannot reconcile.
+ *
+ *  MODULE LEVEL, and it used not to be. ccc5dda added it at the bottom of
+ *  verify()'s body to share one implementation between restore and verify, which
+ *  left restore()'s call out of scope: every reconcile threw
+ *  `listObjectKeys is not defined`. The `catch { continue }` meant to cover an
+ *  unlistable bucket swallowed it, so --prune-storage deleted NOTHING and every
+ *  bucket reported "could not list" — a silently inert guard on the one
+ *  irreversible operation in this tool. Exported so
+ *  scripts/tests/storage-reconcile.mjs exercises THIS implementation rather than
+ *  a copy that drifts from it. */
+async function listObjectKeys(st, bucket, prefix = '') {
+  const keys = [];
+  for (let off = 0; ; off += 1000) {
+    const page = await st.listObjects(bucket, prefix, off, 1000);
+    for (const o of page) {
+      if (o.metadata && o.id) keys.push(prefix + o.name);
+      else if (o.name) keys.push(...await listObjectKeys(st, bucket, `${prefix}${o.name}/`));
+    }
+    if (page.length < 1000) break;
+  }
+  return keys;
+}
+
 async function backup(args, env) {
   if (!env.SUPABASE_URL) throw new Error('SUPABASE_URL missing');
   if (!env.SUPABASE_ACCESS_TOKEN) throw new Error('SUPABASE_ACCESS_TOKEN missing');
@@ -1469,28 +1501,7 @@ async function verify(args, env) {
           `public=${liveBuckets.get(id)}, expected ${!!cfg.public}`);
       }
     }
-/** Every real object key in a bucket, recursing through folder prefixes.
- *
- *  Supabase'/object/list' is NOT recursive: for a nested layout it returns
- *  pseudo-folder entries (no .id / .metadata) at the root. Counting only entries
- *  with an id therefore undercounts every bucket whose objects live under
- *  `<uid>/...`, which is the layout the app actually uses.
- *
- *  Returned as full keys (prefix included) so a caller can diff one list against
- *  another, rather than two counts it cannot reconcile. */
-async function listObjectKeys(st, bucket, prefix = '') {
-  const keys = [];
-  for (let off = 0; ; off += 1000) {
-    const page = await st.listObjects(bucket, prefix, off, 1000);
-    for (const o of page) {
-      if (o.metadata && o.id) keys.push(prefix + o.name);
-      else if (o.name) keys.push(...await listObjectKeys(st, bucket, `${prefix}${o.name}/`));
-    }
-    if (page.length < 1000) break;
-  }
-  return keys;
-}
-    // Must recurse into folder prefixes, exactly like the backup-side listAll().
+// Must recurse into folder prefixes, exactly like the backup-side listAll().
     // Supabase's list endpoint is NOT recursive: for a nested layout it returns
     // pseudo-folder entries (no .id / .metadata) at the root, which this filter
     // discards — so a bucket whose every object lives under `<uid>/…` counted as
@@ -1628,4 +1639,4 @@ found either way.`);
   }
 }
 
-export { lit, escStr, castFor, splitStatements, chunkRows, verify, CAST, PG_CAST, REQUIRED_BUCKETS };
+export { lit, escStr, castFor, splitStatements, chunkRows, verify, listObjectKeys, CAST, PG_CAST, REQUIRED_BUCKETS };
