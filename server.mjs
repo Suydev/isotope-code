@@ -5997,6 +5997,13 @@ function getPatchedOnboardingBundle() {
       console.warn('[OnboardingPatch] Completion patch string not found');
       noteAnchorMiss('onboarding-verified-write');
     }
+    // Post-condition, matching the getPatchedAuthBundle pattern: an anchor can
+    // match yet still be ineffective. Assert the verified-write guard is
+    // present in the bytes that will actually be served.
+    if (!raw.includes('__isoOnbSave.ok') && !_criticalPatchFailures.includes('onboarding-verified-write')) {
+      console.warn('[OnboardingPatch] CRITICAL MISS: verified cloud write guard absent from patched bundle');
+      noteAnchorMiss('onboarding-verified-write');
+    }
     patchedOnboardingBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[OnboardingPatch] Error:', e.message); patchedOnboardingBundle = null; }
   return patchedOnboardingBundle;
@@ -6043,6 +6050,13 @@ function getPatchedSingleGroupBundle() {
     // missing `tags` key, which is the only failure the comment described. The
     // unguarded case is a missing `s`, which this anchor cannot reach.
     console.log('[SingleGroupPatch] ' + applied + '/3 guided-tour patches applied');
+    // The three tour anchors are interdependent (setter, seen-check, and the
+    // completion handler). Any subset still parses, so syntax checks cannot see
+    // a half-applied tour. Assert the marker each patch introduces.
+    if (applied < 3) {
+      console.warn('[SingleGroupPatch] guided tour incomplete (' + applied + '/3)');
+      noteAnchorMiss('singlegroup-guided-tour-incomplete');
+    }
     patchedSingleGroupBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[SingleGroupPatch] Error:', e.message); patchedSingleGroupBundle = null; }
   return patchedSingleGroupBundle;
@@ -6114,6 +6128,10 @@ function getPatchedSettingsBundle() {
       'manual import writes supported cloud fields'
     );
     console.log('[SettingsPatch] ' + applied + '/7 settings patches applied');
+    if (!raw.includes('__isoUploadBackupJSON') || !raw.includes('__isoImportBackupJSON')) {
+      console.warn('[SettingsPatch] manual export/import cloud backup hook missing');
+      noteAnchorMiss('settings-backup-hooks');
+    }
     patchedSettingsBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[SettingsPatch] Error:', e.message); patchedSettingsBundle = null; }
   return patchedSettingsBundle;
@@ -6143,6 +6161,10 @@ function getPatchedUseSyncStoreBundle() {
       'header download uses runtime download/import helper'
     );
     console.log('[SyncStorePatch] ' + applied + '/2 patches applied');
+    if (applied < 2) {
+      console.warn('[SyncStorePatch] header sync incompletely patched (' + applied + '/2)');
+      noteAnchorMiss('syncstore-incomplete');
+    }
     // NOTE: The old multi-line downloadCloudSnapshot patch was removed — it targeted
     // pre-minified bundle format. The minified version above replaces it.
     patchedUseSyncStoreBundle = Buffer.from(raw, 'utf8');
@@ -6222,6 +6244,10 @@ patch('if(!v)return r.jsx(ie,{});',
       'if(s==="private"){/* ISSUE-053: no gate bounce - boot router owns /onboarding routing */}',
       'private-mode bounce trusts boot onboarding decision');
     console.log('[AppAccessGatePatch] ' + applied + '/5 patches applied');
+    if (!raw.includes('__ISO_BOOT_STATE__')) {
+      console.warn('[AppAccessGatePatch] boot-trust routing absent; ISSUE-050/051/053 loops can return');
+      noteAnchorMiss('appaccessgate-boot-trust');
+    }
     patchedAppAccessGateBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[AppAccessGatePatch] Error:', e.message); patchedAppAccessGateBundle = null; }
   return patchedAppAccessGateBundle;
@@ -6267,6 +6293,13 @@ function getPatchedSessionSyncBundle() {
       'pending sync reports failures when cloud disabled'
     );
     console.log('[SessionSyncPatch] ' + applied + '/5 session sync patches applied');
+    // Post-condition: these five patches exist so the bundle stops reporting
+    // `{success:!0}` when nothing was written. If that string is absent the
+    // patcher is a no-op regardless of how the anchor search went.
+    if (!raw.includes('{success:!1')) {
+      console.warn('[SessionSyncPatch] CRITICAL MISS: no failure-reporting path in patched bundle');
+      noteAnchorMiss('sessionsync-no-failure-path');
+    }
     patchedSessionSyncBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[SessionSyncPatch] Error:', e.message); patchedSessionSyncBundle = null; }
   return patchedSessionSyncBundle;
