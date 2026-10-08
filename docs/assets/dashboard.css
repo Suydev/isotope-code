@@ -682,30 +682,57 @@
 }
 
 /* ============================================================================
-   The interactive demo
-   ----------------------------------------------------------------------------
-   A self-contained simulation of the product, built from what the repository
-   actually does. Every name, column and return value below was read out of
-   isotope-complete.sql or out of public/assets — not written to make the demo
-   look complete. Where a number is invented (a demo session length, a sample
-   streak) the caption says so, because a simulation that blurs its own
-   arithmetic is worse than no simulation.
+   THE INTERACTIVE DEMO
+   ============================================================================
+   An app shell: workspace rail, stacked pane canvas, summary rail, a view
+   switcher and Reset / Explore. Real state behind every control.
 
-   Same two constraints as the rest of this file: no new tokens, no new
-   keyframes. Every colour below is a --c-* or --f-* / --e-* / --s-* / --r-* /
-   --dur-* property from site.css. The one raw hex is the control-boundary
-   grey this page already uses for .dash-field and site.css already measures for
-   .sidebar-search — restated here because the demo has controls of its own and
-   reusing a literal is cheaper than a new variable nobody would read.
+   ── The rule that shapes the module ───────────────────────────────────────
+   Two kinds of thing are on screen and they must never be confused.
 
-   What it deliberately does NOT animate: nothing here loops. The timer only
-   runs because a reader pressed Start, every transition is a state change the
-   reader caused, and the whole block is inert under prefers-reduced-motion.
+     The STAGE is illustrative. Session lengths, subject names, group names,
+     member counts and leaderboard rows are invented so there is something
+     to show. Every one a reader could mistake for a claim about the shipped
+     product carries a visible `sample` marker at the point it appears.
+
+     The TRACE is not illustrative. Every table, column, function, status
+     value and branch in it was read out of isotope-complete.sql. If the trace
+     and the SQL ever disagree, the SQL is right — that is the whole reason
+     the trace exists.
+
+   ── Why this fetches nothing ──────────────────────────────────────────────
+   A demo of an offline-first product that needs a network round trip to
+   demonstrate the offline-first product would be a joke, and it would fail on
+   a cold cache in exactly the case where it is most likely to be opened.
+
+   ── Scaling ───────────────────────────────────────────────────────────────
+   The shell reflows on width, not on viewport, because this is a self-contained
+   widget that has to work at whatever width its column gives it, independent
+   of the page. Container queries are the right instrument for that — with one
+   caveat, and the caveat is load-bearing here rather than theoretical: they are
+   not universally implemented. `CSS.supports('width', '1cqw')` is false in the
+   browser this was built against, and a `@container` rule never fires there at
+   all. So the collapse ships TWICE — once on container width, once on viewport
+   — and where both apply they set identical values and agree.
+
+   The viewport rule is the one doing the work in that browser; it is a fallback,
+   not a duplicate. Its known limit: it keys off the viewport while the
+   container rule keys off the column, so on a wide viewport with a narrow
+   column the container query collapses and the media query does not. Known,
+   accepted, and the failure mode is a two-column layout that fits.
+
+   ── Constraints ───────────────────────────────────────────────────────────
+   No new tokens, no new keyframes. Every colour is a --c-* token; every
+   duration is a --dur-*; every radius a --r-*; every space a --s-*. The two
+   raw hex values are the control-boundary grey this page already measures for
+   .dash-field (3.14:1 on white) and its dark-theme counterpart (3.63:1),
+   restated because the demo has controls of its own and reusing the literal
+   is cheaper than a variable nobody would read.
+
+   What it deliberately does NOT animate: nothing loops. The timer runs only
+   because a reader pressed Start; every transition is a state change the
+   reader caused.
    ========================================================================= */
-
-/* ── Frame ────────────────────────────────────────────────────────────────────
-   One hairline, one shadow, no chrome. The demo should read as an object on the
-   page rather than as another page inside it. */
 
 .demo {
   border: 1px solid var(--c-border);
@@ -713,11 +740,22 @@
   background: var(--c-surface);
   box-shadow: var(--e-2);
   overflow: hidden;
+
+  /* The shell's container lives HERE, on the frame, rather than on
+     .demo-shell itself. A @container rule only ever styles descendants of the
+     container element — never the container — so putting `container-type` on
+     .demo-shell made every `@container demoshell { .demo-shell }` rule
+     unmatchable and the narrow layout silently never applied. The frame is the
+     natural owner anyway: it is what sets the available width, and it wraps
+     both .demo-shell and .demo-trace. */
+  container-type: inline-size;
+  container-name: demoshell;
 }
 
-/* Toolbar. Holds the sample-data label, the two global controls and the step
-   counter. Everything here is a real control at the 44px floor except the
-   label, which is not a control. */
+/* ── Toolbar ──────────────────────────────────────────────────────────────
+   The label states what the section shows, so the frame can never be read as
+   a live capture of somebody's account. Reset and Explore are the two global
+   controls. */
 .demo-bar {
   display: flex;
   flex-wrap: wrap;
@@ -727,6 +765,8 @@
   border-bottom: 1px solid var(--c-border);
   background: var(--c-bg-subtle);
 }
+
+.demo-bar-actions { display: flex; gap: var(--s-2); }
 
 .demo-tag {
   display: inline-flex;
@@ -738,8 +778,8 @@
   text-transform: uppercase;
   color: var(--c-text-muted);
 }
-/* The dot is decorative; the word beside it carries the meaning, so a reader who
-   never sees the dot still gets "sample data". */
+/* The dot is decorative; the words beside it carry the meaning, so a reader
+   who never sees the dot still gets "Sample data". */
 .demo-tag::before {
   content: '';
   width: 8px; height: 8px;
@@ -755,13 +795,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Shared control ─────────────────────────────────────────────────────────
-   One button style for the whole demo: the tabs, Reset and every step's
-   primary action. 44px minimum, a 3:1 boundary and a visible ring.
-
-   The boundary is the measured grey rather than --c-border for the same reason
-   documented at .dash-field: the border tokens are tuned for dividers and fail
-   1.4.11 as a control edge. */
+/* ── Shared control ───────────────────────────────────────────────────────
+   One button style for the whole demo. 44px minimum, a measured 3:1
+   boundary, and a visible ring on :focus-visible only — a mouse press should
+   not draw a ring and a keyboard one must. */
 .demo-btn {
   display: inline-flex;
   align-items: center;
@@ -769,7 +806,7 @@
   gap: var(--s-2);
   min-height: 44px;
   padding: var(--s-2) var(--s-4);
-  border: 1px solid #8b929c;            /* 3.14:1 on white — as .dash-field */
+  border: 1px solid #8b929c;
   border-radius: var(--r-md);
   background: var(--c-surface);
   color: var(--c-text);
@@ -779,24 +816,16 @@
               border-color var(--dur-fast) var(--ease),
               color var(--dur-fast) var(--ease);
 }
-:root[data-theme='dark'] .demo-btn { border-color: #6e648a; }   /* 3.63:1 */
+:root[data-theme='dark'] .demo-btn { border-color: #6e648a; }
 .demo-btn:hover:not(:disabled) { background: var(--c-bg-subtle); }
-.demo-btn:disabled {
-  opacity: .5;
-  cursor: not-allowed;
-}
-/* :focus-visible, never :focus — a mouse press should not draw a ring, and a
-   keyboard one must. The offset keeps the ring off the 1px border so both
-   edges stay readable. */
-.demo-btn:focus-visible {
-  outline: 2px solid var(--c-accent);
-  outline-offset: 2px;
-}
+.demo-btn:disabled { opacity: .5; cursor: not-allowed; }
+.demo-btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.demo-btn svg { width: 15px; height: 15px; flex: none; }
 
-/* The variant used for the one action that advances the story. Brand fill is
-   avoided for text-on-fill reasons discussed at .dash-area: this inverts
-   instead, which is 16.5:1 in dark and 18.4:1 in light, and stays legible when
-   the accent hue is not perceivable at all. */
+/* The variant that advances the story. Brand fill is avoided for
+   text-on-fill reasons documented at .dash-area: this inverts instead, which
+   is 16.5:1 in dark and 18.4:1 in light and stays legible when the accent
+   hue is not perceivable at all. */
 .demo-btn[data-variant='primary'] {
   background: var(--c-text);
   border-color: var(--c-text);
@@ -807,325 +836,550 @@
   color: var(--c-bg);
   border-color: var(--c-text);
 }
-.demo-btn svg { width: 15px; height: 15px; flex: none; }
 
-/* ── Tabs ───────────────────────────────────────────────────────────────────
-   A real tablist, because this IS a set of tab panels: exactly one is visible
-   at a time and each panel is labelled by its tab. The keyboard contract below
-   is the one the pattern promises, and dashboard.js implements it in full.
-
-   Horizontal scroll rather than wrap below 700px: five labels that wrap into
-   three rows push the panel below the fold on a phone, and a tablist that
-   scrolls off-axis is a convention users already know. */
-.demo-tabs {
-  display: flex;
-  gap: var(--s-1);
-  padding: var(--s-2) var(--s-3) 0;
-  border-bottom: 1px solid var(--c-border);
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-@media (min-width: 700px) { .demo-tabs { flex-wrap: wrap; overflow-x: visible; } }
-
-.demo-tab {
+.demo-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px; height: 44px;
   flex: none;
-  min-height: 44px;
-  padding: var(--s-2) var(--s-4);
+  padding: 0;
   border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: var(--r-md) var(--r-md) 0 0;
+  border-radius: var(--r-md);
   background: none;
   color: var(--c-text-muted);
-  font: 600 var(--t-sm)/1.2 var(--f-sans);
-  white-space: nowrap;
   cursor: pointer;
   transition: background-color var(--dur-fast) var(--ease),
               color var(--dur-fast) var(--ease);
 }
-.demo-tab:hover { color: var(--c-text); background: var(--c-bg-subtle); }
-/* Selected = weight + an inset bar, not colour alone. The 2px rule survives a
-   greyscale print and a reader who cannot separate the accent hue. */
-.demo-tab[aria-selected='true'] {
-  background: var(--c-surface);
-  border-color: var(--c-border);
-  color: var(--c-text);
-  box-shadow: inset 0 2px 0 0 var(--c-accent);
-  margin-bottom: -1px;
-  padding-bottom: calc(var(--s-2) + 1px);
-}
-.demo-tab:focus-visible {
-  outline: 2px solid var(--c-accent);
-  outline-offset: -2px;
-}
+.demo-icon-btn:hover { background: var(--c-bg-subtle); color: var(--c-text); }
+.demo-icon-btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+.demo-icon-btn svg { width: 16px; height: 16px; }
 
-/* ── Panel body ─────────────────────────────────────────────────────────────
-   Two columns from 900px: the stage on the left, the inspector on the right.
-   Below that it is one column, stage first — the stage is the thing the reader
-   came to watch, and the inspector is its explanation. */
-.demo-panels { padding: var(--s-4); }
+/* ── The shell ────────────────────────────────────────────────────────────
+   Grid: rail | canvas | summary, with a titlebar across the top. Container
+   queries, because this is a widget, not a page. Below 900px the three
+   columns become one and each rail labels its own section, so a phone reads
+   top-to-bottom rather than sideways. */
+.demo-shell {
+  /* No `--u` scale unit here, deliberately. An earlier revision declared
+     `--u: calc(100cqw / 1200)` on the theory that every interior dimension
+     would be a multiple of it, so the shell would scale as one object. That
+     never got wired up: the interior rules use literal 44px / 52px / rem
+     values, so the token had zero consumers and the comment described a
+     behaviour the CSS did not have. A comment that overstates its own rule is
+     worse than no comment, so the token is gone rather than the claim.
 
-.demo-panel { display: grid; gap: var(--s-4); }
-@media (min-width: 900px) {
-  .demo-panel { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
-}
-
-.demo-stage {
-  padding: var(--s-4);
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-md);
+     Scaling is handled instead by the two collapses below — one on container
+     width, one on viewport — which is what actually governs the layout. */
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) minmax(0, 17rem);
+  grid-template-areas:
+    'title  title  title'
+    'rail   panes  summary';
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 34rem;
   background: var(--c-bg-subtle);
 }
 
-.demo-h {
-  margin: 0 0 var(--s-1);
-  font: 600 var(--t-sm)/1.3 var(--f-sans);
-  letter-spacing: -.01em;
+@container demoshell (max-width: 900px) {
+  .demo-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'title' 'rail' 'panes' 'summary';
+    grid-template-rows: auto auto auto auto;
+  }
+}
+
+/* The same collapse as a media query, and it is not redundant.
+
+   @container is the right instrument here — the widget has to reflow on the
+   width of its column, not of the viewport — but it is not universally
+   implemented, and where it is missing the three fixed-ish columns (15rem +
+   1fr + 17rem) simply do not fit a 360px screen. Verified in this repo's own
+   test browser: CSS.supports('width','1cqw') is false and a @container rule
+   never fires, so the layout below is what actually protects small screens
+   there. Where container queries DO work, both rules match and agree. */
+@media (max-width: 1000px) {
+  .demo-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'title' 'rail' 'panes' 'summary';
+    grid-template-rows: auto auto auto auto;
+  }
+  /* The rails are no longer side by side, so they stop claiming a fixed
+     column and let their content decide the width. */
+  .demo-rail   { border-right: 0; border-bottom: 1px solid var(--c-border); }
+  .demo-summary { border-left: 0;  border-top: 1px solid var(--c-border); }
+}
+
+/* ── Titlebar ───────────────────────────────────────────────────────────── */
+.demo-titlebar {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-surface);
+  min-height: 52px;
+  flex-wrap: wrap;
+}
+
+.demo-lights { display: inline-flex; gap: 5px; flex: none; }
+.demo-lights i { width: 9px; height: 9px; border-radius: var(--r-full); background: var(--c-border-strong); }
+
+.demo-brand { display: inline-flex; align-items: center; gap: var(--s-2); flex: none; }
+.demo-brand-mark { width: 17px; height: 17px; color: var(--c-accent); }
+.demo-brand-name {
+  font: 600 var(--t-sm)/1 var(--f-sans);
+  letter-spacing: -0.01em;
   color: var(--c-text);
 }
 
-.demo-note {
-  margin: 0 0 var(--s-4);
-  font-size: var(--t-sm);
-  line-height: 1.55;
-  color: var(--c-text-muted);
+.demo-titlebar-spacer { flex: 1 1 auto; }
+
+/* ── View switcher ────────────────────────────────────────────────────────
+   A segmented track with a sliding thumb. The thumb is decorative: which
+   view is current is carried by aria-checked on the radio and by weight +
+   an inset underline on the button, so it does not depend on the accent hue
+   being perceivable or on the thumb rendering. */
+.demo-modes {
+  position: relative;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-full);
+  background: var(--c-bg-subtle);
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.demo-modes::-webkit-scrollbar { display: none; }
+
+.demo-modes-thumb {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: calc(100% - 6px);
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+  box-shadow: inset 0 0 0 1px var(--c-border-strong);
+  pointer-events: none;
+  transition: transform var(--dur) var(--ease), width var(--dur) var(--ease);
 }
 
-/* ── Inspector ───────────────────────────────────────────────────────────────
-   A live trace of what the simulated code just did: which function was called,
-   which rows it touched. This is the honest half of the demo — the stage is
-   illustrative, the trace is the part that is checked against the SQL. */
-.demo-trace {
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-md);
-  background: var(--c-surface);
-  overflow: hidden;
+.demo-mode {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  min-height: 38px;
+  padding: var(--s-1) var(--s-3);
+  border: 0;
+  background: none;
+  color: var(--c-text-muted);
+  font: 600 var(--t-xs)/1.2 var(--f-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease);
 }
-.demo-trace-head {
+.demo-mode:hover { color: var(--c-text); }
+.demo-mode:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; border-radius: var(--r-full); }
+.demo-mode[aria-checked='true'] { color: var(--c-text); }
+
+/* ── Session chip ─────────────────────────────────────────────────────────
+   Signed out vs signed in. Three cues — dot, weight and the words — so the
+   state never rests on colour. */
+.demo-session {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-muted);
+  flex: none;
+}
+.demo-session-dot {
+  width: 7px; height: 7px;
+  flex: none;
+  border-radius: var(--r-full);
+  background: var(--c-text-faint);
+}
+.demo-session[data-state='in'] .demo-session-dot { background: var(--c-ok); }
+.demo-session[data-state='in'] { color: var(--c-text); border-color: var(--c-border-strong); }
+
+/* ── Workspace rail ─────────────────────────────────────────────────────── */
+.demo-rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid var(--c-border);
+  background: var(--c-surface);
+}
+
+.demo-rail-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+}
+.demo-rail-title {
+  flex: 1 1 auto;
+  font: 600 var(--t-xs)/1 var(--f-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+
+.demo-rail-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--s-2);
+  display: grid;
+  gap: 1px;
+  align-content: start;
+}
+
+/* A study area. selected = weight + an inset accent rule + a raised surface:
+   three cues, so the current area does not depend on colour being
+   perceivable. */
+.demo-row-ws {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--c-text-muted);
+  font: 600 var(--t-sm)/1.3 var(--f-sans);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease);
+}
+.demo-row-ws:hover { background: var(--c-bg-subtle); color: var(--c-text); }
+.demo-row-ws:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+.demo-row-ws[aria-selected='true'] {
+  background: var(--c-bg-subtle);
+  border-color: var(--c-border);
+  color: var(--c-text);
+  box-shadow: inset 2px 0 0 0 var(--c-accent);
+}
+.demo-row-ws-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
+/* The open panes, indented beneath their subject so selecting an area shows
+   what is inside it rather than replacing the list with a detail view. */
+.demo-row-pane {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-1) var(--s-3) var(--s-1) var(--s-5);
+  margin-inline-start: var(--s-3);
+  border: 1px solid transparent;
+  border-inline-start: 2px solid var(--c-border);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: none;
+  color: var(--c-text-faint);
+  font: 500 var(--t-xs)/1.3 var(--f-sans);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease);
+}
+.demo-row-pane:hover { background: var(--c-bg-subtle); color: var(--c-text-muted); }
+.demo-row-pane:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+.demo-row-pane[aria-selected='true'] {
+  color: var(--c-text);
+  border-inline-start-color: var(--c-accent);
+  background: var(--c-bg-subtle);
+}
+.demo-row-pane-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
+.demo-rail-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-top: 1px solid var(--c-border);
+}
+.demo-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  flex: none;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-full);
+  background: var(--c-bg-subtle);
+  font: 700 11px/1 var(--f-mono);
+  color: var(--c-text-muted);
+}
+.demo-rail-foot-text { display: grid; min-width: 0; }
+.demo-rail-foot-name { font: 600 var(--t-xs)/1.4 var(--f-sans); color: var(--c-text); }
+.demo-rail-foot-meta {
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+
+/* ── Pane canvas ──────────────────────────────────────────────────────────
+   A stack. Behind-panes are aria-hidden and inert, so the canvas exposes
+   exactly one readable pane to assistive tech rather than three copies of
+   the same content. */
+.demo-panes {
+  grid-area: panes;
+  position: relative;
+  min-width: 0;
+  padding: var(--s-4);
+  display: grid;
+  overflow-y: auto;
+}
+.demo-panes:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+
+/* The stack. Later panes sit on top; the depth is transform + shadow only,
+   never a layout offset, so nothing reflows when the stack changes. */
+.demo-stack { position: relative; display: grid; align-content: start; gap: var(--s-3); }
+
+.demo-pane {
+  grid-area: 1 / 1;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+  box-shadow: var(--e-1);
+  min-width: 0;
+  transition: transform var(--dur) var(--ease),
+              box-shadow var(--dur) var(--ease),
+              opacity var(--dur) var(--ease);
+}
+.demo-pane[data-depth='0'] { position: relative; z-index: 3; }
+.demo-pane[data-depth='1'] {
+  transform: scale(.975) translateY(-10px);
+  z-index: 2;
+  opacity: .75;
+}
+.demo-pane[data-depth='2'] {
+  transform: scale(.95) translateY(-20px);
+  z-index: 1;
+  opacity: .5;
+}
+.demo-pane[data-depth='2'] .demo-pane-head { visibility: hidden; }
+.demo-pane[data-depth='2'] > *:not(.demo-pane-head) { display: none; }
+
+.demo-pane-head {
+  display: flex;
+  align-items: center;
   gap: var(--s-2);
   padding: var(--s-3) var(--s-4);
   border-bottom: 1px solid var(--c-border);
-  background: var(--c-bg-subtle);
 }
-.demo-trace-head .demo-h { margin: 0; }
-/* role="log" rather than role="status": this is a sequence of appended lines,
-   not a single status that replaced its own text. */
-.demo-trace-list {
+.demo-pane-title {
   margin: 0;
-  padding: var(--s-2);
-  list-style: none;
-  max-height: 17rem;
-  overflow-y: auto;
-}
-/* The empty state. Written as a sibling rule with :empty rather than as a
-   generated ::after on a list that receives children: an aria-live region that
-   gains its first line from an empty state that announces itself would read
-   the placeholder aloud on every panel switch. */
-.demo-trace-list:empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 6rem;
-}
-.demo-trace-list:empty::after {
-  content: 'Press a control to see what it writes.';
-  font-size: var(--t-sm);
-  color: var(--c-text-faint);
-  text-align: center;
-}
-.demo-trace-line {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--s-1) var(--s-2);
-  padding: var(--s-2) var(--s-2);
-  border-radius: var(--r-sm);
-  font-family: var(--f-mono);
-  font-size: var(--t-xs);
-  line-height: 1.5;
-}
-.demo-trace-line + .demo-trace-line { border-top: 1px solid var(--c-border); }
-.demo-trace-k { color: var(--c-text-faint); }
-.demo-trace-v { color: var(--c-text); overflow-wrap: anywhere; }
-.demo-trace-v code { font: inherit; }
-.demo-trace-line[data-kind='write'] .demo-trace-k { color: var(--c-accent); font-weight: 700; }
-.demo-trace-line[data-kind='policy'] .demo-trace-k { color: var(--c-warn); font-weight: 700; }
-
-/* ── Stat readout ───────────────────────────────────────────────────────────
-   The numbers a completed focus session produces. Rendered from a <dl> so the
-   relationship between term and value is in the markup rather than implied by
-   layout — and so a screen reader announces "total_study_seconds, 1800" rather
-   than two loose strings. */
-.demo-stats {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--s-1);
-  margin: 0;
-}
-@media (min-width: 480px) { .demo-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-
-.demo-stat {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--s-3);
-  padding: var(--s-2) var(--s-3);
-  border-radius: var(--r-sm);
-  background: var(--c-bg-subtle);
-}
-.demo-stat dt {
-  font-family: var(--f-mono);
-  font-size: var(--t-xs);
-  color: var(--c-text-muted);
+  font: 600 var(--t-sm)/1.3 var(--f-sans);
+  color: var(--c-text);
+  min-width: 0;
   overflow-wrap: anywhere;
 }
-.demo-stat dd {
-  margin: 0;
-  font: 700 var(--t-sm)/1.2 var(--f-mono);
-  color: var(--c-text);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-/* A value that just changed is briefly marked. This is a redundant cue on top
-   of the number itself, never the only way to tell. */
-.demo-stat[data-changed='true'] { box-shadow: inset 2px 0 0 0 var(--c-ok); }
+.demo-pane-spacer { flex: 1 1 auto; }
+.demo-pane-body { padding: var(--s-4); display: grid; gap: var(--s-4); align-content: start; }
 
-/* ── Timer ───────────────────────────────────────────────────────────────────
-   A fixed-width readout so the digits cannot reflow the layout as they count.
-   tabular-nums alone would stop the glyphs jittering but not the box growing. */
-.demo-clock {
-  margin: 0 0 var(--s-4);
-  font: 700 clamp(2.25rem, 7vw, 3.25rem)/1 var(--f-mono);
-  letter-spacing: -.03em;
+/* ── Summary rail ───────────────────────────────────────────────────────── */
+.demo-summary {
+  grid-area: summary;
+  min-width: 0;
+  padding: var(--s-4);
+  border-left: 1px solid var(--c-border);
+  background: var(--c-surface);
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+}
+
+.demo-h {
+  margin: 0;
+  font: 600 var(--t-sm)/1.3 var(--f-sans);
+  letter-spacing: -0.14px;
+  color: var(--c-text);
+}
+.demo-note {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: 1.6;
+  color: var(--c-text-muted);
+}
+.demo-note code, .demo-summary code, .demo-pane code {
+  font-family: var(--f-mono);
+  overflow-wrap: anywhere;
+}
+
+/* The hero figure. Line-height tightens with size — the one place the demo
+   needs the optical ladder, because 00:00 at 2rem next to a 13px label is
+   the whole point of the panel. */
+.demo-stat-hero { margin: 0; display: grid; gap: 2px; }
+.demo-stat-hero-val {
+  font: 700 clamp(1.75rem, 1.2rem + 1.6cqi, 2.25rem)/1.05 var(--f-mono);
+  letter-spacing: -0.03em;
   color: var(--c-text);
   font-variant-numeric: tabular-nums;
-  text-align: center;
+}
+.demo-stat-hero-lbl {
+  font: 500 var(--t-xs)/1.4 var(--f-sans);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+
+/* Streak ring. A conic gradient driven by a percentage set from JS — no new
+   token, no keyframe, and it degrades to a flat ring when the value is 0. */
+.demo-ring-row { display: flex; align-items: center; gap: var(--s-3); }
+.demo-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px; height: 52px;
+  flex: none;
+  border-radius: var(--r-full);
+  background: conic-gradient(var(--c-accent) calc(var(--pct, 0) * 1%),
+                             var(--c-bg-subtle) 0);
+  position: relative;
+}
+.demo-ring::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+}
+.demo-ring-num {
+  position: relative;
+  font: 700 var(--t-sm)/1 var(--f-mono);
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+.demo-ring-text { display: grid; min-width: 0; }
+.demo-ring-lbl { font: 600 var(--t-sm)/1.3 var(--f-sans); color: var(--c-text); }
+.demo-ring-sub { font: 500 var(--t-xs)/1.4 var(--f-mono); color: var(--c-text-faint); }
+
+.demo-summary-list { margin: 0; display: grid; gap: 1px; }
+.demo-summary-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--c-border);
+}
+.demo-summary-row dt {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+.demo-summary-row dd {
+  margin: 0;
+  flex: none;
+  font: 600 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Focus timer ────────────────────────────────────────────────────────── */
+.demo-clock {
+  margin: 0;
+  font: 700 clamp(2.25rem, 1.5rem + 2.4cqi, 3.25rem)/1 var(--f-mono);
+  letter-spacing: -0.035em;
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
 }
 .demo-clock[data-state='running'] { color: var(--c-accent); }
+.demo-clock[data-state='finished'] { color: var(--c-ok); }
 
-/* Progress bar. The fill is a plain width transition on an existing token; the
-   numeric value is always also present as text beside it, so the bar is never
-   the only carrier of the information. */
 .demo-bar-track {
   height: 6px;
-  margin-bottom: var(--s-4);
   border-radius: var(--r-full);
-  background: var(--c-border);
+  background: var(--c-bg-subtle);
   overflow: hidden;
 }
 .demo-bar-fill {
   height: 100%;
-  width: 0%;
   border-radius: var(--r-full);
   background: var(--c-accent);
   transition: width var(--dur-slow) linear;
 }
+.demo-bar-fill[data-state='finished'] { background: var(--c-ok); }
 
-.demo-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-2);
-}
+.demo-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .demo-actions .demo-btn { flex: 1 1 auto; }
-@media (min-width: 480px) { .demo-actions .demo-btn { flex: 0 0 auto; } }
 
-/* ── Lists (tasks, groups, chunk list) ─────────────────────────────────────
-   A <ul> throughout, because every one of these is a list and a screen reader
-   announcing the item count is part of the point. */
-
-.demo-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
+.demo-subjects { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.demo-subject-chip {
+  display: inline-flex;
+  align-items: center;
   gap: var(--s-2);
-}
-.demo-list[data-empty='true']::after {
-  content: attr(data-empty-text);
-  display: block;
-  padding: var(--s-4) var(--s-3);
-  border: 1px dashed var(--c-border-strong);
-  border-radius: var(--r-md);
-  font-size: var(--t-sm);
-  color: var(--c-text-faint);
-  text-align: center;
-}
-
-.demo-row {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s-3);
-  padding: var(--s-3);
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-md);
-  background: var(--c-surface);
-}
-.demo-row-main { flex: 1 1 auto; min-width: 0; }
-.demo-row-title {
-  margin: 0;
-  font-size: var(--t-sm);
-  font-weight: 600;
-  color: var(--c-text);
-  overflow-wrap: anywhere;
-}
-.demo-row-meta {
-  margin: var(--s-1) 0 0;
-  font-family: var(--f-mono);
-  font-size: var(--t-xs);
-  color: var(--c-text-faint);
-  overflow-wrap: anywhere;
-}
-/* A completed row is marked three ways — strike, a status pill, and a checkmark
-   glyph in text — so the state survives colour, greyscale and a screen reader
-   that never renders the glyph at all. */
-.demo-row[data-done='true'] { background: var(--c-bg-subtle); }
-.demo-row[data-done='true'] .demo-row-title { text-decoration: line-through; color: var(--c-text-faint); }
-
-/* The one inline control on a row: complete a task, accept a join request.
-   44px tall, full label, aria-pressed so the state is announced. */
-.demo-row-btn {
-  flex: none;
   min-height: 44px;
-  min-width: 44px;
-  padding: var(--s-2) var(--s-3);
-  border: 1px solid #8b929c;
-  border-radius: var(--r-sm);
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-full);
   background: var(--c-surface);
-  color: var(--c-text);
-  font: 600 var(--t-xs)/1.2 var(--f-sans);
+  font: 500 var(--t-xs)/1.4 var(--f-sans);
+  color: var(--c-text-muted);
   cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease);
+  transition: border-color var(--dur-fast) var(--ease),
+              background-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease);
 }
-:root[data-theme='dark'] .demo-row-btn { border-color: #6e648a; }
-.demo-row-btn:hover:not(:disabled) { background: var(--c-bg-subtle); }
-.demo-row-btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
-.demo-row-btn[aria-pressed='true'],
-.demo-row-btn:disabled {
+.demo-subject-chip:hover { background: var(--c-bg-subtle); color: var(--c-text); }
+.demo-subject-chip:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.demo-subject-chip[aria-pressed='true'] {
   background: var(--c-bg-subtle);
-  color: var(--c-text-faint);
-  cursor: not-allowed;
+  border-color: var(--c-accent);
+  color: var(--c-text);
 }
-.demo-row-btn[aria-pressed='true'] { text-decoration: line-through; }
 
-/* ── New-task field ────────────────────────────────────────────────────────
-   A real <form> with a real label, so Enter submits and the accessible name is
-   not a placeholder. Placeholder-only labelling is one of the more common
-   failures on a control like this: the moment you type, the label is gone. */
-.demo-form { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-4); }
+/* ── Stats table ────────────────────────────────────────────────────────── */
+.demo-stats { margin: 0; display: grid; gap: 1px; }
+.demo-stat {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-2) var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+}
+.demo-stat dt {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+.demo-stat dd {
+  margin: 0;
+  flex: none;
+  font: 600 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+/* A row the demo just changed. The inset rule plus the label change in the
+   pane's own live region carry it — this is a cue, not the only cue. */
+.demo-stat[data-changed='true'] { box-shadow: inset 2px 0 0 0 var(--c-ok); }
+
+/* ── Tasks ──────────────────────────────────────────────────────────────── */
+.demo-form { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .demo-form:focus-within {
-  /* A softer container ring than the inputs carry. It is what tells a keyboard
-     user which field they are in without competing with the input's own ring.
-
-     `:not(.demo-input)` is load-bearing, not tidiness. Both this rule and
-     .demo-input:focus-visible are specificity 0,2,0 — the container rule
-     matches .demo-form on :focus-within whether or not the focus is on the
-     input, so a bare .demo-form:focus-within wins the tie on source order and
-     draws a 2px ring around the ENTIRE row. Excluding the input element from
-     this selector drops it to 0,1,0 for the input case and lets the input's own
-     ring stand. */
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
   border-radius: var(--r-md);
-  box-shadow: 0 0 0 1px var(--c-accent);
 }
 .demo-input {
   flex: 1 1 12rem;
@@ -1135,64 +1389,128 @@
   border: 1px solid #8b929c;
   border-radius: var(--r-md);
   background: var(--c-surface);
-  /* 16px floor — below it iOS zooms the page on focus. */
-  font: 400 1rem/1.4 var(--f-sans);
   color: var(--c-text);
+  font: 400 var(--t-sm)/1.3 var(--f-sans);
 }
 :root[data-theme='dark'] .demo-input { border-color: #6e648a; }
 .demo-input::placeholder { color: var(--c-text-faint); }
-.demo-input:focus-visible {
-  outline: 2px solid var(--c-accent);
-  outline-offset: 2px;
-  border-color: var(--c-accent);
-}
-.demo-label {
-  flex: 1 0 100%;
+.demo-input:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 1px; }
+
+.demo-list { display: grid; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.demo-list[data-empty='true']::after {
+  content: attr(data-empty-text);
+  display: block;
+  padding: var(--s-4);
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--r-md);
   font-size: var(--t-sm);
-  font-weight: 600;
-  color: var(--c-text);
+  color: var(--c-text-muted);
+  text-align: center;
 }
 
-/* ── Group cards (community) ─────────────────────────────────────────────── */
-.demo-groups {
-  display: grid;
+.demo-row {
+  display: flex;
+  align-items: center;
   gap: var(--s-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
 }
+.demo-row[data-done='true'] { background: var(--c-bg-subtle); }
+.demo-row[data-done='true'] .demo-row-title { text-decoration: line-through; color: var(--c-text-faint); }
+.demo-row-main { flex: 1 1 auto; min-width: 0; }
+.demo-row-title { margin: 0; font: 600 var(--t-sm)/1.4 var(--f-sans); color: var(--c-text); overflow-wrap: anywhere; }
+.demo-row-meta {
+  margin: 2px 0 0;
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+.demo-row-btn {
+  flex: none;
+  min-height: 44px;
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid #8b929c;
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: 600 var(--t-xs)/1.2 var(--f-sans);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+:root[data-theme='dark'] .demo-row-btn { border-color: #6e648a; }
+.demo-row-btn:hover:not(:disabled) { background: var(--c-bg-subtle); }
+.demo-row-btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.demo-row-btn[aria-pressed='true'] { text-decoration: line-through; opacity: .6; cursor: default; }
+
+/* ── Syllabus ───────────────────────────────────────────────────────────── */
+.demo-subject-tree { display: grid; gap: var(--s-3); margin: 0; padding: 0; list-style: none; }
+.demo-subject-card {
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  overflow: hidden;
+}
+.demo-subject-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  border: 0;
+  background: none;
+  color: var(--c-text);
+  font: 600 var(--t-sm)/1.3 var(--f-sans);
+  text-align: start;
+  cursor: pointer;
+}
+.demo-subject-card-head:hover { background: var(--c-bg-subtle); }
+.demo-subject-card-head:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+.demo-subject-card-head .demo-pane-spacer { flex: 1 1 auto; }
+.demo-subject-card[data-open='true'] .demo-chevron { transform: rotate(90deg); }
+.demo-chevron {
+  width: 14px; height: 14px;
+  flex: none;
+  color: var(--c-text-faint);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.demo-subject-card-body { padding: 0 var(--s-3) var(--s-3); display: grid; gap: var(--s-2); }
+.demo-subject-card[data-open='false'] .demo-subject-card-body { display: none; }
+
+.demo-chapters { display: grid; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.demo-chapter {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-bg-subtle);
+}
+.demo-chapter-name { flex: 1 1 auto; font: 600 var(--t-xs)/1.4 var(--f-sans); color: var(--c-text); overflow-wrap: anywhere; }
+.demo-chapter-topics {
+  margin: 2px 0 0;
+  font: 500 var(--t-xs)/1.5 var(--f-mono);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+.demo-chapter-progress { flex: none; font: 600 var(--t-xs)/1.4 var(--f-mono); color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
+
+/* ── Groups ─────────────────────────────────────────────────────────────── */
+.demo-groups { display: grid; gap: var(--s-3); margin: 0; padding: 0; list-style: none; }
 .demo-group {
   padding: var(--s-3);
   border: 1px solid var(--c-border);
   border-radius: var(--r-md);
   background: var(--c-surface);
+  display: grid;
+  gap: var(--s-3);
 }
-.demo-group-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--s-2);
-}
-.demo-group-name {
-  margin: 0;
-  font-size: var(--t-sm);
-  font-weight: 600;
-  color: var(--c-text);
-}
-.demo-group-body { margin-top: var(--s-3); }
-.demo-group-body[hidden] { display: none; }
-
-/* Members. Avatars are initials on a tinted circle — a glyph, so the name
-   beside it is the content and the circle is decoration. */
-.demo-members {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+.demo-group-head { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+.demo-group-name { margin: 0; flex: 1 1 12rem; font: 600 var(--t-sm)/1.3 var(--f-sans); color: var(--c-text); overflow-wrap: anywhere; }
+.demo-members { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
 .demo-member {
   display: inline-flex;
   align-items: center;
@@ -1209,60 +1527,19 @@
   justify-content: center;
   width: 22px; height: 22px;
   flex: none;
+  border: 1px solid var(--c-border-strong);
   border-radius: var(--r-full);
   background: var(--c-bg-subtle);
-  border: 1px solid var(--c-border-strong);
   font: 700 11px/1 var(--f-mono);
   color: var(--c-text-muted);
 }
 .demo-member[data-role='owner'] { border-color: var(--c-accent); color: var(--c-text); }
 
-/* ── Syllabus chunk list ──────────────────────────────────────────────────
-   Two columns from 560px, one below. Each chunk is the lazy-loaded bundle the
-   real route imports, so the list is the shipped one rather than a summary. */
-.demo-chunks {
-  display: grid;
-  gap: var(--s-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: chunk;
-}
-@media (min-width: 560px) { .demo-chunks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-
-.demo-chunk {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  padding: var(--s-2) var(--s-3);
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-sm);
-  background: var(--c-surface);
-  font-family: var(--f-mono);
-  font-size: var(--t-xs);
-  color: var(--c-text);
-  overflow-wrap: anywhere;
-}
-.demo-chunk::before {
-  counter-increment: chunk;
-  content: counter(chunk);
-  flex: none;
-  min-width: 1.25rem;
-  font-weight: 700;
-  color: var(--c-text-faint);
-}
-
 /* ── Sync ──────────────────────────────────────────────────────────────────
-   A three-state machine — local, queued, reconciled — shown as three stacked
-   lanes rather than as a diagram, so it reflows and each state is its own
-   <li> in the accessibility tree. */
-.demo-lanes {
-  display: grid;
-  gap: var(--s-2);
-  margin: 0 0 var(--s-4);
-  padding: 0;
-  list-style: none;
-}
+   Three lanes, and the interesting one is the third: the comparison ladder
+   evaluates richness BEFORE recency, so a fresh install's empty snapshot
+   cannot overwrite real work. */
+.demo-lanes { display: grid; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
 .demo-lane {
   display: flex;
   align-items: center;
@@ -1273,19 +1550,13 @@
   background: var(--c-surface);
 }
 .demo-lane-body { flex: 1 1 auto; min-width: 0; }
-.demo-lane-name {
-  margin: 0;
-  font: 600 var(--t-sm)/1.3 var(--f-sans);
-  color: var(--c-text-muted);
-}
+.demo-lane-name { margin: 0; font: 600 var(--t-sm)/1.3 var(--f-sans); color: var(--c-text-muted); }
 .demo-lane-rows {
   margin: var(--s-1) 0 0;
-  font-family: var(--f-mono);
-  font-size: var(--t-xs);
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
   color: var(--c-text-faint);
+  overflow-wrap: anywhere;
 }
-/* The active lane. Bold + a 2px inset edge + a raised surface: three cues, so
-   the current state does not depend on colour being perceivable. */
 .demo-lane[data-active='true'] {
   border-color: var(--c-accent);
   background: var(--c-bg-subtle);
@@ -1294,21 +1565,67 @@
 .demo-lane[data-active='true'] .demo-lane-name { color: var(--c-text); }
 .demo-lane[data-done='true'] .demo-lane-name { color: var(--c-text-faint); }
 
-/* ── Captions ──────────────────────────────────────────────────────────────
+/* ── Leaderboard ────────────────────────────────────────────────────────── */
+.demo-board { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; counter-reset: rank; }
+.demo-board-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  font-size: var(--t-sm);
+}
+.demo-board-row[data-you='true'] { background: var(--c-bg-subtle); box-shadow: inset 2px 0 0 0 var(--c-accent); }
+.demo-board-rank {
+  flex: none;
+  width: 1.75rem;
+  font: 700 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.demo-board-row[data-you='true'] .demo-board-rank { color: var(--c-text); }
+.demo-board-name { flex: 1 1 auto; min-width: 0; color: var(--c-text); overflow-wrap: anywhere; }
+.demo-board-hours { flex: none; font: 600 var(--t-xs)/1.4 var(--f-mono); color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
+
+/* ── Pills ───────────────────────────────────────────────────────────────── */
+.demo-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--s-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-full);
+  background: var(--c-bg-subtle);
+  font: 600 var(--t-xs)/1.5 var(--f-mono);
+  color: var(--c-text-muted);
+  white-space: nowrap;
+}
+.demo-pill[data-tone='ok'] {
+  border-color: color-mix(in srgb, var(--c-ok) 40%, transparent);
+  color: var(--c-ok);
+  background: color-mix(in srgb, var(--c-ok) 12%, transparent);
+}
+.demo-pill[data-tone='accent'] {
+  border-color: color-mix(in srgb, var(--c-accent) 40%, transparent);
+  color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 12%, transparent);
+}
+.demo-pill[data-tone='warn'] {
+  border-color: color-mix(in srgb, var(--c-warn) 40%, transparent);
+  color: var(--c-warn);
+  background: color-mix(in srgb, var(--c-warn) 12%, transparent);
+}
+
+/* ── Captions ─────────────────────────────────────────────────────────────
    The honesty contract. Any figure the demo invented is labelled at the point
    it appears rather than in a footnote, so it cannot be read as a claim about
    the shipped product while scrolling past. */
 .demo-caption {
-  margin: var(--s-3) 0 0;
+  margin: 0;
   font-size: var(--t-xs);
   line-height: 1.55;
   color: var(--c-text-faint);
 }
-.demo-caption code {
-  font-family: var(--f-mono);
-  overflow-wrap: anywhere;
-}
-/* The illustrative-value marker, used inline beside a number. */
+.demo-caption code { font-family: var(--f-mono); overflow-wrap: anywhere; }
 .demo-samp {
   display: inline-flex;
   align-items: center;
@@ -1323,15 +1640,62 @@
   vertical-align: 1px;
 }
 
-/* ── Progressive enhancement ──────────────────────────────────────────────
-   dashboard.js's first line removes `no-js` from <html>, so these selectors
-   only ever match when the script did not run. The demo frame is hidden in
-   that case and the prose fallback is shown instead — one sentence pointing at
-   the two pages that cover the same ground in writing, rather than five panels
-   of dead controls that read as a broken page.
+/* ── Trace ───────────────────────────────────────────────────────────────
+   One element for the whole demo, outside the panes on purpose: it describes
+   everything, so it must not disappear when the view changes. */
+.demo-trace {
+  border-top: 1px solid var(--c-border);
+  background: var(--c-bg-subtle);
+}
+.demo-trace-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+}
+.demo-trace-head .demo-h { margin: 0; }
 
-   The patterns are written child-first (`html.no-js .demo`) so they carry the
-   full 0,2,0 specificity and cannot be beaten by a later `.demo` rule. */
+.demo-trace-list {
+  margin: 0;
+  padding: var(--s-2) var(--s-4) var(--s-4);
+  list-style: none;
+  max-height: 16rem;
+  overflow-y: auto;
+  display: grid;
+  gap: 0;
+}
+.demo-trace-list:empty { display: none; }
+
+.demo-trace-line {
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  line-height: 1.5;
+}
+.demo-trace-line + .demo-trace-line { border-top: 1px solid var(--c-border); }
+.demo-trace-k { flex: none; width: 8.5rem; color: var(--c-text-faint); }
+.demo-trace-v { flex: 1 1 auto; min-width: 0; color: var(--c-text); overflow-wrap: anywhere; }
+.demo-trace-line[data-kind='write'] .demo-trace-k { color: var(--c-accent); font-weight: 700; }
+.demo-trace-line[data-kind='policy'] .demo-trace-k { color: var(--c-warn); font-weight: 700; }
+.demo-trace-line[data-kind='info'] .demo-trace-k { color: var(--c-text-muted); }
+
+@container demoshell (max-width: 640px) {
+  .demo-trace-line { flex-direction: column; gap: 2px; }
+  .demo-trace-k { width: auto; }
+}
+
+/* ── Progressive enhancement ──────────────────────────────────────────────
+   dashboard.js removes `no-js` from <html> on its first line, so these
+   selectors only match when the script did not run: the frame is hidden and
+   the prose fallback is shown instead — one sentence pointing at the three
+   pages that cover the same ground, rather than a dead shell that reads as a
+   broken page.
+
+   Child-first (`html.no-js .demo`) so the selector carries full 0,2,0
+   specificity and cannot be beaten by a later `.demo` rule. */
 html.no-js .demo { display: none; }
 html.no-js .demo-nojs { display: block; }
 .demo-nojs {
@@ -1346,12 +1710,14 @@ html.no-js .demo-nojs { display: block; }
 }
 .demo-nojs a { color: var(--c-accent); }
 
-/* ── Reduced motion ──────────────────────────────────────────────────────────
-   The timer is the one thing here that can move on its own, and it is
-   request-driven rather than looping, so a reader who asked for reduced motion
-   still gets it — as a discrete jump to the next state instead of a slide.
-   Everything that only exists to decorate a state change stops entirely. */
+/* ── Reduced motion ───────────────────────────────────────────────────────
+   The timer is the one thing that can move on its own, and it is
+   request-driven rather than looping, so a reader who asked for reduced
+   motion still gets it — as a discrete jump to the next state instead of a
+   slide. Everything that only decorates a state change stops entirely. */
 @media (prefers-reduced-motion: reduce) {
-  .demo-btn, .demo-tab, .demo-row-btn, .demo-input { transition: none; }
-  .demo-bar-fill { transition: none; }
+  .demo-btn, .demo-mode, .demo-icon-btn, .demo-row-ws, .demo-row-pane,
+  .demo-row-btn, .demo-input, .demo-subject-chip, .demo-subject-card-head,
+  .demo-chevron { transition: none; }
+  .demo-bar-fill, .demo-pane, .demo-modes-thumb { transition: none; }
 }

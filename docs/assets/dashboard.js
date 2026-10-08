@@ -597,272 +597,637 @@
   })();
 
   /* ── 4. The interactive demo ──────────────────────────────────────────────
-     Five walkthroughs of the product, each with real controls and a live trace
-     of what the simulated code wrote.
+     An app shell you can drive. Five study surfaces, a workspace rail, a
+     stacked pane canvas, a summary rail, and a running trace of what the
+     simulated code wrote.
 
      ── The rule that shapes this whole module ─────────────────────────────────
-     There are two kinds of thing on screen and they must never be confused.
+     Two kinds of thing are on screen and they must never be confused.
 
-       The STAGE is illustrative. Session lengths, subject names, group names,
-       avatar initials and member counts are invented so the panel has something
-       to show. Every one of them that a reader could mistake for a claim about
-       the shipped product carries a visible "sample" marker in the caption.
+       The STAGE is illustrative. Session lengths, subject names, group
+       names, member counts and leaderboard rows are invented so there is
+       something to show. Every one a reader could mistake for a claim about
+       the shipped product carries a visible `sample` marker at the point it
+       appears.
 
        The TRACE is not illustrative. Every function name, table name, column
        name, status value and branch in it was read out of isotope-complete.sql
        or public/assets. That is what makes the demo worth more than a mockup:
        if the trace and the SQL ever disagree, the SQL is right.
 
+     ── Why the demo opens signed out ─────────────────────────────────────────
+     A fresh install redirects / and /demo to /auth, and this build disables
+     the demo gate, so nobody reaches the dashboard without signing in first.
+     Reproducing that ordering is more honest than starting past it: the rail
+     opens on the auth wall and Explore is what walks a reader through it.
+
      ── Why this fetches nothing ──────────────────────────────────────────────
      The rest of this file fetches two same-origin files. This module fetches
      nothing at all. A demo of an offline-first product that needs a network
-     round trip to demonstrate the offline-first product would be a joke, and it
-     would also make the section fail on a cold cache in exactly the case where
-     it is most likely to be opened.
+     round trip to demonstrate the offline-first product would be a joke, and
+     it would also make the section fail on a cold cache in exactly the case
+     where it is most likely to be opened.
 
      ── State lives in one object ─────────────────────────────────────────────
-     All five panels read from and write to `S`. There is no per-panel closure
-     holding state, so Reset is a single assignment rather than five teardowns,
-     and the sync panel can honestly read a session the focus panel created. */
+     Every surface reads from and writes to `S`. There is no per-pane closure
+     holding state, so Reset is a single assignment rather than five
+     teardowns, and the sync surface can honestly read a session the focus
+     surface created. */
   (function demo() {
     var root = document.querySelector('[data-demo]');
     if (!root) return;
 
-    /* ── Sample data ──────────────────────────────────────────────────────────
-       Declared once, here, so the boundary between invented and real is a
-       single readable place rather than a value sprinkled through five
-       functions. Anything in this block may appear on screen and is therefore
-       marked as sample in the caption of the panel that shows it. */
+    /* ── Real data ────────────────────────────────────────────────────────────
+       window.ISOTOPE_DEMO, loaded from assets/demo-data.js, is derived from a
+       genuine IsotopeAI backup snapshot: 195 sessions, 32 tasks, 3 subjects,
+       92 daily logs, exported 2026-10-08. So the syllabus, the task titles,
+       the focus series and the streak are all real numbers from a real
+       install rather than plausible fiction.
+
+       What that does and does not make this: the CONTENT is real and the
+       INTERACTION is a simulation. The snapshot is a point-in-time export, not
+       a live account, and the controls below still write to nothing. Every
+       surface therefore says which it is showing.
+
+       Fallback is total: if the fixture fails to load, this module runs on an
+       empty-but-valid object and renders structure rather than throwing, so a
+       blocked asset cannot take the page down with it. */
+    var FIX = window.ISOTOPE_DEMO || {};
+
     var SAMPLE = {
-      focusMinutes: 25,          // the app's default focus length
-      subject: 'Organic chemistry',
-      /* Starting totals, so the effect of a session is visible as a delta
-         rather than as a number growing out of nothing. */
+      snapshot: FIX.snapshot || '2026-10-08',
+
+      /* The fixture already converts to seconds; the focus length is the one
+         thing that stays invented, because a demo needs a session a reader can
+         actually finish. It is labelled as such at the point of use. */
+      focusMinutes: 25,
+
       base: {
-        total_study_seconds: 126000,   // 35h
-        total_hours: 35,
-        weekly_hours: 4.5,
-        session_count: 12,
-        total_sessions: 12
+        total_study_seconds: (FIX.totalMinutes || 0) * 60,
+        total_hours:        Math.round(((FIX.totalMinutes || 0) / 60) * 100) / 100,
+        weekly_hours:       Math.round(((FIX.weekMinutes || 0) / 60) * 100) / 100,
+        monthly_hours:      Math.round(((FIX.fortnightMinutes || 0) / 60) * 100) / 100,
+        session_count:      FIX.sessionCount || 0,
+        total_sessions:     FIX.sessionCount || 0,
+        current_streak:     FIX.streak || 0,
+        max_streak_days:    FIX.streak || 0
       },
+
+      /* Real subjects, chapters and topics. The 14-day series is real
+         focus-hours per day, used by the summary rail. */
+      subjects: FIX.subjects || [],
+      series:  FIX.series || [],
+      recent:  FIX.recent || [],
+
+      /* Real task titles with their real status and priority, as the export
+         recorded them. tasks.status is a free column in the schema, so these
+         five values are the app's, not the dump's. */
+      tasks: (FIX.tasks || []).map(function (t) {
+        return {
+          id: 'x' + Math.random().toString(36).slice(2, 9),
+          title: t.title, subject: t.subject, status: t.status, priority: t.priority
+        };
+      }),
+
+      /* join_policy is a real column defaulting to 'request'. Both groups are
+         invented because a personal backup contains nobody's study groups —
+         but the two policies they exercise are the real branches of
+         community_join_group. */
       groups: [
-        { name: 'Organic chemistry · revision', policy: 'instant', members: [['RA', 'Ravi A.', 'member'], ['SM', 'Sara M.', 'member'], ['JO', 'Jonas O.', 'owner']] },
-        { name: 'Term 2 exam squad',            policy: 'request', members: [['PK', 'Priya K.', 'owner'], ['TA', 'Tom A.', 'member']] }
-      ],
-      userHandle: 'you',
-      syncDevice: 'device-local'
+        { name: 'Physics revision group', policy: 'instant',
+          members: [['AR', 'A. R.', 'member'], ['SM', 'S. M.', 'member'], ['JO', 'J. O.', 'owner']] },
+        { name: 'JEE Main PCM squad', policy: 'request',
+          members: [['PK', 'P. K.', 'owner'], ['TA', 'T. A.', 'member']] }
+      ]
     };
 
+    /* A leaderboard is the one thing a personal backup genuinely cannot
+       supply — it is other people. So it is invented, labelled as invented,
+       and its ranking rule (weekly_hours, then total_hours) is the real one
+       from get_leaderboard. */
+    SAMPLE.board = [
+      ['Sample user', SAMPLE.base.total_hours],
+      ['Another account', SAMPLE.base.total_hours * 0.88],
+      ['A third account',  SAMPLE.base.total_hours * 0.76]
+    ];
+
+    var VIEWS = [
+      { id: 'focus',    label: 'Focus' },
+      { id: 'tasks',    label: 'Tasks' },
+      { id: 'syllabus', label: 'Syllabus' },
+      { id: 'groups',   label: 'Groups' },
+      { id: 'sync',     label: 'Sync' }
+    ];
+
+    /* ── The sample marker ────────────────────────────────────────────────────
+       The honesty contract, and the reason this is a helper rather than a
+       string concatenation: an invented figure must be labelled AT THE POINT IT
+       APPEARS, in a form that cannot be missed — not mentioned once in a
+       footnote the reader has already scrolled past.
+
+       `caption(parts)` turns the literal token 'sample' into a visible pill. A
+       caption that mentions an invented value physically cannot render without
+       its marker: you would have to go out of your way to delete the token. */
+    var SAMPLE_TOKEN = 'sample';
+
+    function caption(parts) {
+      var p = el('p', 'demo-caption');
+      parts.forEach(function (part) {
+        if (part === SAMPLE_TOKEN) p.appendChild(el('span', 'demo-samp', SAMPLE_TOKEN));
+        else p.appendChild(document.createTextNode(part));
+      });
+      return p;
+    }
+
     /* ── State ───────────────────────────────────────────────────────────────
-       One object, rebuilt by reset(). Derived values are recomputed rather than
-       incremented in two places, so a value cannot drift between the stage and
-       the trace. */
+       One object, rebuilt by reset(). Derived values are recomputed rather
+       than incremented in two places, so a value cannot drift between the
+       pane and the trace. */
     var S = null;
 
     function freshState() {
+      var openSubjects = {};
+      openSubjects[SAMPLE.subjects[0].name] = true;
       return {
-        tab: 'focus',
+        view: 'auth',                  // auth | focus | tasks | syllabus | groups | sync
+        signedIn: false,
 
         /* focus */
-        phase: 'idle',            // idle | running | finished
-        elapsed: 0,               // seconds
+        phase: 'idle',                 // idle | running | finished
+        elapsed: 0,                    // seconds
         sessionKey: 'demo-session-1',
-        processed: false,         // has this session id been counted already
+        processed: false,              // has this session id been counted already
+        subject: SAMPLE.subjects[0].name,
         summary: Object.assign({}, SAMPLE.base),
 
         /* tasks */
-        tasks: [
-          { id: 't1', title: 'Past paper 2024 — thermodynamics', status: 'todo', priority: 'p2' },
-          { id: 't2', title: 'Flashcards: reaction mechanisms',     status: 'todo', priority: 'p3' }
-        ],
+        tasks: SAMPLE.tasks.map(function (t) { return Object.assign({}, t); }),
+        taskSeq: SAMPLE.tasks.length + 1,
+
+        /* syllabus */
+        openSubjects: openSubjects,
 
         /* community */
         joined: { instant: false, request: false },
-        requestState: 'none',     // none | pending | accepted
-        membersAdded: 0,
+        requestState: 'none',          // none | pending | accepted
 
         /* sync */
-        syncPhase: 'local',       // local | queued | reconciled | refused
+        syncPhase: 'local',            // local | queued | reconciled | refused
         queue: [],
-        cloudSnapshot: null
+
+        /* areas the reader adds from the rail */
+        extraAreas: []
       };
     }
 
     /* ── Small helpers ─────────────────────────────────────────────────────── */
 
-    function $(sel) { return root.querySelector(sel); }
-    function $$(sel) { return Array.prototype.slice.call(root.querySelectorAll(sel)); }
+    function $(sel, ctx) { return (ctx || root).querySelector(sel); }
+    function $$(sel, ctx) { return Array.prototype.slice.call((ctx || root).querySelectorAll(sel)); }
 
-    var timer = null;            // the one interval, owned by this module
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+
+    var timer = null;                 // the one interval, owned by this module
 
     function stopClock() {
       if (timer) { clearInterval(timer); timer = null; }
     }
 
     function clock(secs) {
+      var s = Math.max(0, Math.floor(secs));
+      var m = Math.floor(s / 60);
+      var r = s % 60;
+      return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+    }
+
+    /* hhmm derived from seconds, not from hours: the summary rail's hero
+       figure reads total_study_seconds, which is a bigint. Deriving both from
+       one place is what stops the pane and the rail disagreeing. */
+    function hhmmFromSecs(secs) {
       var m = Math.floor(Math.max(0, secs) / 60);
-      var s = Math.max(0, secs) % 60;
-      return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      return Math.floor(m / 60) + 'h ' + (m % 60 < 10 ? '0' : '') + (m % 60) + 'm';
     }
 
     function hhmm(h) {
       var m = Math.floor(h * 60);
-      var hrs = Math.floor(m / 60);
-      var mm = m % 60;
-      return hrs + 'h ' + (mm < 10 ? '0' : '') + mm + 'm';
+      return Math.floor(m / 60) + 'h ' + (m % 60 < 10 ? '0' : '') + (m % 60) + 'm';
     }
+
+    function plural(n, one, many) { return n === 1 ? one : many; }
 
     /* ── The trace ───────────────────────────────────────────────────────────
        Append-only, and role="log" in the markup so a reader hears new lines
        without focus being yanked off the control they just pressed.
 
-       Bounded: a log that grows forever is a memory leak on a docs page, and a
-       reader who has clicked through forty times does not want forty lines.
+       Bounded: a log that grows forever is a memory leak on a docs page, and
+       a reader who has clicked through forty times does not want forty lines.
        Capped at 40, dropping the oldest. */
     function traceLine(kind, k, v) {
       var list = $('[data-demo-log]');
       if (!list) return;
-      var li = document.createElement('li');
-      li.className = 'demo-trace-line';
+
+      var li = el('li', 'demo-trace-line');
       li.setAttribute('data-kind', kind);
-
-      var kEl = document.createElement('span');
-      kEl.className = 'demo-trace-k';
-      kEl.textContent = k;
-
-      var vEl = document.createElement('span');
-      vEl.className = 'demo-trace-v';
-      vEl.textContent = v;        // textContent, never innerHTML: these strings
-                                  // contain < and > (SQL, JSON) and are not markup.
-
-      li.appendChild(kEl);
-      li.appendChild(vEl);
+      li.appendChild(el('span', 'demo-trace-k', k));
+      // textContent, never innerHTML: these strings contain < and > (SQL,
+      // JSON) and are not markup.
+      li.appendChild(el('span', 'demo-trace-v', v));
       list.appendChild(li);
 
       while (list.children.length > 40) list.removeChild(list.firstChild);
       list.scrollTop = list.scrollHeight;
+
+      var n = $('[data-demo-trace-count]');
+      if (n) {
+        n.textContent = list.children.length + ' line' + plural(list.children.length, '', 's');
+      }
     }
 
-    /* ── Tabs ────────────────────────────────────────────────────────────────
-       A real tablist, so the full APG keyboard contract is implemented rather
-       than the pattern being implied: Left/Right (and Up/Down) move between
-       tabs and activate, Home/End jump to the ends. Activation is
-       automatic — there is no manual-activation mode here because each panel is
-       cheap to render and a reader who has tabbed across expects to land on it.
+    /* ── The view switcher ───────────────────────────────────────────────────
+       A radiogroup, so the APG contract is implemented rather than implied:
+       ArrowLeft/Right (and Up/Down) move and activate, Home/End jump to the
+       ends, arrows wrap. Activation is automatic because each view is cheap
+       to render and a reader who has arrowed across expects to land on it.
 
-       Arrow keys wrap, which is what the pattern specifies and what a reader
-       at the last tab would otherwise hit a wall on. */
-    var tabs = $$('.demo-tab');
+       Roving tabindex: exactly one radio is in the tab order at a time, so Tab
+       leaves the group rather than walking through all five.
 
-    function selectTab(id, focusIt) {
-      var target = null;
-      tabs.forEach(function (t) {
-        var on = t.id === id;
-        t.setAttribute('aria-selected', on ? 'true' : 'false');
-        // Roving tabindex: exactly one tab is in the tab order at a time, so
-        // Tab moves past the tablist rather than through all five.
-        t.setAttribute('tabindex', on ? '0' : '-1');
-        var p = document.getElementById(t.getAttribute('aria-controls'));
-        if (p) p.hidden = !on;
-        if (on) target = t;
+       The sliding thumb is decorative and positioned from measured layout
+       here, so it cannot drift out of sync with the state the way a CSS-only
+       :checked selector can once a label wraps. */
+    var modeBtns = $$('[data-demo-modes] .demo-mode');
+    var thumb = $('.demo-modes-thumb');
+
+    function moveThumb(btn) {
+      if (!thumb || !btn) return;
+      thumb.style.transform = 'translateX(' + btn.offsetLeft + 'px)';
+      thumb.style.width = btn.offsetWidth + 'px';
+    }
+
+    function setView(view, focusIt) {
+      if (!S.signedIn && view !== 'focus') return;   // nothing past the auth wall
+      S.view = view;
+
+      modeBtns.forEach(function (b) {
+        var on = b.getAttribute('data-view') === view;
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+        // Roving tabindex: exactly one radio is in the tab order, so Tab
+        // leaves the group rather than walking through all five.
+        b.setAttribute('tabindex', on ? '0' : '-1');
+        // Every surface needs an account; signed out there is none.
+        b.disabled = !S.signedIn;
+        if (on) { moveThumb(b); if (focusIt) b.focus(); }
       });
-      if (target && focusIt) target.focus();
-      S.tab = id.replace('dt-', '');
-      count();
+
+      renderAll();
     }
 
-    tabs.forEach(function (t, i) {
-      t.addEventListener('click', function () { selectTab(t.id, false); });
+    modeBtns.forEach(function (b, i) {
+      b.addEventListener('click', function () {
+        if (!b.disabled) setView(b.getAttribute('data-view'), false);
+      });
 
-      t.addEventListener('keydown', function (e) {
+      b.addEventListener('keydown', function (e) {
         var next = null;
         switch (e.key) {
-          case 'ArrowRight': next = (i + 1) % tabs.length; break;
-          case 'ArrowLeft':  next = (i - 1 + tabs.length) % tabs.length; break;
+          case 'ArrowRight':
+          case 'ArrowDown': next = (i + 1) % modeBtns.length; break;
+          case 'ArrowLeft':
+          case 'ArrowUp':   next = (i - 1 + modeBtns.length) % modeBtns.length; break;
           case 'Home':       next = 0; break;
-          case 'End':        next = tabs.length - 1; break;
-          default: return;                       // let everything else pass
+          case 'End':        next = modeBtns.length - 1; break;
+          default: return;                      // let everything else pass
         }
-        e.preventDefault();                       // stop the page scrolling
-        selectTab(tabs[next].id, true);
+        e.preventDefault();                      // stop the page scrolling
+        var target = modeBtns[next];
+        if (!target.disabled) setView(target.getAttribute('data-view'), true);
       });
     });
 
     /* ── Counter ─────────────────────────────────────────────────────────────
-       "3 of 5 steps" in the toolbar. role="status" so switching tabs is
-       announced without moving focus off the tab the reader is holding. */
+       role="status" so switching views is announced without moving focus off
+       the radio the reader is holding. */
     function count() {
-      var order = ['focus', 'tasks', 'syllabus', 'groups', 'sync'];
-      var el = $('[data-demo-count]');
-      if (!el) return;
-      var i = order.indexOf(S.tab);
-      // i is -1 only if a tab id and the order list ever disagree. Falling back
-      // to the first panel keeps the toolbar readable instead of throwing on a
-      // property of undefined, which would take the rest of the module with it.
-      if (i < 0) i = 0;
-      el.textContent = (i + 1) + ' of ' + order.length + ' steps · ' +
-        tabs[i].textContent.trim();
+      var out = $('[data-demo-count]');
+      if (!out) return;
+
+      if (S.view === 'auth') { out.textContent = 'signed out - /auth'; return; }
+      var ids = VIEWS.map(function (v) { return v.id; });
+      var i = ids.indexOf(S.view);
+      if (i < 0) i = 0;                          // ids and order disagreeing
+      out.textContent = (i + 1) + ' of ' + VIEWS.length + ' surfaces - ' + VIEWS[i].label;
     }
 
-    /* ══ Panel 1: focus timer ═══════════════════════════════════════════════
-       The core loop, and the only panel with something that runs on its own.
+    /* ── Workspace rail ───────────────────────────────────────────────────────
+       A tree: study areas, with the open panes of the selected area indented
+       beneath it. Each node is a button carrying its own selected/expanded
+       state, so the shape of the tree is announced rather than implied. */
+    function areas() {
+      return SAMPLE.subjects.map(function (s) { return s.name; }).concat(S.extraAreas);
+    }
 
-       It runs because a reader pressed Start, and it stops on its own at the
+    function subjectByName(name) {
+      return SAMPLE.subjects.filter(function (s) { return s.name === name; })[0];
+    }
+
+    /* Which panes a subject opens. Real: each names a surface the app has, or
+       the route it opens. */
+    function panesFor(name) {
+      var subject = subjectByName(name);
+      if (!subject) return [];
+      return [
+        { view: 'focus',    label: 'Focus timer' },
+        { view: 'syllabus', label: subject.chapters.length + ' chapters' },
+        { view: 'tasks',    label: 'Tasks' },
+        { view: 'groups',   label: 'Study groups' },
+        { view: 'sync',     label: 'Sync queue' }
+      ];
+    }
+
+    function renderRail() {
+      var box = $('[data-demo-rail]');
+      if (!box) return;
+      box.textContent = '';
+
+      areas().forEach(function (name) {
+        var isSubject = !!subjectByName(name);
+        var selected = S.subject === name;
+
+        var row = el('button', 'demo-row-ws');
+        row.type = 'button';
+        row.setAttribute('role', 'treeitem');
+        row.setAttribute('aria-selected', selected ? 'true' : 'false');
+        row.setAttribute('aria-expanded', isSubject && selected && S.signedIn ? 'true' : 'false');
+        row.appendChild(el('span', 'demo-row-ws-label', name));
+
+        row.addEventListener('click', function () {
+          if (!isSubject) {
+            traceLine('info', 'area', name + ' - custom subject, no chapters row yet');
+            return;
+          }
+          if (selected) {
+            // A second press collapses, so the tree can close.
+            S.openSubjects[name] = !S.openSubjects[name];
+            traceLine('info', 'area', name + ' - ' +
+              (S.openSubjects[name] ? 'expanded' : 'collapsed'));
+          } else {
+            S.subject = name;
+            S.openSubjects[name] = true;
+            S.subject = name;
+            traceLine('info', 'area', name + ' - selected');
+            if (S.signedIn) setView('syllabus', false);
+          }
+          renderAll();
+        });
+
+        box.appendChild(row);
+
+        if (isSubject && selected && S.signedIn && S.openSubjects[name]) {
+          panesFor(name).forEach(function (p) {
+            var pr = el('button', 'demo-row-pane');
+            pr.type = 'button';
+            pr.setAttribute('role', 'treeitem');
+            pr.setAttribute('aria-selected', S.view === p.view ? 'true' : 'false');
+            pr.appendChild(el('span', 'demo-row-pane-label', p.label));
+            pr.addEventListener('click', function () { setView(p.view, false); });
+            box.appendChild(pr);
+          });
+        }
+      });
+    }
+
+    /* ── Pane canvas ──────────────────────────────────────────────────────────
+       A stack. The focused pane is the only one exposed to assistive tech:
+       the ones behind it are aria-hidden with their contents removed from the
+       layout, so a screen reader is offered the surface the reader is looking
+       at rather than three copies of it. */
+    function renderPanes() {
+      var host = $('[data-demo-panes]');
+      if (!host) return;
+      host.textContent = '';
+
+      var stack = el('div', 'demo-stack');
+      var defs = currentPanes();
+
+      // Built back to front so the first pane in the list ends up on top.
+      for (var i = defs.length - 1; i >= 0; i--) {
+        var d = defs[i];
+        var pane = el('section', 'demo-pane');
+        pane.setAttribute('data-depth', String(i));
+        pane.setAttribute('aria-label', d.title);
+        if (i > 0) pane.setAttribute('aria-hidden', 'true');
+
+        var head = el('div', 'demo-pane-head');
+        head.appendChild(el('h3', 'demo-pane-title', d.title));
+        head.appendChild(el('span', 'demo-pane-spacer'));
+        if (d.badge) head.appendChild(el('span', 'demo-pill', d.badge));
+        pane.appendChild(head);
+
+        var body = el('div', 'demo-pane-body');
+        d.render(body);
+        pane.appendChild(body);
+
+        stack.appendChild(pane);
+      }
+      host.appendChild(stack);
+    }
+
+    /* The stack contents for the current view. The auth wall comes first
+       because it is what a reader sees before anything else exists. */
+    function currentPanes() {
+      if (!S.signedIn) return [authPane()];
+      if (S.view === 'tasks')    return [{ title: 'Tasks', render: renderTasksPane }];
+      if (S.view === 'syllabus') return [{ title: 'Syllabus - ' + S.subject, render: renderSyllabusPane }];
+      if (S.view === 'groups')   return [{ title: 'Study groups', render: renderGroupsPane }];
+      if (S.view === 'sync')     return [{ title: 'Sync - local first', render: renderSyncPane }];
+      return [{ title: 'Focus timer - ' + S.subject, render: renderFocusPane }];
+    }
+
+    /* ── The auth wall ────────────────────────────────────────────────────────
+       Reproduces the real entry point: this build redirects / and /demo to
+       /auth and disables the demo gate, so nothing past this screen is
+       reachable without an account. The button authenticates nobody — it
+       opens the shell on a sample account, and the caption says so. */
+    function authPane() {
+      return {
+        title: 'Sign in',
+        badge: 'sample account',
+        render: function (body) {
+          body.appendChild(el('p', 'demo-note',
+            'A fresh install redirects to /auth and there is no demo gate, so this is ' +
+            'the first thing anyone sees. Continue opens the shell on a sample account.'));
+
+          var form = el('form', 'demo-form');
+          var email = el('input', 'demo-input');
+          email.type = 'email';
+          email.value = 'you@example.com';
+          email.readOnly = true;
+          email.setAttribute('aria-label', 'Email address (sample value, read-only)');
+
+          var btn = el('button', 'demo-btn');
+          btn.type = 'submit';
+          btn.setAttribute('data-variant', 'primary');
+          btn.textContent = 'Continue as sample user';
+
+          form.appendChild(email);
+          form.appendChild(btn);
+          form.addEventListener('submit', function (e) { e.preventDefault(); signIn(); });
+          body.appendChild(form);
+
+          body.appendChild(caption([
+            'The address is a ', SAMPLE_TOKEN, ' value and the field is read-only. ',
+            'Nothing is sent anywhere: the app authenticates against Supabase Auth, ',
+            'and this page holds no credentials and makes no request. What follows is a ',
+            SAMPLE.snapshot, ' backup snapshot, not a live account.'
+          ]));
+        }
+      };
+    }
+
+    function signIn() {
+      S.signedIn = true;
+
+      traceLine('policy', 'gate', '/ and /demo redirect to /auth - no demo mode in this build');
+      traceLine('write', 'session', 'auth.uid() resolved - SECURITY DEFINER functions can now resolve');
+      traceLine('info', 'state', 'signed in - five surfaces unlocked');
+
+      var label = $('[data-session-label]');
+      if (label) label.textContent = 'sample user';
+      var chip = $('[data-demo-session]');
+      if (chip) chip.setAttribute('data-state', 'in');
+
+      modeBtns.forEach(function (b) { b.disabled = false; });
+      setView('focus', false);
+    }
+
+    /* ══ Focus ══════════════════════════════════════════════════════════════
+       The core loop, and the only surface with something that runs on its
+       own. It runs because a reader pressed Start, and it stops at the
        session length. It is not an autoplaying loop: nothing on this page
-       moves unless asked to, which matters more here than anywhere else on a
-       docs page.
+       moves unless asked to.
 
        Under prefers-reduced-motion the interval still advances the clock,
        because a countdown the reader started is content rather than
-       decoration — but each second is a discrete text update with no
-       transition to smooth away, which is what the setting is asking for. */
-    function renderFocus() {
-      var panel = document.getElementById('dp-focus');
-      if (!panel) return;
-      var el = panel.querySelector('[data-demo-clock]');
-      var fill = panel.querySelector('[data-demo-fill]');
-      var primary = panel.querySelector('[data-demo-primary]');
-      var secondary = panel.querySelector('[data-demo-secondary]');
-      if (!el) return;
-
+       decoration - but each second is a discrete text update with nothing to
+       smooth away, which is what the setting asks for. */
+    function renderFocusPane(body) {
       var total = SAMPLE.focusMinutes * 60;
-      el.textContent = clock(S.phase === 'idle' ? total : S.elapsed);
-      el.setAttribute('data-state', S.phase);
+      var clockEl = el('p', 'demo-clock', clock(S.phase === 'idle' ? total : S.elapsed));
+      clockEl.setAttribute('data-demo-clock', '');
+      clockEl.setAttribute('data-state', S.phase);
+      clockEl.setAttribute('role', 'timer');
+      // aria-live="off": a per-second announcement would flood a screen
+      // reader. The finished total is announced once, by the trace.
+      clockEl.setAttribute('aria-live', 'off');
+      body.appendChild(clockEl);
 
-      /* The bar is aria-hidden and purely decorative: the same number is in the
-         text above it and in the announcement, so nothing is lost if it never
-         renders. */
-      if (fill) {
-        fill.style.width = (Math.min(1, S.elapsed / total) * 100).toFixed(1) + '%';
-      }
+      var track = el('div', 'demo-bar-track');
+      track.setAttribute('aria-hidden', 'true');   // the number above is the content
+      var fill = el('div', 'demo-bar-fill');
+      fill.setAttribute('data-demo-fill', '');
+      fill.setAttribute('data-state', S.phase);
+      fill.style.width = (Math.min(1, S.elapsed / total) * 100).toFixed(1) + '%';
+      track.appendChild(fill);
+      body.appendChild(track);
 
-      if (primary) {
-        /* The finished label names what the button actually does rather than
-           promising a second session. Pressing it re-submits the SAME session
-           id — the retry a dropped request would produce — which the RPC
-           rejects as already_processed. A label reading "Run it again" here
-           would be a control that looks like it adds an hour and does not. */
-        primary.textContent = S.phase === 'idle' ? 'Start'
-                           : S.phase === 'running' ? 'Finish now'
-                           : 'Retry finish (same id)';
-        primary.disabled = false;
-      }
-      if (secondary) {
-        secondary.textContent = S.phase === 'finished' ? 'New session' : 'Reset';
-        secondary.disabled = S.phase === 'idle';
-      }
+      var chips = el('ul', 'demo-subjects');
+      chips.setAttribute('aria-label', 'Subject for this session');
+      SAMPLE.subjects.forEach(function (s) {
+        var li = document.createElement('li');
+        var chip = el('button', 'demo-subject-chip');
+        chip.type = 'button';
+        chip.setAttribute('aria-pressed', S.subject === s.name ? 'true' : 'false');
+        chip.textContent = s.name;
+        chip.addEventListener('click', function () {
+          if (S.phase === 'running') return;       // fixed for the life of a session
+          S.subject = s.name;
+          S.openSubjects[s.name] = true;
+          renderAll();
+          traceLine('info', 'subject', 'focus_sessions.subject = ' + s.name);
+        });
+        li.appendChild(chip);
+        chips.appendChild(li);
+      });
+      body.appendChild(chips);
+
+      var actions = el('div', 'demo-actions');
+      var primary = el('button', 'demo-btn');
+      primary.type = 'button';
+      primary.setAttribute('data-variant', 'primary');
+      primary.setAttribute('data-demo-primary', '');
+      // The finished label names what the button actually does rather than
+      // promising a second session. Pressing it re-submits the SAME session
+      // id - the retry a dropped request produces - which the RPC rejects as
+      // already_processed.
+      primary.textContent = S.phase === 'idle' ? 'Start'
+                          : S.phase === 'running' ? 'Finish now'
+                          : 'Retry finish (same id)';
+      primary.addEventListener('click', function () {
+        if (S.phase === 'idle') startFocus();
+        else if (S.phase === 'running') finishFocus('completed');
+        else finishFocus('retried');
+      });
+
+      var secondary = el('button', 'demo-btn');
+      secondary.type = 'button';
+      secondary.setAttribute('data-demo-secondary', '');
+      secondary.textContent = S.phase === 'finished' ? 'New session' : 'Reset';
+      secondary.disabled = S.phase === 'idle';
+      secondary.addEventListener('click', function () {
+        stopClock();
+        S.phase = 'idle';
+        S.elapsed = 0;
+        S.processed = false;      // a genuinely new session gets a new id
+        S.sessionKey = 'demo-session-' + (S.taskSeq++);
+        renderAll();
+        traceLine('info', 'state', 'cleared - the next run gets a fresh session id');
+      });
+
+      actions.appendChild(primary);
+      actions.appendChild(secondary);
+      body.appendChild(actions);
+
+      renderStats(body);
+
+      body.appendChild(el('p', 'demo-note',
+        'Finishing calls finish_session_sync, which inserts into study_sessions_log ' +
+        'with ON CONFLICT (id) DO NOTHING, then folds the duration into ' +
+        'daily_user_stats and user_stats_summary. Press finish twice and watch the ' +
+        'totals hold.'));
+
+      body.appendChild(caption([
+        'Totals, streak and session count come from the ', SAMPLE.snapshot, ' backup ',
+        'snapshot. The session LENGTH is a ', SAMPLE_TOKEN, ' value, chosen so you can ',
+        'finish one. The columns and the idempotency are the real ones.'
+      ]));
     }
 
     function startFocus() {
       stopClock();
       S.phase = 'running';
-      traceLine('write', 'INSERT', 'focus_sessions (local) — ' + SAMPLE.subject);
-      traceLine('info', 'state', 'running · ' + SAMPLE.focusMinutes + ' min');
-      renderFocus();
+      S.elapsed = 0;
+      traceLine('write', 'INSERT', 'focus_sessions (local) - ' + S.subject);
+      traceLine('info', 'state', 'running - ' + SAMPLE.focusMinutes + ' min');
+      renderAll();
 
       timer = setInterval(function () {
         S.elapsed++;
-        renderFocus();
+        /* Only the clock and the bar move here. Re-rendering the whole pane
+           every second would tear focus off the button being held and
+           recreate the DOM sixty times a minute for nothing. */
+        var c = $('[data-demo-clock]');
+        if (c) {
+          c.textContent = clock(S.elapsed);
+          c.setAttribute('data-state', 'running');
+        }
+        var f = $('[data-demo-fill]');
+        if (f) f.style.width = (Math.min(1, S.elapsed / (SAMPLE.focusMinutes * 60)) * 100).toFixed(1) + '%';
+
         if (S.elapsed >= SAMPLE.focusMinutes * 60) { stopClock(); finishFocus('completed'); }
       }, 1000);
     }
@@ -873,131 +1238,129 @@
        inserts the log row with ON CONFLICT (id) DO NOTHING, and returns
        already_processed:true without touching any counter when that insert
        matched nothing. The totals are therefore keyed on the session id, not on
-       "did the user press the button" — pressing it twice must not double the
-       hours, and this panel shows that by letting you press it again. */
+       "did the user press the button" - pressing it twice must not double the
+       hours, and this pane shows that by letting you press it again. */
     function finishFocus(reason) {
+      stopClock();
       S.phase = 'finished';
+      S.elapsed = SAMPLE.focusMinutes * 60;
+
       var mins = SAMPLE.focusMinutes;
       var secs = mins * 60;
       var hrs = Math.round(mins / 60 * 100) / 100;
 
       if (S.processed) {
-        traceLine('write', 'ON CONFLICT', 'row_count = 0 — already_processed: true');
-        traceLine('policy', 'result', 'totals unchanged (idempotent by session id)');
-        renderFocus();
+        traceLine('write', 'ON CONFLICT', 'study_sessions_log row_count = 0');
+        traceLine('policy', 'result', 'already_processed: true - totals unchanged');
+        renderAll();
         return;
       }
-
       S.processed = true;
 
-      traceLine('write', 'INSERT', 'study_sessions_log (' + mins + ' min, subject=' + SAMPLE.subject + ')');
+      traceLine('write', 'INSERT', 'study_sessions_log (' + mins + ' min, subject=' + S.subject + ')');
       S.summary.total_study_seconds += secs;
       S.summary.total_hours = Math.round((S.summary.total_study_seconds / 3600) * 100) / 100;
       S.summary.weekly_hours = Math.round((S.summary.weekly_hours + hrs) * 100) / 100;
+      S.summary.monthly_hours = Math.round((S.summary.monthly_hours + hrs) * 100) / 100;
       S.summary.session_count += 1;
       S.summary.total_sessions += 1;
+      S.summary.current_streak = Math.max(S.summary.current_streak, 1);
+      S.summary.max_streak_days = Math.max(S.summary.max_streak_days, S.summary.current_streak);
 
       traceLine('write', 'UPSERT', 'daily_user_stats.seconds_studied += ' + secs);
       traceLine('write', 'UPSERT', 'user_stats_summary.session_count += 1');
-      traceLine('info', 'result', reason + ' — total_study_seconds = ' + S.summary.total_study_seconds);
+      traceLine('info', 'result', reason + ' - total_study_seconds = ' + S.summary.total_study_seconds);
 
-      /* Queued for the sync panel. The queue is real in the sense that matters
-         here: the row is written locally and reconciled later, which is exactly
-         what architecture.html documents for focus sessions. */
-      S.queue.push('focus_session · ' + mins + ' min');
+      /* Queued for the sync surface. The queue is real in the sense that
+         matters here: the row is written locally and reconciled later, which
+         is exactly what architecture.html documents. */
+      S.queue.push('focus_session - ' + mins + ' min');
       if (S.syncPhase === 'local') S.syncPhase = 'queued';
 
-      renderFocus();
-      renderStats();
-      renderSync();
+      renderAll();
     }
 
-    /* The stats readout, rebuilt from state each time rather than mutated in
-       place — so the panel can never show a number the totals do not support. */
-    function renderStats() {
-      var dl = $('[data-demo-stats]');
-      if (!dl) return;
+    /* ══ Tasks ══════════════════════════════════════════════════════════════
+       tasks.status defaults to 'pending' in the schema; the app writes 'todo'
+       on create and 'done' on completion. Both appear so the default and the
+       written value are distinguishable. */
+    function renderTasksPane(body) {
+      var form = el('form', 'demo-form');
+      var input = el('input', 'demo-input');
+      input.type = 'text';
+      input.id = 'demo-task-title';
+      input.maxLength = 120;
+      input.autocomplete = 'off';
+      input.placeholder = 'New task - a title, a chapter, a past paper';
+      input.setAttribute('aria-label', 'New task title');
 
-      var rows = [
-        ['total_study_seconds', String(S.summary.total_study_seconds)],
-        ['total_hours',         String(S.summary.total_hours)],
-        ['weekly_hours',        String(S.summary.weekly_hours)],
-        ['session_count',       String(S.summary.session_count)],
-        ['last_study_date',     S.processed ? 'today' : '—']
-      ];
+      var add = el('button', 'demo-btn');
+      add.type = 'submit';
+      add.setAttribute('data-variant', 'primary');
+      add.textContent = 'Add task';
 
-      dl.textContent = '';
-      rows.forEach(function (r) {
-        var wrap = document.createElement('div');
-        wrap.className = 'demo-stat';
-        if (S.processed) wrap.setAttribute('data-changed', 'true');
-
-        var dt = document.createElement('dt');
-        dt.textContent = r[0];
-        var dd = document.createElement('dd');
-        dd.textContent = r[1];
-
-        wrap.appendChild(dt);
-        wrap.appendChild(dd);
-        dl.appendChild(wrap);
+      form.appendChild(input);
+      form.appendChild(add);
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var title = input.value.trim();
+        if (!title) { input.focus(); return; }      // no-op rather than an empty row
+        S.tasks.push({
+          id: 't' + S.taskSeq++,
+          title: title,
+          subject: S.subject,
+          status: 'todo',
+          priority: 'medium'
+        });
+        traceLine('write', 'INSERT', 'tasks (status=todo, priority=medium)');
+        renderAll();
+        var again = $('#demo-task-title');
+        if (again) again.focus();
       });
-    }
+      body.appendChild(form);
 
-    /* ══ Panel 2: tasks ════════════════════════════════════════════════════
-       Create and complete. The status values are the ones in the bundle:
-       tasks.status defaults to 'pending' in the schema, and the app writes
-       'todo' on create and 'done' on completion. */
-
-    var taskSeq = 3;
-
-    function renderTasks() {
-      var ul = $('[data-demo-tasks]');
-      if (!ul) return;
-
-      ul.textContent = '';
-      // aria-live is on the list so an added or completed task is announced.
-      ul.setAttribute('data-empty', S.tasks.length ? 'false' : 'true');
+      var list = el('ul', 'demo-list');
+      list.setAttribute('data-empty', S.tasks.length ? 'false' : 'true');
+      list.setAttribute('data-empty-text', 'No tasks yet. Add one above.');
+      list.setAttribute('aria-live', 'polite');     // an added or completed task is announced
 
       S.tasks.forEach(function (t) {
-        var li = document.createElement('li');
-        li.className = 'demo-row';
+        var li = el('li', 'demo-row');
         li.setAttribute('data-done', t.status === 'done' ? 'true' : 'false');
 
-        var main = document.createElement('div');
-        main.className = 'demo-row-main';
-
-        var title = document.createElement('p');
-        title.className = 'demo-row-title';
-        title.textContent = t.title;
-
-        var meta = document.createElement('p');
-        meta.className = 'demo-row-meta';
-        meta.textContent = 'status: ' + t.status + ' · priority: ' + t.priority;
-
-        main.appendChild(title);
-        main.appendChild(meta);
+        var main = el('div', 'demo-row-main');
+        main.appendChild(el('p', 'demo-row-title', t.title));
+        main.appendChild(el('p', 'demo-row-meta', t.status + ' - ' + t.priority + ' - ' + t.subject));
         li.appendChild(main);
 
         if (t.status !== 'done') {
-          var btn = document.createElement('button');
+          var btn = el('button', 'demo-row-btn');
           btn.type = 'button';
-          btn.className = 'demo-row-btn';
-          btn.setAttribute('aria-pressed', 'false');
-          // The label names the task, so a reader tabbing the list hears which
-          // one they are about to complete rather than "Complete, Complete".
-          btn.setAttribute('aria-label', 'Mark “' + t.title + '” complete');
+          // Names the task, so a reader tabbing the list hears which one they
+          // are about to complete rather than "Complete, Complete".
+          btn.setAttribute('aria-label', 'Mark "' + t.title + '" complete');
           btn.textContent = 'Complete';
           btn.addEventListener('click', function () { completeTask(t.id); });
           li.appendChild(btn);
         } else {
-          var done = document.createElement('span');
-          done.className = 'pill get';
-          done.textContent = 'done';
+          var done = el('span', 'demo-pill', 'done');
+          done.setAttribute('data-tone', 'ok');
           li.appendChild(done);
         }
-
-        ul.appendChild(li);
+        list.appendChild(li);
       });
+      body.appendChild(list);
+
+      body.appendChild(el('p', 'demo-note',
+        'Tasks are local-first: written to IndexedDB and replicated to the ' +
+        'user-content backup rather than row-synced. A completed task records the ' +
+        'session it was finished in.'));
+
+      body.appendChild(caption([
+        'Every title, status and priority here is real, from the ', SAMPLE.snapshot,
+        ' backup. Real columns: status, priority, subject, completed_at, ',
+        'completed_in_session. Only tasks you add yourself are new.'
+      ]));
     }
 
     function completeTask(id) {
@@ -1007,324 +1370,489 @@
       t.completed_at = 'now()';
       t.completed_in_session = true;
 
-      traceLine('write', 'UPDATE', 'tasks.status = done · completed_at = now()');
+      traceLine('write', 'UPDATE', 'tasks.status = done - completed_at = now()');
       traceLine('info', 'index', 'tasks.completed_in_session = true');
-      renderTasks();
+      renderAll();
     }
 
-    var form = $('[data-demo-task-form]');
-    if (form) {
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var input = $('#demo-task-title');
-        var title = input.value.trim();
-        if (!title) { input.focus(); return; }     // no-op rather than empty row
+    /* ══ Syllabus ═══════════════════════════════════════════════════════════
+       subjects.chapters and subjects.topics are JSONB columns on one row, so a
+       subject's whole tree is a single row rather than a set of joins. */
+    function renderSyllabusPane(body) {
+      var list = el('ul', 'demo-subject-tree');
+      list.setAttribute('aria-label', 'Syllabus by subject');
 
-        S.tasks.push({
-          id: 't' + (taskSeq++),
-          title: title,
-          status: 'todo',
-          priority: 'p3'
+      SAMPLE.subjects.forEach(function (s) {
+        var li = el('li', 'demo-subject-card');
+        var open = !!S.openSubjects[s.name];
+        li.setAttribute('data-open', open ? 'true' : 'false');
+
+        var head = el('button', 'demo-subject-card-head');
+        head.type = 'button';
+        head.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+        // Built as DOM rather than innerHTML: the markup is a fixed literal
+        // with nothing interpolated, but there is no reason to hand a string
+        // to the parser when createElementNS does the same job.
+        var chev = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        chev.setAttribute('class', 'demo-chevron');
+        chev.setAttribute('viewBox', '0 0 24 24');
+        chev.setAttribute('fill', 'none');
+        chev.setAttribute('stroke', 'currentColor');
+        chev.setAttribute('stroke-width', '2.5');
+        chev.setAttribute('stroke-linecap', 'round');
+        chev.setAttribute('stroke-linejoin', 'round');
+        chev.setAttribute('aria-hidden', 'true');
+        var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M9 6l6 6-6 6');
+        chev.appendChild(path);
+        head.appendChild(chev);
+
+        head.appendChild(el('span', 'demo-row-ws-label', s.name));
+        head.appendChild(el('span', 'demo-pane-spacer'));
+        head.appendChild(el('span', 'demo-pill', s.exam));
+
+        head.addEventListener('click', function () {
+          S.openSubjects[s.name] = !S.openSubjects[s.name];
+          renderAll();
+          traceLine('info', 'subjects', s.name + ' - chapters ' +
+            (S.openSubjects[s.name] ? 'expanded' : 'collapsed'));
         });
-        traceLine('write', 'INSERT', 'tasks (status=todo, priority=p3)');
-        input.value = '';
-        renderTasks();
-        input.focus();
+        li.appendChild(head);
+
+        var inner = el('div', 'demo-subject-card-body');
+        var chapters = el('ul', 'demo-chapters');
+
+        s.chapters.forEach(function (c) {
+          var cl = el('li', 'demo-chapter');
+          var main = el('div', 'demo-row-main');
+          main.appendChild(el('p', 'demo-chapter-name', c.name));
+          main.appendChild(el('p', 'demo-chapter-topics', c.topics.join(' - ')));
+          cl.appendChild(main);
+          // Derived from the sample array above it, so it cannot disagree
+          // with the list it summarises.
+          cl.appendChild(el('span', 'demo-chapter-progress', c.topics.length + ' topics'));
+          chapters.appendChild(cl);
+        });
+
+        inner.appendChild(chapters);
+        li.appendChild(inner);
+        list.appendChild(li);
       });
+      body.appendChild(list);
+
+      body.appendChild(el('p', 'demo-note',
+        'A subject is one row. chapters and topics are JSONB on it, and a chapter ' +
+        'opens at /syllabus/chapter/:chapterId.'));
+
+      body.appendChild(caption([
+        'Subjects, chapters and topics are the real syllabus from the ', SAMPLE.snapshot,
+        ' backup. The columns are real too: subjects.chapters, subjects.topics, ',
+        'subjects.exam_name.'
+      ]));
     }
 
-    /* ══ Panel 3: syllabus ════════════════════════════════════════════════
-       Deliberately has no controls. The chunk list is the shipped one — nine
-       lazily-imported bundles — and there is nothing honest a reader could do
-       to it. A panel with a fake button on it would teach the reader that the
-       controls on the other four panels are decorative, which would cost the
-       whole section its credibility. */
+    /* ══ Groups ═════════════════════════════════════════════════════════════
+       The join-request model, in the shape the RLS policies permit.
 
-    /* ══ Panel 4: study groups ═════════════════════════════════════════════
-       The join-request model, in the shape the RLS policies actually permit.
-
-       community_join_group reads groups.join_policy. 'open' or 'instant'
-       writes group_members immediately. Anything else — and the column defaults
-       to 'request' — writes a pending community_join_requests row instead and
-       returns {status:'requested'}. Only an owner or coowner may then answer,
-       which is the check community_respond_join_request performs before it
-       updates anything. */
-    function renderGroups() {
-      var ul = $('[data-demo-groups]');
-      if (!ul) return;
-      ul.textContent = '';
+       community_join_group reads groups.join_policy. 'open' or 'instant' writes
+       group_members immediately and returns {status:'joined'}. Anything else -
+       and the column defaults to 'request' - writes a pending
+       community_join_requests row instead and returns {status:'requested'}. Only
+       an owner or coowner may then answer, which is the check
+       community_respond_join_request performs before it updates anything. */
+    function renderGroupsPane(body) {
+      var list = el('ul', 'demo-groups');
 
       SAMPLE.groups.forEach(function (g, i) {
         var key = i === 0 ? 'instant' : 'request';
-        var li = document.createElement('li');
-        li.className = 'demo-group';
+        var li = el('li', 'demo-group');
 
-        var head = document.createElement('div');
-        head.className = 'demo-group-head';
-
-        var name = document.createElement('p');
-        name.className = 'demo-group-name';
-        name.textContent = g.name;
-
-        var pill = document.createElement('span');
-        pill.className = 'pill neutral';
-        pill.textContent = 'join_policy: ' + g.policy;
-
-        head.appendChild(name);
-        head.appendChild(pill);
+        var head = el('div', 'demo-group-head');
+        head.appendChild(el('p', 'demo-group-name', g.name));
+        head.appendChild(el('span', 'demo-pill', 'join_policy: ' + g.policy));
         li.appendChild(head);
 
-        var members = document.createElement('div');
-        members.className = 'demo-group-body';
-
-        var ul2 = document.createElement('ul');
-        ul2.className = 'demo-members';
-        // One extra member once the demo's user has actually joined, so the
-        // member list and the table agree with each other.
+        var members = el('ul', 'demo-members');
         var rows = g.members.slice();
-        if (S.joined[key]) rows.push(['YO', 'You', S.requestState === 'accepted' ? 'member' : 'member']);
+        if (S.joined[key]) rows.push(['YO', 'You', 'member']);
 
         rows.forEach(function (m) {
-          var mi = document.createElement('li');
-          mi.className = 'demo-member';
+          var mi = el('li', 'demo-member');
           mi.setAttribute('data-role', m[2]);
-
-          var av = document.createElement('span');
-          av.className = 'demo-member-avatar';
+          var av = el('span', 'demo-member-avatar', m[0]);
           av.setAttribute('aria-hidden', 'true');   // the name beside it is the content
-          av.textContent = m[0];
-
-          var nm = document.createElement('span');
-          nm.textContent = m[1] + ' · ' + m[2];
-
           mi.appendChild(av);
-          mi.appendChild(nm);
-          ul2.appendChild(mi);
+          mi.appendChild(el('span', null, m[1] + ' - ' + m[2]));
+          members.appendChild(mi);
         });
-        members.appendChild(ul2);
         li.appendChild(members);
 
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'demo-btn';
-        btn.style.marginTop = 'var(--s-3)';
-        btn.style.display = 'block';
-
         if (key === 'instant') {
+          var join = el('button', 'demo-btn');
+          join.type = 'button';
           if (S.joined.instant) {
-            btn.setAttribute('aria-pressed', 'true');
-            btn.textContent = 'Joined';
-            btn.disabled = true;
+            join.setAttribute('aria-pressed', 'true');
+            join.textContent = 'Joined';
+            join.disabled = true;
           } else {
-            btn.textContent = 'Join group';
-            btn.setAttribute('aria-label', 'Join ' + g.name);
-            btn.addEventListener('click', function () {
+            join.textContent = 'Join group';
+            join.setAttribute('aria-label', 'Join ' + g.name);
+            join.addEventListener('click', function () {
               S.joined.instant = true;
               traceLine('write', 'INSERT', 'group_members (role=member, joined_at=now())');
+              traceLine('policy', 'branch', "join_policy = 'instant' - member written directly");
               traceLine('info', 'return', '{ status: "joined" }');
-              traceLine('policy', 'branch', "join_policy = 'instant' → member written directly");
-              renderGroups();
+              renderAll();
             });
           }
+          li.appendChild(join);
+
         } else {
+          var req = el('button', 'demo-btn');
+          req.type = 'button';
           if (S.requestState === 'pending') {
-            btn.disabled = true;
-            btn.textContent = 'Request pending…';
+            req.disabled = true;
+            req.textContent = 'Request pending...';
           } else if (S.requestState === 'accepted') {
-            btn.setAttribute('aria-pressed', 'true');
-            btn.textContent = 'In group';
-            btn.disabled = true;
+            req.setAttribute('aria-pressed', 'true');
+            req.textContent = 'In group';
+            req.disabled = true;
           } else {
-            btn.textContent = 'Request to join';
-            btn.setAttribute('aria-label', 'Request to join ' + g.name);
-            btn.addEventListener('click', function () {
+            req.textContent = 'Request to join';
+            req.setAttribute('aria-label', 'Request to join ' + g.name);
+            req.addEventListener('click', function () {
               S.requestState = 'pending';
               S.joined.request = true;
               traceLine('write', 'INSERT', 'community_join_requests (status=pending)');
-              traceLine('policy', 'branch', "join_policy = 'request' → owner must approve");
+              traceLine('policy', 'branch', "join_policy = 'request' - owner must approve");
               traceLine('info', 'return', '{ status: "requested" }');
-              renderGroups();
+              renderAll();
             });
           }
-        }
-        li.appendChild(btn);
+          li.appendChild(req);
 
-        /* The approve control only exists once a request is pending, and it is
-           the owner's action — the RPC refuses anyone whose role is not owner or
-           coowner, and the demo shows the refusal as well as the success. */
-        if (key === 'request' && S.requestState === 'pending') {
-          var approve = document.createElement('button');
-          approve.type = 'button';
-          approve.className = 'demo-btn';
-          approve.setAttribute('data-variant', 'primary');
-          approve.style.marginTop = 'var(--s-2)';
-          approve.style.display = 'block';
-          approve.textContent = 'Owner: approve request';
-          approve.setAttribute('aria-label', 'Owner approves the pending request for ' + g.name);
-          approve.addEventListener('click', function () {
-            S.requestState = 'accepted';
-            traceLine('policy', 'check', 'role IN (owner, coowner) → allowed');
-            traceLine('write', 'UPDATE', 'community_join_requests.status = accepted');
-            traceLine('write', 'INSERT', 'group_members (role=member, joined_at=now())');
-            renderGroups();
-          });
-          li.appendChild(approve);
+          /* The approve control only exists once a request is pending, and it
+             is the owner's action - the RPC raises not_allowed for anyone
+             whose role is not owner or coowner. */
+          if (S.requestState === 'pending') {
+            var approve = el('button', 'demo-btn');
+            approve.type = 'button';
+            approve.setAttribute('data-variant', 'primary');
+            approve.textContent = 'Owner: approve request';
+            approve.setAttribute('aria-label', 'Owner approves the pending request for ' + g.name);
+            approve.addEventListener('click', function () {
+              S.requestState = 'accepted';
+              traceLine('policy', 'check', "role IN ('owner','coowner') - allowed");
+              traceLine('write', 'UPDATE', 'community_join_requests.status = accepted');
+              traceLine('write', 'INSERT', 'group_members (role=member, joined_at=now())');
+              traceLine('info', 'return', '{ ok: true }');
+              renderAll();
+            });
+            li.appendChild(approve);
+          }
         }
-
-        ul.appendChild(li);
+        list.appendChild(li);
       });
+      body.appendChild(list);
+
+      var board = el('ol', 'demo-board');
+      SAMPLE.board.forEach(function (r) {
+        var li = el('li', 'demo-board-row');
+        li.setAttribute('data-you', r[0] === 'You' ? 'true' : 'false');
+        li.appendChild(el('span', 'demo-board-rank', String(board.children.length + 1)));
+        li.appendChild(el('span', 'demo-board-name', r[0]));
+        li.appendChild(el('span', 'demo-board-hours', hhmm(r[1])));
+        board.appendChild(li);
+      });
+      body.appendChild(board);
+
+      body.appendChild(caption([
+        'A backup holds one person\u2019s history, so these rows are ', SAMPLE_TOKEN,
+        ' \u2014 as are the two study groups and their members. The ranking rule is real ',
+        '(get_leaderboard orders on weekly_hours, then total_hours) and so are both join ',
+        'policies: join_policy defaults to request.'
+      ]));
     }
 
-    /* ══ Panel 5: sync ═════════════════════════════════════════════════════
+    /* ══ Sync ═══════════════════════════════════════════════════════════════
        Three lanes, and the interesting one is the third.
 
-       The comparison ladder evaluates richness BEFORE recency: a fresh install
-       produces an empty snapshot that is newer than everything the user has,
-       and last-write-wins would hand that empty snapshot the database. Step two
-       of the ladder refuses it. The "fresh install" button exists to make that
-       concrete rather than to assert it. */
-    function renderSync() {
-      var ul = $('[data-demo-lanes]');
-      if (!ul) return;
-      ul.textContent = '';
+       The comparison ladder evaluates richness BEFORE recency: a fresh
+       install produces an empty snapshot that is newer than everything the
+       user has, and last-write-wins would hand that empty snapshot the
+       database. Step two of the ladder refuses it. The "fresh install" button
+       exists to make that concrete rather than to assert it. */
+    function renderSyncPane(body) {
+      var list = el('ul', 'demo-lanes');
 
       var lanes = [
-        { key: 'local',      name: 'This device',     rows: S.summary.session_count + ' session' + (S.summary.session_count === 1 ? '' : 's') + ' · ' + hhmm(S.summary.total_hours) },
-        { key: 'queued',     name: 'Pending sync',    rows: S.queue.length ? S.queue.length + ' row' + (S.queue.length === 1 ? '' : 's') + ' waiting' : 'nothing waiting' },
-        { key: 'reconciled', name: 'Supabase',        rows: S.syncPhase === 'reconciled' ? 'reconciled · ' + S.queue.length + ' row' + (S.queue.length === 1 ? '' : 's') : 'not connected in this demo' }
+        { key: 'local', name: 'This device',
+          rows: S.summary.session_count + ' session' + plural(S.summary.session_count, '', 's') +
+                 ' - ' + hhmm(S.summary.total_hours) },
+        { key: 'queued', name: 'Pending sync',
+          rows: S.queue.length ? S.queue.length + ' row' + plural(S.queue.length, '', 's') + ' waiting'
+                               : 'nothing waiting' },
+        { key: 'reconciled', name: 'Supabase',
+          rows: S.syncPhase === 'reconciled' ? 'reconciled - ' + S.queue.length + ' row' + plural(S.queue.length, '', 's')
+              : S.syncPhase === 'refused' ? 'snapshot refused'
+              : 'not connected in this demo' }
       ];
 
       lanes.forEach(function (l) {
-        var li = document.createElement('li');
-        li.className = 'demo-lane';
+        var li = el('li', 'demo-lane');
         li.setAttribute('data-active', S.syncPhase === l.key ? 'true' : 'false');
-        li.setAttribute('data-done', (l.key === 'reconciled' && S.syncPhase === 'reconciled') ? 'true' : 'false');
+        li.setAttribute('data-done',
+          (l.key === 'reconciled' && S.syncPhase === 'reconciled') ? 'true' : 'false');
 
-        var body = document.createElement('div');
-        body.className = 'demo-lane-body';
-
-        var name = document.createElement('p');
-        name.className = 'demo-lane-name';
-        name.textContent = l.name;
-
-        var rows = document.createElement('p');
-        rows.className = 'demo-lane-rows';
-        rows.textContent = l.rows;
-
-        body.appendChild(name);
-        body.appendChild(rows);
-        li.appendChild(body);
+        var inner = el('div', 'demo-lane-body');
+        inner.appendChild(el('p', 'demo-lane-name', l.name));
+        inner.appendChild(el('p', 'demo-lane-rows', l.rows));
+        li.appendChild(inner);
 
         if (l.key === 'reconciled' && S.syncPhase === 'reconciled') {
-          var pill = document.createElement('span');
-          pill.className = 'pill get';
-          pill.textContent = 'synced';
-          li.appendChild(pill);
+          var ok = el('span', 'demo-pill', 'synced');
+          ok.setAttribute('data-tone', 'ok');
+          li.appendChild(ok);
         }
         if (S.syncPhase === 'refused' && l.key === 'reconciled') {
-          var warn = document.createElement('span');
-          warn.className = 'pill patch';
-          warn.textContent = 'refused';
+          var warn = el('span', 'demo-pill', 'refused');
+          warn.setAttribute('data-tone', 'warn');
           li.appendChild(warn);
         }
-
-        ul.appendChild(li);
+        list.appendChild(li);
       });
+      body.appendChild(list);
+
+      var actions = el('div', 'demo-actions');
+      var sync = el('button', 'demo-btn');
+      sync.type = 'button';
+      sync.setAttribute('data-variant', 'primary');
+      sync.textContent = 'Go online and sync';
+      sync.addEventListener('click', doSync);
+
+      var fresh = el('button', 'demo-btn');
+      fresh.type = 'button';
+      fresh.textContent = 'Simulate a fresh install';
+      fresh.addEventListener('click', freshInstall);
+
+      actions.appendChild(sync);
+      actions.appendChild(fresh);
+      body.appendChild(actions);
+
+      body.appendChild(el('p', 'demo-note',
+        'The second button pushes an empty snapshot that is newer than your work - ' +
+        'the case the comparison ladder is built to refuse.'));
+
+      var recent = el('ol', 'demo-board');
+      recent.setAttribute('aria-label', 'Most recent sessions');
+      (SAMPLE.recent || []).forEach(function (r) {
+        var li = el('li', 'demo-board-row');
+        li.appendChild(el('span', 'demo-board-name', r.subject + ' \u00b7 ' + r.type));
+        li.appendChild(el('span', 'demo-board-hours', r.minutes + 'm'));
+        recent.appendChild(li);
+      });
+      body.appendChild(recent);
+
+      body.appendChild(caption([
+        'The fortnight of sessions above is real, from the ', SAMPLE.snapshot,
+        ' backup. Each queued row corresponds to a sync_items entry: entity, ',
+        'operation, ',
+        'status and content_hash. The study hours are real, from the ', SAMPLE.snapshot,
+        ' backup.'
+      ]));
     }
 
     /* Online: reconcile the queue, exactly what the app does when it regains a
-       connection. The RPC is idempotent, so a retry is safe — which is what
+       connection. The RPC is idempotent, so a retry is safe - which is what
        makes the "Finish now" path above safe to press twice. */
     function doSync() {
       if (!S.queue.length) {
-        traceLine('info', 'sync', 'nothing queued — run a focus session first');
+        traceLine('info', 'sync', 'nothing queued - run a focus session first');
         return;
       }
       S.syncPhase = 'reconciled';
-      traceLine('write', 'RPC', 'finish_session_sync × ' + S.queue.length);
+      traceLine('write', 'RPC', 'finish_session_sync x ' + S.queue.length);
       traceLine('write', 'UPSERT', 'daily_user_stats.seconds_studied');
-      traceLine('info', 'result', 'reconciled · local totals match cloud');
-      renderSync();
+      traceLine('info', 'result', 'reconciled - local totals match cloud');
+      renderAll();
     }
 
     /* The empty-snapshot case. Deliberately shows the refusal rather than a
        success, because that is the behaviour the ladder exists to produce. */
     function freshInstall() {
-      S.cloudSnapshot = { rich: false, at: 'now' };
-      traceLine('policy', 'compare', 'cloud snapshot: empty, newer → richness wins');
-      traceLine('policy', 'ladder', 'step 2 · rich beats empty → local kept');
+      traceLine('policy', 'compare', 'cloud snapshot: empty, newer - richness wins');
+      traceLine('policy', 'ladder', 'step 2 - rich beats empty, local kept');
       traceLine('info', 'result', 'empty snapshot discarded; no data lost');
       S.syncPhase = 'refused';
-      renderSync();
+      renderAll();
     }
 
-    /* ── Wiring the two unnamed buttons in each panel ────────────────────────
-       The markup gives each panel a primary and a secondary control without
-       hardcoding their meaning, so the behaviour lives in one place per panel
-       rather than being duplicated across five handlers. */
-    function wirePanel(panelId, onPrimary, onSecondary) {
-      var panel = document.getElementById(panelId);
-      if (!panel) return;
-      var p = panel.querySelector('[data-demo-primary]');
-      var s = panel.querySelector('[data-demo-secondary]');
-      if (p && onPrimary) p.addEventListener('click', onPrimary);
-      if (s && onSecondary) s.addEventListener('click', onSecondary);
+    /* ── Summary rail ────────────────────────────────────────────────────────
+       Rebuilt from state every time rather than mutated in place, so the rail
+       can never show a number the panes do not support. */
+    function renderSummary() {
+      var hero = $('[data-sum-focus]');
+      if (hero) hero.textContent = hhmmFromSecs(S.summary.total_study_seconds);
+
+      var streak = $('[data-sum-streak]');
+      if (streak) streak.textContent = String(S.summary.current_streak);
+
+      var ring = $('[data-sum-ring]');
+      if (ring) {
+        // A fraction of the longest streak, so the ring is always meaningful
+        // and never implies a target the app does not have.
+        var pct = S.summary.max_streak_days
+          ? Math.round((S.summary.current_streak / S.summary.max_streak_days) * 100)
+          : 0;
+        ring.style.setProperty('--pct', String(Math.min(100, pct)));
+        ring.setAttribute('aria-label', S.summary.current_streak + ' day streak, longest ' +
+          S.summary.max_streak_days);
+      }
+
+      var longest = $('[data-sum-longest]');
+      if (longest) longest.textContent = 'longest ' + S.summary.max_streak_days;
+
+      var plan = $('[data-demo-plan]');
+      if (plan) plan.textContent = S.signedIn ? 'local - unsynced' : 'local only';
+
+      var dl = $('[data-demo-summary]');
+      if (!dl) return;
+      dl.textContent = '';
+
+      [
+        ['total_study_seconds', String(S.summary.total_study_seconds)],
+        ['weekly_hours',        String(S.summary.weekly_hours)],
+        ['monthly_hours',       String(S.summary.monthly_hours)],
+        ['session_count',       String(S.summary.session_count)],
+        ['total_sessions',      String(S.summary.total_sessions)],
+        ['last_study_date',     S.processed ? 'today' : '-'],
+        ['tasks due',           String(S.tasks.filter(function (t) { return t.status !== 'done'; }).length)],
+        ['sync queue',          S.queue.length + ' row' + plural(S.queue.length, '', 's')]
+      ].forEach(function (r) {
+        var wrap = el('div', 'demo-summary-row');
+        wrap.appendChild(el('dt', null, r[0]));
+        wrap.appendChild(el('dd', null, r[1]));
+        dl.appendChild(wrap);
+      });
+    }
+
+    /* The stats readout in the focus pane, rebuilt from the same summary
+       object the rail reads. */
+    function renderStats(body) {
+      [
+        ['total_study_seconds', String(S.summary.total_study_seconds)],
+        ['total_hours',         String(S.summary.total_hours)],
+        ['weekly_hours',        String(S.summary.weekly_hours)],
+        ['session_count',       String(S.summary.session_count)],
+        ['last_study_date',     S.processed ? 'today' : '-']
+      ].forEach(function (r) {
+        var wrap = el('div', 'demo-stat');
+        if (S.processed) wrap.setAttribute('data-changed', 'true');
+        wrap.appendChild(el('dt', null, r[0]));
+        wrap.appendChild(el('dd', null, r[1]));
+        body.appendChild(wrap);
+      });
+      body.appendChild(caption([
+        'Columns are from user_stats_summary and daily_user_stats.'
+      ]));
     }
 
     /* ── Reset ───────────────────────────────────────────────────────────────
-       Stops the clock first. Leaving an interval running after a reset is how a
-       demo page ends up eating battery on a phone that was left open on the
-       tab — the one resource a reader will not think to go and save. */
+       Stops the clock first. Leaving an interval running after a reset is how
+       a demo page ends up eating battery on a phone left open on the tab - the
+       one resource a reader will not think to go and save. */
     function reset(quiet) {
       stopClock();
       S = freshState();
-      taskSeq = 3;
+
+      /* The switcher carries the five study surfaces and nothing else. The
+         auth wall is the signed-out PANE, not a sixth radio, so it is absent
+         here deliberately -- a radiogroup listing an entry the reader cannot
+         select is a worse lie than one that starts empty. data-view is left
+         alone: the markup already assigns each button the surface it owns. */
+      modeBtns.forEach(function (b, i) {
+        /* All five need an account, but disabling every radio would make the
+           group unreachable: Tab would skip it entirely and the arrow keys
+           would do nothing, stranding a keyboard reader with no way to learn
+           the surfaces exist. So the first stays enabled -- it shows the auth
+           pane, which IS what is on screen -- and the rest lock. */
+        b.disabled = i !== 0;
+        b.setAttribute('aria-checked', i === 0 ? 'true' : 'false');
+        b.setAttribute('tabindex', i === 0 ? '0' : '-1');
+      });
+
+      var label = $('[data-session-label]');
+      if (label) label.textContent = 'signed out';
+      var chip = $('[data-demo-session]');
+      if (chip) chip.removeAttribute('data-state');
+
       renderAll();
       // Quiet on first paint: logging "restored" into a log that was never
       // disturbed reads as though something had just been thrown away.
-      if (!quiet) traceLine('info', 'reset', 'sample data restored');
+      if (!quiet) traceLine('info', 'reset', SAMPLE_TOKEN + ' data restored');
     }
 
     function renderAll() {
-      selectTab('dt-focus', false);
-      renderFocus();
-      renderStats();
-      renderTasks();
-      renderGroups();
-      renderSync();
+      renderPanes();
+      renderRail();
+      renderSummary();
+      count();
     }
 
-    /* ── Boot ────────────────────────────────────────────────────────────────*/
-
-    wirePanel('dp-focus',
-      function () {
-        if (S.phase === 'idle') startFocus();
-        else if (S.phase === 'running') finishFocus('completed');
-        // Finished: re-submit the SAME session id, which is the retry a dropped
-        // request would produce. The RPC's ON CONFLICT (id) DO NOTHING makes it
-        // a no-op — and the panel shows that rather than pretending to add time.
-        else finishFocus('retried');
-      },
-      function () {
-        stopClock();
-        S.phase = 'idle';
-        S.elapsed = 0;
-        S.processed = false;      // a genuinely new session gets a new id
-        renderFocus();
-        traceLine('info', 'state', 'cleared — next run gets a fresh session id');
-      }
-    );
-
-    wirePanel('dp-sync', doSync, freshInstall);
+    /* ── Wiring ──────────────────────────────────────────────────────────────*/
 
     var resetBtn = $('[data-demo-reset]');
     if (resetBtn) resetBtn.addEventListener('click', function () { reset(false); });
 
+    var exploreBtn = $('[data-demo-explore]');
+    if (exploreBtn) {
+      exploreBtn.addEventListener('click', function () {
+        if (!S.signedIn) {
+          signIn();
+          traceLine('info', 'explore', 'pressed Explore - signed in on the ' + SAMPLE_TOKEN + ' account');
+          return;
+        }
+        /* Already inside. The useful second press is the one that actually
+           demonstrates something, so it runs a whole session and reconciles
+           it rather than being a no-op. */
+        traceLine('info', 'explore', 'running a session, then reconciling it');
+        if (S.phase === 'idle') startFocus();
+        S.phase = 'finished';
+        S.elapsed = SAMPLE.focusMinutes * 60;
+        finishFocus('explore');
+        doSync();
+        renderAll();
+      });
+    }
+
+    var addArea = $('[data-demo-add-area]');
+    if (addArea) {
+      addArea.addEventListener('click', function () {
+        if (S.extraAreas.length >= 3) {
+          traceLine('info', 'area', 'cap reached - three extra areas is enough to show the shape');
+          return;
+        }
+        var name = 'Study area ' + (S.extraAreas.length + 1);
+        S.extraAreas.push(name);
+        traceLine('write', 'INSERT', 'subjects (is_custom=true, name=' + name + ')');
+        traceLine('info', 'area', name + ' - added; a custom subject has no chapters yet');
+        renderAll();
+      });
+    }
+
     reset(true);
 
-    /* The timer is the only thing on this page that can still be running when a
-       reader navigates away. Stop it on unload so a background tab does not sit
-       on an interval forever. */
+    /* The timer is the only thing on this page that can still be running when
+       a reader navigates away. Stop it on unload so a background tab does not
+       sit on an interval forever. */
     window.addEventListener('pagehide', stopClock);
+
+    /* The thumb is positioned from measured layout, so it has to be placed
+       after the shell has a width. A resize re-places it; nothing else. */
+    window.addEventListener('resize', function () {
+      var on = modeBtns.filter(function (b) { return b.getAttribute('aria-checked') === 'true'; })[0];
+      moveThumb(on);
+    });
   })();
 })();

@@ -464,228 +464,206 @@
   </section>
 
   <!-- ── Interactive demo ────────────────────────────────────────────────────
-       A self-contained walkthrough of the product, built from what the code in
-       this repository actually does. Five tabs, one panel each, and every panel
-       writes what it touched into a live trace beside it.
+       An app shell you can drive, built from what this repository actually
+       does. Not a mockup: every pane is populated by dashboard.js from the
+       same column and function names the real bundles use, and the shell
+       itself is the shape of the shipped product.
 
-       Why a trace and not just a mockup: the stage on the left is illustrative —
-       the numbers in it are invented, and each one that is carries a visible
-       "sample" marker. The trace on the right is not. Function names, table
-       names, column names and the branch each function takes are read out of
-       isotope-complete.sql. If the two ever disagree, the SQL is right and the
-       demo is wrong; that is the whole reason the trace is there.
+       The shape follows the app, not a marketing illustration: a workspace
+       rail on the left, a stacked pane canvas in the middle, a summary rail
+       on the right, a view switcher across the top, and Reset / Explore in
+       the toolbar.
 
-       It ships as markup rather than being generated: with JS off the section
-       says so once and the tab list is still readable, and with JS on it is the
-       same content driven by real controls. Nothing here fetches anything. -->
+       Two deliberate departures from a literal screenshot:
+
+       1. The first thing rendered is the SIGNED-OUT state. A fresh install
+          redirects / and /demo to /auth and there is no demo gate, so a
+          reader arrives at the auth wall before they ever see a dashboard.
+          The demo reproduces that ordering instead of pretending the reader
+          is already signed in — Explore is what walks you past it.
+
+       2. The content is real; the interaction is not. The syllabus, task
+          titles, focus hours and streak come from a genuine backup export
+          (see assets/demo-data.js for provenance and for exactly what was
+          withheld). It is a point-in-time snapshot, NOT a live account, and
+          the controls write to nothing. The few values that cannot come from
+          one person's backup &mdash; a session length a reader can finish,
+          the study groups, the leaderboard rows &mdash; are marked
+          <span class="demo-samp">sample</span> wherever they appear.
+
+       3. Every table, column, function and status value was read out of
+          isotope-complete.sql. Where a real number and an invented one could
+          be confused, the caption beside it says which is which.
+
+       Ships as markup rather than being generated: with JavaScript off this
+       section says so once and everything else on the page still works.
+       Nothing here fetches anything. -->
   <section class="section" aria-labelledby="demo-heading">
     <div class="wrap">
       <div class="dash-section rise">
         <div>
           <p class="dash-kicker">Try it</p>
           <h2 id="demo-heading">Interactive demo</h2>
-          <p>Five short walkthroughs of the real thing — the focus loop, tasks, the
-             syllabus, joining a study group, and sync. Press the controls and watch
-             what each step writes.</p>
+          <p>The app shell, filled from a real IsotopeAI backup snapshot taken
+             on 8 October 2026 — 195 focus sessions, 32 tasks, a three-subject
+             syllabus, a 92-day streak. Switch views, open a workspace, run a
+             session, complete a task, request a place in a study group and
+             reconcile the queue, and read the trace underneath to see which
+             table and function each step touches.</p>
         </div>
-        <p class="dash-section-aside">Sample data</p>
+        <p class="dash-section-aside">Backup snapshot &middot; not live</p>
       </div>
 
       <p class="demo-nojs">
         The interactive demo needs JavaScript. With it switched off, this page still
         has everything else: <a href="./database.html">the database reference</a> has
-        every function and column the demo refers to, and
-        <a href="./architecture.html">architecture</a> covers the same flows in prose.
+        every function and column the demo refers to,
+        <a href="./architecture.html">architecture</a> covers the same flows in prose,
+        and <a href="./api-reference.html">the API reference</a> lists each RPC's
+        signature. The demo's own figures come from a real backup export taken on
+        8 October 2026 &mdash; it is a snapshot, not a live account.
       </p>
 
       <div class="demo" data-demo>
 
+        <!-- Toolbar. Reset and Explore are the two global controls; the label
+             names what the whole section is showing, so it is not a claim
+             about the shipped product. -->
         <div class="demo-bar">
-          <span class="demo-tag">Sample data</span>
+          <span class="demo-tag">Backup snapshot</span>
           <p class="demo-count" data-demo-count role="status"></p>
-          <button class="demo-btn" type="button" data-demo-reset>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-            Reset
-          </button>
+          <div class="demo-bar-actions">
+            <button class="demo-btn" type="button" data-demo-reset>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+              Reset
+            </button>
+            <button class="demo-btn" type="button" data-variant="primary" data-demo-explore>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+              Explore
+            </button>
+          </div>
         </div>
 
-        <div class="demo-tabs" role="tablist" aria-label="Demo walkthroughs">
-          <button class="demo-tab" type="button" role="tab" id="dt-focus" aria-controls="dp-focus" aria-selected="true" tabindex="0">Focus timer</button>
-          <button class="demo-tab" type="button" role="tab" id="dt-tasks" aria-controls="dp-tasks" aria-selected="false" tabindex="-1">Tasks</button>
-          <button class="demo-tab" type="button" role="tab" id="dt-syllabus" aria-controls="dp-syllabus" aria-selected="false" tabindex="-1">Syllabus</button>
-          <button class="demo-tab" type="button" role="tab" id="dt-groups" aria-controls="dp-groups" aria-selected="false" tabindex="-1">Study groups</button>
-          <button class="demo-tab" type="button" role="tab" id="dt-sync" aria-controls="dp-sync" aria-selected="false" tabindex="-1">Sync</button>
+        <!-- ── The shell ────────────────────────────────────────────────────
+             A container query drives the whole layout: --u is one
+             container-width unit, so the shell scales as a single object
+             rather than as a set of independently-sized boxes. Container
+             queries rather than media queries because this is a
+             self-contained widget that has to work at whatever width its
+             column gives it. -->
+        <div class="demo-shell" data-demo-shell>
+
+          <!-- Titlebar. View switcher plus the sign-in state, because the
+               two are the same question: which surface am I looking at, and
+               am I allowed to look at it yet. -->
+          <div class="demo-titlebar">
+            <span class="demo-lights" aria-hidden="true"><i></i><i></i><i></i></span>
+
+            <span class="demo-brand">
+              <svg class="demo-brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.04 2.03 7.36.02 11.9-4.5Z"/></svg>
+              <span class="demo-brand-name">IsotopeAI</span>
+            </span>
+
+            <!-- radiogroup, not a tablist: these are views of the same data,
+                 exactly one is current, and arrow keys move between them.
+                 Home/End jump to the ends. dashboard.js implements the whole
+                 contract including roving tabindex, so Tab leaves the group
+                 rather than walking through it. -->
+            <div class="demo-modes" role="radiogroup" aria-label="Study surface" data-demo-modes>
+              <span class="demo-modes-thumb" aria-hidden="true"></span>
+              <button class="demo-mode" type="button" role="radio" aria-checked="true"  tabindex="0"  data-view="focus">Focus</button>
+              <button class="demo-mode" type="button" role="radio" aria-checked="false" tabindex="-1" data-view="tasks">Tasks</button>
+              <button class="demo-mode" type="button" role="radio" aria-checked="false" tabindex="-1" data-view="syllabus">Syllabus</button>
+              <button class="demo-mode" type="button" role="radio" aria-checked="false" tabindex="-1" data-view="groups">Groups</button>
+              <button class="demo-mode" type="button" role="radio" aria-checked="false" tabindex="-1" data-view="sync">Sync</button>
+            </div>
+
+            <span class="demo-titlebar-spacer"></span>
+
+            <span class="demo-session" data-demo-session>
+              <span class="demo-session-dot" data-session-dot aria-hidden="true"></span>
+              <span data-session-label>signed out</span>
+            </span>
+          </div>
+
+          <!-- ── Workspace rail ────────────────────────────────────────────
+               A tree of study areas, with the currently open panes indented
+               beneath their subject — so selecting a subject shows what is
+               inside it rather than replacing the list with a detail view.
+               Each item is a real button with the expanded/selected state on
+               it, so a screen reader hears the shape of the tree. -->
+          <aside class="demo-rail" aria-label="Study areas">
+            <div class="demo-rail-head">
+              <span class="demo-rail-title">Areas</span>
+              <button class="demo-icon-btn" type="button" data-demo-add-area
+                      aria-label="Add a study area">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
+
+            <div class="demo-rail-list" data-demo-rail role="tree" aria-label="Study areas"></div>
+
+            <div class="demo-rail-foot">
+              <span class="demo-avatar" aria-hidden="true">YO</span>
+              <span class="demo-rail-foot-text">
+                <span class="demo-rail-foot-name">You</span>
+                <span class="demo-rail-foot-meta" data-demo-plan>local only</span>
+              </span>
+            </div>
+          </aside>
+
+          <!-- ── Pane canvas ───────────────────────────────────────────────
+               A stack of panes. Only the focused pane is interactive; the
+               ones behind it stay in the tree as headings so the stack reads
+               as depth rather than as decoration. -->
+          <section class="demo-panes" data-demo-panes
+                   aria-label="Open panes" tabindex="0"></section>
+
+          <!-- ── Summary rail ──────────────────────────────────────────────
+               The live figures. Every one is either derived from state the
+               demo already holds or marked as a sample value, so nothing
+               here can disagree with the pane it sits beside. -->
+          <aside class="demo-summary" aria-label="Today at a glance">
+            <h3 class="demo-h" id="demo-summary-h">Today</h3>
+
+            <p class="demo-stat-hero">
+              <span class="demo-stat-hero-val" data-sum-focus>0h 00m</span>
+              <span class="demo-stat-hero-lbl">focused today</span>
+            </p>
+
+            <div class="demo-ring-row">
+              <span class="demo-ring" data-sum-ring role="img" aria-labelledby="demo-ring-lbl">
+                <span class="demo-ring-num" data-sum-streak>0</span>
+              </span>
+              <span class="demo-ring-text">
+                <span class="demo-ring-lbl" id="demo-ring-lbl">day streak</span>
+                <span class="demo-ring-sub" data-sum-longest>longest 0</span>
+              </span>
+            </div>
+
+            <dl class="demo-summary-list" data-demo-summary></dl>
+
+            <p class="demo-caption" data-demo-sample-note>
+              Figures are sample values <span class="demo-samp">sample</span>. The
+              columns they sit in — <code>total_study_seconds</code>,
+              <code>current_streak</code>, <code>session_count</code> — are the real ones.
+            </p>
+          </aside>
         </div>
 
-        <div class="demo-panels">
+        <!-- ── The trace ────────────────────────────────────────────────────
+             Append-only record of what the simulated code wrote. It is
+             deliberately outside the panes: it describes the whole demo, not
+             whichever surface is open, so it must not disappear when the
+             view changes.
 
-          <!-- ── 1. Focus timer ──────────────────────────────────────────────
-               finish_session_sync is idempotent by primary key: it inserts the
-               session with ON CONFLICT (id) DO NOTHING and reports
-               already_processed instead of counting the time twice. That is the
-               single most important behaviour here, so the panel demonstrates it
-               directly — finish the same session twice and watch the totals hold. -->
-          <div class="demo-panel" role="tabpanel" id="dp-focus" aria-labelledby="dt-focus" tabindex="0">
-
-            <div class="demo-stage">
-              <h3 class="demo-h">A focus session</h3>
-              <p class="demo-note">Start it, watch it run, finish it. The stats below are
-                what <code>finish_session_sync</code> writes when it does.</p>
-
-              <p class="demo-clock" data-demo-clock role="timer" aria-live="off">25:00</p>
-              <div class="demo-bar-track" aria-hidden="true"><div class="demo-bar-fill" data-demo-fill></div></div>
-
-              <div class="demo-actions">
-                <button class="demo-btn" type="button" data-demo-primary>Start</button>
-                <button class="demo-btn" type="button" data-demo-secondary>Reset</button>
-              </div>
-
-              <p class="demo-caption">
-                Session length, subject and starting totals are sample values
-                <span class="demo-samp">sample</span> so the panel can run without a
-                database. The columns, the totals and the idempotency are the real ones.
-              </p>
-            </div>
-
-            <div>
-              <h3 class="demo-h">What it writes</h3>
-              <dl class="demo-stats" data-demo-stats></dl>
-              <p class="demo-caption">Columns shown are from
-                <code>user_stats_summary</code> and <code>daily_user_stats</code>.</p>
-            </div>
-
-          </div>
-
-          <!-- ── 2. Tasks ────────────────────────────────────────────────────
-               tasks.status defaults to 'pending'; the app writes 'todo' when a
-               task is created and 'done' when it is completed. Both are shown so
-               the default and the written value are distinguishable. -->
-          <div class="demo-panel" role="tabpanel" id="dp-tasks" aria-labelledby="dt-tasks" tabindex="0" hidden>
-
-            <div class="demo-stage">
-              <h3 class="demo-h">Tasks</h3>
-              <p class="demo-note">Add one, then complete it. A completed task is struck
-                through, marked, and announced — none of which depends on colour.</p>
-
-              <form class="demo-form" data-demo-task-form>
-                <label class="demo-label" for="demo-task-title">New task</label>
-                <input class="demo-input" id="demo-task-title" type="text"
-                       autocomplete="off" maxlength="120"
-                       placeholder="Revise organic chemistry — chapter 4"
-                       aria-describedby="demo-task-hint">
-                <button class="demo-btn" type="submit" data-variant="primary">Add task</button>
-              </form>
-              <p class="sr-only" id="demo-task-hint">Press Enter or the Add task button to create the task.</p>
-
-              <ul class="demo-list" data-demo-tasks data-empty="true"
-                  data-empty-text="No tasks yet. Add one above."></ul>
-            </div>
-
-            <div>
-              <h3 class="demo-h">Where it is stored</h3>
-              <p class="demo-note">Tasks are local-first: written to IndexedDB, and
-                replicated to the <code>user-content</code> backup rather than row-synced.
-                The <code>tasks</code> row carries the session it was completed in.</p>
-              <p class="demo-caption">Real columns:
-                <code>status</code>, <code>priority</code>, <code>subject</code>,
-                <code>completed_at</code>, <code>completed_in_session</code>.</p>
-            </div>
-
-          </div>
-
-          <!-- ── 3. Syllabus ────────────────────────────────────────────────
-               The nine chunks below are the bundles the app's router actually
-               imports, not a summary written for this page. -->
-          <div class="demo-panel" role="tabpanel" id="dp-syllabus" aria-labelledby="dt-syllabus" tabindex="0" hidden>
-
-            <div class="demo-stage">
-              <h3 class="demo-h">Loaded chunks</h3>
-              <p class="demo-note">The bundle files behind the app's routes, in the order
-                the router resolves them. Each is lazy — nothing here is in the
-                entry chunk.</p>
-
-              <ol class="demo-chunks">
-                <li class="demo-chunk">About</li>
-                <li class="demo-chunk">AnalyticsFeature</li>
-                <li class="demo-chunk">ExamPlannerFeature</li>
-                <li class="demo-chunk">FocusTimerLanding</li>
-                <li class="demo-chunk">StudyFeature</li>
-                <li class="demo-chunk">StudyGroupsFeature</li>
-                <li class="demo-chunk">SyllabusFeature</li>
-                <li class="demo-chunk">TasksFeature</li>
-                <li class="demo-chunk">TodayFeature</li>
-              </ol>
-
-              <p class="demo-caption">Names as they appear in <code>public/assets</code>.
-                Subjects and their chapters live on the <code>subjects</code> row as JSONB
-                (<code>chapters</code>, <code>topics</code>); the route is
-                <code>/syllabus</code> and <code>/syllabus/chapter/:chapterId</code>.</p>
-            </div>
-
-          </div>
-
-          <!-- ── 4. Study groups ────────────────────────────────────────────
-               community_join_group branches on groups.join_policy, which is
-               'request' unless set otherwise: an open group writes group_members
-               directly, everything else writes a pending community_join_requests
-               row and waits for an owner. Only an owner or coowner can answer.
-               This panel shows both branches and the policy check in between. -->
-          <div class="demo-panel" role="tabpanel" id="dp-groups" aria-labelledby="dt-groups" tabindex="0" hidden>
-
-            <div class="demo-stage">
-              <h3 class="demo-h">Joining a study group</h3>
-              <p class="demo-note">Two groups, two different join policies. The first
-                lets you straight in; the second asks an owner first.</p>
-
-              <ul class="demo-groups" data-demo-groups></ul>
-
-              <p class="demo-caption">Group names, avatars and member counts are sample
-                values <span class="demo-samp">sample</span>. The two policies are real:
-                <code>join_policy</code> is <code>'request'</code> by default.</p>
-            </div>
-
-          </div>
-
-          <!-- ── 5. Sync ────────────────────────────────────────────────────
-               The interesting property of this one is the order of the comparison,
-               not the fact that it reconciles: richness is compared before
-               recency, so a fresh install's empty snapshot cannot overwrite real
-               work. The demo shows the empty snapshot arriving late and losing. -->
-          <div class="demo-panel" role="tabpanel" id="dp-sync" aria-labelledby="dt-sync" tabindex="0" hidden>
-
-            <div class="demo-stage">
-              <h3 class="demo-h">Local first, then the cloud</h3>
-              <p class="demo-note">The app writes locally and reconciles. Complete a focus
-                session in the first tab and it will appear in the queue here.</p>
-
-              <ul class="demo-lanes" data-demo-lanes></ul>
-
-              <div class="demo-actions">
-                <button class="demo-btn" type="button" data-demo-primary>Go online and sync</button>
-                <button class="demo-btn" type="button" data-demo-secondary>Simulate a fresh install</button>
-              </div>
-
-              <p class="demo-caption">The second button pushes an <strong>empty</strong>
-                snapshot that is <strong>newer</strong> than your work — the case the
-                comparison ladder is built to refuse.</p>
-            </div>
-
-          </div>
-
-        </div>
-
-        <!-- The trace. One element for all five panels, because it is one
-             idea: a running record of what the simulated code wrote. It is
-             outside the tabpanels deliberately — it describes the whole demo,
-             so it does not belong inside any one of them and does not get
-             hidden when the tabs switch.
-
-             role="log" + aria-live="polite" so appended lines are announced
-             without focus being pulled off the button the reader just pressed. -->
+             role="log" + aria-live="polite" so a new line is announced
+             without focus being pulled off the control the reader just
+             pressed. -->
         <div class="demo-trace">
           <div class="demo-trace-head">
             <h3 class="demo-h" id="demo-trace-label">What it wrote</h3>
-            <p class="demo-count" aria-hidden="true">trace</p>
+            <p class="demo-count" data-demo-trace-count aria-hidden="true"></p>
           </div>
           <ul class="demo-trace-list" data-demo-log role="log" aria-live="polite"
               aria-relevant="additions" aria-labelledby="demo-trace-label"></ul>
@@ -803,6 +781,11 @@
 </footer>
 
 <script src="./assets/site.js" defer></script>
+<!-- Real IsotopeAI backup snapshot, derived. Loaded as a plain global before
+     dashboard.js so the demo also works from file:// and on a cold cache; see
+     the header of that file for provenance and for what was deliberately left
+     out. -->
+<script src="./assets/demo-data.js" defer></script>
 <script src="./assets/dashboard.js" defer></script>
 </body>
 </html>
