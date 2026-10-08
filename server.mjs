@@ -7700,7 +7700,82 @@ function fetchLatestCommit() {
   });
 }
 
-const appStateStore = { timerState: null, localStorage: {} };
+// R6 (2026-10-08). This used to be ONE process-global object, and both routes
+// that touch it are unauthenticated (documented as such in docs/api-reference):
+//
+//   GET  /__isotope/state  -> res.end(JSON.stringify(appStateStore))
+//   POST /__isotope/state  -> Object.assign(appStateStore.localStorage, ...)
+//
+// (The sibling /__pip/state bridge has its own pipStateCache, already field-
+// allowlisted and body-capped, and is left alone here.)
+//
+// The server binds 0.0.0.0, so on a self-hosted box every device on the LAN is
+// one caller away from everyone else's timer state and, worse, from the slice of
+// localStorage the app chose to mirror: GET returns the merged object to anyone
+// who asks, and POST merges arbitrary attacker-supplied keys into it. That is a
+// cross-visitor read AND write of another user's mirrored state, with no session
+// involved. It was fine as a cross-TAB bridge and only became a bug once the
+// listener stopped being loopback-only.
+//
+// The bridge's actual purpose is cross-TAB: one browser, many tabs/overlays. So
+// the state is now keyed by client instead of shared globally, using a value the
+// caller supplies. That is a bearer token, not authentication -- it keeps the
+// LAN neighbour out of the store and preserves the cross-tab contract, and it is
+// strictly better than a single global object. It is not a substitute for a real
+// session: anything that can reach the port can still pick its own key, which is
+// the honest limit of an unauthenticated bridge.
+const APP_STATE_KEYS_MAX = 64;
+const APP_STATE_BYTES_MAX = 256 * 1024;
+const APP_STATE_CLIENTS_MAX = 128;
+
+function appStateClientKey(req) {
+  const raw = (req.headers['x-isotope-state-key']
+    || (req.url.includes('?') ? new URL(req.url, 'http://x').searchParams.get('key') : null)
+    || '');
+  // The key is a namespace handle, never a privilege, so it only has to be
+  // OPAQUE and INJECTION-PROOF -- not unguessable.
+  //
+  // It is digested rather than merely stripped. Stripping disallowed characters
+  // is not enough: 'a-../b' and 'ab' are different inputs that both reduce to
+  // 'ab', so one client could name another's slot by sending the second form.
+  // Hashing first makes every distinct input a distinct slot and keeps path
+  // separators, quotes and other metacharacters out of the key entirely. SHA-256
+  // also keeps the handle fixed-width, so a long input cannot be truncated into
+  // a collision with a short one.
+  const key = String(raw);
+  if (!key) return 'default';
+  return crypto.createHash('sha256').update(key, 'utf8').digest('hex').slice(0, 32);
+}
+
+function newAppStateSlot() {
+  return { timerState: null, localStorage: {}, touchedAt: Date.now() };
+}
+
+const appStateStore = {
+  clients: new Map(),
+  read(key) {
+    return this.clients.get(key) || newAppStateSlot();
+  },
+  write(key, patch) {
+    const slot = this.clients.get(key) || newAppStateSlot();
+    if (patch.timerState !== undefined) slot.timerState = patch.timerState;
+    if (patch.localStorage && typeof patch.localStorage === 'object') {
+      // Bound what one caller can park here, so a shared box cannot be used as
+      // free server-side storage.
+      for (const [k, v] of Object.entries(patch.localStorage).slice(0, APP_STATE_KEYS_MAX)) {
+        slot.localStorage[String(k).slice(0, 128)] = v;
+      }
+    }
+    slot.touchedAt = Date.now();
+    // Evict least-recently-touched so the map cannot grow without bound.
+    if (this.clients.size > APP_STATE_CLIENTS_MAX) {
+      const oldest = [...this.clients.entries()].sort((a, b) => a[1].touchedAt - b[1].touchedAt);
+      for (const [k] of oldest.slice(0, this.clients.size - APP_STATE_CLIENTS_MAX)) this.clients.delete(k);
+    }
+    this.clients.set(key, slot);
+    return slot;
+  },
+};
 
 // ── PiP companion bridge (pipapk/ client ↔ browser focus store) ─────────────
 // The browser relay pushes focus-store snapshots to POST /__pip/state; the APK
@@ -8240,21 +8315,40 @@ const server = http.createServer((req, res) => {
     res.end('// deferred-scripts.js was removed. All scripts are now inlined in <head>. Clear your service worker cache (hard refresh).');
     return;
   }
-  if (req.method === 'GET' && req.url === '/__isotope/state') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(appStateStore));
+  if (req.method === 'GET' && req.url.startsWith('/__isotope/state')) {
+    const slot = appStateStore.read(appStateClientKey(req));
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify(slot));
     return;
   }
-  if (req.method === 'POST' && req.url === '/__isotope/state') {
+  if (req.method === 'POST' && req.url.startsWith('/__isotope/state')) {
+    // R6 (2026-10-08): the merged object is now scoped to this client, and the
+    // body is capped -- an unauthenticated POST must not be able to park an
+    // unbounded string in server memory.
+    const key = appStateClientKey(req);
     let body = '';
-    req.on('data', d => body += d);
+    let aborted = false;
+    req.on('data', d => {
+      if (aborted) return;
+      body += d;
+      if (body.length > APP_STATE_BYTES_MAX) {
+        aborted = true;
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'State payload too large' }));
+        req.destroy();
+      }
+    });
     req.on('end', () => {
+      if (aborted || res.headersSent) return;
       try {
         const update = JSON.parse(body);
-        if (update.timerState)  appStateStore.timerState = update.timerState;
-        if (update.localStorage) Object.assign(appStateStore.localStorage, update.localStorage);
-      } catch {}
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+        appStateStore.write(key, update && typeof update === 'object' ? update : {});
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid state payload' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       res.end(JSON.stringify({ ok: true }));
     });
     return;

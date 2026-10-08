@@ -382,6 +382,13 @@ jobs:
           # role is still readable -- so the fix cannot be a blanket false.
           node scripts/test-check-user-role.mjs
 
+          # /__isotope/state is unauthenticated by design (it is a cross-TAB
+          # bridge) and server.mjs binds 0.0.0.0, so a single process-global store
+          # made every visitor on the LAN share one timerState and one mirrored
+          # localStorage. This drives the real handlers over real sockets and
+          # asserts one client cannot observe another's slot.
+          node scripts/test-isotope-state-scoping.mjs
+
       - name: 🗄️  Supabase tooling parses
         run: |
           set -euo pipefail

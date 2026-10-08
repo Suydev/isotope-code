@@ -393,7 +393,7 @@
         <thead><tr><th>Route</th><th>Method</th><th>Notes</th></tr></thead>
         <tbody>
           <tr><td><code>/__isotope/ping</code></td><td>GET</td><td>Liveness probe. Used by CI and the install scripts.</td></tr>
-          <tr><td><code>/__isotope/state</code></td><td>GET, POST</td><td>Read (GET) or write (POST) the small cross-tab state shared between the PWA timer and the Android Floating Timer overlay — <code>timerState</code> and a slice of <code>localStorage</code>. Unauthenticated.</td></tr>
+          <tr><td><code>/__isotope/state</code></td><td>GET, POST</td><td>Read (GET) or write (POST) the small cross-tab state shared between the PWA timer and the Android Floating Timer overlay — <code>timerState</code> and a slice of <code>localStorage</code>. Unauthenticated, but <strong>scoped per client</strong>: send an opaque <code>X-Isotope-State-Key</code> header (or <code>?key=</code>) and only callers sharing that key see the same state, so one device on the LAN cannot read or overwrite another's. Without a header a caller gets its own <code>default</code> slot. The key is hashed, so it is a namespace handle rather than anything you can inject with. Payloads are capped at 256&nbsp;KB and the store is bounded and evicted least-recently-used.</td></tr>
           <tr><td><code>/__errors</code></td><td>POST</td><td>Unauthenticated log sink. Appends to <code>~/.isotope/logs/browser-errors.log</code>, capped at 1 MB per request.</td></tr>
           <tr><td><code>/__pip/state</code></td><td>POST</td><td>Browser to server PiP snapshot.</td></tr>
           <tr><td><code>/__pip/events</code></td><td>GET</td><td>Server-sent events to browser tabs.</td></tr>
