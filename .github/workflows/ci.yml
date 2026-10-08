@@ -344,6 +344,16 @@ jobs:
             console.log("✅ search index matches the pages (" + JSON.parse(b).n + " sections)");
           '
 
+      - name: 🔤 SQL literal round-trip (lit/escStr)
+        run: |
+          set -euo pipefail
+          # lit() is what turns a JSON row into a Postgres literal. A value
+          # ending in a backslash used to be emitted as 'a\'::text, which
+          # parses under the default standard_conforming_strings=on and
+          # silently corrupts the row under anything else. The test decodes
+          # both modes, so it only passes if the emitter is E-prefixed.
+          node scripts/tests/roundtrip-lit.mjs
+
       - name: 🗄️  Supabase tooling parses
         run: |
           set -euo pipefail

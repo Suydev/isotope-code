@@ -9,21 +9,21 @@
  *
  *   - `E'...'`: the prefix makes a backslash an escape introducer regardless of
  *     standard_conforming_strings. \b \f \n \r \t \\ \' \" \xHH \uXXXX \UXXXXXXXX
- *     and octal \NNN are special; a backslash before anything else is not, and
- *     yields the backslash itself.
+ *     and octal \NNN are special; a backslash before anything else is NOT special
+ *     and yields the backslash itself followed by that character.
  *   - `'...'` with standard_conforming_strings=on: the backslash is an ordinary
- *     character and only '' is an escape.
+ *     character with no meaning at all, and only '' is an escape. The literal
+ *     therefore always ends at the first unpaired apostrophe.
  *   - `'...'` with standard_conforming_strings=off: the backslash IS an escape
- *     introducer, so `\'` does not close the literal.
+ *     introducer, so a trailing `\'` does not close the literal and the string
+ *     runs on into whatever follows it in the statement.
  *
- * The old emitter produced `'a\'::text` for a value ending in a backslash. That
- * happens to parse while standard_conforming_strings=on, which is why the bug
- * stayed latent — its correctness depended on a session GUC the code never set
- * and cannot observe. Flip that GUC (a server default change, a client's
- * `SET`, a connection pool configured for the other mode) and the same bytes
- * fuse the value to its terminator and run the literal into the rest of the
- * statement. `E'...'` is the only form that is correct either way, so that is
- * what this asserts.
+ * That last mode is the whole point. The old emitter produced `'a\'::text` for a
+ * value ending in a backslash. Under today's default that happens to parse to
+ * the right value, which is why the bug stayed latent; under
+ * standard_conforming_strings=off the same bytes fuse the value to its terminator
+ * and the literal swallows the rest of the statement. `E'...'` is the only form
+ * that is correct under both, so that is what this asserts.
  *
  * Run: node scripts/tests/roundtrip-lit.mjs
  */
@@ -35,6 +35,9 @@ const E_SPECIAL = { b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' };
 function readLiteral(sql, i, scs = true) {
   let escape = false;
   if (sql[i] === 'E' || sql[i] === 'e') { escape = true; i++; }
+  // Without the E prefix, a non-standard-conforming session treats the backslash
+  // as an escape introducer exactly as if E had been written.
+  else if (!scs) escape = true;
   if (sql[i] !== "'") throw new Error('syntax error at or near "' + sql.slice(i, i + 8) + '"');
   i++;
   let out = '';
@@ -47,9 +50,10 @@ function readLiteral(sql, i, scs = true) {
       if (Object.prototype.hasOwnProperty.call(E_SPECIAL, n)) {
         out += E_SPECIAL[n]; i += 2; continue;
       }
-      if (n === '\\') { out += '\\'; i += 2; continue; }
-      if (n === "'") { out += "'"; i += 2; continue; }
-      if (n === '"') { out += '"'; i += 2; continue; }
+      // \\ , \' and \" stand for themselves; a backslash before anything else
+      // is not a recognised escape, so Postgres yields the backslash itself
+      // and then the character, having consumed both.
+      if (n === '\\' || n === "'" || n === '"') { out += n; i += 2; continue; }
       if (n === 'x') {
         const hex = /^[0-9a-fA-F]{1,2}/.exec(sql.slice(i + 2));
         if (!hex) throw new Error('invalid hexadecimal escape: ' + sql.slice(i, i + 8));
@@ -73,7 +77,11 @@ function readLiteral(sql, i, scs = true) {
         i += 1 + oct[0].length;
         continue;
       }
-      out += '\\' + n; i += 2; continue;
+      // Unrecognised escape: the backslash survives, then the next character.
+      out += '\\';
+      out += n;
+      i += 2;
+      continue;
     }
     if (c === "'") {
       if (sql[i + 1] === "'") { out += "'"; i += 2; continue; }
@@ -84,6 +92,7 @@ function readLiteral(sql, i, scs = true) {
   }
 }
 
+/** Decode a whole `lit()` expression, e.g. `E'..'::text`, into value + cast. */
 function decodeLiteral(emitted, scs = true) {
   const r = readLiteral(emitted, 0, scs);
   return { value: r.value, tail: emitted.slice(r.end) };
@@ -100,10 +109,7 @@ const BS = String.fromCharCode(92);
 const SQ = String.fromCharCode(39);
 const NUL = String.fromCharCode(0);
 
-// ── The regression, stated as a GUC dependency ──────────────────────────────
-// A text value ending in a backslash. Under today's default this parses to the
-// right value, so nobody notices; under standard_conforming_strings=off it does
-// not parse at all. The emitted literal must not care which.
+// ── The regression: a text value ending in a backslash ──────────────────────
 {
   const v = 'a' + BS;
   const emitted = lit(v, 'text');
@@ -115,34 +121,71 @@ const NUL = String.fromCharCode(0);
       if (r.tail !== '::text') err = 'tail was ' + JSON.stringify(r.tail) + ', expected ::text';
       decoded = r.value;
     } catch (e) { err = e.message; }
-    check('trailing backslash round-trips (standard_conforming_strings=' + scs + ')',
+    check('NEW emitter: trailing backslash round-trips (scs=' + scs + ')',
       !err && decoded === v, err ? 'emitted ' + emitted + ' -> ' + err
         : 'emitted ' + emitted + ' -> ' + JSON.stringify(decoded));
   }
 }
 
-// The old emitter, byte for byte. This is what makes the checks above mean
-// something: it shows the reader can tell a correct literal from a broken one,
-// and it shows WHERE the old form broke — only once the GUC moved.
+// The old emitter, byte for byte: `'a\'::text`. These assertions pin down what
+// that form actually does, because the reason the bug was invisible is that its
+// breakage depends on a session GUC the code never set and cannot observe.
 {
   const broken = "'a" + BS + "'::text";
-  const underDefault = decodeLiteral(broken, true);
-  check('old emitter survives standard_conforming_strings=on (the latent bug)',
-    underDefault.value === 'a' + BS && underDefault.tail === '::text',
-    JSON.stringify(underDefault));
-  let offFailed = false;
-  try {
-    const r = decodeLiteral(broken, false);
-    offFailed = !(r.value === 'a' + BS && r.tail === '::text');
-  } catch { offFailed = true; }
-  check('old emitter breaks under standard_conforming_strings=off', offFailed);
+  const v = 'a' + BS;
 
-  // Two trailing backslashes do not even need the GUC moved: the literal closes
-  // early and the rest of the statement is spliced into the data.
-  const broken2 = "'a" + BS + BS + "'::text";
-  const splice = decodeLiteral(broken2, true);
-  check('old emitter splices the clause into a double-trailing-backslash value',
-    splice.value !== 'a' + BS + BS, 'got ' + JSON.stringify(splice.value));
+  // scs=on: a backslash has no meaning at all, the literal closes at the next
+  // apostrophe, and the stored value is correct. This is why nobody noticed.
+  const on = decodeLiteral(broken, true);
+  check('OLD emitter looks fine under scs=on (why the bug was latent)',
+    on.value === v && on.tail === '::text',
+    'value=' + JSON.stringify(on.value) + ' tail=' + JSON.stringify(on.tail));
+
+  // scs=off: `\'` is an escaped apostrophe, so the terminator is consumed and
+  // the literal runs on. Either the value loses its backslash or the literal
+  // never closes. Both are corruption; both are silent at the call site.
+  let offBroken = false;
+  let offDetail = '';
+  try {
+    const off = decodeLiteral(broken, false);
+    offBroken = off.value !== v || off.tail !== '::text';
+    offDetail = 'value=' + JSON.stringify(off.value) + ' tail=' + JSON.stringify(off.tail);
+  } catch (e) {
+    offBroken = true;
+    offDetail = e.message;
+  }
+  check('OLD emitter corrupts a trailing backslash under scs=off', offBroken, offDetail);
+}
+
+// The splicing failure, which is the serious one and needs scs=off. Under
+// standard_conforming_strings=on a backslash is never special, so the literal
+// ALWAYS closes at the first unpaired apostrophe and no splice is possible;
+// the old form's exposure is specifically the non-default mode.
+{
+  const v = 'a' + BS;
+  const head = 'insert into "public"."t" ("c") values (';
+  const mid = '::text), (';
+  const stmt = head + "'" + v + "'" + mid + "'b'::text) returning 1";
+
+  const on = (() => {
+    try {
+      const r = readLiteral(stmt, head.length, true);
+      return { value: r.value, rest: stmt.slice(r.end) };
+    } catch (e) { return { value: '<threw> ' + e.message, rest: '' }; }
+  })();
+  check('OLD emitter, two rows under scs=on: first value is clean',
+    on.value === v, 'got ' + JSON.stringify(on.value));
+
+  const off = (() => {
+    try {
+      const r = readLiteral(stmt, head.length, false);
+      return { value: r.value, rest: stmt.slice(r.end) };
+    } catch (e) { return { value: '<threw> ' + e.message, rest: '' }; }
+  })();
+  // The first value has swallowed the ::text), ( that separated the rows.
+  check('OLD emitter splices the row separator into the value under scs=off',
+    off.value !== v && off.value.indexOf('::text') !== -1,
+    'got ' + JSON.stringify(off.value));
 }
 
 console.log('--- required value shapes');
@@ -182,17 +225,27 @@ for (const pair of STRINGS) {
       else if (r.value !== v) detail = 'got ' + JSON.stringify(r.value);
       else ok = true;
     } catch (e) { detail = e.message; }
-    check('string: ' + name + ' (scs=' + scs + ')', ok, detail);
+    check('NEW emitter: string: ' + name + ' (scs=' + scs + ')', ok, detail);
   }
 }
 
+// The value has to survive being embedded between a column list and an
+// ON CONFLICT clause — that is where a fused literal eats the rest of the
+// statement. `lit()` emits `E'..'::text`, so the cast sits between the closing
+// quote and the closing paren; the assertion accounts for it.
 console.log('--- embedded in a full INSERT ... ON CONFLICT');
 {
+  // Build the statement the way restore() does, so the assertion is about the
+  // real text rather than a hand-assembled approximation that can drift from it.
   const v = 'it' + SQ + 's a path' + BS;
   const emitted = lit(v, 'text');
   const head = 'insert into "public"."users" ("bio") values (';
-  const tailClause = ') on conflict do nothing returning 1';
-  const stmt = head + emitted + tailClause;
+  const stmt = head + emitted + ') on conflict do nothing returning 1';
+  // readLiteral stops at the closing QUOTE, not at the end of the expression, so
+  // lit()'s own ::text cast is part of the remainder. Assert that composed
+  // remainder rather than assuming it: getting this wrong is exactly what made
+  // these two checks fail on the first run.
+  const expectedRest = '::text) on conflict do nothing returning 1';
   for (const scs of [true, false]) {
     let ok = false;
     let detail = '';
@@ -200,10 +253,10 @@ console.log('--- embedded in a full INSERT ... ON CONFLICT');
       const r = readLiteral(stmt, head.length, scs);
       const rest = stmt.slice(r.end);
       if (r.value !== v) detail = 'got ' + JSON.stringify(r.value);
-      else if (rest !== tailClause) detail = 'rest was ' + JSON.stringify(rest);
+      else if (rest !== expectedRest) detail = 'rest was ' + JSON.stringify(rest);
       else ok = true;
     } catch (e) { detail = e.message; }
-    check('value survives inside an INSERT clause (scs=' + scs + ')', ok, detail);
+    check('NEW emitter: value survives inside an INSERT clause (scs=' + scs + ')', ok, detail);
   }
 }
 
@@ -228,7 +281,7 @@ console.log('--- ARRAY[...] elements');
       if (JSON.stringify(got) !== JSON.stringify(arr)) detail = 'got ' + JSON.stringify(got);
       else ok = true;
     } catch (e) { detail = e.message; }
-    check('array elements round-trip (scs=' + scs + ')', ok, detail);
+    check('NEW emitter: array elements round-trip (scs=' + scs + ')', ok, detail);
   }
 }
 
@@ -243,7 +296,7 @@ check('escStr doubles quotes and backslashes',
   escStr('a' + BS + 'b' + SQ + 'c'));
 check('every string literal is E-prefixed', lit('x', 'text').startsWith("E'"), lit('x', 'text'));
 
-console.log('--- fuzz: 4000 random values, both GUC settings');
+console.log('--- fuzz: 4000 random values under both GUC settings');
 {
   const alphabet = ['a', 'Z', '0', BS, SQ, '\n', '\t', '\r', ' ', '☃', '"', '$', ';', '-'];
   let seed = 1234567;
