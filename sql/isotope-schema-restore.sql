@@ -2115,7 +2115,12 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
   END IF;
   SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
-  IF v_role != 'owner' THEN
+  -- R5 (2026-10-08). A non-member has NO row here, so the SELECT above finds
+  -- nothing and v_role is left NULL. In plpgsql `IF NULL != 'owner'` is NULL,
+  -- which IF treats as FALSE -- so the guard never fired and the body below ran
+  -- with the definer's rights. Any signed-in user could therefore call this RPC
+  -- and soft-deletes any group by id, whatever the caller's membership.
+  IF v_role IS DISTINCT FROM 'owner' THEN
     RETURN jsonb_build_object('success', false, 'error', 'Only owner can delete');
   END IF;
   UPDATE public.groups SET deleted_at = now() WHERE id = p_group_id;
@@ -2977,7 +2982,13 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
   END IF;
   SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
-  IF v_role NOT IN ('owner', 'admin') THEN
+  -- R5 (2026-10-08). A non-member has NO row in group_members, so the SELECT
+  -- above finds nothing and v_role is left NULL. In plpgsql
+  -- `IF NULL NOT IN ('owner','admin')` is NULL, which IF treats as FALSE, so
+  -- this guard was silently skipped and the body below ran with the definer's
+  -- rights -- any signed-in user could call this RPC and rewrite any group row by
+  -- id. IS DISTINCT FROM keeps NULL on the deny path.
+  IF v_role IS DISTINCT FROM ALL (ARRAY['owner'::text, 'admin'::text]) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Insufficient permissions');
   END IF;
   DELETE FROM public.group_members WHERE group_id = p_group_id AND user_id = p_user_id;
@@ -3210,7 +3221,13 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
   END IF;
   SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
-  IF v_role != 'owner' THEN
+  -- R5 (2026-10-08). A non-member has NO row in group_members, so the SELECT
+  -- above finds nothing and v_role is left NULL. In plpgsql `IF NULL != 'owner'`
+  -- is NULL, which IF treats as FALSE, so this guard never fired and the body
+  -- below ran with the definer's rights -- any signed-in user could call this RPC
+  -- and writes group_members.role for an arbitrary user_id, i.e. self-promotion
+  -- to 'owner'. IS DISTINCT FROM keeps NULL on the deny path.
+  IF v_role IS DISTINCT FROM 'owner' THEN
     RETURN jsonb_build_object('success', false, 'error', 'Only owner can set roles');
   END IF;
   UPDATE public.group_members
@@ -3298,7 +3315,13 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
   END IF;
   SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
-  IF v_role != 'owner' THEN
+  -- R5 (2026-10-08). A non-member has NO row in group_members, so the SELECT
+  -- above finds nothing and v_role is left NULL. In plpgsql `IF NULL != 'owner'`
+  -- is NULL, which IF treats as FALSE, so this guard never fired and the body
+  -- below ran with the definer's rights -- any signed-in user could call this RPC
+  -- and writes role='owner' onto an arbitrary user_id. IS DISTINCT FROM keeps
+  -- NULL on the deny path.
+  IF v_role IS DISTINCT FROM 'owner' THEN
     RETURN jsonb_build_object('success', false, 'error', 'Only owner can transfer');
   END IF;
   UPDATE public.group_members SET role = 'owner' WHERE group_id = p_group_id AND user_id = p_new_owner;
@@ -3323,7 +3346,13 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Not authenticated');
   END IF;
   SELECT role INTO v_role FROM public.group_members WHERE group_id = p_group_id AND user_id = v_uid;
-  IF v_role NOT IN ('owner', 'admin') THEN
+  -- R5 (2026-10-08). A non-member has NO row in group_members, so the SELECT
+  -- above finds nothing and v_role is left NULL. In plpgsql
+  -- `IF NULL NOT IN ('owner','admin')` is NULL, which IF treats as FALSE, so
+  -- this guard was silently skipped and the body below ran with the definer's
+  -- rights -- any signed-in user could call this RPC and rewrite any group row by
+  -- id. IS DISTINCT FROM keeps NULL on the deny path.
+  IF v_role IS DISTINCT FROM ALL (ARRAY['owner'::text, 'admin'::text]) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Insufficient permissions');
   END IF;
   UPDATE public.groups

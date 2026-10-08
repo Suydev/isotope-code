@@ -354,6 +354,17 @@ jobs:
           # both modes, so it only passes if the emitter is E-prefixed.
           node scripts/tests/roundtrip-lit.mjs
 
+      - name: 🛡️ group-role guards reject non-members
+        run: |
+          set -euo pipefail
+          # The community_* group RPCs are SECURITY DEFINER, so their in-body
+          # guard is the only thing authorising the caller. This gate runs the
+          # real guard out of the dump against a real SQL engine: a role the RPC
+          # must refuse has to be refused, and a role it must admit has to be
+          # admitted, so neither a NULL-guard regression nor a blanket deny can
+          # pass. Reverted, it fails on exactly the non-member case.
+          node scripts/test-group-role-guards.mjs
+
       - name: 🗄️  Supabase tooling parses
         run: |
           set -euo pipefail

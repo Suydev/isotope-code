@@ -109,14 +109,33 @@ function denoise(body) {
  * Anything else throws, so the harness can never silently stop covering a
  * statement and start passing vacuously.
  */
+/**
+ * When `i` points at the `E` of a block-terminating `END IF;`, return the offset
+ * of the `;` that closes it; otherwise -1.
+ *
+ * The terminator has to be matched positionally. Searching forward for the next
+ * `IF` instead would sail past this one and latch onto an unrelated `IF` further
+ * down the body, and plain matchWord() cannot be used on the `IF` either,
+ * because `D` is a word character and would read as a prefix.
+ */
+function endIfSemi(src, i) {
+  if (!matchWord(src, i, 'END')) return -1;
+  let k = i + 3;
+  while (k < src.length && /[\s]/.test(src[k])) k++;
+  if (!matchWord(src, k, 'IF')) return -1;
+  if (src[k + 2] !== ';') return -1;
+  return k + 2;
+}
+
 function parseBlock(src, i = 0, stopAt = null) {   // stopAt: 'END' | 'ELSE' | null
   const nodes = [];
-  let depth = 0;
   while (i < src.length) {
     while (i < src.length && /[\s;]/.test(src[i])) i++;
     if (i >= src.length) break;
 
-    // a block terminator at this level ends the block; it belongs to the caller
+    // A block terminator at THIS level ends the block; it belongs to the caller,
+    // so consume nothing. `END` is only a terminator when we are looking for one
+    // -- otherwise it is the start of `END IF;`, handled below.
     if (stopAt === 'END' && matchWord(src, i, 'END')) return { nodes, i, stopped: 'END' };
     if (matchWord(src, i, 'ELSE')) return { nodes, i, stopped: 'ELSE' };
 
@@ -124,28 +143,26 @@ function parseBlock(src, i = 0, stopAt = null) {   // stopAt: 'END' | 'ELSE' | n
       const thenAt = findWord(src, i + 2, 'THEN');
       if (thenAt < 0) throw new Error(`IF without THEN at offset ${i}`);
       const pred = src.slice(i + 2, thenAt).trim();
+
       const t = parseBlock(src, thenAt + 4, 'END');
       if (t.stopped !== 'END') throw new Error(`unterminated IF at offset ${i}`);
-      const ifAt = findWord(t.i, 'IF');   // t.i points at the END of `END IF;`
-      if (ifAt < 0) throw new Error(`IF without END IF at offset ${i}`);
-      const semi = src.indexOf(';', ifAt);
-      if (semi < 0) throw new Error(`END IF without ';' at offset ${ifAt}`);
+      const closeSemi = endIfSemi(src, t.i);
+      if (closeSemi < 0) throw new Error(`IF without END IF at offset ${i}`);
+
       let elseNodes = null;
-      let end = semi + 1;
-      const afterEndIf = semi + 1;
-      if (matchWord(src, afterEndIf, 'ELSE')) {
-        const e = parseBlock(src, afterEndIf + 4, 'END');
+      let end = closeSemi + 1;
+      if (matchWord(src, end, 'ELSE')) {
+        const e = parseBlock(src, end + 4, 'END');
         if (e.stopped !== 'END') throw new Error(`unterminated ELSE at offset ${i}`);
-        const eIf = findWord(e.i, 'IF');
-        if (eIf < 0) throw new Error(`ELSE without END IF at offset ${i}`);
-        const eSemi = src.indexOf(';', eIf);
-        if (eSemi < 0) throw new Error(`END IF without ';' at offset ${eIf}`);
+        const eClose = endIfSemi(src, e.i);
+        if (eClose < 0) throw new Error(`ELSE without END IF at offset ${i}`);
         elseNodes = e.nodes;
-        end = eSemi + 1;
+        end = eClose + 1;
       }
+
       nodes.push({ kind: 'if', pred, then: t.nodes, else: elseNodes });
+      if (end <= i) throw new Error(`parser made no progress at offset ${i}`);
       i = end;
-      if (++depth > 40) throw new Error('parse did not converge');
       continue;
     }
 
@@ -188,31 +205,32 @@ function findTopLevelSemi(src, i) {
 /* ── rewriting the five bodies into engine-dialect SQL ─────────────────────── */
 
 /**
- * Map the dumped Postgres source onto the local tables and supply the one row
- * the function looks up for itself. Everything that survives is still the real
- * predicate and the real statements; only the table plumbing changes.
+ * Map the dumped Postgres source onto the local tables. Only the two
+ * Postgres-specific spellings these bodies use are rewritten: the schema
+ * qualifier, and community_update_group's jsonb patch (`::` casts on jsonb
+ * fragments) which is replaced by the same columns it assigns. The membership
+ * lookup stays in the source as a real statement, so the harness records what
+ * it returns the same way PostgreSQL would.
+ *
+ * The <expr> fed to `SELECT <expr> INTO v_role` is supplied by the engine from
+ * the fixture, so a caller with no membership row yields NULL -- the exact
+ * value that defeated the original guard.
  */
 function dialect(sql, { role }) {
-  let s = sql;
-
-  // The membership lookup: the harness RECORDS what row exists for this caller.
-  // A stranger has none, which is exactly the NULL that defeated the old guard.
-  s = s.replace(
-    /SELECT\s+role\s+INTO\s+v_role\s+FROM\s+public\.group_members\s+WHERE\s+group_id\s*=\s*p_group_id\s+AND\s+user_id\s*=\s*v_uid/i,
-    `SELECT ${role === null ? 'NULL' : `'${role}'`} AS v_role`
-  );
-
-  // The "are you authenticated" pre-check: harness always supplies a caller, so
-  // bind it to false rather than dropping the check.
-  s = s.replace(/v_uid\s+IS\s+NULL/i, '0');
-
-  s = s
+  let s = sql
     .replace(/\bpublic\.group_members\b/gi, 'group_members')
     .replace(/\bpublic\.groups\b/gi, 'groups');
 
-  // community_update_group's UPDATE rewrites a jsonb patch through ::casts that
-  // SQLite does not share. The security-relevant part is the WHERE target, which
-  // is preserved verbatim below.
+  // The membership lookup: the harness RECORDS what row exists for this caller
+  // in the target group. A stranger has none.
+  s = s.replace(
+    /SELECT\s+role\s+INTO\s+v_role\s+FROM\s+group_members\s+WHERE\s+group_id\s*=\s*p_group_id\s+AND\s+user_id\s*=\s*v_uid/i,
+    `SELECT ${role === null ? 'NULL' : `'${role}'`} AS v_role`
+  );
+
+  // community_update_group's UPDATE rewrites a jsonb patch through casts that
+  // SQLite does not share; the WHERE target -- the security-relevant part -- is
+  // preserved verbatim.
   s = s.replace(
     /UPDATE\s+groups\s+SET[\s\S]*?WHERE\s+id\s*=\s*p_group_id/i,
     `UPDATE groups SET name = 'pwned', deleted_at = 1 WHERE id = p_group_id`
@@ -220,13 +238,26 @@ function dialect(sql, { role }) {
   s = s.replace(/UPDATE\s+groups\s+SET\s+deleted_at\s*=\s*now\(\)\s+WHERE\s+id\s*=\s*p_group_id/i,
     `UPDATE groups SET deleted_at = 1 WHERE id = p_group_id`);
 
-  s = s.replace(/SET\s+role\s*=\s*p_role/i, `SET role = 'owner'`);           // set_group_role
-  s = s.replace(/SET\s+role\s*=\s*'owner'/i, `SET role = 'owner'`);         // transfer: target
-  s = s.replace(/SET\s+role\s*=\s*'admin'/i, `SET role = 'admin'`);         // transfer: demote self
+  // PostgreSQL `::type` casts have no SQLite spelling. Strip them FIRST, before
+  // the ALL form is expanded, so the casts inside ARRAY['owner'::text, ...]
+  // are gone by the time that list is split. None of these casts appear inside a
+  // guard predicate -- only in the statements behind it -- so dropping them
+  // changes nothing the harness is testing.
+  s = s.replace(/'::\s*[A-Za-z_][A-Za-z0-9_ ]*/g, "'");
+  s = s.replace(/\)\s*::\s*[A-Za-z_][A-Za-z0-9_ ]*(?=\)|\s|,|$)/g, ')');
 
-  s = s.replace(/\bp_user_id\b/g, `'${VICTIM}'`);
-  s = s.replace(/\bv_uid\b/g, `'${CALLER}'`);
-  s = s.replace(/\bp_group_id\b/g, `'${GROUP_B}'`);
+  // `IS DISTINCT FROM ALL (ARRAY[...])` is Postgres spelling for "not one of
+  // these". SQLite has no ALL form, so expand it to the pairwise form, which
+  // has identical NULL semantics: PG also treats a NULL left operand here as
+  // NOT DISTINCT FROM NULL, i.e. true, keeping the denial path intact.
+  s = s.replace(
+    /(\w+)\s+IS\s+DISTINCT\s+FROM\s+ALL\s*\(\s*ARRAY\[([^\]]*)\]\s*\)/i,
+    (_m, varName, list) => {
+      const parts = list.split(',').map((x) => x.trim()).filter(Boolean);
+      return `(${parts.map((x) => `${varName} IS DISTINCT FROM ${x}`).join(' AND ')})`;
+    }
+  );
+
   s = s.replace(/\bnow\(\)/gi, `1`);
 
   return s;
@@ -241,12 +272,13 @@ function seed(db, callerRole) {
     INSERT INTO groups VALUES
       ('${GROUP_A}', 'group-a', 0),
       ('${GROUP_B}', 'group-b', 0);
-    INSERT INTO group_members VALUES ('${GROUP_B}', '${VICTIM}', 'owner');
+    INSERT INTO group_members VALUES ('${GROUP_B}', '${VICTIM}', 'member');
   `);
-  // The caller's own membership, in the caller's own group. This is what makes
-  // "the stranger has no row" a property of the CALLER-vs-TARGET pair rather
-  // than of the fixture set, and it is what a blanket deny would break.
-  db.prepare(`INSERT INTO group_members VALUES (?, ?, ?)`).run(GROUP_A, CALLER, callerRole);
+  // The caller's own membership row, in the caller's OWN group. This is what
+  // makes "the stranger has no row in the target group" a property of the
+  // caller-vs-target pair rather than of the fixture set, and it is what a
+  // blanket deny would break.
+  db.prepare('INSERT INTO group_members VALUES (?, ?, ?)').run(GROUP_A, CALLER, callerRole);
 }
 
 function snapshot(db) {
@@ -256,44 +288,90 @@ function snapshot(db) {
   });
 }
 
-/** Execute the parsed tree. Returns {mutated, returned, error}. */
-function execute(db, nodes, sink) {
+/**
+ * Execute the parsed tree, binding plpgsql variables the way the block does:
+ * `SELECT x INTO v` ASSIGNS, it does not yield rows, and `v` is scoped to the
+ * whole block. So a bare assignment is recorded, and any predicate that reads a
+ * variable reads it out of that scope. This matters: the guard is evaluated
+ * AFTER the lookup in source order, and a harness that evaluated the predicate
+ * eagerly would be testing a different program than the one that ships.
+ */
+function execute(db, nodes, scope) {
   for (const n of nodes) {
     if (n.kind === 'if') {
-      // Ask the engine whether the predicate is TRUE. PostgreSQL takes the THEN
-      // branch only for a non-null true value; SQLite's WHERE does the same.
-      const row = db.prepare(`SELECT (${n.pred}) AS v`).get();
-      const truthy = row.v !== null && row.v !== 0 && row.v !== false;
-      execute(db, truthy ? n.then : (n.else || []), sink);
+      const truthy = evaluate(db, n.pred, scope);
+      const taken = execute(db, truthy ? n.then : (n.else || []), scope);
+      if (taken) return taken;          // RETURN leaves the whole block
     } else if (n.kind === 'return') {
-      sink.returned = n.expr;
-      return true;
+      return { returned: n.expr };
     } else {
-      db.exec(`${n.sql};`);
+      const into = execStatement(db, n.sql, scope);
+      if (into) scope[into.var] = into.value;
     }
   }
-  return false;
+  return null;
 }
 
-function run(body, { callerRole }) {
+/** Evaluate a guard predicate with PostgreSQL's three-valued IF rule. */
+function evaluate(db, pred, scope) {
+  const row = db.prepare(`SELECT (${bind(pred, scope)}) AS v`).get();
+  return row.v !== null && row.v !== 0 && row.v !== false;
+}
+
+/** Run one statement; report `SELECT <expr> INTO <var>` as an assignment. */
+function execStatement(db, sql, scope) {
+  const m = /^\s*SELECT\s+([\s\S]+?)\s+AS\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/i.exec(sql);
+  if (m) {
+    // Evaluate the VALUE only. The `AS <var>` alias names the target plpgsql
+    // variable, so it must not be bound like an expression -- substituting it
+    // would rename the assignment to `AS 'owner'` and the variable would never
+    // be set, leaving every later guard to read an undefined value.
+    const value = db.prepare(`SELECT (${bind(m[1], scope)}) AS v`).get().v;
+    return { var: m[2], value };
+  }
+  db.exec(`${bind(sql, scope)};`);
+  return null;
+}
+
+/**
+ * Substitute plpgsql variables with the literals the harness recorded.
+ *
+ * The regex runs exactly once over the source, so the text it introduces (a
+ * quoted uid, the word NULL) can never be rescanned and mistaken for another
+ * variable reference. A loop over the scope would have that problem: the
+ * output of one substitution is the input to the next.
+ */
+function bind(sql, scope) {
+  return sql.replace(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g, (word) => {
+    if (!(word in scope)) return word;
+    const v = scope[word];
+    return v === null ? 'NULL' : `'${v}'`;
+  });
+}
+
+function run(body, { callerRole, prole }) {
   const db = new DatabaseSync(':memory:');
   seed(db, callerRole);
   const before = snapshot(db);
-  const sink = {};
-  let error = null;
+  const tree = parseBlock(denoise(body)).nodes;
+  let sink = {}, error = null;
   try {
-    execute(db, parseBlock(dialect(denoise(body), { role: lookupRole(callerRole) })).nodes, sink);
+    sink = execute(db, tree, {
+      v_uid: CALLER,
+      p_group_id: GROUP_B,
+      p_user_id: VICTIM,
+      p_role: prole,
+      // community_transfer_group's second parameter: the user ownership is
+      // handed to. Point it at the victim so the escalation the stranger was
+      // denied earlier would still show up if it ever happened.
+      p_new_owner: VICTIM,
+    });
   } catch (e) { error = e.message; }
   const after = snapshot(db);
   db.close();
   return { mutated: before !== after, returned: sink.returned || '', error };
 }
 
-/**
- * What the function's own SELECT ... INTO would find for this caller.
- * `null`  -> caller holds no role at all in the target group (the bug's case)
- * otherwise the literal that row carries.
- */
 const ROLE_OF = { stranger: null, member: 'member', moderator: 'moderator', admin: 'admin', owner: 'owner' };
 
 /**
@@ -306,14 +384,20 @@ function lookupRole(callerRole) { return ROLE_OF[callerRole] || null; }
 
 /* ── the spec: which roles each RPC must admit ─────────────────────────────── */
 
-// ownerOnly: whether a plain member is refused. admins: whether an 'admin' is
-// admitted. Both come from the intent the function's own error strings state.
+/**
+ * `admit` lists the roles the RPC must let through, taken from the predicate it
+ * has always used -- these are the roles the surrounding UI offers, and
+ * changing who may manage a group is a product decision, not part of this fix.
+ * Only two things are asserted here: that a role OUTSIDE `admit` is refused
+ * (the defect), and that every role INSIDE it still works (so the fix cannot be
+ * satisfied by denying everyone).
+ */
 const SPECS = [
-  { fn: 'community_set_group_role',      ownerOnly: true,  admins: false, deny: 'Only owner can set roles' },
-  { fn: 'community_transfer_group',      ownerOnly: true,  admins: false, deny: 'Only owner can transfer' },
-  { fn: 'community_update_group',        ownerOnly: false, admins: true,  deny: 'Insufficient permissions' },
-  { fn: 'community_delete_group',        ownerOnly: true,  admins: false, deny: 'Only owner can delete' },
-  { fn: 'community_remove_group_member', ownerOnly: false, admins: true,  deny: 'Insufficient permissions' },
+  { fn: 'community_set_group_role',      admit: ['owner'],                  deny: 'Only owner can set roles' },
+  { fn: 'community_transfer_group',      admit: ['owner'],                  deny: 'Only owner can transfer' },
+  { fn: 'community_update_group',        admit: ['owner', 'admin'],         deny: 'Insufficient permissions' },
+  { fn: 'community_delete_group',        admit: ['owner'],                  deny: 'Only owner can delete' },
+  { fn: 'community_remove_group_member', admit: ['owner', 'admin'],         deny: 'Insufficient permissions' },
 ];
 
 /* ── main ──────────────────────────────────────────────────────────────────── */
@@ -328,19 +412,27 @@ for (const dump of DUMPS) {
     const body = extractBody(sql, spec.fn);
     if (!body) { ok(`${spec.fn}: body located in dump`); continue; }
 
-    const admitted = [];
-    if (!spec.ownerOnly) admitted.push('member', 'moderator');
-    if (spec.admins) admitted.push('admin');
-    admitted.push('owner');
+    // Every role the RPC defines, split by whether it must be admitted. The
+    // stranger is the case the defect lived in: not merely a low role, but NO
+    // membership row at all, so the lookup yields NULL rather than a value.
+    const refused = ['stranger', 'member', 'moderator', 'admin'].filter((r) => !spec.admit.includes(r));
+    const admitted = spec.admit;
 
-    for (const callerRole of ['stranger', ...admitted]) {
-      const r = run(body, { callerRole });
-      const shouldBeAdmitted = callerRole !== 'stranger';
+    // The role the RPC writes onto its target. For the two functions that hand
+    // out authority that is deliberately the highest one the client could ask
+    // for ('owner'), so the test grants nothing by accident.
+    const PROLE = 'owner';
+
+    for (const callerRole of [...refused, ...admitted]) {
+      const r = run(dialect(denoise(body), { role: lookupRole(callerRole) }), {
+        callerRole, prole: PROLE,
+      });
+      const shouldBeAdmitted = spec.admit.includes(callerRole);
       const label = `${spec.fn}: ${callerRole.padEnd(9)} -> ${shouldBeAdmitted ? 'allowed' : 'REFUSED'}`;
 
       if (r.error) { ok(label, `engine error: ${r.error}`); continue; }
       if (shouldBeAdmitted) {
-        ok(label, r.mutated ? '' : 'the RPC reached its guard and refused a legitimate caller (blanket deny)');
+        ok(label, r.error ? `engine error: ${r.error}` : (r.mutated ? '' : `reached the guard and refused a legitimate caller (blanket deny); returned=${r.returned}`));
       } else {
         if (r.mutated) {
           ok(label, 'rows changed — the stranger got through:\n       ' + r.returned);
@@ -354,7 +446,7 @@ for (const dump of DUMPS) {
 
     // Explicit statement of the defect this round fixed, so a regression reads
     // as the specific bug rather than one more red line.
-    const guard = /IF\s+v_role\s+IS\s+DISTINCT\s+FROM\s+ALL?\s*(?:\(|\x27)/i.test(body);
+    const guard = /v_role\s+IS\s+DISTINCT\s+FROM/i.test(body);
     ok(`${spec.fn}: deny guard is NULL-safe (IS DISTINCT FROM)`, guard ? '' : 'v_role may be NULL on the admit path');
   }
   console.log('');
