@@ -7,7 +7,7 @@
 // backup:  node scripts/supabase-backup.mjs backup --out DIR [--no-storage]
 // restore: node scripts/supabase-backup.mjs restore --src DIR
 //            --supabase-url URL --anon-key K --service-key K --pat TOKEN
-//            [--no-storage] [--schema-only]
+//            [--no-storage] [--schema-only] [--prune-storage]
 //
 //   --schema-only  structure without people: skips auth users, table rows and
 //                  storage FILES. Buckets and their policies still arrive, since
@@ -344,6 +344,16 @@ function createStorageClient(baseUrl, serviceKey) {
     });
     if (!res.ok) throw new Error(`upload ${bucket}/${path} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
   }
+/** Delete one object. Needed because restore is upsert-only by default:
+ *  a file deleted at the source is absent from the manifest, so nothing in the
+ *  restore loop ever removes it from the target, and `verify` then reports a
+ *  count mismatch with no way to act on it. Only called under --prune-storage. */
+async function remove(bucket, path) {
+  const res = await fetch(url(`object/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`), {
+    method: 'DELETE', headers: H,
+  });
+  if (!res.ok) throw new Error(`remove ${bucket}/${path} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+}
   async function createBucket(id, isPublic, options = {}) {
     const body = { id, name: id, public: !!isPublic };
     if (options.file_size_limit) body.file_size_limit = options.file_size_limit;
@@ -355,7 +365,7 @@ function createStorageClient(baseUrl, serviceKey) {
     const text = await res.text();
     if (!res.ok && !/already exists|duplicate/i.test(text)) throw new Error(`create bucket ${id} HTTP ${res.status}: ${text.slice(0, 200)}`);
   }
-  return { listBuckets, listObjects, download, upload, createBucket };
+  return { listBuckets, listObjects, download, upload, createBucket, remove };
 }
 
 async function userSchemas(sql) {
@@ -1249,6 +1259,64 @@ async function restore(args, env) {
         }
         emit({ phase: 'storage', done: ok + failed, total: manifest.storage_files.length, ok, failed });
       }
+      // ── Reconcile objects the backup does not mention ──────────────────────
+      //
+      // The upload loop above only upserts. A file DELETED at the source is simply
+      // absent from the manifest, so no line of that loop removes it from the
+      // target. The target keeps the stale object, and `verify` then reports
+      //     FAIL objects study-material — 41 != 40
+      // with no way to act on it: nothing in this tool deletes a storage object.
+      // The operator is left reconciling by hand against a REST API, which is
+      // exactly the state a backup tool must not leave you in.
+      //
+      // So the difference is now detected, and named, on every restore. Deletion
+      // stays opt-in via --prune-storage because it is the one irreversible thing
+      // this tool does: a restore pointed at the WRONG project would otherwise
+      // delete that project's objects, so the default must never do it.
+      //
+      // Only buckets the backup actually describes are reconciled. A bucket the
+      // manifest does not mention is the target's own business, and a
+      // REQUIRED_BUCKETS bucket the source never had must not be emptied on the
+      // strength of its being required.
+      const prune = Boolean(args['prune-storage']);
+      let staleFound = 0, staleRemoved = 0;
+      for (const b of manifest.buckets) {
+        const wantedKeys = new Set(manifest.storage_files
+          .filter((f) => f.bucket === b.id).map((f) => f.path));
+        let liveKeys;
+        try {
+          liveKeys = await listObjectKeys(st, b.id);
+        } catch (e) {
+          // Could not enumerate the target bucket. Say so rather than implying the
+          // bucket is clean — a skipped check is not a passing check.
+          console.log(`  reconcile ${b.id}: could not list (${String((e && e.message) || e).slice(0, 120)}) — stale objects unknown`);
+          continue;
+        }
+        const stale = liveKeys.filter((k) => !wantedKeys.has(k));
+        staleFound += stale.length;
+        if (!stale.length) continue;
+        if (prune) {
+          for (const k of stale) {
+            try {
+              await retries(() => st.remove(b.id, k));
+              staleRemoved++;
+            } catch (e) {
+              failed++;
+              emit({ phase: 'storage', level: 'error', msg: `remove ${b.id}/${k}: ${String((e && e.message) || e).slice(0, 140)}` });
+              console.log(`  remove FAILED ${b.id}/${k}: ${String((e && e.message) || e).slice(0, 140)}`);
+            }
+          }
+          console.log(`  reconcile ${b.id}: removed ${stale.length} object(s) absent from the backup`);
+        } else {
+          console.log(`  reconcile ${b.id}: ${stale.length} object(s) on the target are absent from the backup.`);
+          console.log(`    e.g. ${stale.slice(0, 3).join(', ')}${stale.length > 3 ? ' …' : ''}`);
+          console.log(`    left in place (default); re-run with --prune-storage to delete them`);
+        }
+      }
+      if (staleFound && !prune) {
+        console.log(`[restore] ${staleFound} stale object(s) left in place — verify will report a count mismatch on these`);
+      }
+
       console.log(`[restore] storage: ${ok} ok, ${failed} failed`);
       emit({ phase: 'storage', state: 'done', done: ok + failed, total: manifest.storage_files.length, ok, failed });
     }
@@ -1401,6 +1469,27 @@ async function verify(args, env) {
           `public=${liveBuckets.get(id)}, expected ${!!cfg.public}`);
       }
     }
+/** Every real object key in a bucket, recursing through folder prefixes.
+ *
+ *  Supabase'/object/list' is NOT recursive: for a nested layout it returns
+ *  pseudo-folder entries (no .id / .metadata) at the root. Counting only entries
+ *  with an id therefore undercounts every bucket whose objects live under
+ *  `<uid>/...`, which is the layout the app actually uses.
+ *
+ *  Returned as full keys (prefix included) so a caller can diff one list against
+ *  another, rather than two counts it cannot reconcile. */
+async function listObjectKeys(st, bucket, prefix = '') {
+  const keys = [];
+  for (let off = 0; ; off += 1000) {
+    const page = await st.listObjects(bucket, prefix, off, 1000);
+    for (const o of page) {
+      if (o.metadata && o.id) keys.push(prefix + o.name);
+      else if (o.name) keys.push(...await listObjectKeys(st, bucket, `${prefix}${o.name}/`));
+    }
+    if (page.length < 1000) break;
+  }
+  return keys;
+}
     // Must recurse into folder prefixes, exactly like the backup-side listAll().
     // Supabase's list endpoint is NOT recursive: for a nested layout it returns
     // pseudo-folder entries (no .id / .metadata) at the root, which this filter
@@ -1408,24 +1497,29 @@ async function verify(args, env) {
     // 0 and verification failed with "0 != 53" on a backup that was actually
     // complete. That false FAIL is worse than no check: it trains you to ignore
     // the verifier, or to pass --no-verify and lose the real checks too.
-    const countObjects = async (bucket, prefix = '') => {
-      let n = 0;
-      for (let off = 0; ; off += 1000) {
-        const page = await st.listObjects(bucket, prefix, off, 1000);
-        for (const o of page) {
-          if (o.metadata && o.id) n += 1;
-          else if (o.name) n += await countObjects(bucket, `${prefix}${o.name}/`);
-        }
-        if (page.length < 1000) break;
-      }
-      return n;
-    };
     for (const b of manifest.buckets) {
       if (!liveBuckets.has(b.id)) continue;
       const expect = manifest.storage_files.filter((f) => f.bucket === b.id).length;
       let actual;
-      try { actual = await countObjects(b.id); } catch (e) { check(false, `objects ${b.id}`, e.message.slice(0, 120)); continue; }
-      check(actual === expect, `objects ${b.id}`, `${actual} ${actual === expect ? '==' : '!='} ${expect}`);
+      let extra = [];
+      try {
+        const keys = await listObjectKeys(st, b.id);
+        actual = keys.length;
+        // Name the extras. A bare "41 != 40" says the target disagrees with the
+        // backup but not which way or why, and the usual cause — a file deleted
+        // at the source after this backup was taken — is the one an operator can
+        // do nothing about from this tool alone. The names make the cause
+        // obvious, and the fix (re-run restore --prune-storage) follows from it.
+        const wanted = new Set(manifest.storage_files.filter((f) => f.bucket === b.id).map((f) => f.path));
+        extra = keys.filter((k) => !wanted.has(k));
+      } catch (e) { check(false, `objects ${b.id}`, e.message.slice(0, 120)); continue; }
+      let detail = `${actual} ${actual === expect ? '==' : '!='} ${expect}`;
+      if (actual !== expect && extra.length) {
+        detail += ` — ${extra.length} on the target but not in the backup: `
+          + extra.slice(0, 3).join(', ') + (extra.length > 3 ? ' …' : '')
+          + '; re-run restore --prune-storage to delete them';
+      }
+      check(actual === expect, `objects ${b.id}`, detail);
     }
   }
 
@@ -1516,10 +1610,16 @@ if (isMain) {
       console.log(`usage:
   node scripts/supabase-backup.mjs backup --out DIR [--no-storage]
   node scripts/supabase-backup.mjs restore --src DIR
-      --supabase-url URL --anon-key K --service-key K --pat TOKEN [--no-storage]
+      --supabase-url URL --anon-key K --service-key K --pat TOKEN [--no-storage] [--prune-storage]
   node scripts/supabase-backup.mjs verify --src DIR
       --supabase-url URL --service-key K --pat TOKEN [--no-storage]
-(keys fall back to .env values)`);
+(keys fall back to .env values)
+
+--prune-storage deletes target objects that the backup does not contain, so a
+file removed at the source does not survive in the target. Off by default:
+it is the only destructive operation here, and a restore aimed at the wrong
+project would delete that project's files. Every restore reports what it
+found either way.`);
       process.exit(1);
     }
   } catch (e) {

@@ -353,6 +353,16 @@ jobs:
           # silently corrupts the row under anything else. The test decodes
           # both modes, so it only passes if the emitter is E-prefixed.
           node scripts/tests/roundtrip-lit.mjs
+      - name: 🗂 Storage reconciliation (stale objects)
+        run: |
+          set -euo pipefail
+          # restore upserts only, so a file deleted at the source survived on
+          # the target and verify failed with a bare count mismatch and no way
+          # to act on it. The restore now names those objects and deletes them
+          # only under --prune-storage. This test pins both halves: detection
+          # without the flag, deletion with it, and no touching of buckets the
+          # backup does not describe.
+          node scripts/tests/storage-reconcile.mjs
 
       - name: 🛡️ group-role guards reject non-members
         run: |
