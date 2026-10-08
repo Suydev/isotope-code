@@ -4566,6 +4566,32 @@ const COMMUNITY_LB_ICON_TO   = 's.jsx("path",{d:"m14.3 9.7 2.6-2.6-2.6 2.6-1.1 3
 let patchedCommunityBundle = null;
 var _communitySchemaMissing = false;
 var _criticalPatchFailures = [];  // tracks failed critical patches for banner injection
+
+// ── Anchor-miss escalation ───────────────────────────────────────────────────────────
+//
+// Every patcher here rewrites a SHIPPED bundle by substring match. A patch that
+// does not match leaves the bundle byte-identical to the on-disk file, and the
+// server serves it happily — the feature is simply gone, with no error anywhere.
+// `console.warn` alone does not surface that: the warnings scroll past a startup
+// log nobody reads, and there is no banner, no health signal and no test.
+//
+// Mutation testing confirmed the gap was real and wide: corrupting one anchor
+// in the real bundle and re-running the real patcher left
+// _criticalPatchFailures EMPTY for the sync store, session sync, access gate,
+// group tour, settings, onboarding and leaderboard patchers — including the
+// onboarding patch that is the only thing requiring a verified cloud write
+// before marking a profile complete.
+//
+// getPatchedAuthBundle already does this correctly: it asserts its own
+// post-condition and escalates. This makes that the default for every
+// load-bearing anchor instead of an accident of one patcher.
+//
+// `key` names the feature that is silently disabled, so the banner says what
+// broke. Cosmetic anchors (icon swaps, wording) can still opt out explicitly.
+function noteAnchorMiss(key) {
+  if (!_criticalPatchFailures.includes(key)) _criticalPatchFailures.push(key);
+}
+
 function getPatchedCommunityBundle() {
   if (patchedCommunityBundle) return patchedCommunityBundle;
   try {
@@ -5965,7 +5991,11 @@ function getPatchedOnboardingBundle() {
       raw = raw.replace(from, to);
       console.log('[OnboardingPatch] Completion requires verified Supabase write');
     } else {
+      // Load-bearing: without this the profile is marked onboarded with no
+      // verified Supabase write, which is exactly the silent data loss the
+      // patch exists to prevent.
       console.warn('[OnboardingPatch] Completion patch string not found');
+      noteAnchorMiss('onboarding-verified-write');
     }
     patchedOnboardingBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[OnboardingPatch] Error:', e.message); patchedOnboardingBundle = null; }
@@ -5981,8 +6011,10 @@ function getPatchedSingleGroupBundle() {
     let raw = fs.readFileSync(SINGLE_GROUP_BUNDLE_ABS, 'utf8');
     let applied = 0;
     const patch = (from, to, label) => {
-      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
-      else console.warn('[SingleGroupPatch] Not found:', label);
+      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; return true; }
+      console.warn('[SingleGroupPatch] Not found:', label);
+      noteAnchorMiss('singlegroup-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50));
+      return false;
     };
     patch(
       'setHasSeenTour:(s,a)=>t(l=>({hasSeenTour:{...l.hasSeenTour,[s]:a}}))',
@@ -6030,6 +6062,7 @@ function getPatchedLeaderboardBundle() {
       console.log('[LeaderboardPatch] Authenticated user stats ignore browser-local sessions');
     } else {
       console.warn('[LeaderboardPatch] Local stats patch string not found');
+      noteAnchorMiss('leaderboard-local-stats');
     }
     patchedLeaderboardBundle = Buffer.from(raw, 'utf8');
   } catch (e) { console.error('[LeaderboardPatch] Error:', e.message); patchedLeaderboardBundle = null; }
@@ -6045,8 +6078,10 @@ function getPatchedSettingsBundle() {
     let raw = fs.readFileSync(SETTINGS_BUNDLE_ABS, 'utf8');
     let applied = 0;
     const patch = (from, to, label) => {
-      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
-      else console.warn('[SettingsPatch] Not found:', label);
+      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; return true; }
+      console.warn('[SettingsPatch] Not found:', label);
+      noteAnchorMiss('settings-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50));
+      return false;
     };
     patch('avatar:void 0', 'avatar:null', 'avatar remove sends explicit null');
     patch(
@@ -6092,8 +6127,10 @@ function getPatchedUseSyncStoreBundle() {
     let raw = fs.readFileSync(USE_SYNC_STORE_BUNDLE_ABS, 'utf8');
     let applied = 0;
     const patch = (from, to, label) => {
-      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
-      else console.warn('[SyncStorePatch] Not found:', label);
+      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; return true; }
+      console.warn('[SyncStorePatch] Not found:', label);
+      noteAnchorMiss('syncstore-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50));
+      return false;
     };
     patch(
       'triggerSync:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=await n();await o.fullManualSync(a,r),await l(),o.getState().status==="success"&&e({needsCloudBootstrap:!1,bootstrapChecked:!0})}',
@@ -6135,8 +6172,10 @@ function getPatchedAppAccessGateBundle() {
     let raw = fs.readFileSync(APP_ACCESS_GATE_BUNDLE_ABS, 'utf8');
     let applied = 0;
     const patch = (from, to, label) => {
-      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
-      else console.warn('[AppAccessGatePatch] Not found:', label);
+      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; return true; }
+      console.warn('[AppAccessGatePatch] Not found:', label);
+      noteAnchorMiss('appaccessgate-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50));
+      return false;
     };
     patch(
       'const ye=await(await Ae()).canBootstrapFromCloud(O.userId,!0);D(ye)',
@@ -6197,8 +6236,10 @@ function getPatchedSessionSyncBundle() {
     let raw = fs.readFileSync(SESSION_SYNC_BUNDLE_ABS, 'utf8');
     let applied = 0;
     const patch = (from, to, label) => {
-      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; }
-      else console.warn('[SessionSyncPatch] Not found:', label);
+      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; return true; }
+      console.warn('[SessionSyncPatch] Not found:', label);
+      noteAnchorMiss('sessionsync-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50));
+      return false;
     };
     patch(
       'if(!f())return await r(e.id),{success:!0};',
