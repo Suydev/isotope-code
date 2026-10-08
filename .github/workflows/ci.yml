@@ -375,6 +375,13 @@ jobs:
           # pass. Reverted, it fails on exactly the non-member case.
           node scripts/test-group-role-guards.mjs
 
+          # check_user_role is SECURITY DEFINER over the admin store, so an
+          # unrestricted p_user_id turns it into an enumeration oracle for
+          # 'who is an admin'. This asserts the subject is pinned to the caller,
+          # that a stranger and anon both learn nothing, and that a caller's own
+          # role is still readable -- so the fix cannot be a blanket false.
+          node scripts/test-check-user-role.mjs
+
       - name: 🗄️  Supabase tooling parses
         run: |
           set -euo pipefail

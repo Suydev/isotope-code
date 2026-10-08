@@ -1909,9 +1909,30 @@ CREATE OR REPLACE FUNCTION "public"."check_user_role"(p_user_id uuid, p_role tex
  SET "search_path" TO ''
  AS $iso_fn$
 
-
-
-    SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = p_user_id AND role = p_role);
+  -- R5b (2026-10-08). This used to read p_user_id unconditionally:
+  --
+  --    SELECT EXISTS (SELECT 1 FROM public.user_roles
+  --                    WHERE user_id = p_user_id AND role = p_role);
+  --
+  -- It is SECURITY DEFINER, so RLS does not gate the read -- that is the
+  -- point of the function, but it also means the CALLER chooses which user is
+  -- asked about. user_roles is the authoritative admin store: server.mjs
+  -- isSupabaseAdminUser promotes a row whose role is owner|admin|super_admin to
+  -- an admin session. So the RPC was an open admin-enumeration oracle -- anon
+  -- held EXECUTE and could ask "does <uuid> hold role X" for any user, one
+  -- request per guess, with no ownership check anywhere.
+  --
+  -- Pin the subject to the caller. A signed-in user can still ask the one
+  -- question they have a legitimate interest in -- their own roles -- and
+  -- everyone else, including anon, gets false instead of an answer about
+  -- somebody else. The roles_read_own policy already draws exactly this line
+  -- for direct reads; the definer path was the way around it.
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = (SELECT auth.uid())
+      AND p_user_id = (SELECT auth.uid())
+      AND role = p_role
+  );
 $iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."cleanup_old_notifications"()
  RETURNS trigger
@@ -5767,8 +5788,11 @@ REVOKE ALL ON FUNCTION "public"."accept_invite"(p_code text) FROM authenticated;
 GRANT EXECUTE ON FUNCTION "public"."accept_invite"(p_code text) TO authenticated;
 REVOKE ALL ON FUNCTION "public"."accept_invite"(p_code text) FROM service_role;
 GRANT EXECUTE ON FUNCTION "public"."accept_invite"(p_code text) TO service_role;
+-- R5b (2026-10-08). anon gets no EXECUTE at all. With p_user_id pinned to
+-- auth.uid() there is nothing left for it to learn, and denying the grant
+-- answers "what can an anonymous caller ask about the admin table?" with a
+-- flat no rather than leaving it to a review of the function body.
 REVOKE ALL ON FUNCTION "public"."check_user_role"(p_user_id uuid, p_role text) FROM anon;
-GRANT EXECUTE ON FUNCTION "public"."check_user_role"(p_user_id uuid, p_role text) TO anon;
 REVOKE ALL ON FUNCTION "public"."check_user_role"(p_user_id uuid, p_role text) FROM authenticated;
 GRANT EXECUTE ON FUNCTION "public"."check_user_role"(p_user_id uuid, p_role text) TO authenticated;
 REVOKE ALL ON FUNCTION "public"."check_user_role"(p_user_id uuid, p_role text) FROM service_role;

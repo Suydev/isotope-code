@@ -34,7 +34,8 @@
     "test:storage-reconcile": "node scripts/tests/storage-reconcile.mjs",
     "sql:quotes": "node scripts/check-dollar-quotes.mjs",
     "test:boot-recovery": "node scripts/test-boot-recovery.mjs",
-    "test:group-role-guards": "node scripts/test-group-role-guards.mjs"
+    "test:group-role-guards": "node scripts/test-group-role-guards.mjs",
+    "test:check-user-role": "node scripts/test-check-user-role.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
