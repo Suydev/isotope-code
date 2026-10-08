@@ -4957,7 +4957,13 @@ function getPatchedCommunityBundle() {
     } else { console.warn('[InviteCode] group viewerId anchor not found'); _criticalPatchFailures.push('invite-own-uid-group'); }
 
     patchedCommunityBundle = Buffer.from(raw, 'utf8');
-  } catch { patchedCommunityBundle = null; }
+  } catch (e) {
+    // This arm used to swallow the exception entirely -- no log, no banner --
+    // and the caller then served the bundle exactly as it sits on disk.
+    console.error('[CommunityCrashFix] Error:', e && e.message);
+    noteAnchorMiss('community-patch-threw');
+    patchedCommunityBundle = null;
+  }
   return patchedCommunityBundle;
 }
 
@@ -4969,9 +4975,15 @@ function getPatchedCommunityHubBundle() {
     if (raw.includes(COMMUNITY_HUB_CARDS_FROM)) {
       raw = raw.replace(COMMUNITY_HUB_CARDS_FROM, COMMUNITY_HUB_CARDS_TO);
       console.log('[FeaturePatch] Store and Events hub cards removed');
-    } else { console.warn('[FeaturePatch] Community hub card removal string not found'); }
+    } else { console.warn('[FeaturePatch] Community hub card removal string not found'); noteAnchorMiss('feature-hub-card-removal'); }
     patchedCommunityHubBundle = Buffer.from(raw, 'utf8');
-  } catch { patchedCommunityHubBundle = null; }
+  } catch (e) {
+    // This arm used to swallow the exception entirely -- no log, no banner --
+    // and the caller then served the bundle exactly as it sits on disk.
+    console.error('[FeaturePatch] Error:', e && e.message);
+    noteAnchorMiss('community-hub-patch-threw');
+    patchedCommunityHubBundle = null;
+  }
   return patchedCommunityHubBundle;
 }
 
@@ -5012,7 +5024,13 @@ function getPatchedCommunityVisualsBundle() {
     }
 
     patchedCommunityVisualsBundle = Buffer.from(raw, 'utf8');
-  } catch { patchedCommunityVisualsBundle = null; }
+  } catch (e) {
+    // This arm used to swallow the exception entirely -- no log, no banner --
+    // and the caller then served the bundle exactly as it sits on disk.
+    console.error('[CommunityVisualsPatch] Error:', e && e.message);
+    noteAnchorMiss('community-visuals-patch-threw');
+    patchedCommunityVisualsBundle = null;
+  }
   return patchedCommunityVisualsBundle;
 }
 
@@ -5046,24 +5064,34 @@ function getPatchedDashboardBundle() {
     if (raw.includes(DASHBOARD_SYLLABUS_FROM)) {
       raw = raw.replace(DASHBOARD_SYLLABUS_FROM, DASHBOARD_SYLLABUS_TO);
       console.log('[DashboardPatch] syllabusIds null-guard added (ya filter)');
-    } else { console.warn('[DashboardPatch] syllabusIds anchor not found'); }
+    // These four are null-guards for a CONFIRMED browser crash on /dashboard
+    // ("Browser error bridge caught a runtime crash"). A miss means the crash is
+    // back, with the route rendering an error boundary and no server-side
+    // symptom.
+    } else { console.warn('[DashboardPatch] syllabusIds anchor not found'); noteAnchorMiss('dashboard-syllabusids-guard'); }
     // chapterId lookup: guard s.chapters?.some
     if (raw.includes(DASHBOARD_CHAPTERS_FROM)) {
       raw = raw.replace(DASHBOARD_CHAPTERS_FROM, DASHBOARD_CHAPTERS_TO);
       console.log('[DashboardPatch] chapters.some null-guard added (chapterId lookup)');
-    } else { console.warn('[DashboardPatch] chapters anchor not found'); }
+    } else { console.warn('[DashboardPatch] chapters anchor not found'); noteAnchorMiss('dashboard-chapters-guard'); }
     // topicId find: guard s.chapters?.some + re.topics?.some
     if (raw.includes(DASHBOARD_TOPICS_FROM)) {
       raw = raw.replace(DASHBOARD_TOPICS_FROM, DASHBOARD_TOPICS_TO);
       console.log('[DashboardPatch] chapters/topics.some null-guard added (topicId find)');
-    } else { console.warn('[DashboardPatch] topics anchor 1 not found'); }
+    } else { console.warn('[DashboardPatch] topics anchor 1 not found'); noteAnchorMiss('dashboard-topics1-guard'); }
     // topicId fallback: guard s.chapters?.some + S.topics?.some
     if (raw.includes(DASHBOARD_TOPICS_FROM2)) {
       raw = raw.replace(DASHBOARD_TOPICS_FROM2, DASHBOARD_TOPICS_TO2);
       console.log('[DashboardPatch] chapters/topics.some null-guard added (topicId fallback)');
-    } else { console.warn('[DashboardPatch] topics anchor 2 not found'); }
+    } else { console.warn('[DashboardPatch] topics anchor 2 not found'); noteAnchorMiss('dashboard-topics2-guard'); }
     patchedDashboardBundle = Buffer.from(raw, 'utf8');
-  } catch { patchedDashboardBundle = null; }
+  } catch (e) {
+    // This arm used to swallow the exception entirely -- no log, no banner --
+    // and the caller then served the bundle exactly as it sits on disk.
+    console.error('[DashboardPatch] Error:', e && e.message);
+    noteAnchorMiss('dashboard-patch-threw');
+    patchedDashboardBundle = null;
+  }
   return patchedDashboardBundle;
 }
 
@@ -5110,7 +5138,13 @@ function getPatchedAnalyticsBundle() {
       _criticalPatchFailures.push('analytics-worker-fallback');
     }
     patchedAnalyticsBundle = Buffer.from(raw, 'utf8');
-  } catch { patchedAnalyticsBundle = null; }
+  } catch (e) {
+    // This arm used to swallow the exception entirely -- no log, no banner --
+    // and the caller then served the bundle exactly as it sits on disk.
+    console.error('[AnalyticsPatch] Error:', e && e.message);
+    noteAnchorMiss('analytics-patch-threw');
+    patchedAnalyticsBundle = null;
+  }
   return patchedAnalyticsBundle;
 }
 
@@ -5143,9 +5177,16 @@ function getPatchedStudyBundle() {
     }
     if (studyHits === 0) {
       console.warn('[StudyPatch] syllabusIds anchor not found');
+      noteAnchorMiss('study-syllabusids-guard');
     }
     patchedStudyBundle = Buffer.from(raw, 'utf8');
-  } catch { patchedStudyBundle = null; }
+  } catch (e) {
+    // This arm used to swallow the exception entirely -- no log, no banner --
+    // and the caller then served the bundle exactly as it sits on disk.
+    console.error('[StudyPatch] Error:', e && e.message);
+    noteAnchorMiss('study-patch-threw');
+    patchedStudyBundle = null;
+  }
   return patchedStudyBundle;
 }
 
@@ -5458,7 +5499,7 @@ function getPatchedAuthStoreBundle() {
     if (patched.includes(AV_FROM)) {
       patched = patched.split(AV_FROM).join(AV_TO);
       console.log('[AuthStorePatch] avatar upload mirrored to local /__auth/profile path');
-    } else { console.warn('[AuthStorePatch] avatar mirror anchor not found'); }
+    } else { console.warn('[AuthStorePatch] avatar mirror anchor not found'); noteAnchorMiss('authstore-avatar-mirror'); }
     patchedAuthStoreBundleCache = Buffer.from(patched, 'utf8');
     return patchedAuthStoreBundleCache;
   } catch (e) {
@@ -5879,7 +5920,13 @@ function getPatchedFocusBundle() {
     // effect that creates the Audio element.
     patchedFocusBundle = Buffer.from(
       PIP_POLYFILL + '\n' + AMBIENT_SHIM + '\n' + AMBIENT_CTRL + '\n' + raw, 'utf8');
-  } catch { patchedFocusBundle = null; }
+  } catch (e) {
+    // This arm used to swallow the exception entirely -- no log, no banner --
+    // and the caller then served the bundle exactly as it sits on disk.
+    console.error('[FocusPatch] Error:', e && e.message);
+    noteAnchorMiss('focus-patch-threw');
+    patchedFocusBundle = null;
+  }
   return patchedFocusBundle;
 }
 
