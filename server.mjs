@@ -6270,12 +6270,12 @@ function getPatchedUseSyncStoreBundle() {
     };
     patch(
       'triggerSync:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=await n();await o.fullManualSync(a,r),await l(),o.getState().status==="success"&&e({needsCloudBootstrap:!1,bootstrapChecked:!0})}',
-      'triggerSync:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=typeof window<"u"&&typeof window.__isoRunManualCloudSync=="function"?{fullManualSync:async()=>window.__isoRunManualCloudSync(null,null,"header_manual_sync")}:await n();await o.fullManualSync(a,r),await l();{const g=t.getState(),w=g&&g.status!=="success";e({status:w?"failed":"success",lastSyncAt:new Date().toISOString(),error:w?((g&&g.error)||"Cloud sync did not complete"):null,needsCloudBootstrap:w?g.needsCloudBootstrap:!1,bootstrapChecked:w?g.bootstrapChecked:!0})}}',
+      'triggerSync:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=typeof window<"u"&&typeof window.__isoRunManualCloudSync=="function"?{fullManualSync:async()=>window.__isoRunManualCloudSync(null,null,"header_manual_sync")}:await n();const x=await o.fullManualSync(a,r);await l();{let g=null,w=!1;if(typeof o.getState=="function")g=o.getState(),w=!(g&&g.status==="success");else{const v=x||(o.getState&&o.getState());w=!(v!==!1&&(!v||v.ok!==!1))}e({status:w?"failed":"success",lastSyncAt:new Date().toISOString(),error:w?((g&&g.error)||(x&&x.error)||"Cloud sync did not complete"):null,needsCloudBootstrap:w?g.needsCloudBootstrap:!1,bootstrapChecked:w?g.bootstrapChecked:!0})}}',
       'header sync uses runtime manual cloud sync'
     );
     patch(
       'downloadCloudSnapshot:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=await n();await o.downloadCloudSnapshot(a,r),await l(),o.getState().status==="success"&&e({needsCloudBootstrap:!1,bootstrapChecked:!0})}',
-      'downloadCloudSnapshot:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=typeof window<"u"&&typeof window.__isoDownloadAndImportBackup=="function"?{downloadCloudSnapshot:async()=>window.__isoDownloadAndImportBackup(null,"header_download_cloud_data")}:await n();await o.downloadCloudSnapshot(a,r),await l();{const g=t.getState(),w=g&&g.status!=="success";e({status:w?"failed":"success",lastSyncAt:new Date().toISOString(),error:w?((g&&g.error)||"Cloud sync did not complete"):null,needsCloudBootstrap:w?g.needsCloudBootstrap:!1,bootstrapChecked:w?g.bootstrapChecked:!0})}}',
+      'downloadCloudSnapshot:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=typeof window<"u"&&typeof window.__isoDownloadAndImportBackup=="function"?{downloadCloudSnapshot:async()=>window.__isoDownloadAndImportBackup(null,"header_download_cloud_data")}:await n();const x=await o.downloadCloudSnapshot(a,r);await l();{let g=null,w=!1;if(typeof o.getState=="function")g=o.getState(),w=!(g&&g.status==="success");else{const v=x||(o.getState&&o.getState());w=!(v!==!1&&(!v||v.ok!==!1))}e({status:w?"failed":"success",lastSyncAt:new Date().toISOString(),error:w?((g&&g.error)||(x&&x.error)||"Cloud sync did not complete"):null,needsCloudBootstrap:w?g.needsCloudBootstrap:!1,bootstrapChecked:w?g.bootstrapChecked:!0})}}',
       'header download uses runtime download/import helper'
     );
     console.log('[SyncStorePatch] ' + applied + '/2 patches applied');
@@ -6319,7 +6319,7 @@ function getPatchedAppAccessGateBundle() {
     };
     patch(
       'const ye=await(await Ae()).canBootstrapFromCloud(O.userId,!0);D(ye)',
-      'const ye=await(await Ae()).canBootstrapFromCloud(O.userId,!0);if(ye){await S.getState().downloadCloudSnapshot();D(!1)}else D(!1)',
+      'const ye=await(await Ae()).canBootstrapFromCloud(O.userId,!0);if(ye){await b.getState().downloadCloudSnapshot();D(!1)}else D(!1)',
       'auto-import cloud backup on empty local workspace'
     );
     // ISSUE-050: on a cold load the profile store hydrates AFTER the gate
