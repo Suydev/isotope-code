@@ -171,7 +171,7 @@
       <table>
         <thead><tr><th>Phase</th><th>What it does</th></tr></thead>
         <tbody>
-          <tr><td><strong>schema</strong></td><td>2,274 statements in batches of 50 — 42 tables, 76 public functions, 16 triggers, 184 policies. Aborts on the first real failure rather than continuing against a half-built database.</td></tr>
+          <tr><td><strong>schema</strong></td><td>2,273 statements in batches of 50 — 42 tables, 76 public functions, 16 triggers, 184 policies. Aborts on the first real failure rather than continuing against a half-built database.</td></tr>
           <tr><td><strong>storage</strong></td><td>All four buckets with their size caps and MIME allow-lists. Clamps any cap above the project's plan limit instead of failing.</td></tr>
           <tr><td><strong>auth</strong></td><td>The signup trigger on <code>auth.users</code>. This is the step the manual route cannot express — see below.</td></tr>
           <tr><td><strong>verify</strong></td><td>Eight assertions that the project can actually run the app, not just that the SQL returned success.</td></tr>
@@ -724,7 +724,7 @@ curl -s http://127.0.0.1:3000/api/health | python3 -m json.tool</pre>
 
     <h2 class="rise" id="upgrading">Upgrading an existing project <a class="anchor" href="#upgrading" aria-label="Link to this section">#</a></h2>
     <p><code>isotope-complete.sql</code> is safe to re-run and will add anything missing.
-    Measured on a live project: 2,274 statements, 0 failures on the first run and 0 on a
+    Measured on a live project: 2,273 statements, 0 failures on the first run and 0 on a
     second run over the same database, with table, policy, function, trigger, index and
     constraint counts identical afterwards. Three patches apply only to older projects:</p>
 
