@@ -683,6 +683,12 @@ async function backup(args, env) {
         try {
           files = await listAll(b.id, '');
         } catch (e) {
+          // Persist the failure ON THE BUCKET, not only as a free-text note.
+          // restore() must be able to tell "this bucket was never enumerated"
+          // from "this bucket is genuinely empty" -- notes are not read by the
+          // prune path, so a note alone would leave it guessing.
+          const entry = manifest.buckets.find((x) => x.id === b.id);
+          if (entry) entry.list_ok = false;
           manifest.notes.push(`storage bucket ${b.id}: list failed — ${e.message.slice(0, 150)}`);
           console.log(`[backup] SKIP bucket ${b.id}: ${e.message.slice(0, 120)}`);
           continue;
@@ -1214,6 +1220,11 @@ async function restore(args, env) {
     } catch {}
   }
 
+  // Declared before the storage phase and read by the fatal gate after it.
+  // `ok`/`failed` are block-scoped inside the `if`, and the gate sits outside,
+  // so the count has to be published at the end of the phase.
+  let storageFailed = 0;
+
   // 5. storage — buckets themselves come from schema.sql; this uploads FILES.
   if (!args['no-storage'] && !schemaOnly) {
     if (!service) {
@@ -1313,8 +1324,25 @@ async function restore(args, env) {
       const prune = Boolean(args['prune-storage']);
       let staleFound = 0, staleRemoved = 0;
       for (const b of manifest.buckets) {
-        const wantedKeys = new Set(manifest.storage_files
-          .filter((f) => f.bucket === b.id).map((f) => f.path));
+        // A bucket the manifest lists but for which it recorded NO files is a
+        // bucket whose listing FAILED during backup (backup pushes a note and
+        // continues), not an empty bucket. Treating those two cases identically
+        // is catastrophic: wantedKeys would be empty, so every object in the
+        // target bucket would classify as stale and --prune-storage would
+        // DELETE THE ENTIRE BUCKET, including objects the backup did contain.
+        // Deletion is irreversible, so an unverified input must never reach
+        // this branch. Skip the bucket and say so loudly.
+        const describedFiles = manifest.storage_files.filter((f) => f.bucket === b.id);
+        if (!describedFiles.length) {
+          const listedOk = b.list_ok !== false;
+          console.log(`  reconcile ${b.id}: SKIPPED — backup recorded 0 file(s) for this bucket` +
+            (listedOk ? ' (bucket may genuinely be empty)' : ' and its listing FAILED during backup'));
+          console.log(`    not pruning: an unenumerated bucket cannot be distinguished from an empty one`);
+          emit({ phase: 'storage', level: 'warn',
+            msg: `reconcile ${b.id}: skipped — backup has no file inventory for this bucket; refusing to prune` });
+          continue;
+        }
+        const wantedKeys = new Set(describedFiles.map((f) => f.path));
         let liveKeys;
         try {
           liveKeys = await listObjectKeys(st, b.id);
@@ -1350,6 +1378,10 @@ async function restore(args, env) {
       }
 
       console.log(`[restore] storage: ${ok} ok, ${failed} failed`);
+      // Publish the counter before the block ends, so the fatal gate below can
+      // act on it. Assigned at the END, not the start: `failed` is incremented
+      // throughout the loop, and copying it early would miss every failure.
+      storageFailed = failed;
       emit({ phase: 'storage', state: 'done', done: ok + failed, total: manifest.storage_files.length, ok, failed });
     }
   }
@@ -1368,6 +1400,13 @@ async function restore(args, env) {
   if (authUsersFailed > 0) fatal.push(`${authUsersFailed} auth.users row(s)`);
   if (authIdentitiesFailed > 0) fatal.push(`${authIdentitiesFailed} auth.identities row(s)`);
   if (bucketFailures > 0) fatal.push(`${bucketFailures} storage bucket(s)`);
+  // Storage object failures belong in this gate for the same reason the auth
+  // counters do: they were counted and printed, but never acted on, so a restore
+  // that uploaded 0 of 41 files -- every one MISSING, HASH MISMATCH, or
+  // FAILED -- reported `[restore] DONE` and exited 0. `failed` accumulates
+  // those plus every failed prune remove, so it is the same quantity the
+  // storage line above already prints.
+  if (storageFailed > 0) fatal.push(`${storageFailed} storage object(s)`);
   if (fatal.length) {
     const msg = `restore failed on ${fatal.join(', ')} — the target is incomplete`;
     console.error(`[restore] ${msg}`);

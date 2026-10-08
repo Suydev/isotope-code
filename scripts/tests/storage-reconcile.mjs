@@ -244,7 +244,7 @@ console.log('--- deep folder prefixes');
 // issued, so that failure mode fails here instead of passing quietly.
 
 /** Run the real restore() against a stubbed Supabase. Returns issued storage DELETEs. */
-async function driveRestore({ prune, manifest, buckets }) {
+async function driveRestore({ prune, manifest, buckets, skipFiles }) {
   const { mkdtempSync, writeFileSync, mkdirSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
@@ -252,6 +252,17 @@ async function driveRestore({ prune, manifest, buckets }) {
   writeFileSync(join(dir, 'manifest.json'), JSON.stringify(manifest));
   writeFileSync(join(dir, 'schema.sql'), '-- no schema\n');
   mkdirSync(join(dir, 'db'), { recursive: true });
+  // Materialise every file the manifest claims. restore() counts a manifest entry
+  // with no file on disk as MISSING and increments `failed`, which the fatal gate
+  // now acts on — correctly. Without this the fixture reported every object as
+  // missing, the gate threw, and the prune assertions below never ran. That is
+  // the gate working; the fixture was the thing that was wrong.
+  for (const f of (manifest.storage_files || [])) {
+    if (skipFiles) break;   // deliberately leave the file absent (MISSING path)
+    const p = join(dir, 'storage', f.bucket, ...f.path.split('/'));
+    mkdirSync(join(p, '..'), { recursive: true });
+    writeFileSync(p, `fixture:${f.bucket}/${f.path}`);
+  }
 
   const script = `
     const deletes = [];
@@ -341,6 +352,75 @@ console.log('--- PRUNE GATE: the real restore(), stubbed at the network');
   const sab = await driveRestore({ prune: false, manifest: GATE_MANIFEST, buckets: GATE_BUCKETS });
   check('a forced-prune regression would be visible to this gate',
     sab.deletes.length === 0, 'expected no deletes without the flag');
+}
+
+// ---------------------------------------------------------------------------
+// UNENUMERATED BUCKET — the catastrophic case.
+//
+// A bucket listed in manifest.buckets with ZERO storage_files means the backup
+// FAILED to enumerate it (it pushes a note and continues), NOT that the bucket
+// is empty. Treating the two alike makes wantedKeys empty, so every object in
+// the target bucket classifies as stale and --prune-storage deletes the whole
+// bucket -- irreversibly, including objects the backup did contain.
+//
+// The second fixture has list_ok:false recorded, which is what backup() now
+// persists; the first has no marker at all, which is what an OLD manifest looks
+// like. Both must be refused.
+// ---------------------------------------------------------------------------
+console.log('--- UNENUMERATED BUCKET: prune must refuse to destroy what it cannot see');
+{
+  const UNENUMERATED = {
+    source_project: 'src', created_at: '2026-01-01',
+    tables: [], fk_order: [], routines: [], schemas: ['public'],
+    auth_columns: [], auth_identities_columns: [],
+    buckets: [{ id: 'b1', public: false, list_ok: false }],
+    storage_files: [],            // listing failed — zero recorded, NOT "empty"
+  };
+  const LIVE = { b1: ['precious.pdf', 'notes/two.pdf', 'archive/old.mp4'] };
+
+  const run = await driveRestore({ prune: true, manifest: UNENUMERATED, buckets: LIVE });
+  check('a bucket the backup never enumerated is NOT pruned',
+    run.deletes && run.deletes.length === 0,
+    'destroyed ' + JSON.stringify(run.deletes));
+  check('...and the skip is stated, not silent',
+    /SKIPPED|not pruning|enumerat/i.test(run.out), run.out.slice(-500));
+}
+{
+  // Same shape, but an OLD manifest with no list_ok marker at all. The guard
+  // must key off the zero-file inventory, not off the marker, or every manifest
+  // written before this fix stays exploitable.
+  const OLD_MANIFEST = {
+    source_project: 'src', created_at: '2026-01-01',
+    tables: [], fk_order: [], routines: [], schemas: ['public'],
+    auth_columns: [], auth_identities_columns: [],
+    buckets: [{ id: 'b1', public: false }],
+    storage_files: [],
+  };
+  const run = await driveRestore({ prune: true, manifest: OLD_MANIFEST, buckets: { b1: ['precious.pdf'] } });
+  check('an unmarked legacy manifest is also refused',
+    run.deletes && run.deletes.length === 0,
+    'destroyed ' + JSON.stringify(run.deletes));
+}
+
+console.log('--- FATAL GATE: storage object failures must fail the restore');
+{
+  // A manifest entry with no file on disk is MISSING. Before this gate existed
+  // that was counted, printed as `storage: 0 ok, 3 failed`, and then ignored --
+  // so a restore that uploaded nothing still printed `[restore] DONE` and exited
+  // 0. driveRestore writes the files the manifest lists, so ask for one it does
+  // NOT write by pointing storage_files at an absent path.
+  const MISSING = {
+    source_project: 'src', created_at: '2026-01-01',
+    tables: [], fk_order: [], routines: [], schemas: ['public'],
+    auth_columns: [], auth_identities_columns: [],
+    buckets: [{ id: 'b1', public: false }],
+    storage_files: [{ bucket: 'b1', path: 'not-on-disk.pdf' }],
+  };
+  const run = await driveRestore({ prune: false, manifest: MISSING, buckets: { b1: [] }, skipFiles: true });
+  check('a restore with missing storage objects does NOT report DONE',
+    !/\[restore\] DONE/.test(run.out), run.out.slice(-500));
+  check('...and names the storage failure in the fatal error',
+    /storage object/.test(run.out), run.out.slice(-500));
 }
 
 console.log(failures ? '\nFAILED: ' + failures : '\nALL PASS');
