@@ -130,6 +130,36 @@ function castFor(col) {
   return CAST[col.data_type] || 'text';
 }
 
+/**
+ * Body of a Postgres string literal, safe under standard_conforming_strings=on.
+ *
+ * The `E` prefix turns on backslash escapes for THIS literal only, independently
+ * of the session's standard_conforming_strings, which is the only way to make a
+ * backslash in the data survive. Quote doubling is still used for the apostrophe:
+ * it is valid inside an E'' literal as well, and it is the one form that stays
+ * correct if the E prefix is ever dropped.
+ *
+ * Before this, only the single quote was doubled. That is sufficient for every
+ * value without a backslash, which is why the bug was latent, but on the first
+ * value that ENDS in a backslash the emitted literal fuses the value with its own
+ * terminator:
+ *
+ *     lit('a\\', 'text')  ->  'a\'::text
+ *
+ * Postgres reads the two characters a-backslash (standard_conforming_strings
+ * leaves the backslash alone) and then has ::text dangling:
+ *
+ *     ERROR:  syntax error at or near "::"
+ *
+ * and a value ending in TWO backslashes is worse: the literal closes early and
+ * the remainder of the statement is spliced into it, so a data value becomes SQL.
+ * Every user-supplied string in the app goes through here, so the first display
+ * name, bio, chat message or caption ending in a backslash corrupts that restore.
+ */
+function escStr(s) {
+  return s.replace(/\\/g, '\\\\').replace(/'/g, "''");
+}
+
 function lit(v, cast) {
   if (v === null || v === undefined) return 'NULL';
   if (typeof v === 'number' || typeof v === 'boolean') return `${String(v)}::${cast}`;
@@ -154,11 +184,11 @@ function lit(v, cast) {
     // never used it.)
     const elems = v.map((e) => (e === null || e === undefined
       ? 'NULL'
-      : `'${(typeof e === 'string' ? e : JSON.stringify(e)).replace(/'/g, "''")}'`));
+      : `E'${escStr(typeof e === 'string' ? e : JSON.stringify(e))}'`));
     return `ARRAY[${elems.join(', ')}]::${cast}`;
   }
   const s = typeof v === 'string' ? v : JSON.stringify(v);
-  return `'${s.replace(/'/g, "''")}'::${cast}`;
+  return `E'${escStr(s)}'::${cast}`;
 }
 
 
@@ -1498,4 +1528,4 @@ if (isMain) {
   }
 }
 
-export { lit, castFor, splitStatements, chunkRows, verify, CAST, PG_CAST, REQUIRED_BUCKETS };
+export { lit, escStr, castFor, splitStatements, chunkRows, verify, CAST, PG_CAST, REQUIRED_BUCKETS };

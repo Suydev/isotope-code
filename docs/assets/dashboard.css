@@ -680,3 +680,678 @@
   .dash-area, .dash-field-clear, .dash-rel, .dash-card { transition: none; }
   .dash-rel:hover, a.dash-card:hover { transform: none; }
 }
+
+/* ============================================================================
+   The interactive demo
+   ----------------------------------------------------------------------------
+   A self-contained simulation of the product, built from what the repository
+   actually does. Every name, column and return value below was read out of
+   isotope-complete.sql or out of public/assets — not written to make the demo
+   look complete. Where a number is invented (a demo session length, a sample
+   streak) the caption says so, because a simulation that blurs its own
+   arithmetic is worse than no simulation.
+
+   Same two constraints as the rest of this file: no new tokens, no new
+   keyframes. Every colour below is a --c-* or --f-* / --e-* / --s-* / --r-* /
+   --dur-* property from site.css. The one raw hex is the control-boundary
+   grey this page already uses for .dash-field and site.css already measures for
+   .sidebar-search — restated here because the demo has controls of its own and
+   reusing a literal is cheaper than a new variable nobody would read.
+
+   What it deliberately does NOT animate: nothing here loops. The timer only
+   runs because a reader pressed Start, every transition is a state change the
+   reader caused, and the whole block is inert under prefers-reduced-motion.
+   ========================================================================= */
+
+/* ── Frame ────────────────────────────────────────────────────────────────────
+   One hairline, one shadow, no chrome. The demo should read as an object on the
+   page rather than as another page inside it. */
+
+.demo {
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+  box-shadow: var(--e-2);
+  overflow: hidden;
+}
+
+/* Toolbar. Holds the sample-data label, the two global controls and the step
+   counter. Everything here is a real control at the 44px floor except the
+   label, which is not a control. */
+.demo-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-bg-subtle);
+}
+
+.demo-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-inline-end: auto;
+  font: 600 var(--t-xs)/1 var(--f-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+}
+/* The dot is decorative; the word beside it carries the meaning, so a reader who
+   never sees the dot still gets "sample data". */
+.demo-tag::before {
+  content: '';
+  width: 8px; height: 8px;
+  flex: none;
+  border-radius: var(--r-full);
+  background: var(--c-warn);
+}
+
+.demo-count {
+  margin: 0;
+  font: 500 var(--t-xs)/1 var(--f-mono);
+  color: var(--c-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Shared control ─────────────────────────────────────────────────────────
+   One button style for the whole demo: the tabs, Reset and every step's
+   primary action. 44px minimum, a 3:1 boundary and a visible ring.
+
+   The boundary is the measured grey rather than --c-border for the same reason
+   documented at .dash-field: the border tokens are tuned for dividers and fail
+   1.4.11 as a control edge. */
+.demo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid #8b929c;            /* 3.14:1 on white — as .dash-field */
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: 600 var(--t-sm)/1.2 var(--f-sans);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease);
+}
+:root[data-theme='dark'] .demo-btn { border-color: #6e648a; }   /* 3.63:1 */
+.demo-btn:hover:not(:disabled) { background: var(--c-bg-subtle); }
+.demo-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+/* :focus-visible, never :focus — a mouse press should not draw a ring, and a
+   keyboard one must. The offset keeps the ring off the 1px border so both
+   edges stay readable. */
+.demo-btn:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+/* The variant used for the one action that advances the story. Brand fill is
+   avoided for text-on-fill reasons discussed at .dash-area: this inverts
+   instead, which is 16.5:1 in dark and 18.4:1 in light, and stays legible when
+   the accent hue is not perceivable at all. */
+.demo-btn[data-variant='primary'] {
+  background: var(--c-text);
+  border-color: var(--c-text);
+  color: var(--c-bg);
+}
+.demo-btn[data-variant='primary']:hover:not(:disabled) {
+  background: var(--c-text);
+  color: var(--c-bg);
+  border-color: var(--c-text);
+}
+.demo-btn svg { width: 15px; height: 15px; flex: none; }
+
+/* ── Tabs ───────────────────────────────────────────────────────────────────
+   A real tablist, because this IS a set of tab panels: exactly one is visible
+   at a time and each panel is labelled by its tab. The keyboard contract below
+   is the one the pattern promises, and dashboard.js implements it in full.
+
+   Horizontal scroll rather than wrap below 700px: five labels that wrap into
+   three rows push the panel below the fold on a phone, and a tablist that
+   scrolls off-axis is a convention users already know. */
+.demo-tabs {
+  display: flex;
+  gap: var(--s-1);
+  padding: var(--s-2) var(--s-3) 0;
+  border-bottom: 1px solid var(--c-border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+@media (min-width: 700px) { .demo-tabs { flex-wrap: wrap; overflow-x: visible; } }
+
+.demo-tab {
+  flex: none;
+  min-height: 44px;
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  background: none;
+  color: var(--c-text-muted);
+  font: 600 var(--t-sm)/1.2 var(--f-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease);
+}
+.demo-tab:hover { color: var(--c-text); background: var(--c-bg-subtle); }
+/* Selected = weight + an inset bar, not colour alone. The 2px rule survives a
+   greyscale print and a reader who cannot separate the accent hue. */
+.demo-tab[aria-selected='true'] {
+  background: var(--c-surface);
+  border-color: var(--c-border);
+  color: var(--c-text);
+  box-shadow: inset 0 2px 0 0 var(--c-accent);
+  margin-bottom: -1px;
+  padding-bottom: calc(var(--s-2) + 1px);
+}
+.demo-tab:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: -2px;
+}
+
+/* ── Panel body ─────────────────────────────────────────────────────────────
+   Two columns from 900px: the stage on the left, the inspector on the right.
+   Below that it is one column, stage first — the stage is the thing the reader
+   came to watch, and the inspector is its explanation. */
+.demo-panels { padding: var(--s-4); }
+
+.demo-panel { display: grid; gap: var(--s-4); }
+@media (min-width: 900px) {
+  .demo-panel { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
+}
+
+.demo-stage {
+  padding: var(--s-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-bg-subtle);
+}
+
+.demo-h {
+  margin: 0 0 var(--s-1);
+  font: 600 var(--t-sm)/1.3 var(--f-sans);
+  letter-spacing: -.01em;
+  color: var(--c-text);
+}
+
+.demo-note {
+  margin: 0 0 var(--s-4);
+  font-size: var(--t-sm);
+  line-height: 1.55;
+  color: var(--c-text-muted);
+}
+
+/* ── Inspector ───────────────────────────────────────────────────────────────
+   A live trace of what the simulated code just did: which function was called,
+   which rows it touched. This is the honest half of the demo — the stage is
+   illustrative, the trace is the part that is checked against the SQL. */
+.demo-trace {
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  overflow: hidden;
+}
+.demo-trace-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-bg-subtle);
+}
+.demo-trace-head .demo-h { margin: 0; }
+/* role="log" rather than role="status": this is a sequence of appended lines,
+   not a single status that replaced its own text. */
+.demo-trace-list {
+  margin: 0;
+  padding: var(--s-2);
+  list-style: none;
+  max-height: 17rem;
+  overflow-y: auto;
+}
+/* The empty state. Written as a sibling rule with :empty rather than as a
+   generated ::after on a list that receives children: an aria-live region that
+   gains its first line from an empty state that announces itself would read
+   the placeholder aloud on every panel switch. */
+.demo-trace-list:empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 6rem;
+}
+.demo-trace-list:empty::after {
+  content: 'Press a control to see what it writes.';
+  font-size: var(--t-sm);
+  color: var(--c-text-faint);
+  text-align: center;
+}
+.demo-trace-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--s-1) var(--s-2);
+  padding: var(--s-2) var(--s-2);
+  border-radius: var(--r-sm);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  line-height: 1.5;
+}
+.demo-trace-line + .demo-trace-line { border-top: 1px solid var(--c-border); }
+.demo-trace-k { color: var(--c-text-faint); }
+.demo-trace-v { color: var(--c-text); overflow-wrap: anywhere; }
+.demo-trace-v code { font: inherit; }
+.demo-trace-line[data-kind='write'] .demo-trace-k { color: var(--c-accent); font-weight: 700; }
+.demo-trace-line[data-kind='policy'] .demo-trace-k { color: var(--c-warn); font-weight: 700; }
+
+/* ── Stat readout ───────────────────────────────────────────────────────────
+   The numbers a completed focus session produces. Rendered from a <dl> so the
+   relationship between term and value is in the markup rather than implied by
+   layout — and so a screen reader announces "total_study_seconds, 1800" rather
+   than two loose strings. */
+.demo-stats {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-1);
+  margin: 0;
+}
+@media (min-width: 480px) { .demo-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.demo-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--c-bg-subtle);
+}
+.demo-stat dt {
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-text-muted);
+  overflow-wrap: anywhere;
+}
+.demo-stat dd {
+  margin: 0;
+  font: 700 var(--t-sm)/1.2 var(--f-mono);
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* A value that just changed is briefly marked. This is a redundant cue on top
+   of the number itself, never the only way to tell. */
+.demo-stat[data-changed='true'] { box-shadow: inset 2px 0 0 0 var(--c-ok); }
+
+/* ── Timer ───────────────────────────────────────────────────────────────────
+   A fixed-width readout so the digits cannot reflow the layout as they count.
+   tabular-nums alone would stop the glyphs jittering but not the box growing. */
+.demo-clock {
+  margin: 0 0 var(--s-4);
+  font: 700 clamp(2.25rem, 7vw, 3.25rem)/1 var(--f-mono);
+  letter-spacing: -.03em;
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.demo-clock[data-state='running'] { color: var(--c-accent); }
+
+/* Progress bar. The fill is a plain width transition on an existing token; the
+   numeric value is always also present as text beside it, so the bar is never
+   the only carrier of the information. */
+.demo-bar-track {
+  height: 6px;
+  margin-bottom: var(--s-4);
+  border-radius: var(--r-full);
+  background: var(--c-border);
+  overflow: hidden;
+}
+.demo-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: var(--r-full);
+  background: var(--c-accent);
+  transition: width var(--dur-slow) linear;
+}
+
+.demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.demo-actions .demo-btn { flex: 1 1 auto; }
+@media (min-width: 480px) { .demo-actions .demo-btn { flex: 0 0 auto; } }
+
+/* ── Lists (tasks, groups, chunk list) ─────────────────────────────────────
+   A <ul> throughout, because every one of these is a list and a screen reader
+   announcing the item count is part of the point. */
+
+.demo-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--s-2);
+}
+.demo-list[data-empty='true']::after {
+  content: attr(data-empty-text);
+  display: block;
+  padding: var(--s-4) var(--s-3);
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--r-md);
+  font-size: var(--t-sm);
+  color: var(--c-text-faint);
+  text-align: center;
+}
+
+.demo-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+}
+.demo-row-main { flex: 1 1 auto; min-width: 0; }
+.demo-row-title {
+  margin: 0;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+.demo-row-meta {
+  margin: var(--s-1) 0 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+/* A completed row is marked three ways — strike, a status pill, and a checkmark
+   glyph in text — so the state survives colour, greyscale and a screen reader
+   that never renders the glyph at all. */
+.demo-row[data-done='true'] { background: var(--c-bg-subtle); }
+.demo-row[data-done='true'] .demo-row-title { text-decoration: line-through; color: var(--c-text-faint); }
+
+/* The one inline control on a row: complete a task, accept a join request.
+   44px tall, full label, aria-pressed so the state is announced. */
+.demo-row-btn {
+  flex: none;
+  min-height: 44px;
+  min-width: 44px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid #8b929c;
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: 600 var(--t-xs)/1.2 var(--f-sans);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+:root[data-theme='dark'] .demo-row-btn { border-color: #6e648a; }
+.demo-row-btn:hover:not(:disabled) { background: var(--c-bg-subtle); }
+.demo-row-btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.demo-row-btn[aria-pressed='true'],
+.demo-row-btn:disabled {
+  background: var(--c-bg-subtle);
+  color: var(--c-text-faint);
+  cursor: not-allowed;
+}
+.demo-row-btn[aria-pressed='true'] { text-decoration: line-through; }
+
+/* ── New-task field ────────────────────────────────────────────────────────
+   A real <form> with a real label, so Enter submits and the accessible name is
+   not a placeholder. Placeholder-only labelling is one of the more common
+   failures on a control like this: the moment you type, the label is gone. */
+.demo-form { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-4); }
+.demo-form:focus-within {
+  /* A softer container ring than the inputs carry. It is what tells a keyboard
+     user which field they are in without competing with the input's own ring.
+
+     `:not(.demo-input)` is load-bearing, not tidiness. Both this rule and
+     .demo-input:focus-visible are specificity 0,2,0 — the container rule
+     matches .demo-form on :focus-within whether or not the focus is on the
+     input, so a bare .demo-form:focus-within wins the tie on source order and
+     draws a 2px ring around the ENTIRE row. Excluding the input element from
+     this selector drops it to 0,1,0 for the input case and lets the input's own
+     ring stand. */
+  border-radius: var(--r-md);
+  box-shadow: 0 0 0 1px var(--c-accent);
+}
+.demo-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid #8b929c;
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  /* 16px floor — below it iOS zooms the page on focus. */
+  font: 400 1rem/1.4 var(--f-sans);
+  color: var(--c-text);
+}
+:root[data-theme='dark'] .demo-input { border-color: #6e648a; }
+.demo-input::placeholder { color: var(--c-text-faint); }
+.demo-input:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+  border-color: var(--c-accent);
+}
+.demo-label {
+  flex: 1 0 100%;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+/* ── Group cards (community) ─────────────────────────────────────────────── */
+.demo-groups {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.demo-group {
+  padding: var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+}
+.demo-group-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.demo-group-name {
+  margin: 0;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--c-text);
+}
+.demo-group-body { margin-top: var(--s-3); }
+.demo-group-body[hidden] { display: none; }
+
+/* Members. Avatars are initials on a tinted circle — a glyph, so the name
+   beside it is the content and the circle is decoration. */
+.demo-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.demo-member {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-full);
+  font-size: var(--t-xs);
+  color: var(--c-text-muted);
+}
+.demo-member-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  flex: none;
+  border-radius: var(--r-full);
+  background: var(--c-bg-subtle);
+  border: 1px solid var(--c-border-strong);
+  font: 700 11px/1 var(--f-mono);
+  color: var(--c-text-muted);
+}
+.demo-member[data-role='owner'] { border-color: var(--c-accent); color: var(--c-text); }
+
+/* ── Syllabus chunk list ──────────────────────────────────────────────────
+   Two columns from 560px, one below. Each chunk is the lazy-loaded bundle the
+   real route imports, so the list is the shipped one rather than a summary. */
+.demo-chunks {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: chunk;
+}
+@media (min-width: 560px) { .demo-chunks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.demo-chunk {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+.demo-chunk::before {
+  counter-increment: chunk;
+  content: counter(chunk);
+  flex: none;
+  min-width: 1.25rem;
+  font-weight: 700;
+  color: var(--c-text-faint);
+}
+
+/* ── Sync ──────────────────────────────────────────────────────────────────
+   A three-state machine — local, queued, reconciled — shown as three stacked
+   lanes rather than as a diagram, so it reflows and each state is its own
+   <li> in the accessibility tree. */
+.demo-lanes {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-4);
+  padding: 0;
+  list-style: none;
+}
+.demo-lane {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+}
+.demo-lane-body { flex: 1 1 auto; min-width: 0; }
+.demo-lane-name {
+  margin: 0;
+  font: 600 var(--t-sm)/1.3 var(--f-sans);
+  color: var(--c-text-muted);
+}
+.demo-lane-rows {
+  margin: var(--s-1) 0 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-text-faint);
+}
+/* The active lane. Bold + a 2px inset edge + a raised surface: three cues, so
+   the current state does not depend on colour being perceivable. */
+.demo-lane[data-active='true'] {
+  border-color: var(--c-accent);
+  background: var(--c-bg-subtle);
+  box-shadow: inset 2px 0 0 0 var(--c-accent);
+}
+.demo-lane[data-active='true'] .demo-lane-name { color: var(--c-text); }
+.demo-lane[data-done='true'] .demo-lane-name { color: var(--c-text-faint); }
+
+/* ── Captions ──────────────────────────────────────────────────────────────
+   The honesty contract. Any figure the demo invented is labelled at the point
+   it appears rather than in a footnote, so it cannot be read as a claim about
+   the shipped product while scrolling past. */
+.demo-caption {
+  margin: var(--s-3) 0 0;
+  font-size: var(--t-xs);
+  line-height: 1.55;
+  color: var(--c-text-faint);
+}
+.demo-caption code {
+  font-family: var(--f-mono);
+  overflow-wrap: anywhere;
+}
+/* The illustrative-value marker, used inline beside a number. */
+.demo-samp {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--s-2);
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--c-bg-subtle);
+  font: 600 11px/1.5 var(--f-mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+  vertical-align: 1px;
+}
+
+/* ── Progressive enhancement ──────────────────────────────────────────────
+   dashboard.js's first line removes `no-js` from <html>, so these selectors
+   only ever match when the script did not run. The demo frame is hidden in
+   that case and the prose fallback is shown instead — one sentence pointing at
+   the two pages that cover the same ground in writing, rather than five panels
+   of dead controls that read as a broken page.
+
+   The patterns are written child-first (`html.no-js .demo`) so they carry the
+   full 0,2,0 specificity and cannot be beaten by a later `.demo` rule. */
+html.no-js .demo { display: none; }
+html.no-js .demo-nojs { display: block; }
+.demo-nojs {
+  display: none;
+  margin: 0;
+  padding: var(--s-4);
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--r-md);
+  background: var(--c-bg-subtle);
+  font-size: var(--t-sm);
+  color: var(--c-text-muted);
+}
+.demo-nojs a { color: var(--c-accent); }
+
+/* ── Reduced motion ──────────────────────────────────────────────────────────
+   The timer is the one thing here that can move on its own, and it is
+   request-driven rather than looping, so a reader who asked for reduced motion
+   still gets it — as a discrete jump to the next state instead of a slide.
+   Everything that only exists to decorate a state change stops entirely. */
+@media (prefers-reduced-motion: reduce) {
+  .demo-btn, .demo-tab, .demo-row-btn, .demo-input { transition: none; }
+  .demo-bar-fill { transition: none; }
+}

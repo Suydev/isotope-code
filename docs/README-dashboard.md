@@ -2,7 +2,8 @@
 
 `docs/dashboard.html` is a landing page for the documentation: live schema
 counts, all 22 pages in a searchable grid, full-text search over the existing
-section index, and the most recent releases parsed from the changelog.
+section index, the most recent releases parsed from the changelog, and an
+interactive walkthrough of the product.
 
 It is a static file like every other page in `docs/`. There is no build step,
 no framework and no npm dependency. Open the file or serve the directory and
@@ -126,6 +127,38 @@ nothing else on this site would catch it.
 If the fetch fails, the panel says so and keeps a working link to the full
 changelog. It is never a heading over an empty box.
 
+### 5. The interactive demo
+
+Five clickable walkthroughs — the focus timer, tasks, the syllabus, study
+groups and sync — between Browse and Recent changes.
+
+**The rule that shapes it: the stage is illustrative, the trace is not.**
+
+| Part                      | What it is                                                  |
+| ------------------------- | ----------------------------------------------------------- |
+| The stage (left)          | Illustrative. Session lengths, group names and avatar initials are invented, and each one that a reader could mistake for a claim carries a visible `sample` marker. |
+| The trace (right)         | Real. Function names, table names, columns and branch conditions are read out of `isotope-complete.sql` and `public/assets`. |
+
+That split is the whole point. A mockup that invented `finish_session_sync` would
+be worth nothing; a mockup that shows what the function actually does — the
+`ON CONFLICT (id) DO NOTHING` and the `already_processed` short-circuit — is a
+claim a reader can check against the dump. The focus panel therefore lets you
+press the primary button a second time after a session completes, and shows the
+totals holding still, because that is what the real idempotency does.
+
+**It fetches nothing.** The other three jobs fetch two same-origin files. A demo
+of an offline-first product that needs a network round trip would be a joke, and
+would also fail on a cold cache in exactly the case it is most likely to be
+opened in.
+
+**Prose and the validator.** The demo names real tables (`community_join_requests`,
+`group_members`, `group_invites`, `user_stats_summary`, `daily_user_stats`,
+`study_sessions_log`) in lower case, never with a numeral in front of one. The
+docs validator treats any `N tables` / `N policies` phrase as a checked claim
+about the dump, so an incidental "three tables" would fail the build.
+
+See the accessibility notes below for the tablist and the target sizes.
+
 ---
 
 ## Accessibility notes
@@ -156,7 +189,28 @@ The choices worth knowing before you edit anything:
   tokens are tuned for dividers and measure 1.47:1 / 1.58:1 — fine as a
   surface step, a fail as a control boundary under WCAG 1.4.11. These are the
   same values `site.css` uses for `.sidebar-search`, measured for the same
-  reason.
+  reason. The demo controls reuse the same literal for the same reason.
+- **The demo is a real `tablist`.** Unlike the area chips above — which are
+  `aria-pressed` buttons because they filter a list that is all visible at once
+  — the demo switches exactly one visible panel at a time, which is what the
+  tab pattern is for. So the full keyboard contract is implemented: Left/Right
+  move and wrap, Home/End jump to the ends, and the tablist uses a roving
+  tabindex so `Tab` moves past it rather than through all five tabs.
+- **The demo trace is `role="log"`, not `role="status"`.** It appends lines
+  rather than replacing one string, and announcing an appended line must not
+  pull focus off the button the reader just pressed. `aria-relevant="additions"`
+  keeps the reader from being read the list header on every step.
+- **Demo controls are at 44px, including the inline ones.** The per-row
+  Complete button is 44px tall and 44px wide with a full accessible name —
+  `aria-label` carries the task title, so a reader tabbing the list hears
+  *which* task they are about to complete rather than "Complete, Complete".
+- **Nothing in the demo loops.** The only thing that runs on its own is the
+  focus countdown, and only because a reader pressed Start. Under
+  `prefers-reduced-motion` its transitions are removed, but the countdown still
+  advances: a timer the reader started is content, not decoration.
+- **Completed tasks and completed requests are marked three ways** — strike,
+  status pill and `aria-pressed` — so the state survives greyscale, colour-blind
+  vision and a screen reader that never renders the glyph.
 
 ---
 
@@ -170,6 +224,7 @@ Every feature is additive, which is the contract `site.js` already keeps:
 | The area chips and filter    | Inert. No broken layout — they just do nothing.  |
 | Full-text search             | Falls back to the sidebar search in `site.js`.  |
 | Recent changes               | Panel keeps its link to the full changelog.      |
+| The interactive demo         | Hidden; a `.demo-nojs` paragraph points at the database and architecture pages instead. |
 
 The grid is written out in the HTML on purpose. It is the content, not a
 rendering of it.

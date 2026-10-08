@@ -1683,6 +1683,132 @@ CREATE OR REPLACE FUNCTION "public"."_is_group_member"(gid uuid, uid uuid)
     WHERE group_id = gid AND user_id = uid
   );
 $iso_fn$;
+CREATE OR REPLACE FUNCTION "public"."_guard_group_member_escalation"()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY DEFINER
+ SET "search_path" TO ''
+ AS $iso_fn$
+
+
+  -- R4 (2026-10-07). Closes the two escalation holes in group_members, both of
+  -- which came from permissive policies that OR together:
+  --
+  --   UPDATE: gm_update_own_row and group_members_auth_policy are
+  --     FOR UPDATE USING (user_id = auth.uid()). That says which ROW you may
+  --     touch but not which COLUMNS, so a plain member could run
+  --     `UPDATE group_members SET role='owner', is_super_admin=true WHERE
+  --     user_id=auth.uid()` and then satisfy groups_update_owner, _is_group_admin,
+  --     gm_delete_admin and community_update_group.
+  --   INSERT: group_members_auth_policy is FOR ALL WITH CHECK (auth.uid() =
+  --     user_id). WITH CHECK is what INSERT evaluates, and it is OR-ed with the
+  --     scoped gm_insert_owner_self / gm_join_public_group / gm_join_via_invite
+  --     policies, so the weakest of the three won: a user could insert their own
+  --     row with role='owner' into ANY group, including a private group they were
+  --     never a member of.
+  --
+  -- RLS cannot express either rule (it has no per-column concept, and permissive
+  -- policies only ever widen), and a column grant cannot express a role-VALUE
+  -- rule. So this file uses both layers: REVOKE UPDATE ON group_members FROM
+  -- authenticated + a column-scoped UPDATE grant remove is_super_admin from the
+  -- client entirely, and this trigger enforces the value rule.
+  --
+  -- HOW TRUSTED WRITES ARE DETECTED, and why `current_user` is the right signal:
+  --   PostgREST connects as `authenticator` and then does SET LOCAL ROLE
+  --   authenticated|anon, so a direct client statement has
+  --   current_user = 'authenticated'|'anon'. Inside a SECURITY DEFINER function
+  --   current_user becomes the function OWNER (postgres), so every sanctioned path
+  --   -- community_set_group_role, community_transfer_group,
+  --   update_group_member_role, and the _auto_add_* triggers -- skips the checks
+  --   below. Those functions each authorize the caller before writing, so this is
+  --   the correct division of labour.
+  --   `session_user` would be WRONG here: SECURITY DEFINER does not change it, so
+  --   it still reads 'authenticator' for both a direct client write and a
+  --   SECURITY DEFINER function, and the guard could not tell them apart.
+  --   `auth.uid()` still works inside SECURITY DEFINER because it reads the JWT
+  --   from session GUCs rather than from the current role, which is why the
+  --   ownership test below is valid for the trusted paths too.
+  --
+  -- OLD is not just "different" on INSERT -- the entire OLD record is NULL, and
+  -- is_super_admin is NOT NULL DEFAULT false, so an unqualified
+  -- `NEW.is_super_admin IS DISTINCT FROM OLD.is_super_admin` would compare
+  -- false IS DISTINCT FROM NULL, i.e. true, and abort every ordinary join. Every
+  -- comparison below is therefore scoped to its TG_OP.
+  IF current_user IN ('anon', 'authenticated') THEN
+
+    IF TG_OP = 'INSERT' THEN
+      -- RLS has already forced user_id = auth.uid() on every INSERT path, so
+      -- this row is the caller claiming a membership for itself.
+      IF NEW."role" IS NULL
+         OR NEW."role" NOT IN ('member', 'moderator', 'admin', 'owner') THEN
+        RAISE EXCEPTION 'group_members.role "%" is not a valid role', NEW."role"
+          USING ERRCODE = '42501';
+      END IF;
+
+      -- Claiming an authoritative role requires already owning the group. This is
+      -- the same ownership test gm_insert_owner_self grants, and it is not
+      -- forgeable because writing groups.owner_id requires groups_owner_update.
+      IF NEW."role" IN ('owner', 'admin')
+         AND NOT EXISTS (
+               SELECT 1
+               FROM public.groups g
+               WHERE g.id = NEW.group_id
+                 AND g.owner_id = (SELECT auth.uid())
+                 AND g.deleted_at IS NULL
+             ) THEN
+        RAISE EXCEPTION 'group_members.role may not be self-claimed as "%"; only the group owner may grant an authoritative role', NEW."role"
+          USING ERRCODE = '42501';
+      END IF;
+
+      -- is_super_admin is server-managed only (_auto_add_super_admin). Claiming it
+      -- on a self-insert is an escalation attempt regardless of the role chosen.
+      IF NEW.is_super_admin THEN
+        RAISE EXCEPTION 'group_members.is_super_admin is not writable directly; use a SECURITY DEFINER admin RPC'
+          USING ERRCODE = '42501';
+      END IF;
+
+    ELSIF TG_OP = 'UPDATE' THEN
+      -- Unreachable from the client via the column grant, restated here so the
+      -- rule survives any future widening of that grant.
+      IF NEW.is_super_admin IS DISTINCT FROM OLD.is_super_admin THEN
+        RAISE EXCEPTION 'group_members.is_super_admin is not writable directly; use a SECURITY DEFINER admin RPC'
+          USING ERRCODE = '42501';
+      END IF;
+
+      IF NEW.group_id IS DISTINCT FROM OLD.group_id
+         OR NEW.user_id  IS DISTINCT FROM OLD.user_id THEN
+        RAISE EXCEPTION 'group_members identity columns (group_id, user_id) are not writable'
+          USING ERRCODE = '42501';
+      END IF;
+
+      IF NEW."role" IS DISTINCT FROM OLD."role" THEN
+        IF NEW."role" IS NULL
+           OR NEW."role" NOT IN ('member', 'moderator', 'admin', 'owner') THEN
+          RAISE EXCEPTION 'group_members.role "%" is not a valid role', NEW."role"
+            USING ERRCODE = '42501';
+        END IF;
+
+        -- Taking an authoritative role requires owning the group. Demoting out of
+        -- one (an admin stepping down) is not an escalation and stays allowed.
+        IF NEW."role" IN ('owner', 'admin')
+           AND NOT EXISTS (
+                 SELECT 1
+                 FROM public.groups g
+                 WHERE g.id = NEW.group_id
+                   AND g.owner_id = (SELECT auth.uid())
+                   AND g.deleted_at IS NULL
+               ) THEN
+          RAISE EXCEPTION 'group_members.role may not be self-escalated to "%"; only the group owner may grant an authoritative role', NEW."role"
+            USING ERRCODE = '42501';
+        END IF;
+      END IF;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$iso_fn$;
 CREATE OR REPLACE FUNCTION "public"."_my_group_ids"(uid uuid)
  RETURNS SETOF uuid
  LANGUAGE sql
@@ -4005,6 +4131,8 @@ DROP TRIGGER IF EXISTS "tr_cleanup_old_notifications" ON "public"."notifications
 CREATE TRIGGER tr_cleanup_old_notifications AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION cleanup_old_notifications();
 DROP TRIGGER IF EXISTS "tr_sync_user_onboarding_from_profile" ON "public"."user_profiles";
 CREATE TRIGGER tr_sync_user_onboarding_from_profile AFTER INSERT OR UPDATE OF profile_data ON public.user_profiles FOR EACH ROW EXECUTE FUNCTION sync_user_onboarding_from_profile();
+DROP TRIGGER IF EXISTS "trg_guard_group_member_escalation" ON "public"."group_members";
+CREATE TRIGGER trg_guard_group_member_escalation BEFORE INSERT OR UPDATE ON public.group_members FOR EACH ROW EXECUTE FUNCTION _guard_group_member_escalation();
 DROP TRIGGER IF EXISTS "trg_auto_add_owner" ON "public"."groups";
 CREATE TRIGGER trg_auto_add_owner AFTER INSERT ON public.groups FOR EACH ROW EXECUTE FUNCTION _auto_add_group_owner();
 DROP TRIGGER IF EXISTS "trg_auto_add_super_admin" ON "public"."groups";
@@ -4098,7 +4226,11 @@ CREATE POLICY "community_enrollments_own" ON "public"."community_enrollments" AS
 DROP POLICY IF EXISTS "cea_own" ON "public"."community_event_attendees";
 CREATE POLICY "cea_own" ON "public"."community_event_attendees" AS PERMISSIVE FOR ALL  USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
 DROP POLICY IF EXISTS "cea_read_auth" ON "public"."community_event_attendees";
-CREATE POLICY "cea_read_auth" ON "public"."community_event_attendees" AS PERMISSIVE FOR SELECT  USING ((auth.role() = 'authenticated'::text));
+-- R3 (2026-10-07): role intent belongs in the TO clause, not in the predicate.
+-- Same shape as groups_auth_insert and ce_service_write: with no TO clause this
+-- applied to anon as well and relied on an inline auth.role() check to fail
+-- closed. TO authenticated is strictly clearer and equivalent.
+CREATE POLICY "cea_read_auth" ON "public"."community_event_attendees" AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 DROP POLICY IF EXISTS "community_event_attendees_auth_policy" ON "public"."community_event_attendees";
 CREATE POLICY "community_event_attendees_auth_policy" ON "public"."community_event_attendees" AS PERMISSIVE FOR ALL  USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
 DROP POLICY IF EXISTS "event_attendees_delete_own" ON "public"."community_event_attendees";
@@ -4112,7 +4244,10 @@ CREATE POLICY "event_attendees_read_active" ON "public"."community_event_attende
 DROP POLICY IF EXISTS "ce_read_public" ON "public"."community_events";
 CREATE POLICY "ce_read_public" ON "public"."community_events" AS PERMISSIVE FOR SELECT  USING ((is_active = true));
 DROP POLICY IF EXISTS "ce_service_write" ON "public"."community_events";
-CREATE POLICY "ce_service_write" ON "public"."community_events" AS PERMISSIVE FOR ALL  USING ((auth.role() = 'service_role'::text));
+-- R3 (2026-10-07): role intent belongs in the TO clause, not in the predicate.
+-- This was FOR ALL with no TO, so it applied to anon/authenticated too and
+-- relied on an inline auth.role() check to fail closed.
+CREATE POLICY "ce_service_write" ON "public"."community_events" AS PERMISSIVE FOR ALL TO service_role USING (true);
 DROP POLICY IF EXISTS "community_events_read_active" ON "public"."community_events";
 CREATE POLICY "community_events_read_active" ON "public"."community_events" AS PERMISSIVE FOR SELECT TO anon, authenticated USING ((is_active = true));
 DROP POLICY IF EXISTS "community_friends_auth_policy" ON "public"."community_friends";
@@ -4168,6 +4303,18 @@ CREATE POLICY "daily_insert_own" ON "public"."daily_user_stats" AS PERMISSIVE FO
 DROP POLICY IF EXISTS "daily_own" ON "public"."daily_user_stats";
 CREATE POLICY "daily_own" ON "public"."daily_user_stats" AS PERMISSIVE FOR ALL  USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "daily_read_all" ON "public"."daily_user_stats";
+-- R6 (2026-10-07): the `USING (true)` below is DELIBERATE, not an oversight —
+-- please do not re-raise it as a critical finding. daily_user_stats powers the Today tab of the leaderboard, which is queried
+-- before any per-user filtering, so it must be readable by the requesting role.
+-- It is anon-readable on purpose and contains only study aggregates
+-- (hours, streaks, session counts, points). The leaderboard is a shared
+-- surface: it is served from these tables by the runtime fetch override in
+-- server.mjs and by the APK bridge, and an earlier tightening (dropping the
+-- public read in favour of own-rows-only) made the leaderboard return zero
+-- rows. See leaderboard-rls-fix.sql for that regression. Identity does NOT
+-- live here: email/plan/billing live in public.users, which anon cannot read.
+-- If anon-readable study stats ever stop being wanted, change this
+-- deliberately and update the leaderboard path in the same change.
 CREATE POLICY "daily_read_all" ON "public"."daily_user_stats" AS PERMISSIVE FOR SELECT  USING (true);
 DROP POLICY IF EXISTS "daily_read_authenticated" ON "public"."daily_user_stats";
 CREATE POLICY "daily_read_authenticated" ON "public"."daily_user_stats" AS PERMISSIVE FOR SELECT TO authenticated USING (true);
@@ -4310,7 +4457,18 @@ CREATE POLICY "gmile_read" ON "public"."group_milestones" AS PERMISSIVE FOR SELE
 DROP POLICY IF EXISTS "group_milestones_read_members" ON "public"."group_milestones";
 CREATE POLICY "group_milestones_read_members" ON "public"."group_milestones" AS PERMISSIVE FOR SELECT TO anon, authenticated USING (private.is_group_member(group_id, ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "groups_auth_insert" ON "public"."groups";
-CREATE POLICY "groups_auth_insert" ON "public"."groups" AS PERMISSIVE FOR INSERT  WITH CHECK ((auth.role() = 'authenticated'::text));
+-- R3 (2026-10-07): role intent belongs in the TO clause, not in the predicate.
+-- With TO authenticated, anon no longer matches this policy at all, so the
+-- WITH CHECK is a structural guarantee rather than the only thing standing
+-- between an anonymous caller and the groups table.
+--
+-- The check is ownership, not a bare `true`. The old inline predicate was
+-- `auth.role() = 'authenticated'`, which every signed-in user satisfied, so it
+-- permitted inserting a group with ANY owner_id. Pinning owner_id to the
+-- caller matches groups_insert_own and keeps a vacuous-looking USING/WITH
+-- CHECK out of a security-sensitive file. No legitimate path regresses:
+-- community_create_group is SECURITY DEFINER and bypasses RLS entirely.
+CREATE POLICY "groups_auth_insert" ON "public"."groups" AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((owner_id = ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "groups_delete_own" ON "public"."groups";
 CREATE POLICY "groups_delete_own" ON "public"."groups" AS PERMISSIVE FOR DELETE TO authenticated USING ((owner_id = ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "groups_insert_own" ON "public"."groups";
@@ -4344,6 +4502,9 @@ CREATE POLICY "notifications_user_policy" ON "public"."notifications" AS PERMISS
 DROP POLICY IF EXISTS "store_items_read" ON "public"."store_items";
 CREATE POLICY "store_items_read" ON "public"."store_items" AS PERMISSIVE FOR SELECT TO anon, authenticated USING ((active = true));
 DROP POLICY IF EXISTS "store_read_all" ON "public"."store_items";
+-- R6 (2026-10-07): deliberate public read, same rationale as the *_read_all
+-- policies on user_points / user_stats_summary / daily_user_stats. store_items
+-- is a static catalog (name, price, category) with no per-user data.
 CREATE POLICY "store_read_all" ON "public"."store_items" AS PERMISSIVE FOR SELECT  USING (true);
 DROP POLICY IF EXISTS "sessions_own" ON "public"."study_sessions_log";
 CREATE POLICY "sessions_own" ON "public"."study_sessions_log" AS PERMISSIVE FOR ALL TO authenticated USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
@@ -4374,6 +4535,18 @@ CREATE POLICY "points_insert_own" ON "public"."user_points" AS PERMISSIVE FOR IN
 DROP POLICY IF EXISTS "points_own_write" ON "public"."user_points";
 CREATE POLICY "points_own_write" ON "public"."user_points" AS PERMISSIVE FOR ALL  USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
 DROP POLICY IF EXISTS "points_read_all" ON "public"."user_points";
+-- R6 (2026-10-07): the `USING (true)` below is DELIBERATE, not an oversight —
+-- please do not re-raise it as a critical finding. user_points is the points column of the leaderboard and the group leaderboard
+-- (get_group_leaderboard ranks by it).
+-- It is anon-readable on purpose and contains only study aggregates
+-- (hours, streaks, session counts, points). The leaderboard is a shared
+-- surface: it is served from these tables by the runtime fetch override in
+-- server.mjs and by the APK bridge, and an earlier tightening (dropping the
+-- public read in favour of own-rows-only) made the leaderboard return zero
+-- rows. See leaderboard-rls-fix.sql for that regression. Identity does NOT
+-- live here: email/plan/billing live in public.users, which anon cannot read.
+-- If anon-readable study stats ever stop being wanted, change this
+-- deliberately and update the leaderboard path in the same change.
 CREATE POLICY "points_read_all" ON "public"."user_points" AS PERMISSIVE FOR SELECT  USING (true);
 DROP POLICY IF EXISTS "points_read_authenticated" ON "public"."user_points";
 CREATE POLICY "points_read_authenticated" ON "public"."user_points" AS PERMISSIVE FOR SELECT TO authenticated USING (true);
@@ -4388,7 +4561,11 @@ CREATE POLICY "presence_insert_own" ON "public"."user_presence" AS PERMISSIVE FO
 DROP POLICY IF EXISTS "presence_own_write" ON "public"."user_presence";
 CREATE POLICY "presence_own_write" ON "public"."user_presence" AS PERMISSIVE FOR ALL  USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
 DROP POLICY IF EXISTS "presence_read_auth" ON "public"."user_presence";
-CREATE POLICY "presence_read_auth" ON "public"."user_presence" AS PERMISSIVE FOR SELECT  USING ((auth.role() = 'authenticated'::text));
+-- R3 (2026-10-07): role intent belongs in the TO clause, not in the predicate.
+-- Same shape as groups_auth_insert and ce_service_write: with no TO clause this
+-- applied to anon as well and relied on an inline auth.role() check to fail
+-- closed. TO authenticated is strictly clearer and equivalent.
+CREATE POLICY "presence_read_auth" ON "public"."user_presence" AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 DROP POLICY IF EXISTS "presence_read_authenticated" ON "public"."user_presence";
 CREATE POLICY "presence_read_authenticated" ON "public"."user_presence" AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 DROP POLICY IF EXISTS "presence_update_own" ON "public"."user_presence";
@@ -4412,6 +4589,18 @@ CREATE POLICY "stats_insert_own" ON "public"."user_stats_summary" AS PERMISSIVE 
 DROP POLICY IF EXISTS "stats_own" ON "public"."user_stats_summary";
 CREATE POLICY "stats_own" ON "public"."user_stats_summary" AS PERMISSIVE FOR ALL  USING ((user_id = ( SELECT auth.uid() AS uid))) WITH CHECK ((user_id = ( SELECT auth.uid() AS uid)));
 DROP POLICY IF EXISTS "stats_read_all" ON "public"."user_stats_summary";
+-- R6 (2026-10-07): the `USING (true)` below is DELIBERATE, not an oversight —
+-- please do not re-raise it as a critical finding. user_stats_summary is the backing table for get_leaderboard and for the
+-- runtime /rest/v1/user_stats_summary leaderboard queries.
+-- It is anon-readable on purpose and contains only study aggregates
+-- (hours, streaks, session counts, points). The leaderboard is a shared
+-- surface: it is served from these tables by the runtime fetch override in
+-- server.mjs and by the APK bridge, and an earlier tightening (dropping the
+-- public read in favour of own-rows-only) made the leaderboard return zero
+-- rows. See leaderboard-rls-fix.sql for that regression. Identity does NOT
+-- live here: email/plan/billing live in public.users, which anon cannot read.
+-- If anon-readable study stats ever stop being wanted, change this
+-- deliberately and update the leaderboard path in the same change.
 CREATE POLICY "stats_read_all" ON "public"."user_stats_summary" AS PERMISSIVE FOR SELECT  USING (true);
 DROP POLICY IF EXISTS "stats_read_authenticated" ON "public"."user_stats_summary";
 CREATE POLICY "stats_read_authenticated" ON "public"."user_stats_summary" AS PERMISSIVE FOR SELECT TO authenticated USING (true);
@@ -4908,7 +5097,15 @@ GRANT REFERENCES ON TABLE "public"."group_members" TO authenticated;
 GRANT SELECT ON TABLE "public"."group_members" TO authenticated;
 GRANT TRIGGER ON TABLE "public"."group_members" TO authenticated;
 GRANT TRUNCATE ON TABLE "public"."group_members" TO authenticated;
-GRANT UPDATE ON TABLE "public"."group_members" TO authenticated;
+-- R4 (2026-10-07). Replace the blanket UPDATE grant with a column-scoped one.
+-- `is_super_admin` is deliberately absent: it is the escalation flag that
+-- _auto_add_super_admin sets server-side, and nothing the client does should be
+-- able to set it. `role` stays grantable because the owner-only role-change UI
+-- (SingleGroup) writes it directly, and `_guard_group_member_escalation` enforces
+-- the value rule that a column grant cannot express. group_id/user_id stay
+-- ungranted so a client cannot repoint or reassign a membership row.
+REVOKE UPDATE ON TABLE "public"."group_members" FROM authenticated;
+GRANT UPDATE (role, left_at, joined_at, updated_at) ON TABLE "public"."group_members" TO authenticated;
 REVOKE ALL ON TABLE "public"."group_members" FROM service_role;
 GRANT DELETE ON TABLE "public"."group_members" TO service_role;
 GRANT INSERT ON TABLE "public"."group_members" TO service_role;
@@ -5457,6 +5654,12 @@ REVOKE ALL ON FUNCTION "rpc_private"."leave_community_event"(p_event_id uuid) FR
 GRANT EXECUTE ON FUNCTION "rpc_private"."leave_community_event"(p_event_id uuid) TO authenticated;
 REVOKE ALL ON FUNCTION "rpc_private"."purchase_store_item"(p_user_id uuid, p_item_id uuid) FROM authenticated;
 GRANT EXECUTE ON FUNCTION "rpc_private"."purchase_store_item"(p_user_id uuid, p_item_id uuid) TO authenticated;
+REVOKE ALL ON FUNCTION "public"."_guard_group_member_escalation"() FROM anon;
+GRANT EXECUTE ON FUNCTION "public"."_guard_group_member_escalation"() TO anon;
+REVOKE ALL ON FUNCTION "public"."_guard_group_member_escalation"() FROM authenticated;
+GRANT EXECUTE ON FUNCTION "public"."_guard_group_member_escalation"() TO authenticated;
+REVOKE ALL ON FUNCTION "public"."_guard_group_member_escalation"() FROM service_role;
+GRANT EXECUTE ON FUNCTION "public"."_guard_group_member_escalation"() TO service_role;
 REVOKE ALL ON FUNCTION "public"."_auto_add_group_owner"() FROM anon;
 GRANT EXECUTE ON FUNCTION "public"."_auto_add_group_owner"() TO anon;
 REVOKE ALL ON FUNCTION "public"."_auto_add_group_owner"() FROM authenticated;

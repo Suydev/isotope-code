@@ -1,13 +1,14 @@
 /* ============================================================================
    IsotopeAI Documentation — Dashboard behaviour
    ----------------------------------------------------------------------------
-   Three jobs, all progressive enhancement. Every one of them leaves the page
+   Four jobs, all progressive enhancement. Every one of them leaves the page
    fully usable when JavaScript does not run, which is the contract site.js
    already keeps:
 
      1. Browse    filter the 22-page grid by area toggle and free-text query
      2. Search    query assets/search-index.json for section-level hits
      3. Recent    parse changelog.html into the release cards
+     4. Demo      the interactive product walkthrough
 
    Kept separate from site.js on purpose. site.js is loaded by all 22 pages and
    assumes their exact shell; adding dashboard-only selectors to it would make
@@ -593,5 +594,737 @@
             'in the repository — it is the authoritative record.';
         }
       });
+  })();
+
+  /* ── 4. The interactive demo ──────────────────────────────────────────────
+     Five walkthroughs of the product, each with real controls and a live trace
+     of what the simulated code wrote.
+
+     ── The rule that shapes this whole module ─────────────────────────────────
+     There are two kinds of thing on screen and they must never be confused.
+
+       The STAGE is illustrative. Session lengths, subject names, group names,
+       avatar initials and member counts are invented so the panel has something
+       to show. Every one of them that a reader could mistake for a claim about
+       the shipped product carries a visible "sample" marker in the caption.
+
+       The TRACE is not illustrative. Every function name, table name, column
+       name, status value and branch in it was read out of isotope-complete.sql
+       or public/assets. That is what makes the demo worth more than a mockup:
+       if the trace and the SQL ever disagree, the SQL is right.
+
+     ── Why this fetches nothing ──────────────────────────────────────────────
+     The rest of this file fetches two same-origin files. This module fetches
+     nothing at all. A demo of an offline-first product that needs a network
+     round trip to demonstrate the offline-first product would be a joke, and it
+     would also make the section fail on a cold cache in exactly the case where
+     it is most likely to be opened.
+
+     ── State lives in one object ─────────────────────────────────────────────
+     All five panels read from and write to `S`. There is no per-panel closure
+     holding state, so Reset is a single assignment rather than five teardowns,
+     and the sync panel can honestly read a session the focus panel created. */
+  (function demo() {
+    var root = document.querySelector('[data-demo]');
+    if (!root) return;
+
+    /* ── Sample data ──────────────────────────────────────────────────────────
+       Declared once, here, so the boundary between invented and real is a
+       single readable place rather than a value sprinkled through five
+       functions. Anything in this block may appear on screen and is therefore
+       marked as sample in the caption of the panel that shows it. */
+    var SAMPLE = {
+      focusMinutes: 25,          // the app's default focus length
+      subject: 'Organic chemistry',
+      /* Starting totals, so the effect of a session is visible as a delta
+         rather than as a number growing out of nothing. */
+      base: {
+        total_study_seconds: 126000,   // 35h
+        total_hours: 35,
+        weekly_hours: 4.5,
+        session_count: 12,
+        total_sessions: 12
+      },
+      groups: [
+        { name: 'Organic chemistry · revision', policy: 'instant', members: [['RA', 'Ravi A.', 'member'], ['SM', 'Sara M.', 'member'], ['JO', 'Jonas O.', 'owner']] },
+        { name: 'Term 2 exam squad',            policy: 'request', members: [['PK', 'Priya K.', 'owner'], ['TA', 'Tom A.', 'member']] }
+      ],
+      userHandle: 'you',
+      syncDevice: 'device-local'
+    };
+
+    /* ── State ───────────────────────────────────────────────────────────────
+       One object, rebuilt by reset(). Derived values are recomputed rather than
+       incremented in two places, so a value cannot drift between the stage and
+       the trace. */
+    var S = null;
+
+    function freshState() {
+      return {
+        tab: 'focus',
+
+        /* focus */
+        phase: 'idle',            // idle | running | finished
+        elapsed: 0,               // seconds
+        sessionKey: 'demo-session-1',
+        processed: false,         // has this session id been counted already
+        summary: Object.assign({}, SAMPLE.base),
+
+        /* tasks */
+        tasks: [
+          { id: 't1', title: 'Past paper 2024 — thermodynamics', status: 'todo', priority: 'p2' },
+          { id: 't2', title: 'Flashcards: reaction mechanisms',     status: 'todo', priority: 'p3' }
+        ],
+
+        /* community */
+        joined: { instant: false, request: false },
+        requestState: 'none',     // none | pending | accepted
+        membersAdded: 0,
+
+        /* sync */
+        syncPhase: 'local',       // local | queued | reconciled | refused
+        queue: [],
+        cloudSnapshot: null
+      };
+    }
+
+    /* ── Small helpers ─────────────────────────────────────────────────────── */
+
+    function $(sel) { return root.querySelector(sel); }
+    function $$(sel) { return Array.prototype.slice.call(root.querySelectorAll(sel)); }
+
+    var timer = null;            // the one interval, owned by this module
+
+    function stopClock() {
+      if (timer) { clearInterval(timer); timer = null; }
+    }
+
+    function clock(secs) {
+      var m = Math.floor(Math.max(0, secs) / 60);
+      var s = Math.max(0, secs) % 60;
+      return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    function hhmm(h) {
+      var m = Math.floor(h * 60);
+      var hrs = Math.floor(m / 60);
+      var mm = m % 60;
+      return hrs + 'h ' + (mm < 10 ? '0' : '') + mm + 'm';
+    }
+
+    /* ── The trace ───────────────────────────────────────────────────────────
+       Append-only, and role="log" in the markup so a reader hears new lines
+       without focus being yanked off the control they just pressed.
+
+       Bounded: a log that grows forever is a memory leak on a docs page, and a
+       reader who has clicked through forty times does not want forty lines.
+       Capped at 40, dropping the oldest. */
+    function traceLine(kind, k, v) {
+      var list = $('[data-demo-log]');
+      if (!list) return;
+      var li = document.createElement('li');
+      li.className = 'demo-trace-line';
+      li.setAttribute('data-kind', kind);
+
+      var kEl = document.createElement('span');
+      kEl.className = 'demo-trace-k';
+      kEl.textContent = k;
+
+      var vEl = document.createElement('span');
+      vEl.className = 'demo-trace-v';
+      vEl.textContent = v;        // textContent, never innerHTML: these strings
+                                  // contain < and > (SQL, JSON) and are not markup.
+
+      li.appendChild(kEl);
+      li.appendChild(vEl);
+      list.appendChild(li);
+
+      while (list.children.length > 40) list.removeChild(list.firstChild);
+      list.scrollTop = list.scrollHeight;
+    }
+
+    /* ── Tabs ────────────────────────────────────────────────────────────────
+       A real tablist, so the full APG keyboard contract is implemented rather
+       than the pattern being implied: Left/Right (and Up/Down) move between
+       tabs and activate, Home/End jump to the ends. Activation is
+       automatic — there is no manual-activation mode here because each panel is
+       cheap to render and a reader who has tabbed across expects to land on it.
+
+       Arrow keys wrap, which is what the pattern specifies and what a reader
+       at the last tab would otherwise hit a wall on. */
+    var tabs = $$('.demo-tab');
+
+    function selectTab(id, focusIt) {
+      var target = null;
+      tabs.forEach(function (t) {
+        var on = t.id === id;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        // Roving tabindex: exactly one tab is in the tab order at a time, so
+        // Tab moves past the tablist rather than through all five.
+        t.setAttribute('tabindex', on ? '0' : '-1');
+        var p = document.getElementById(t.getAttribute('aria-controls'));
+        if (p) p.hidden = !on;
+        if (on) target = t;
+      });
+      if (target && focusIt) target.focus();
+      S.tab = id.replace('dt-', '');
+      count();
+    }
+
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { selectTab(t.id, false); });
+
+      t.addEventListener('keydown', function (e) {
+        var next = null;
+        switch (e.key) {
+          case 'ArrowRight': next = (i + 1) % tabs.length; break;
+          case 'ArrowLeft':  next = (i - 1 + tabs.length) % tabs.length; break;
+          case 'Home':       next = 0; break;
+          case 'End':        next = tabs.length - 1; break;
+          default: return;                       // let everything else pass
+        }
+        e.preventDefault();                       // stop the page scrolling
+        selectTab(tabs[next].id, true);
+      });
+    });
+
+    /* ── Counter ─────────────────────────────────────────────────────────────
+       "3 of 5 steps" in the toolbar. role="status" so switching tabs is
+       announced without moving focus off the tab the reader is holding. */
+    function count() {
+      var order = ['focus', 'tasks', 'syllabus', 'groups', 'sync'];
+      var el = $('[data-demo-count]');
+      if (!el) return;
+      var i = order.indexOf(S.tab);
+      // i is -1 only if a tab id and the order list ever disagree. Falling back
+      // to the first panel keeps the toolbar readable instead of throwing on a
+      // property of undefined, which would take the rest of the module with it.
+      if (i < 0) i = 0;
+      el.textContent = (i + 1) + ' of ' + order.length + ' steps · ' +
+        tabs[i].textContent.trim();
+    }
+
+    /* ══ Panel 1: focus timer ═══════════════════════════════════════════════
+       The core loop, and the only panel with something that runs on its own.
+
+       It runs because a reader pressed Start, and it stops on its own at the
+       session length. It is not an autoplaying loop: nothing on this page
+       moves unless asked to, which matters more here than anywhere else on a
+       docs page.
+
+       Under prefers-reduced-motion the interval still advances the clock,
+       because a countdown the reader started is content rather than
+       decoration — but each second is a discrete text update with no
+       transition to smooth away, which is what the setting is asking for. */
+    function renderFocus() {
+      var panel = document.getElementById('dp-focus');
+      if (!panel) return;
+      var el = panel.querySelector('[data-demo-clock]');
+      var fill = panel.querySelector('[data-demo-fill]');
+      var primary = panel.querySelector('[data-demo-primary]');
+      var secondary = panel.querySelector('[data-demo-secondary]');
+      if (!el) return;
+
+      var total = SAMPLE.focusMinutes * 60;
+      el.textContent = clock(S.phase === 'idle' ? total : S.elapsed);
+      el.setAttribute('data-state', S.phase);
+
+      /* The bar is aria-hidden and purely decorative: the same number is in the
+         text above it and in the announcement, so nothing is lost if it never
+         renders. */
+      if (fill) {
+        fill.style.width = (Math.min(1, S.elapsed / total) * 100).toFixed(1) + '%';
+      }
+
+      if (primary) {
+        /* The finished label names what the button actually does rather than
+           promising a second session. Pressing it re-submits the SAME session
+           id — the retry a dropped request would produce — which the RPC
+           rejects as already_processed. A label reading "Run it again" here
+           would be a control that looks like it adds an hour and does not. */
+        primary.textContent = S.phase === 'idle' ? 'Start'
+                           : S.phase === 'running' ? 'Finish now'
+                           : 'Retry finish (same id)';
+        primary.disabled = false;
+      }
+      if (secondary) {
+        secondary.textContent = S.phase === 'finished' ? 'New session' : 'Reset';
+        secondary.disabled = S.phase === 'idle';
+      }
+    }
+
+    function startFocus() {
+      stopClock();
+      S.phase = 'running';
+      traceLine('write', 'INSERT', 'focus_sessions (local) — ' + SAMPLE.subject);
+      traceLine('info', 'state', 'running · ' + SAMPLE.focusMinutes + ' min');
+      renderFocus();
+
+      timer = setInterval(function () {
+        S.elapsed++;
+        renderFocus();
+        if (S.elapsed >= SAMPLE.focusMinutes * 60) { stopClock(); finishFocus('completed'); }
+      }, 1000);
+    }
+
+    /* The completion path, and the one that has to be exactly right.
+
+       finish_session_sync derives started_at from ended_at minus the duration,
+       inserts the log row with ON CONFLICT (id) DO NOTHING, and returns
+       already_processed:true without touching any counter when that insert
+       matched nothing. The totals are therefore keyed on the session id, not on
+       "did the user press the button" — pressing it twice must not double the
+       hours, and this panel shows that by letting you press it again. */
+    function finishFocus(reason) {
+      S.phase = 'finished';
+      var mins = SAMPLE.focusMinutes;
+      var secs = mins * 60;
+      var hrs = Math.round(mins / 60 * 100) / 100;
+
+      if (S.processed) {
+        traceLine('write', 'ON CONFLICT', 'row_count = 0 — already_processed: true');
+        traceLine('policy', 'result', 'totals unchanged (idempotent by session id)');
+        renderFocus();
+        return;
+      }
+
+      S.processed = true;
+
+      traceLine('write', 'INSERT', 'study_sessions_log (' + mins + ' min, subject=' + SAMPLE.subject + ')');
+      S.summary.total_study_seconds += secs;
+      S.summary.total_hours = Math.round((S.summary.total_study_seconds / 3600) * 100) / 100;
+      S.summary.weekly_hours = Math.round((S.summary.weekly_hours + hrs) * 100) / 100;
+      S.summary.session_count += 1;
+      S.summary.total_sessions += 1;
+
+      traceLine('write', 'UPSERT', 'daily_user_stats.seconds_studied += ' + secs);
+      traceLine('write', 'UPSERT', 'user_stats_summary.session_count += 1');
+      traceLine('info', 'result', reason + ' — total_study_seconds = ' + S.summary.total_study_seconds);
+
+      /* Queued for the sync panel. The queue is real in the sense that matters
+         here: the row is written locally and reconciled later, which is exactly
+         what architecture.html documents for focus sessions. */
+      S.queue.push('focus_session · ' + mins + ' min');
+      if (S.syncPhase === 'local') S.syncPhase = 'queued';
+
+      renderFocus();
+      renderStats();
+      renderSync();
+    }
+
+    /* The stats readout, rebuilt from state each time rather than mutated in
+       place — so the panel can never show a number the totals do not support. */
+    function renderStats() {
+      var dl = $('[data-demo-stats]');
+      if (!dl) return;
+
+      var rows = [
+        ['total_study_seconds', String(S.summary.total_study_seconds)],
+        ['total_hours',         String(S.summary.total_hours)],
+        ['weekly_hours',        String(S.summary.weekly_hours)],
+        ['session_count',       String(S.summary.session_count)],
+        ['last_study_date',     S.processed ? 'today' : '—']
+      ];
+
+      dl.textContent = '';
+      rows.forEach(function (r) {
+        var wrap = document.createElement('div');
+        wrap.className = 'demo-stat';
+        if (S.processed) wrap.setAttribute('data-changed', 'true');
+
+        var dt = document.createElement('dt');
+        dt.textContent = r[0];
+        var dd = document.createElement('dd');
+        dd.textContent = r[1];
+
+        wrap.appendChild(dt);
+        wrap.appendChild(dd);
+        dl.appendChild(wrap);
+      });
+    }
+
+    /* ══ Panel 2: tasks ════════════════════════════════════════════════════
+       Create and complete. The status values are the ones in the bundle:
+       tasks.status defaults to 'pending' in the schema, and the app writes
+       'todo' on create and 'done' on completion. */
+
+    var taskSeq = 3;
+
+    function renderTasks() {
+      var ul = $('[data-demo-tasks]');
+      if (!ul) return;
+
+      ul.textContent = '';
+      // aria-live is on the list so an added or completed task is announced.
+      ul.setAttribute('data-empty', S.tasks.length ? 'false' : 'true');
+
+      S.tasks.forEach(function (t) {
+        var li = document.createElement('li');
+        li.className = 'demo-row';
+        li.setAttribute('data-done', t.status === 'done' ? 'true' : 'false');
+
+        var main = document.createElement('div');
+        main.className = 'demo-row-main';
+
+        var title = document.createElement('p');
+        title.className = 'demo-row-title';
+        title.textContent = t.title;
+
+        var meta = document.createElement('p');
+        meta.className = 'demo-row-meta';
+        meta.textContent = 'status: ' + t.status + ' · priority: ' + t.priority;
+
+        main.appendChild(title);
+        main.appendChild(meta);
+        li.appendChild(main);
+
+        if (t.status !== 'done') {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'demo-row-btn';
+          btn.setAttribute('aria-pressed', 'false');
+          // The label names the task, so a reader tabbing the list hears which
+          // one they are about to complete rather than "Complete, Complete".
+          btn.setAttribute('aria-label', 'Mark “' + t.title + '” complete');
+          btn.textContent = 'Complete';
+          btn.addEventListener('click', function () { completeTask(t.id); });
+          li.appendChild(btn);
+        } else {
+          var done = document.createElement('span');
+          done.className = 'pill get';
+          done.textContent = 'done';
+          li.appendChild(done);
+        }
+
+        ul.appendChild(li);
+      });
+    }
+
+    function completeTask(id) {
+      var t = S.tasks.filter(function (x) { return x.id === id; })[0];
+      if (!t || t.status === 'done') return;
+      t.status = 'done';
+      t.completed_at = 'now()';
+      t.completed_in_session = true;
+
+      traceLine('write', 'UPDATE', 'tasks.status = done · completed_at = now()');
+      traceLine('info', 'index', 'tasks.completed_in_session = true');
+      renderTasks();
+    }
+
+    var form = $('[data-demo-task-form]');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var input = $('#demo-task-title');
+        var title = input.value.trim();
+        if (!title) { input.focus(); return; }     // no-op rather than empty row
+
+        S.tasks.push({
+          id: 't' + (taskSeq++),
+          title: title,
+          status: 'todo',
+          priority: 'p3'
+        });
+        traceLine('write', 'INSERT', 'tasks (status=todo, priority=p3)');
+        input.value = '';
+        renderTasks();
+        input.focus();
+      });
+    }
+
+    /* ══ Panel 3: syllabus ════════════════════════════════════════════════
+       Deliberately has no controls. The chunk list is the shipped one — nine
+       lazily-imported bundles — and there is nothing honest a reader could do
+       to it. A panel with a fake button on it would teach the reader that the
+       controls on the other four panels are decorative, which would cost the
+       whole section its credibility. */
+
+    /* ══ Panel 4: study groups ═════════════════════════════════════════════
+       The join-request model, in the shape the RLS policies actually permit.
+
+       community_join_group reads groups.join_policy. 'open' or 'instant'
+       writes group_members immediately. Anything else — and the column defaults
+       to 'request' — writes a pending community_join_requests row instead and
+       returns {status:'requested'}. Only an owner or coowner may then answer,
+       which is the check community_respond_join_request performs before it
+       updates anything. */
+    function renderGroups() {
+      var ul = $('[data-demo-groups]');
+      if (!ul) return;
+      ul.textContent = '';
+
+      SAMPLE.groups.forEach(function (g, i) {
+        var key = i === 0 ? 'instant' : 'request';
+        var li = document.createElement('li');
+        li.className = 'demo-group';
+
+        var head = document.createElement('div');
+        head.className = 'demo-group-head';
+
+        var name = document.createElement('p');
+        name.className = 'demo-group-name';
+        name.textContent = g.name;
+
+        var pill = document.createElement('span');
+        pill.className = 'pill neutral';
+        pill.textContent = 'join_policy: ' + g.policy;
+
+        head.appendChild(name);
+        head.appendChild(pill);
+        li.appendChild(head);
+
+        var members = document.createElement('div');
+        members.className = 'demo-group-body';
+
+        var ul2 = document.createElement('ul');
+        ul2.className = 'demo-members';
+        // One extra member once the demo's user has actually joined, so the
+        // member list and the table agree with each other.
+        var rows = g.members.slice();
+        if (S.joined[key]) rows.push(['YO', 'You', S.requestState === 'accepted' ? 'member' : 'member']);
+
+        rows.forEach(function (m) {
+          var mi = document.createElement('li');
+          mi.className = 'demo-member';
+          mi.setAttribute('data-role', m[2]);
+
+          var av = document.createElement('span');
+          av.className = 'demo-member-avatar';
+          av.setAttribute('aria-hidden', 'true');   // the name beside it is the content
+          av.textContent = m[0];
+
+          var nm = document.createElement('span');
+          nm.textContent = m[1] + ' · ' + m[2];
+
+          mi.appendChild(av);
+          mi.appendChild(nm);
+          ul2.appendChild(mi);
+        });
+        members.appendChild(ul2);
+        li.appendChild(members);
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'demo-btn';
+        btn.style.marginTop = 'var(--s-3)';
+        btn.style.display = 'block';
+
+        if (key === 'instant') {
+          if (S.joined.instant) {
+            btn.setAttribute('aria-pressed', 'true');
+            btn.textContent = 'Joined';
+            btn.disabled = true;
+          } else {
+            btn.textContent = 'Join group';
+            btn.setAttribute('aria-label', 'Join ' + g.name);
+            btn.addEventListener('click', function () {
+              S.joined.instant = true;
+              traceLine('write', 'INSERT', 'group_members (role=member, joined_at=now())');
+              traceLine('info', 'return', '{ status: "joined" }');
+              traceLine('policy', 'branch', "join_policy = 'instant' → member written directly");
+              renderGroups();
+            });
+          }
+        } else {
+          if (S.requestState === 'pending') {
+            btn.disabled = true;
+            btn.textContent = 'Request pending…';
+          } else if (S.requestState === 'accepted') {
+            btn.setAttribute('aria-pressed', 'true');
+            btn.textContent = 'In group';
+            btn.disabled = true;
+          } else {
+            btn.textContent = 'Request to join';
+            btn.setAttribute('aria-label', 'Request to join ' + g.name);
+            btn.addEventListener('click', function () {
+              S.requestState = 'pending';
+              S.joined.request = true;
+              traceLine('write', 'INSERT', 'community_join_requests (status=pending)');
+              traceLine('policy', 'branch', "join_policy = 'request' → owner must approve");
+              traceLine('info', 'return', '{ status: "requested" }');
+              renderGroups();
+            });
+          }
+        }
+        li.appendChild(btn);
+
+        /* The approve control only exists once a request is pending, and it is
+           the owner's action — the RPC refuses anyone whose role is not owner or
+           coowner, and the demo shows the refusal as well as the success. */
+        if (key === 'request' && S.requestState === 'pending') {
+          var approve = document.createElement('button');
+          approve.type = 'button';
+          approve.className = 'demo-btn';
+          approve.setAttribute('data-variant', 'primary');
+          approve.style.marginTop = 'var(--s-2)';
+          approve.style.display = 'block';
+          approve.textContent = 'Owner: approve request';
+          approve.setAttribute('aria-label', 'Owner approves the pending request for ' + g.name);
+          approve.addEventListener('click', function () {
+            S.requestState = 'accepted';
+            traceLine('policy', 'check', 'role IN (owner, coowner) → allowed');
+            traceLine('write', 'UPDATE', 'community_join_requests.status = accepted');
+            traceLine('write', 'INSERT', 'group_members (role=member, joined_at=now())');
+            renderGroups();
+          });
+          li.appendChild(approve);
+        }
+
+        ul.appendChild(li);
+      });
+    }
+
+    /* ══ Panel 5: sync ═════════════════════════════════════════════════════
+       Three lanes, and the interesting one is the third.
+
+       The comparison ladder evaluates richness BEFORE recency: a fresh install
+       produces an empty snapshot that is newer than everything the user has,
+       and last-write-wins would hand that empty snapshot the database. Step two
+       of the ladder refuses it. The "fresh install" button exists to make that
+       concrete rather than to assert it. */
+    function renderSync() {
+      var ul = $('[data-demo-lanes]');
+      if (!ul) return;
+      ul.textContent = '';
+
+      var lanes = [
+        { key: 'local',      name: 'This device',     rows: S.summary.session_count + ' session' + (S.summary.session_count === 1 ? '' : 's') + ' · ' + hhmm(S.summary.total_hours) },
+        { key: 'queued',     name: 'Pending sync',    rows: S.queue.length ? S.queue.length + ' row' + (S.queue.length === 1 ? '' : 's') + ' waiting' : 'nothing waiting' },
+        { key: 'reconciled', name: 'Supabase',        rows: S.syncPhase === 'reconciled' ? 'reconciled · ' + S.queue.length + ' row' + (S.queue.length === 1 ? '' : 's') : 'not connected in this demo' }
+      ];
+
+      lanes.forEach(function (l) {
+        var li = document.createElement('li');
+        li.className = 'demo-lane';
+        li.setAttribute('data-active', S.syncPhase === l.key ? 'true' : 'false');
+        li.setAttribute('data-done', (l.key === 'reconciled' && S.syncPhase === 'reconciled') ? 'true' : 'false');
+
+        var body = document.createElement('div');
+        body.className = 'demo-lane-body';
+
+        var name = document.createElement('p');
+        name.className = 'demo-lane-name';
+        name.textContent = l.name;
+
+        var rows = document.createElement('p');
+        rows.className = 'demo-lane-rows';
+        rows.textContent = l.rows;
+
+        body.appendChild(name);
+        body.appendChild(rows);
+        li.appendChild(body);
+
+        if (l.key === 'reconciled' && S.syncPhase === 'reconciled') {
+          var pill = document.createElement('span');
+          pill.className = 'pill get';
+          pill.textContent = 'synced';
+          li.appendChild(pill);
+        }
+        if (S.syncPhase === 'refused' && l.key === 'reconciled') {
+          var warn = document.createElement('span');
+          warn.className = 'pill patch';
+          warn.textContent = 'refused';
+          li.appendChild(warn);
+        }
+
+        ul.appendChild(li);
+      });
+    }
+
+    /* Online: reconcile the queue, exactly what the app does when it regains a
+       connection. The RPC is idempotent, so a retry is safe — which is what
+       makes the "Finish now" path above safe to press twice. */
+    function doSync() {
+      if (!S.queue.length) {
+        traceLine('info', 'sync', 'nothing queued — run a focus session first');
+        return;
+      }
+      S.syncPhase = 'reconciled';
+      traceLine('write', 'RPC', 'finish_session_sync × ' + S.queue.length);
+      traceLine('write', 'UPSERT', 'daily_user_stats.seconds_studied');
+      traceLine('info', 'result', 'reconciled · local totals match cloud');
+      renderSync();
+    }
+
+    /* The empty-snapshot case. Deliberately shows the refusal rather than a
+       success, because that is the behaviour the ladder exists to produce. */
+    function freshInstall() {
+      S.cloudSnapshot = { rich: false, at: 'now' };
+      traceLine('policy', 'compare', 'cloud snapshot: empty, newer → richness wins');
+      traceLine('policy', 'ladder', 'step 2 · rich beats empty → local kept');
+      traceLine('info', 'result', 'empty snapshot discarded; no data lost');
+      S.syncPhase = 'refused';
+      renderSync();
+    }
+
+    /* ── Wiring the two unnamed buttons in each panel ────────────────────────
+       The markup gives each panel a primary and a secondary control without
+       hardcoding their meaning, so the behaviour lives in one place per panel
+       rather than being duplicated across five handlers. */
+    function wirePanel(panelId, onPrimary, onSecondary) {
+      var panel = document.getElementById(panelId);
+      if (!panel) return;
+      var p = panel.querySelector('[data-demo-primary]');
+      var s = panel.querySelector('[data-demo-secondary]');
+      if (p && onPrimary) p.addEventListener('click', onPrimary);
+      if (s && onSecondary) s.addEventListener('click', onSecondary);
+    }
+
+    /* ── Reset ───────────────────────────────────────────────────────────────
+       Stops the clock first. Leaving an interval running after a reset is how a
+       demo page ends up eating battery on a phone that was left open on the
+       tab — the one resource a reader will not think to go and save. */
+    function reset(quiet) {
+      stopClock();
+      S = freshState();
+      taskSeq = 3;
+      renderAll();
+      // Quiet on first paint: logging "restored" into a log that was never
+      // disturbed reads as though something had just been thrown away.
+      if (!quiet) traceLine('info', 'reset', 'sample data restored');
+    }
+
+    function renderAll() {
+      selectTab('dt-focus', false);
+      renderFocus();
+      renderStats();
+      renderTasks();
+      renderGroups();
+      renderSync();
+    }
+
+    /* ── Boot ────────────────────────────────────────────────────────────────*/
+
+    wirePanel('dp-focus',
+      function () {
+        if (S.phase === 'idle') startFocus();
+        else if (S.phase === 'running') finishFocus('completed');
+        // Finished: re-submit the SAME session id, which is the retry a dropped
+        // request would produce. The RPC's ON CONFLICT (id) DO NOTHING makes it
+        // a no-op — and the panel shows that rather than pretending to add time.
+        else finishFocus('retried');
+      },
+      function () {
+        stopClock();
+        S.phase = 'idle';
+        S.elapsed = 0;
+        S.processed = false;      // a genuinely new session gets a new id
+        renderFocus();
+        traceLine('info', 'state', 'cleared — next run gets a fresh session id');
+      }
+    );
+
+    wirePanel('dp-sync', doSync, freshInstall);
+
+    var resetBtn = $('[data-demo-reset]');
+    if (resetBtn) resetBtn.addEventListener('click', function () { reset(false); });
+
+    reset(true);
+
+    /* The timer is the only thing on this page that can still be running when a
+       reader navigates away. Stop it on unload so a background tab does not sit
+       on an interval forever. */
+    window.addEventListener('pagehide', stopClock);
   })();
 })();
