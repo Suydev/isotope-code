@@ -84,6 +84,8 @@ const PATCHERS = [
   ['app', 'APP_BUNDLE_ABS', 'getPatchedAppBundle'],
   ['notifstore', 'NOTIF_STORE_ABS', 'getPatchedNotifStore'],
   ['authbridge', 'AUTH_BRIDGE_ABS', 'getPatchedAuthBridge'],
+  ['aistore', 'AI_STORE_ABS', 'getPatchedAiStore'],
+  ['welcometeaser', 'WELCOME_TEASER_BUNDLE_ABS', 'getPatchedWelcomeTeaserBundle'],
 ];
 
 // One load-bearing anchor per patcher that must escalate when it misses.
@@ -122,6 +124,12 @@ const MUTATIONS = [
     'const Ve=[{id:"overview",label:"Overview"},{id:"buddies",label:"Buddies"},{id:"groups",label:"Groups"},{id:"discover",label:"Discover"}],', 'getPatchedCommunityBundle'],
   ['community-leaderboard-render', 'assets/Community-CEnEgsrd.js', 'patchedCommunityBundle',
     'er:()=>a("discover"),onNotice:f}):e.jsx(ss,{filters:k', 'getPatchedCommunityBundle'],
+  // Auth bridge: a missed anchor serves the shipped file, whose fallback
+  // credentials point at the UPSTREAM Supabase project, not this install's.
+  ['authbridge-fallback-creds', 'auth-bridge.js', 'patchedAuthBridge',
+    "var DEFAULT_SUPA_URL = 'https://vteqquoqvksshmfhuepu.supabase.co';", 'getPatchedAuthBridge'],
+  ['focus-audio-url', 'assets/Focus-B4gLsWoP.js', 'patchedFocusBundle',
+    'https://raw.githubusercontent.com/cookiecaker/Rain-World-Sounds/main/Ambient%20Sounds/AM_R', 'getPatchedFocusBundle'],
 ];
 
 // ── Pass 1: happy path ───────────────────────────────────────────────────────

@@ -4448,10 +4448,22 @@ function getPatchedAiStore() {
   if (patchedAiStore) return patchedAiStore;
   try {
     const raw = fs.readFileSync(AI_STORE_ABS, 'utf8');
-    patchedAiStore = Buffer.from(
-      raw.includes(AI_PATCH_FROM) ? raw.replace(AI_PATCH_FROM, AI_PATCH_TO) : raw, 'utf8'
-    );
-  } catch { patchedAiStore = null; }
+    // This used to fall back to the unmodified bundle with no signal at all --
+    // not even a console.warn. The patch is what lets the app read a Gemini /
+    // Groq key injected at runtime; without it every AI feature falls back to
+    // asking the user for their own key, which looks like intended behaviour.
+    if (!raw.includes(AI_PATCH_FROM)) {
+      console.warn('[AiStorePatch] getApiKey anchor not found — runtime key injection disabled');
+      noteAnchorMiss('aistore-runtime-key');
+      patchedAiStore = Buffer.from(raw, 'utf8');
+      return patchedAiStore;
+    }
+    patchedAiStore = Buffer.from(raw.replace(AI_PATCH_FROM, AI_PATCH_TO), 'utf8');
+  } catch (e) {
+    console.warn('[AiStorePatch] read failed:', e && e.message);
+    noteAnchorMiss('aistore-read-failed');
+    patchedAiStore = null;
+  }
   return patchedAiStore;
 }
 
@@ -4528,13 +4540,28 @@ const PWA_MANAGER_BUNDLE_ABS   = path.join(PUBLIC_DIR, 'assets', 'usePWA-BOujtGO
 const WELCOME_TEASER_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'WelcomeTeaser-C6jfNmJc.js');
 const TEASER_HEADLINE_FROM = 'text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tighter text-white relative z-10 leading-none";style:{textShadow:"0 0 60px rgba(255,255,255,0.3)",whiteSpace:"nowrap"';
 const TEASER_HEADLINE_TO   = 'text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white relative z-10 leading-none";style:{textShadow:"0 0 60px rgba(255,255,255,0.3)",whiteSpace:"nowrap",maxWidth:"92vw"';
+// The substring TEASER_HEADLINE_TO introduces. Its presence means the fix is
+// already in the shipped bytes, so a missed anchor is an obsolete patch rather
+// than a regression.
+const TEASER_HEADLINE_FIXED_MARKER = 'whiteSpace:"nowrap",maxWidth:"92vw"';
 let patchedWelcomeTeaserBundle = null;
 function getPatchedWelcomeTeaserBundle() {
   if (patchedWelcomeTeaserBundle) return patchedWelcomeTeaserBundle;
   try {
     const raw = fs.readFileSync(WELCOME_TEASER_BUNDLE_ABS, 'utf8');
     if (!raw.includes(TEASER_HEADLINE_FROM)) {
-      console.warn('[TeaserPatch] headline anchor not found in WelcomeTeaser bundle');
+      // Two very different causes, previously indistinguishable. If the bundle
+      // already carries the fixed classes the patch is simply OBSOLETE (the
+      // fix was baked into the shipped asset) and returning null is correct.
+      // Otherwise the anchor moved and the narrow-phone clipping is BACK, so
+      // escalate instead of returning null and letting it serve unpatched.
+      if (raw.includes(TEASER_HEADLINE_FIXED_MARKER)) {
+        console.log('[TeaserPatch] no-op — headline fix already baked into the shipped bundle');
+        patchedWelcomeTeaserBundle = Buffer.from(raw, 'utf8');
+        return patchedWelcomeTeaserBundle;
+      }
+      console.warn('[TeaserPatch] headline anchor not found — narrow-phone clipping is NOT patched');
+      noteAnchorMiss('teaser-headline-nowrap');
       return null;
     }
     patchedWelcomeTeaserBundle = Buffer.from(raw.replace(TEASER_HEADLINE_FROM, TEASER_HEADLINE_TO), 'utf8');
@@ -5838,7 +5865,14 @@ function getPatchedFocusBundle() {
     let raw = fs.readFileSync(FOCUS_BUNDLE_ABS, 'utf8');
     for (const [from, to] of URL_PATCHES) {
       if (raw.includes(from)) raw = raw.split(from).join(to);
-      else console.warn('[FocusPatch] String not found:', from.slice(0, 60));
+      else {
+        // These rewrite remote ambient-audio URLs and route the background-image
+        // prompt/alert through server-supplied hooks. A miss is a silent no-op:
+        // the patcher still returns a buffer, so nothing distinguishes a partially
+        // patched Focus chunk from a fully patched one.
+        console.warn('[FocusPatch] String not found:', from.slice(0, 60));
+        noteAnchorMiss('focus-anchor-' + from.slice(0, 30).toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+      }
     }
     if (!raw.includes('__pipBridge')) raw = raw + PIP_BRIDGE_JS;
     // AMBIENT_SHIM must precede the bundle: the component calls it during the
