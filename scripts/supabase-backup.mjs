@@ -654,8 +654,48 @@ async function backup(args, env) {
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname in (${schemaList})
     order by 1, 2, 3`)).map((r) => `${r.schema}.${r.tbl}.${r.name}`);
+  // ── grants ──────────────────────────────────────────────────────────────────
+  // The one class nothing has ever verified. verify() checks tables, row
+  // counts, auth.users, identities, bucket/object counts, routines, triggers,
+  // policies, the signup trigger and orphans — and never a single privilege.
+  // So a target with every table, every function, every policy and ZERO grants
+  // passes 96/96, and the app fails at runtime with permission_denied on every
+  // RPC. This is not hypothetical: a prevSig dedupe bug in schema-dump.mjs
+  // silently dropped 154 function grants, and nothing in the pipeline noticed.
+  //
+  // `aclexplode` returns ONE ROW PER (object, grantee), which is why the old
+  // dump-side dedupe on signature alone kept only the alphabetically-first
+  // grantee. Keying on (object, grantee) here mirrors the corrected emit path.
+  //
+  // PUBLIC is included deliberately even though the dump emits no
+  // `REVOKE ... FROM PUBLIC`: Postgres grants EXECUTE to PUBLIC on every new
+  // function by default, so a target that was never explicitly revoked still
+  // holds it. Recording it makes the permissive default VISIBLE to verify
+  // instead of invisible because the dump cannot express it.
+  const grantRows = await sql.query(`
+    select n.nspname as schema, c.relname as obj, 'table' as kind,
+           coalesce(r.role, 'PUBLIC') as grantee, a.privilege_type as priv
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    cross join lateral aclexplode(c.relacl) a
+    left join pg_roles r on r.oid = a.grantee
+    where n.nspname in (${schemaList}) and c.relkind in ('r','p','S')
+    union all
+    select n.nspname as schema, p.proname as obj, 'function' as kind,
+           coalesce(r.role, 'PUBLIC') as grantee, a.privilege_type as priv
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    cross join lateral aclexplode(p.proacl) a
+    left join pg_roles r on r.oid = a.grantee
+    where n.nspname in (${schemaList})
+    order by 1, 2, 3, 4, 5`);
+  manifest.grants = grantRows.map((r) => `${r.schema}.${r.kind}:${r.obj}:${r.grantee}:${r.priv}`);
+  // Old manifests have no `grants` key. Absent is NOT the same as empty, so the
+  // verify side must distinguish "cannot check" from "checked, found none".
+  manifest.grants_inventory = true;
   console.log(`[backup] code: ${manifest.routines.length} routines, ` +
-    `${manifest.triggers.length} triggers, ${manifest.policies.length} policies`);
+    `${manifest.triggers.length} triggers, ${manifest.policies.length} policies, ` +
+    `${manifest.grants.length} grants`);
 
   // storage buckets + objects
   if (!args['no-storage']) {
@@ -1208,22 +1248,57 @@ async function restore(args, env) {
   }
   emit({ phase: 'data', state: 'done', done: order.length, total: order.length, failed: tablesFailed });
 
+  // Declared before the phases that assign them and before the fatal gate that
+  // reads them. `seqFailed++` runs inside the sequence loop immediately below,
+  // so a declaration after that loop is a temporal-dead-zone error at runtime.
+  let storageFailed = 0;
+  let seqFailed = 0, seqChecked = 0;
+
   // 4. advance sequences
+  //
+  // `info.columns.find(c => /id$/.test(c.name))` picked the FIRST column whose
+  // name ends in "id" — which is very often a FOREIGN key (`group_id`,
+  // `author_id`, `user_id`), not the primary key. On such a table
+  // pg_get_serial_sequence returns NULL, the loop `continue`s or falls through,
+  // and the real PK sequence is never advanced. The first application INSERT
+  // after a restore then collides with the restored max id, and the user sees a
+  // duplicate-key error at write time — long after the restore reported DONE.
+  //
+  // Prefer a column named exactly `id`, else the declared primary key, else the
+  // first column that actually HAS a serial sequence. And report failures rather
+  // than swallowing them: `catch {}` hid every one of these.
   for (const info of manifest.tables) {
-    const idCol = info.columns.find((c) => /id$/.test(c.name));
-    if (!idCol) continue;
-    try {
-      const seq = await sql.query(`select pg_get_serial_sequence('"${info.schema}"."${info.table}"', '${idCol.name}') as seq`);
-      if (seq[0] && seq[0].seq) {
-        await sql.query(`select setval('${seq[0].seq.replace(/'/g, "''")}', coalesce((select max("${idCol.name}") from "${info.schema}"."${info.table}"), 1), (select max("${idCol.name}") from "${info.schema}"."${info.table}") is not null)`);
+    const exact = info.columns.find((c) => c.name === 'id');
+    const pkCols = (info.columns || []).map((c) => c.name);
+    const candidates = exact
+      ? [exact.name]
+      : [info.primary_key, ...pkCols].filter(Boolean);
+    let advanced = false;
+    for (const colName of [...new Set(candidates)]) {
+      try {
+        const seq = await sql.query(`select pg_get_serial_sequence('"${info.schema}"."${info.table}"', '${colName.replace(/'/g, "''")}') as seq`);
+        if (seq[0] && seq[0].seq) {
+          await sql.query(`select setval('${seq[0].seq.replace(/'/g, "''")}', coalesce((select max("${colName}") from "${info.schema}"."${info.table}"), 1), (select max("${colName}") from "${info.schema}"."${info.table}") is not null)`);
+          seqChecked++; advanced = true; break;
+        }
+      } catch (e) {
+        seqFailed++;
+        emit({ phase: 'data', level: 'error',
+          msg: `sequence advance ${info.schema}.${info.table}.${colName}: ${String((e && e.message) || e).replace(/\s+/g, ' ').slice(0, 160)}` });
+        console.log(`  seq FAILED ${info.schema}.${info.table}.${colName}: ${String((e && e.message) || e).slice(0, 120)}`);
       }
-    } catch {}
+    }
+    if (!advanced && candidates.length) {
+      console.log(`  seq WARN ${info.schema}.${info.table}: no serial sequence found for ${candidates.join(', ')}`);
+    }
+  }
+  if (seqFailed) {
+    console.log(`[restore] ${seqFailed} sequence(s) failed to advance — the first INSERT may collide`);
   }
 
   // Declared before the storage phase and read by the fatal gate after it.
   // `ok`/`failed` are block-scoped inside the `if`, and the gate sits outside,
   // so the count has to be published at the end of the phase.
-  let storageFailed = 0;
 
   // 5. storage — buckets themselves come from schema.sql; this uploads FILES.
   if (!args['no-storage'] && !schemaOnly) {
@@ -1407,6 +1482,11 @@ async function restore(args, env) {
   // those plus every failed prune remove, so it is the same quantity the
   // storage line above already prints.
   if (storageFailed > 0) fatal.push(`${storageFailed} storage object(s)`);
+  // A sequence left behind its restored max(id) makes the first application
+  // INSERT after a restore fail with a duplicate-key error. That is a data-
+  // completeness problem the operator needs told about at restore time, not a
+  // surprise in production an hour later.
+  if (seqFailed > 0) fatal.push(`${seqFailed} sequence(s) not advanced`);
   if (fatal.length) {
     const msg = `restore failed on ${fatal.join(', ')} — the target is incomplete`;
     console.error(`[restore] ${msg}`);
@@ -1610,6 +1690,51 @@ async function verify(args, env) {
     check(missing.length === 0, `triggers ${live.size}/${manifest.triggers.length}`,
       missing.length ? `MISSING ${missing.length}: ${missing.slice(0, 5).join(', ')}` : 'all present');
   }
+  // ── grants ────────────────────────────────────────────────────────────────
+  // A restore can produce a database that is structurally perfect and cannot
+  // run the app: every table, function and policy present, and no EXECUTE for
+  // anon or authenticated on any RPC. Every other check passes. This is the
+  // last surface verify() was blind to, and it is the surface the prevSig bug
+  // broke — 154 function grants dropped with nothing downstream noticing.
+  //
+  // Compared as a SET of (object, grantee, privilege) rather than counts, so a
+  // target holding extra privileges fails too: a restore that silently widens
+  // access is as wrong as one that narrows it.
+  if (manifest.grants_inventory && Array.isArray(manifest.grants)) {
+    const liveGrants = (await sql.query(`
+      select n.nspname as schema, c.relname as obj, 'table' as kind,
+             coalesce(r.role, 'PUBLIC') as grantee, a.privilege_type as priv
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      cross join lateral aclexplode(c.relacl) a
+      left join pg_roles r on r.oid = a.grantee
+      where n.nspname in (${codeSchemas}) and c.relkind in ('r','p','S')
+      union all
+      select n.nspname as schema, p.proname as obj, 'function' as kind,
+             coalesce(r.role, 'PUBLIC') as grantee, a.privilege_type as priv
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      cross join lateral aclexplode(p.proacl) a
+      left join pg_roles r on r.oid = a.grantee
+      where n.nspname in (${codeSchemas})`))
+      .map((r) => `${r.schema}.${r.kind}:${r.obj}:${r.grantee}:${r.priv}`);
+    const liveSet = new Set(liveGrants);
+    const wantSet = new Set(manifest.grants);
+    const missing = [...wantSet].filter((k) => !liveSet.has(k));
+    // Extra privileges are reported, not failed: Supabase grants broad defaults
+    // on object creation, so a fresh target legitimately holds more than a
+    // long-lived source until the dump's REVOKEs are applied. Failing here
+    // would make every restore-to-new-project un-passable.
+    const extra = [...liveSet].filter((k) => !wantSet.has(k));
+    check(missing.length === 0,
+      `grants ${liveSet.size}/${wantSet.size}`,
+      missing.length
+        ? `MISSING ${missing.length}: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? ' …' : ''}`
+        : (extra.length ? `all present (target holds ${extra.length} extra privilege(s) — wider than source)` : 'all present'));
+  } else {
+    console.log('  WARN grants — backup predates the grant inventory, cannot verify privileges');
+  }
+
   // Signup is the one path where a missing object is silent AND fatal: without
   // on_auth_user_created every new account gets an auth identity and none of the
   // five rows the app reads, so enrolment fails 23503 and the user appears

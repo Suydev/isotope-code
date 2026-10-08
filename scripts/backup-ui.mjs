@@ -355,7 +355,15 @@ const server = http.createServer(async (req, res) => {
         // already shown the operator the table and user counts and they clicked
         // anyway; the CLI keeps the guard for the non-interactive case.
         script = 'supabase-setup.mjs';
-        args = ['--ref', ref, '--pat', pat, '--force'];
+        // The PAT reaches the worker through its ENVIRONMENT, not argv. The
+        // shared block above already sets SUPABASE_ACCESS_TOKEN for every
+        // non-transfer kind, and supabase-setup.mjs reads it (line 537), so
+        // passing --pat here was always redundant — and as argv it sat in
+        // /proc/<pid>/cmdline for the lifetime of the job, readable by any
+        // process of the same uid and captured by `ps` output. This file's own
+        // header and docs/backup-console.html both state credentials go through
+        // the environment only, which was true of every path except this one.
+        args = ['--ref', ref, '--force'];
         // .env is a decision about THIS checkout, and the person clicking may be
         // provisioning a project for somewhere else entirely. Default to writing
         // it (that is the useful case) but let the page opt out — silently
