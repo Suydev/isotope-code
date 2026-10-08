@@ -37,7 +37,8 @@
     "test:group-role-guards": "node scripts/test-group-role-guards.mjs",
     "test:check-user-role": "node scripts/test-check-user-role.mjs",
     "test:isotope-state-scoping": "node scripts/test-isotope-state-scoping.mjs",
-    "test:bundle-patches": "node scripts/test-bundle-patch-escalation.mjs"
+    "test:bundle-patches": "node scripts/test-bundle-patch-escalation.mjs",
+    "test:bundle-patch-behaviour": "node --experimental-vm-modules scripts/test-bundle-patch-behaviour.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -399,6 +399,20 @@ jobs:
           # in package.json since 838748b.
           node scripts/test-bundle-patch-escalation.mjs
 
+      - name: 🧩  Bundle patchers behave, not just parse
+        run: |
+          set -euo pipefail
+          # The escalation suite proves a patcher fails LOUDLY when its anchor
+          # misses. This one executes the patched bytes: it asserts triggerSync
+          # records a rejected sync as failed-with-an-error, that the auth gate
+          # calls b.getState() (the sync store) rather than S.getState(), and
+          # that the runtime API-key guard beats stored storage. Every case is
+          # paired with a control run on the UNPATCHED bundle, so a patcher that
+          # quietly stops working fails here instead of in production.
+          # Needs --experimental-vm-modules for vm.SourceTextModule; without it
+          # every case errors out and the suite reports noise instead of signal.
+          node --experimental-vm-modules scripts/test-bundle-patch-behaviour.mjs
+
       - name: 🗄️  Supabase tooling parses
         run: |
           set -euo pipefail
