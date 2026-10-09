@@ -7546,6 +7546,16 @@ async function bootstrapUserRows({ userId, email = '', displayName = '', userJwt
   ]);
 }
 
+// Timeout for the interactive sign-in / signup round trip to Supabase.
+//
+// 10s was hard-coded and measured aborting at ~5.1s while the SAME request
+// returned 200 when given ~55s — Supabase needs 5-8s for a cold bcrypt on this
+// link, so a slow-but-succeeding login was reported to the user as a failure.
+// Sign-in is on the critical path and the user can only watch it time out, so
+// it gets a generous ceiling; the shorter 10s caps on background admin, asset
+// recovery and storage fetches are left exactly as they are.
+const AUTH_REQUEST_TIMEOUT_MS = Number(process.env.AUTH_REQUEST_TIMEOUT_MS || 60000);
+
 function supaPasswordSignIn(email, password) {
   return new Promise((resolve, reject) => {
     const supaHost = new URL(SUPA_URL).hostname;
@@ -7569,7 +7579,7 @@ function supaPasswordSignIn(email, password) {
       });
     });
     req.on('error', reject);
-    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Sign-in request timed out')); });
+    req.setTimeout(AUTH_REQUEST_TIMEOUT_MS, () => { req.destroy(); reject(new Error('Sign-in request timed out')); });
     req.write(bodyBuf);
     req.end();
   });
@@ -7598,7 +7608,7 @@ function supaPasswordSignUp(email, password, metadata = {}) {
       });
     });
     req.on('error', reject);
-    req.setTimeout(10000, () => { req.destroy(); reject(new Error('Supabase signup timed out')); });
+    req.setTimeout(AUTH_REQUEST_TIMEOUT_MS, () => { req.destroy(); reject(new Error('Supabase signup timed out')); });
     req.write(bodyBuf);
     req.end();
   });
