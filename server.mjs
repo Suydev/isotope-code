@@ -244,13 +244,9 @@ function selfCheckPatchedOutput() {
     ['auth',           AUTH_BUNDLE_ABS,            getPatchedAuthBundle],
     ['focus',          FOCUS_BUNDLE_ABS,           getPatchedFocusBundle],
     ['onboarding',     ONBOARDING_BUNDLE_ABS,      getPatchedOnboardingBundle],
-    ['singlegroup',    SINGLE_GROUP_BUNDLE_ABS,    getPatchedSingleGroupBundle],
-    ['leaderboard',    LEADERBOARD_BUNDLE_ABS,     getPatchedLeaderboardBundle],
     ['settings',       SETTINGS_BUNDLE_ABS,        getPatchedSettingsBundle],
     ['syncstore',      USE_SYNC_STORE_BUNDLE_ABS,  getPatchedUseSyncStoreBundle],
     ['appaccessgate',  APP_ACCESS_GATE_BUNDLE_ABS, getPatchedAppAccessGateBundle],
-    ['sessionsync',    SESSION_SYNC_BUNDLE_ABS,    getPatchedSessionSyncBundle],
-    ['invites',        INVITES_BUNDLE_ABS,         getPatchedInvitesBundle],
     ['dashboard',      DASHBOARD_BUNDLE_ABS,       getPatchedDashboardBundle],
     ['analytics',      ANALYTICS_BUNDLE_ABS,       getPatchedAnalyticsBundle],
     // The three auth/sync core patchers and the whole community surface were
@@ -263,7 +259,6 @@ function selfCheckPatchedOutput() {
     ['community',      COMMUNITY_BUNDLE_ABS,       getPatchedCommunityBundle],
     ['communityapi',   COMMUNITY_API_BUNDLE_ABS,   getPatchedCommunityApiBundle],
     ['usecommunity',   USE_COMMUNITY_BUNDLE_ABS,   getPatchedUseCommunityBundle],
-    ['communityhub',   COMMUNITY_HUB_BUNDLE_ABS,   getPatchedCommunityHubBundle],
     ['communityvis',   COMMUNITY_VISUALS_BUNDLE_ABS, getPatchedCommunityVisualsBundle],
     ['study',          STUDY_BUNDLE_ABS,           getPatchedStudyBundle],
     ['pwamanager',     PWA_MANAGER_BUNDLE_ABS,     getPatchedPWAManagerBundle],
@@ -4472,7 +4467,6 @@ function getPatchedAiStore() {
 // so the original compiled assets remain untouched and no rebuild is required.
 const COMMUNITY_BUNDLE_ABS     = path.join(PUBLIC_DIR, 'assets', 'Community-CEnEgsrd.js');
 const COMMUNITY_API_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'communityApi-Ccw5N_9O.js');
-const COMMUNITY_HUB_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'CommunityHub-gANxZssO.js');
 const USE_COMMUNITY_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useCommunity-CBDFEeBe.js');
 
 // Paths already reported missing, so the warning fires once rather than on every
@@ -4573,8 +4567,6 @@ const REMOVED_FEATURE_MODULE   = Buffer.from('export default function RemovedFea
 
 const COMMUNITY_FEATURE_RENDER_FROM = 'a==="store"&&e.jsx(U,{onNavigate:i},"store"),a==="events"&&e.jsx(M,{onNavigate:i},"events"),';
 const COMMUNITY_FEATURE_RENDER_TO   = '';
-const COMMUNITY_HUB_CARDS_FROM = 'h=[{id:"discovery",label:"Browse Groups",icon:xe,color:"text-brand-500"},{id:"challenges",label:"Challenges",icon:T,color:"text-rose-500"},{id:"leaderboard",label:"Leaderboard",icon:z,color:"text-amber-500"},{id:"store",label:"Store",icon:ge,color:"text-orange-500"},{id:"events",label:"Events",icon:be,color:"text-emerald-500"}]';
-const COMMUNITY_HUB_CARDS_TO   = 'h=[{id:"discovery",label:"Browse Groups",icon:xe,color:"text-brand-500"},{id:"challenges",label:"Challenges",icon:T,color:"text-rose-500"},{id:"leaderboard",label:"Leaderboard",icon:z,color:"text-amber-500"}]';
 // Group chat panel injected into the v3 Community group page (`ts` component).
 // Backed by community_get_group_messages / community_send_group_message RPCs
 // (community-rpc-v3.sql) and the matching methods patched into
@@ -4991,25 +4983,6 @@ function getPatchedCommunityBundle() {
   return patchedCommunityBundle;
 }
 
-let patchedCommunityHubBundle = null;
-function getPatchedCommunityHubBundle() {
-  if (patchedCommunityHubBundle) return patchedCommunityHubBundle;
-  try {
-    let raw = fs.readFileSync(COMMUNITY_HUB_BUNDLE_ABS, 'utf8');
-    if (raw.includes(COMMUNITY_HUB_CARDS_FROM)) {
-      raw = raw.replace(COMMUNITY_HUB_CARDS_FROM, COMMUNITY_HUB_CARDS_TO);
-      console.log('[FeaturePatch] Store and Events hub cards removed');
-    } else { console.warn('[FeaturePatch] Community hub card removal string not found'); noteAnchorMiss('feature-hub-card-removal'); }
-    patchedCommunityHubBundle = Buffer.from(raw, 'utf8');
-  } catch (e) {
-    // This arm used to swallow the exception entirely -- no log, no banner --
-    // and the caller then served the bundle exactly as it sits on disk.
-    console.error('[FeaturePatch] Error:', e && e.message);
-    noteAnchorMiss('community-hub-patch-threw');
-    patchedCommunityHubBundle = null;
-  }
-  return patchedCommunityHubBundle;
-}
 
 // ── CommunityVisuals patch: trophy icon for the Leaderboard tab ──────────────
 let patchedCommunityVisualsBundle = null;
@@ -6151,80 +6124,6 @@ function getPatchedOnboardingBundle() {
   return patchedOnboardingBundle;
 }
 
-// ── Group bundle patch: account-backed guided tour state ────────────────────
-const SINGLE_GROUP_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'SingleGroup-DU1IhoNK.js');
-let patchedSingleGroupBundle = null;
-function getPatchedSingleGroupBundle() {
-  if (patchedSingleGroupBundle) return patchedSingleGroupBundle;
-  try {
-    let raw = fs.readFileSync(SINGLE_GROUP_BUNDLE_ABS, 'utf8');
-    let applied = 0;
-    const patch = (from, to, label) => {
-      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; return true; }
-      console.warn('[SingleGroupPatch] Not found:', label);
-      noteAnchorMiss('singlegroup-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50));
-      return false;
-    };
-    patch(
-      'setHasSeenTour:(s,a)=>t(l=>({hasSeenTour:{...l.hasSeenTour,[s]:a}}))',
-      'setHasSeenTour:(s,a)=>{t(l=>({hasSeenTour:{...l.hasSeenTour,[s]:a,community_group_v1:a}}));try{window.__isoPersistTour&&window.__isoPersistTour(s,a),s!=="community_group_v1"&&window.__isoPersistTour&&window.__isoPersistTour("community_group_v1",a)}catch(_){}}',
-      'tour setter'
-    );
-    patch(
-      'i=a[t]??!1',
-      'i=a[t]===!0||a.community_group_v1===!0||(typeof window<"u"&&window.__isoTourSeen&&window.__isoTourSeen("community_group_v1")===!0)',
-      'tour seen check'
-    );
-    patch(
-      'onDestroyed:()=>{l(t,!0)}})',
-      'onDestroyed:()=>{l(t,!0);l("community_group_v1",!0)}})',
-      'tour completion'
-    );
-    // REMOVED: the `s.tags?.join(", ")` -> `(.tags||[])?.join?.(", ")` null-guard.
-    //
-    // It was corrupting the bundle. `patch()` replaces the anchor as a bare
-    // substring, so the receiver `s` was left dangling in front of the inserted
-    // paren: `s.tags?.join(", ")` became `s(.tags||[])?.join?.(", ")`, a
-    // SyntaxError. selfCheckPatchedOutput() caught this; the two sites were
-    // `g.useState(s.tags?.join(", ")||"")` and `w(s.tags?.join(", ")||"")`.
-    //
-    // It was also redundant: `s.tags?.join(...)` is ALREADY null-safe for a
-    // missing `tags` key, which is the only failure the comment described. The
-    // unguarded case is a missing `s`, which this anchor cannot reach.
-    console.log('[SingleGroupPatch] ' + applied + '/3 guided-tour patches applied');
-    // The three tour anchors are interdependent (setter, seen-check, and the
-    // completion handler). Any subset still parses, so syntax checks cannot see
-    // a half-applied tour. Assert the marker each patch introduces.
-    if (applied < 3) {
-      console.warn('[SingleGroupPatch] guided tour incomplete (' + applied + '/3)');
-      noteAnchorMiss('singlegroup-guided-tour-incomplete');
-    }
-    patchedSingleGroupBundle = Buffer.from(raw, 'utf8');
-  } catch (e) { console.error('[SingleGroupPatch] Error:', e.message); patchedSingleGroupBundle = null; }
-  return patchedSingleGroupBundle;
-}
-
-// ── Leaderboard bundle patch: Supabase stats are the authenticated truth ─────
-const LEADERBOARD_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useLeaderboard-BpvH5FXA.js');
-let patchedLeaderboardBundle = null;
-function getPatchedLeaderboardBundle() {
-  if (patchedLeaderboardBundle) return patchedLeaderboardBundle;
-  try {
-    let raw = fs.readFileSync(LEADERBOARD_BUNDLE_ABS, 'utf8');
-    const from = 'async function N(){try{const s=await S.getSessions();return A(s)}catch(s){return console.error("[localCommunityStats] Failed to calculate local stats:",s),{total_hours:0,weekly_hours:0,monthly_hours:0,daily_hours:0,total_sessions:0,last_session_at:null}}}';
-    const to = 'async function N(){return{total_hours:0,weekly_hours:0,monthly_hours:0,daily_hours:0,total_sessions:0,last_session_at:null,source:"local-cache-disabled"}}';
-    if (raw.includes(from)) {
-      raw = raw.replace(from, to);
-      console.log('[LeaderboardPatch] Authenticated user stats ignore browser-local sessions');
-    } else {
-      console.warn('[LeaderboardPatch] Local stats patch string not found');
-      noteAnchorMiss('leaderboard-local-stats');
-    }
-    patchedLeaderboardBundle = Buffer.from(raw, 'utf8');
-  } catch (e) { console.error('[LeaderboardPatch] Error:', e.message); patchedLeaderboardBundle = null; }
-  return patchedLeaderboardBundle;
-}
-
 // ── Settings bundle patch: remove fake synced language and persist avatar clear
 const SETTINGS_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'SettingsLayout-DkuooNHv.js');
 let patchedSettingsBundle = null;
@@ -6394,86 +6293,6 @@ patch('if(!v)return r.jsx(ie,{});',
   } catch (e) { console.error('[AppAccessGatePatch] Error:', e.message); patchedAppAccessGateBundle = null; }
   return patchedAppAccessGateBundle;
 }
-
-// ── Session sync bundle patch: no success without Supabase persistence
-const SESSION_SYNC_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'sessionSync-mloIEnTd.js');
-let patchedSessionSyncBundle = null;
-function getPatchedSessionSyncBundle() {
-  if (patchedSessionSyncBundle) return patchedSessionSyncBundle;
-  try {
-    let raw = fs.readFileSync(SESSION_SYNC_BUNDLE_ABS, 'utf8');
-    let applied = 0;
-    const patch = (from, to, label) => {
-      if (raw.includes(from)) { raw = raw.split(from).join(to); applied++; return true; }
-      console.warn('[SessionSyncPatch] Not found:', label);
-      noteAnchorMiss('sessionsync-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50));
-      return false;
-    };
-    patch(
-      'if(!f())return await r(e.id),{success:!0};',
-      'if(!f())return await q(e),{success:!1,error:"Cloud session sync unavailable; session remains pending"};',
-      'queue complete when cloud disabled'
-    );
-    patch(
-      'if(a)return P(a)?(await _(e.id),{success:!0}):',
-      'if(a)return P(a)?(await q(e),{success:!1,error:m(a,"Session sync failed")}):',
-      'premium/table errors do not report success'
-    );
-    patch(
-      'if(!f())return await r(e.sessionId),{success:!0};',
-      'if(!f()){const t={id:e.sessionId,action:"complete",durationMinutes:e.durationMinutes,groupId:e.groupId,sessionType:e.sessionType,notes:e.notes,endedAt:e.endedAt,timestamp:Date.now()};return await q(t),{success:!1,error:"Cloud session sync unavailable; session remains pending"}};',
-      'report complete queues when cloud disabled'
-    );
-    patch(
-      'if(!f())return await r(e),{success:!0};',
-      'if(!f()){const t={id:e,action:"delete",timestamp:Date.now()};return await q(t),{success:!1,error:"Cloud session delete unavailable; change remains pending"}};',
-      'delete queues when cloud disabled'
-    );
-    patch(
-      'if(!f())return await _(),{synced:0,failed:0};',
-      'if(!f()){const e=await h();return{synced:0,failed:e.length}};',
-      'pending sync reports failures when cloud disabled'
-    );
-    console.log('[SessionSyncPatch] ' + applied + '/5 session sync patches applied');
-    // Post-condition: these five patches exist so the bundle stops reporting
-    // `{success:!0}` when nothing was written. If that string is absent the
-    // patcher is a no-op regardless of how the anchor search went.
-    if (!raw.includes('{success:!1')) {
-      console.warn('[SessionSyncPatch] CRITICAL MISS: no failure-reporting path in patched bundle');
-      noteAnchorMiss('sessionsync-no-failure-path');
-    }
-    patchedSessionSyncBundle = Buffer.from(raw, 'utf8');
-  } catch (e) { console.error('[SessionSyncPatch] Error:', e.message); patchedSessionSyncBundle = null; }
-  return patchedSessionSyncBundle;
-}
-
-// ── Invites bundle patch ──────────────────────────────────────────────────────
-// The compiled bundle sends {token_input: "..."} to accept_invite and
-// get_invite_details, but the Supabase RPC functions use the parameter name
-// "p_code". PostgREST routes by named param so the mismatch silently returns
-// "function does not exist" → invites never work. Fix: swap the name in-memory.
-const INVITES_BUNDLE_ABS = path.join(PUBLIC_DIR, 'assets', 'useInvites-D9RLFwf8.js');
-let patchedInvitesBundle = null;
-function getPatchedInvitesBundle() {
-  if (patchedInvitesBundle) return patchedInvitesBundle;
-  try {
-    let raw = fs.readFileSync(INVITES_BUNDLE_ABS, 'utf8');
-    const before = raw.length;
-    // Success must be measured by the substitution actually happening, NOT by
-    // `raw.includes('p_code')`: the bundle already uses p_code upstream, so that
-    // test reported success for a substitution that never ran.
-    const hadTokenInput = raw.includes('token_input');
-    raw = raw.split('token_input').join('p_code');
-    if (hadTokenInput) {
-      console.log('[InvitesPatch] token_input → p_code (accept_invite + get_invite_details)');
-    } else {
-      console.log('[InvitesPatch] no-op — bundle already uses p_code (upstream fixed)');
-    }
-    patchedInvitesBundle = Buffer.from(raw, 'utf8');
-  } catch (e) { console.error('[InvitesPatch] Error:', e.message); patchedInvitesBundle = null; }
-  return patchedInvitesBundle;
-}
-// getPatchedInvitesBundle() — deferred to after server.listen()
 
 // ── Username-auth server helpers ──────────────────────────────────────────────
 function supaAdminReq(method, supaPath, bodyObj, extraHeaders = {}) {
@@ -11352,14 +11171,6 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const buf = getPatchedOnboardingBundle();
       if (buf) { send(buf); return; }
     }
-    if (fp === SINGLE_GROUP_BUNDLE_ABS) {
-      const buf = getPatchedSingleGroupBundle();
-      if (buf) { send(buf); return; }
-    }
-    if (fp === LEADERBOARD_BUNDLE_ABS) {
-      const buf = getPatchedLeaderboardBundle();
-      if (buf) { send(buf); return; }
-    }
     if (fp === SETTINGS_BUNDLE_ABS) {
       const buf = getPatchedSettingsBundle();
       if (buf) { send(buf); return; }
@@ -11372,14 +11183,6 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
       const buf = getPatchedAppAccessGateBundle();
       if (buf) { send(buf); return; }
     }
-    if (fp === SESSION_SYNC_BUNDLE_ABS) {
-      const buf = getPatchedSessionSyncBundle();
-      if (buf) { send(buf); return; }
-    }
-    if (fp === INVITES_BUNDLE_ABS) {
-      const buf = getPatchedInvitesBundle();
-      if (buf) { send(buf); return; }
-    }
     if (fp === COMMUNITY_BUNDLE_ABS) {
       const buf = getPatchedCommunityBundle();
       if (buf) { send(buf); return; }
@@ -11390,10 +11193,6 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
     }
     if (fp === USE_COMMUNITY_BUNDLE_ABS) {
       const buf = getPatchedUseCommunityBundle();
-      if (buf) { send(buf); return; }
-    }
-    if (fp === COMMUNITY_HUB_BUNDLE_ABS) {
-      const buf = getPatchedCommunityHubBundle();
       if (buf) { send(buf); return; }
     }
     if (fp === COMMUNITY_VISUALS_BUNDLE_ABS) {
@@ -11563,13 +11362,9 @@ server.listen(port, '0.0.0.0', () => {
     safeWarm(APP_BUNDLE_ABS, getPatchedAppBundle);
     safeWarm(AUTH_BUNDLE_ABS, getPatchedAuthBundle);
     safeWarm(ONBOARDING_BUNDLE_ABS, getPatchedOnboardingBundle);
-    safeWarm(SINGLE_GROUP_BUNDLE_ABS, getPatchedSingleGroupBundle);
-    safeWarm(LEADERBOARD_BUNDLE_ABS, getPatchedLeaderboardBundle);
     safeWarm(SETTINGS_BUNDLE_ABS, getPatchedSettingsBundle);
     safeWarm(USE_SYNC_STORE_BUNDLE_ABS, getPatchedUseSyncStoreBundle);
     safeWarm(APP_ACCESS_GATE_BUNDLE_ABS, getPatchedAppAccessGateBundle);
-    safeWarm(SESSION_SYNC_BUNDLE_ABS, getPatchedSessionSyncBundle);
-    safeWarm(INVITES_BUNDLE_ABS, getPatchedInvitesBundle);
     safeWarm(COMMUNITY_BUNDLE_ABS, getPatchedCommunityBundle);
     // These three were the only patchers that re-read the file and re-ran their
     // regex sweeps on every request. Warm them so the first hit is cached too.
@@ -11578,7 +11373,6 @@ server.listen(port, '0.0.0.0', () => {
     safeWarm(ENTRY_BUNDLE_ABS, getPatchedEntryBundle);
     safeWarm(COMMUNITY_API_BUNDLE_ABS, getPatchedCommunityApiBundle);
     safeWarm(USE_COMMUNITY_BUNDLE_ABS, getPatchedUseCommunityBundle);
-    safeWarm(COMMUNITY_HUB_BUNDLE_ABS, getPatchedCommunityHubBundle);
     safeWarm(COMMUNITY_VISUALS_BUNDLE_ABS, getPatchedCommunityVisualsBundle);
     safeWarm(DASHBOARD_BUNDLE_ABS, getPatchedDashboardBundle);
     safeWarm(ANALYTICS_BUNDLE_ABS, getPatchedAnalyticsBundle);
@@ -11614,13 +11408,9 @@ server.listen(port, '0.0.0.0', () => {
       [AUTH_BUNDLE_ABS,            getIfExists(AUTH_BUNDLE_ABS, getPatchedAuthBundle)],
       [FOCUS_BUNDLE_ABS,           getIfExists(FOCUS_BUNDLE_ABS, getPatchedFocusBundle)],
       [ONBOARDING_BUNDLE_ABS,      getIfExists(ONBOARDING_BUNDLE_ABS, getPatchedOnboardingBundle)],
-      [SINGLE_GROUP_BUNDLE_ABS,    getIfExists(SINGLE_GROUP_BUNDLE_ABS, getPatchedSingleGroupBundle)],
-      [LEADERBOARD_BUNDLE_ABS,     getIfExists(LEADERBOARD_BUNDLE_ABS, getPatchedLeaderboardBundle)],
       [SETTINGS_BUNDLE_ABS,        getIfExists(SETTINGS_BUNDLE_ABS, getPatchedSettingsBundle)],
       [USE_SYNC_STORE_BUNDLE_ABS,   getIfExists(USE_SYNC_STORE_BUNDLE_ABS, getPatchedUseSyncStoreBundle)],
       [APP_ACCESS_GATE_BUNDLE_ABS, getIfExists(APP_ACCESS_GATE_BUNDLE_ABS, getPatchedAppAccessGateBundle)],
-      [SESSION_SYNC_BUNDLE_ABS,    getIfExists(SESSION_SYNC_BUNDLE_ABS, getPatchedSessionSyncBundle)],
-      [INVITES_BUNDLE_ABS,         getIfExists(INVITES_BUNDLE_ABS, getPatchedInvitesBundle)],
     ];
     let i = 0;
     const preGzipNext = () => {
