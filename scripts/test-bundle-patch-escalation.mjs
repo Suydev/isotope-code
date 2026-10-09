@@ -59,20 +59,28 @@ function loadServer(epilogueBody) {
   }
 }
 
+// Patcher name + the absolute-path constant + the function, all called by string.
+// A name whose function no longer exists resolves to `undefined` and the harness
+// reports THREW/NOFILE, so this table must track server.mjs exactly.
+//
+// REMOVED (2026-10-09): singlegroup, sessionsync, invites, communityhub (and the
+// leaderboard mutation below). Those five patchers and all seven of their
+// server.mjs call sites were deleted: every target bundle is unreachable from
+// the entry chunk index-D1Y5F8Lk.js and imports ./App-pJGjDiPw.js, which does not
+// exist in this repo, so they were no-ops carried over from a different build.
+// The escalation machinery below is deliberately UNCHANGED — a missing anchor in
+// any SURVIVING patcher still escalates exactly as before. Re-add a row here and
+// its mutation entry if a future build reinstates any of these chunks.
 const PATCHERS = [
   ['auth', 'AUTH_BUNDLE_ABS', 'getPatchedAuthBundle'],
   ['focus', 'FOCUS_BUNDLE_ABS', 'getPatchedFocusBundle'],
   ['onboarding', 'ONBOARDING_BUNDLE_ABS', 'getPatchedOnboardingBundle'],
-  ['singlegroup', 'SINGLE_GROUP_BUNDLE_ABS', 'getPatchedSingleGroupBundle'],
   ['settings', 'SETTINGS_BUNDLE_ABS', 'getPatchedSettingsBundle'],
   ['syncstore', 'USE_SYNC_STORE_BUNDLE_ABS', 'getPatchedUseSyncStoreBundle'],
   ['appaccessgate', 'APP_ACCESS_GATE_BUNDLE_ABS', 'getPatchedAppAccessGateBundle'],
-  ['sessionsync', 'SESSION_SYNC_BUNDLE_ABS', 'getPatchedSessionSyncBundle'],
-  ['invites', 'INVITES_BUNDLE_ABS', 'getPatchedInvitesBundle'],
   ['community', 'COMMUNITY_BUNDLE_ABS', 'getPatchedCommunityBundle'],
   ['communityapi', 'COMMUNITY_API_BUNDLE_ABS', 'getPatchedCommunityApiBundle'],
   ['usecommunity', 'USE_COMMUNITY_BUNDLE_ABS', 'getPatchedUseCommunityBundle'],
-  ['communityhub', 'COMMUNITY_HUB_BUNDLE_ABS', 'getPatchedCommunityHubBundle'],
   ['communityvis', 'COMMUNITY_VISUALS_BUNDLE_ABS', 'getPatchedCommunityVisualsBundle'],
   ['dashboard', 'DASHBOARD_BUNDLE_ABS', 'getPatchedDashboardBundle'],
   ['analytics', 'ANALYTICS_BUNDLE_ABS', 'getPatchedAnalyticsBundle'],
@@ -94,20 +102,12 @@ const PATCHERS = [
 const MUTATIONS = [
   ['syncstore', 'assets/useSyncStore-Di0wBMnH.js', 'patchedUseSyncStoreBundle',
     'triggerSync:async()=>{const t=u.getState(),{userId:a,isAuthenticated:s}=t,r=t.isPremium();if(!s||!a||!r)return;const o=await n();', 'getPatchedUseSyncStoreBundle'],
-  ['sessionsync-complete', 'assets/sessionSync-mloIEnTd.js', 'patchedSessionSyncBundle',
-    'if(!f())return await r(e.id),{success:!0};', 'getPatchedSessionSyncBundle'],
-  ['sessionsync-pending', 'assets/sessionSync-mloIEnTd.js', 'patchedSessionSyncBundle',
-    'if(!f())return await _(),{synced:0,failed:0};', 'getPatchedSessionSyncBundle'],
   ['appaccessgate-boot', 'assets/AppAccessGate-DzNuNpuU.js', 'patchedAppAccessGateBundle',
     'const ye=await(await Ae()).canBootstrapFromCloud(O.userId,!0);D(ye)', 'getPatchedAppAccessGateBundle'],
-  ['singlegroup-tour', 'assets/SingleGroup-DU1IhoNK.js', 'patchedSingleGroupBundle',
-    'onDestroyed:()=>{l(t,!0)}}', 'getPatchedSingleGroupBundle'],
   ['settings-avatar', 'assets/SettingsLayout-DkuooNHv.js', 'patchedSettingsBundle',
     'avatar:void 0', 'getPatchedSettingsBundle'],
   ['onboarding-verified-write', 'assets/Onboarding-C0svxOgT.js', 'patchedOnboardingBundle',
     'a({currentStep:C}),await r({isOnboarded:!0,onboardingCompletedAt:new Date().toISOString()})', 'getPatchedOnboardingBundle'],
-  ['leaderboard-local-stats', 'assets/useLeaderboard-BpvH5FXA.js', 'patchedLeaderboardBundle',
-    'async function N(){try{const s=await S.getSessions();return A(s)}catch', 'getPatchedLeaderboardBundle'],
   ['authstore-session-mirror', 'assets/useAuthStore-Aw1au7RF.js', 'patchedAuthStoreBundleCache',
     'vs={getItem:async a=>{const e=await M.getItem(a);return typeof e=="string"?e:null}', 'getPatchedAuthStoreBundle'],
   ['authstore-pkce-config', 'assets/useAuthStore-Aw1au7RF.js', 'patchedAuthStoreBundleCache',

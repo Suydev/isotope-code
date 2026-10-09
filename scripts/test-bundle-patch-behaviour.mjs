@@ -67,12 +67,21 @@ const readAsset = (rel) => fs.readFileSync(path.join(ROOT, 'public', rel), 'utf8
 
 /* ── step 1: the real getPatched*Bundle() output ───────────────────────────── */
 
+// Patcher name + the on-disk asset it reads. Names here are called by string in
+// the epilogue that loads server.mjs, so an entry whose function no longer
+// exists resolves to `undefined` and fails the whole suite at step 1.
+//
+// REMOVED (2026-10-09): getPatchedSessionSyncBundle / getPatchedLeaderboardBundle.
+// Both patched bundles (sessionSync-mloIEnTd.js, useLeaderboard-BpvH5FXA.js) are
+// unreachable from the entry chunk index-D1Y5F8Lk.js and import ./App-pJGjDiPw.js,
+// a chunk that does not exist in this repo — leftovers from a different build. The
+// patchers and their seven call sites were removed from server.mjs. Re-add an
+// entry here (with the matching anchor assertions) if a future build reinstates
+// either chunk under a new hashed name.
 const PATCHERS = [
   ['getPatchedUseSyncStoreBundle',   'assets/useSyncStore-Di0wBMnH.js'],
   ['getPatchedAppAccessGateBundle', 'assets/AppAccessGate-DzNuNpuU.js'],
-  ['getPatchedSessionSyncBundle',   'assets/sessionSync-mloIEnTd.js'],
   ['getPatchedCommunityApiBundle',  'assets/communityApi-Ccw5N_9O.js'],
-  ['getPatchedLeaderboardBundle',   'assets/useLeaderboard-BpvH5FXA.js'],
   ['getPatchedFocusBundle',         'assets/Focus-B4gLsWoP.js'],
   ['getPatchedAuthStoreBundle',     'assets/useAuthStore-Aw1au7RF.js'],
   ['getPatchedAiStore',             'assets/useAIStore-DRa7CkEN.js'],
@@ -600,151 +609,14 @@ await withControl(
 );
 
 /* ────────────────────────────────────────────────────────────────────────────
- * 2. SessionSyncPatch
- *
- * `f()` is "cloud sync available": isAuthenticated && userId && isPremium.
- * With isPremium false the unpatched bundle returns {success:!0} — a lie the
- * patch exists to remove. The patched bundle must QUEUE the work and report
- * failure, so it retries when the cloud returns.
- * ──────────────────────────────────────────────────────────────────────────── */
-console.log('\n2. SessionSyncPatch — cloud-down sessions are queued, not reported synced');
-
-const SESSIONSYNC_FAKES = (authStore, idb, invokeResult) => ({
-  // Keyed by IMPORTED name: {J as S, K as E, L as d, M as l, u as A, i as D,
-  // s as p, m as y, N as m, k as g}
-  'App-pJGjDiPw.js': {
-    J: () => false,                                  // S: degraded?
-    K: () => ({ message: 'offline' }),              // E
-    L: { setDegradedMode: () => {} },                // d
-    M: (x) => x,                                      // l
-    u: authStore,                                     // A: the auth store
-    i: () => true,                                    // D: supabase configured
-    s: {                                               // p: the supabase client
-      auth: { getSession: async () => ({ data: { session: { access_token: 'tok' } }, error: null }) },
-      functions: { invoke: async () => invokeResult },
-    },
-    m: () => false,                                    // y: isOffline-ish
-    N: (e, f) => String((e && e.message) || f || e),   // m: error message
-    k: idb,                                           // g: storage adapter
-  },
-  'QueryProvider-DusNhG9D.js': { a: { invalidateQueries: async () => {} } },
-  'groupCache-DVHvdGlY.js': { G: { invalidate: () => {} }, C: {} },
-});
-
-const QUEUE_KEY = 'isotope:pending_session_sync';
-
-await withControl(
-  'reportSessionComplete: cloud unavailable -> success:false AND queued for retry',
-  'getPatchedSessionSyncBundle', 'assets/sessionSync-mloIEnTd.js',
-  async (src, kind) => {
-    const authStore = makeStore({ isAuthenticated: true, userId: 'u1', planType: 'ranker', isPremium: () => false, setPlanType: () => {} });
-    const idb = makeIdb();
-    const ns = await runModule(src, {
-      identifier: 'sessionSync-' + kind + '.js',
-      fakes: SESSIONSYNC_FAKES(authStore, idb, { data: {}, error: { message: 'refused' } }),
-    });
-    const res = await ns.reportSessionComplete({ sessionId: 'sess-1', durationMinutes: 30, sessionType: 'focus' });
-    if (!res) return { pass: false, detail: 'returned nothing' };
-    if (res.success === true) {
-      return { pass: false, detail: 'reported success:true with the cloud unavailable — the session was never written and the user believes it was' };
-    }
-    if (res.success !== false) return { pass: false, detail: 'unexpected result: ' + JSON.stringify(res) };
-    if (!res.error) return { pass: false, detail: 'failure reported with no error text: ' + JSON.stringify(res) };
-    const queued = JSON.parse(idb._map.get(QUEUE_KEY) || '[]');
-    if (!Array.isArray(queued) || queued.length !== 1) {
-      return { pass: false, detail: 'the session was not queued, so it is lost on cloud failure; queue=' + JSON.stringify(queued) };
-    }
-    if (queued[0].id !== 'sess-1') return { pass: false, detail: 'wrong id queued: ' + JSON.stringify(queued[0]) };
-    return { pass: true, detail: '' };
-  },
-);
-
-await withControl(
-  'syncPendingSessions: cloud unavailable -> failed counts the queue, synced is 0',
-  'getPatchedSessionSyncBundle', 'assets/sessionSync-mloIEnTd.js',
-  async (src, kind) => {
-    const queued = JSON.stringify([
-      { id: 'a', action: 'complete', timestamp: Date.now() },
-      { id: 'b', action: 'delete', timestamp: Date.now() },
-    ]);
-    const authStore = makeStore({ isAuthenticated: true, userId: 'u1', planType: 'ranker', isPremium: () => false, setPlanType: () => {} });
-    const idb = makeIdb({ [QUEUE_KEY]: queued });
-    const ns = await runModule(src, {
-      identifier: 'sessionSync-pending-' + kind + '.js',
-      fakes: SESSIONSYNC_FAKES(authStore, idb, { data: {}, error: { message: 'refused' } }),
-    });
-    const res = await ns.syncPendingSessions();
-    if (!res || typeof res.failed !== 'number') return { pass: false, detail: 'unexpected result: ' + JSON.stringify(res) };
-    if (res.synced !== 0) return { pass: false, detail: 'reported synced=' + res.synced + ' with the cloud down' };
-    if (res.failed !== 2) {
-      return { pass: false, detail: 'reported failed=' + res.failed + ' while 2 sessions remain pending — the UI shows nothing pending and they never retry' };
-    }
-    return { pass: true, detail: '' };
-  },
-);
-
-await withControl(
-  'reportSessionDeleted: cloud unavailable -> success:false AND the delete is queued',
-  'getPatchedSessionSyncBundle', 'assets/sessionSync-mloIEnTd.js',
-  async (src, kind) => {
-    const authStore = makeStore({ isAuthenticated: true, userId: 'u1', planType: 'ranker', isPremium: () => false, setPlanType: () => {} });
-    const idb = makeIdb();
-    const ns = await runModule(src, {
-      identifier: 'sessionSync-del-' + kind + '.js',
-      fakes: SESSIONSYNC_FAKES(authStore, idb, { data: {}, error: { message: 'refused' } }),
-    });
-    const res = await ns.reportSessionDeleted('sess-9');
-    if (res && res.success === true) {
-      return { pass: false, detail: 'reported the delete as done with the cloud down — the row stays server-side and comes back on next sync' };
-    }
-    if (!res || res.success !== false) return { pass: false, detail: 'unexpected result: ' + JSON.stringify(res) };
-    const queued = JSON.parse(idb._map.get(QUEUE_KEY) || '[]');
-    if (!Array.isArray(queued) || queued.length !== 1 || queued[0].action !== 'delete') {
-      return { pass: false, detail: 'the delete was not queued; queue=' + JSON.stringify(queued) };
-    }
-    return { pass: true, detail: '' };
-  },
-);
-
-// The happy direction, so "always report failure" cannot satisfy the three
-// above. It is also the one case that CANNOT be scored against a control: the
-// patch rewrites only the cloud-unavailable branch, so a successful write takes
-// identical code in both builds and the assertion is toothless by construction.
-// Rather than delete it — it still guards the patched run against a patcher that
-// breaks the success path — it is registered with withControl and allowed to
-// report itself as toothless. The three cloud-down cases above are the ones
-// that actually detect a reverted patcher; this one is defence in depth.
-await withControl(
-  'reportSessionComplete: a real cloud write still reports success and clears the queue',
-  'getPatchedSessionSyncBundle', 'assets/sessionSync-mloIEnTd.js',
-  async (src, kind) => {
-    const authStore = makeStore({ isAuthenticated: true, userId: 'u1', planType: 'ranker', isPremium: () => true, setPlanType: () => {} });
-    const idb = makeIdb({ [QUEUE_KEY]: JSON.stringify([{ id: 'old', action: 'delete', timestamp: Date.now() }]) });
-    const ns = await runModule(src, {
-      identifier: 'sessionSync-ok-' + kind + '.js',
-      fakes: SESSIONSYNC_FAKES(authStore, idb, { data: { already_processed: true }, error: null }),
-    });
-    const res = await ns.reportSessionComplete({ sessionId: 'sess-ok', durationMinutes: 25, sessionType: 'focus' });
-    if (!res || res.success !== true) {
-      return { pass: false, detail: 'a genuine cloud write did not report success: ' + JSON.stringify(res) };
-    }
-    const queued = JSON.parse(idb._map.get(QUEUE_KEY) || '[]');
-    if (queued.some((q) => q.id === 'sess-ok')) {
-      return { pass: false, detail: 'the session was queued even though the cloud write succeeded: ' + JSON.stringify(queued) };
-    }
-    return { pass: true, detail: '' };
-  },
-);
-
-/* ────────────────────────────────────────────────────────────────────────────
- * 3. AppAccessGatePatch
+ * 2. AppAccessGatePatch
  *
  * The replacement is `if(ye){await S.getState().downloadCloudSnapshot();D(!1)}`.
  * It must download the snapshot BEFORE resolving the gate, and `S` must be the
  * sync store. Both are checked by running the statement with `S` resolved from
  * the bundle's own module-level declarations.
  * ──────────────────────────────────────────────────────────────────────────── */
-console.log('\n3. AppAccessGatePatch — cloud bootstrap resolves the boot gate');
+console.log('\n2. AppAccessGatePatch — cloud bootstrap resolves the boot gate');
 
 /**
  * Resolve what a module-level name in this bundle actually IS.
@@ -879,10 +751,10 @@ await withControl(
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
- * 4. CommunityApiPatch — the demo gate must be neutralised so the injected
+ * 3. CommunityApiPatch — the demo gate must be neutralised so the injected
  *    chat/leaderboard reach the real RPC / server paths.
  * ──────────────────────────────────────────────────────────────────────────── */
-console.log('\n4. CommunityApiPatch — demo gate neutralised, chat + leaderboard hit the real path');
+console.log('\n3. CommunityApiPatch — demo gate neutralised, chat + leaderboard hit the real path');
 
 const COMMUNITY_FAKES = (supabaseClient) => ({
   // {i as s, s as n}: `s` is the premium check the patch rebinds to ()=>!1,
@@ -996,59 +868,9 @@ await withControl(
 );
 
 /* ────────────────────────────────────────────────────────────────────────────
- * 5. LeaderboardPatch — local browser sessions must not become the
- *    "authenticated truth".
+ * 4. FocusPatch
  * ──────────────────────────────────────────────────────────────────────────── */
-console.log('\n5. LeaderboardPatch — local sessions do not become user stats');
-
-await withControl(
-  'userStats: never folds browser-local sessions into authenticated stats',
-  'getPatchedLeaderboardBundle', 'assets/useLeaderboard-BpvH5FXA.js',
-  async (src, kind) => {
-    let localReads = 0;
-    const sessionStore = {
-      getSessions: async () => { localReads++; return [{ completed: true, duration: 3600, endTime: new Date().toISOString() }]; },
-    };
-    const supabase = {
-      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
-      functions: { invoke: async () => ({ data: { rankings: [] }, error: null }) },
-    };
-    // Keyed by imported name. `{u as k}` is the zustand SELECTOR hook, while
-    // `{s as u}` is the supabase client — supplying the client for `u` makes
-    // the hook call blow up before the assertion can mean anything.
-    const ns = await runModule(src, {
-      identifier: 'useLeaderboard-' + kind + '.js',
-      fakes: {
-        'vendor-query-Rjz85D0S.js': { u: (opts) => ({ queryFn: opts.queryFn, enabled: opts.enabled !== false }) },
-        'App-pJGjDiPw.js': {
-          A: sessionStore,
-          u: (sel) => (sel === 'isPremium' ? true : 'u1'),   // zustand selector hook
-          j: () => false,                                   // not demo
-          s: supabase,                                      // supabase client
-          P: async () => {},                               // display-name resolver
-        },
-        'demoCommunity-DUJ4Y1zo.js': { g: () => ({ leaderboardsByGroup: {}, globalLeaderboard: { rankings: [] } }) },
-      },
-      globals: { localStorage: makeLocalStorage() },
-    });
-    const useUserStats = ns.u;
-    if (typeof useUserStats !== 'function') return { pass: false, detail: 'no useUserStats export; exports=' + Object.keys(ns).join(',') };
-    const query = useUserStats({ queryKey: ['userStats', 'u1'], queryFn: null }) || {};
-    if (typeof query.queryFn !== 'function') {
-      return { pass: false, detail: 'the query hook produced no queryFn (keys=' + JSON.stringify(Object.keys(query)) + ')' };
-    }
-    const stats = await query.queryFn();
-    if (localReads > 0) {
-      return { pass: false, detail: 'read ' + localReads + 'x browser-local sessions; local study data would be reported as authenticated cloud stats' };
-    }
-    return { pass: true, detail: '' };
-  },
-);
-
-/* ────────────────────────────────────────────────────────────────────────────
- * 6. FocusPatch
- * ──────────────────────────────────────────────────────────────────────────── */
-console.log('\n6. FocusPatch — ambient audio served from the local origin');
+console.log('\n4. FocusPatch — ambient audio served from the local origin');
 
 await withControl(
   'no raw.githubusercontent.com ambient URL survives into the served bundle',
@@ -1096,9 +918,9 @@ await withControl(
 );
 
 /* ────────────────────────────────────────────────────────────────────────────
- * 7. AuthStorePatch
+ * 5. AuthStorePatch
  * ──────────────────────────────────────────────────────────────────────────── */
-console.log('\n7. AuthStorePatch — premium, demo gate, session mirror');
+console.log('\n5. AuthStorePatch — premium, demo gate, session mirror');
 
 await withControl(
   'isPremium: a "free" plan still reports premium',
@@ -1199,9 +1021,9 @@ await withControl(
 );
 
 /* ────────────────────────────────────────────────────────────────────────────
- * 8. AiStorePatch — a runtime-injected key must win over stored storage.
+ * 6. AiStorePatch — a runtime-injected key must win over stored storage.
  * ──────────────────────────────────────────────────────────────────────────── */
-console.log('\n8. AiStorePatch — runtime-injected API key is honoured');
+console.log('\n6. AiStorePatch — runtime-injected API key is honoured');
 
 await withControl(
   'getApiKey: window.__IK__ wins over stored storage',
