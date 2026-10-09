@@ -171,7 +171,7 @@
       <table>
         <thead><tr><th>Phase</th><th>What it does</th></tr></thead>
         <tbody>
-          <tr><td><strong>schema</strong></td><td>2,273 statements in batches of 50 — 42 tables, 76 public functions, 16 triggers, 184 policies. Aborts on the first real failure rather than continuing against a half-built database.</td></tr>
+          <tr><td><strong>schema</strong></td><td>2,278 statements in batches of 50 — 42 tables, 84 functions, 16 triggers, 184 policies. Aborts on the first real failure rather than continuing against a half-built database.</td></tr>
           <tr><td><strong>storage</strong></td><td>All four buckets with their size caps and MIME allow-lists. Clamps any cap above the project's plan limit instead of failing.</td></tr>
           <tr><td><strong>auth</strong></td><td>The signup trigger on <code>auth.users</code>. This is the step the manual route cannot express — see below.</td></tr>
           <tr><td><strong>verify</strong></td><td>Eight assertions that the project can actually run the app, not just that the SQL returned success.</td></tr>
@@ -277,7 +277,7 @@ SUPABASE_ACCESS_TOKEN</pre>
       <table>
         <thead><tr><th>Fact</th><th>Consequence</th></tr></thead>
         <tbody>
-          <tr><td><code>isotope-complete.sql</code> is <strong>343&nbsp;KB / 6,242 lines</strong></td><td>Paste it as a file upload, not into the editor box. The browser SQL editor will accept it, but a paste that large is slow and easy to truncate silently.</td></tr>
+          <tr><td><code>isotope-complete.sql</code> is <strong>346&nbsp;KB / 6,323 lines</strong></td><td>Paste it as a file upload, not into the editor box. The browser SQL editor will accept it, but a paste that large is slow and easy to truncate silently.</td></tr>
           <tr><td>The whole file is wrapped in <code>BEGIN; … COMMIT;</code></td><td>It is one transaction. Either the entire schema lands or none of it does — there is no half-applied state to clean up.</td></tr>
         </tbody>
       </table>
@@ -287,7 +287,7 @@ SUPABASE_ACCESS_TOKEN</pre>
 
     <div class="stat-strip">
       <div><span class="ticker" data-ticker="42" aria-hidden="true">0</span><span class="sr-only">42</span><span class="ticker-label">Tables</span></div>
-      <div><span class="ticker" data-ticker="83" aria-hidden="true">0</span><span class="sr-only">83</span><span class="ticker-label">Functions</span></div>
+      <div><span class="ticker" data-ticker="84" aria-hidden="true">0</span><span class="sr-only">84</span><span class="ticker-label">Functions</span></div>
       <div><span class="ticker" data-ticker="184" aria-hidden="true">0</span><span class="sr-only">184</span><span class="ticker-label">RLS policies</span></div>
       <div><span class="ticker" data-ticker="16" aria-hidden="true">0</span><span class="sr-only">16</span><span class="ticker-label">Triggers</span></div>
     </div>
@@ -364,7 +364,7 @@ SUPABASE_ACCESS_TOKEN</pre>
         <tbody>
           <tr><td><code>pgcrypto</code></td><td><code>gen_random_uuid()</code> for primary keys.</td></tr>
           <tr><td><code>uuid-ossp</code></td><td>Legacy UUID generation, kept for older function bodies.</td></tr>
-          <tr><td><code>plpgsql</code></td><td>The language every one of the 83 functions is written in.</td></tr>
+          <tr><td><code>plpgsql</code></td><td>The language every one of the 84 functions is written in.</td></tr>
           <tr><td><code>pg_stat_statements</code></td><td>Query statistics. Used when diagnosing a slow leaderboard.</td></tr>
           <tr><td><code>supabase_vault</code></td><td>Supabase's own secret storage. Present in the dump because the platform expects it.</td></tr>
         </tbody>
@@ -724,7 +724,7 @@ curl -s http://127.0.0.1:3000/api/health | python3 -m json.tool</pre>
 
     <h2 class="rise" id="upgrading">Upgrading an existing project <a class="anchor" href="#upgrading" aria-label="Link to this section">#</a></h2>
     <p><code>isotope-complete.sql</code> is safe to re-run and will add anything missing.
-    Measured on a live project: 2,273 statements, 0 failures on the first run and 0 on a
+    Measured on a live project: 2,278 statements, 0 failures on the first run and 0 on a
     second run over the same database, with table, policy, function, trigger, index and
     constraint counts identical afterwards. Three patches apply only to older projects:</p>
 

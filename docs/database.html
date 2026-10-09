@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Database — IsotopeAI docs</title>
-    <meta name="description" content="IsotopeAI database reference: 42 tables, 83 functions, 184 row-level security policies, 16 triggers and 108 indexes, counted from isotope-complete.sql.">
+    <meta name="description" content="IsotopeAI database reference: 42 tables, 84 functions, 184 row-level security policies, 16 triggers and 108 indexes, counted from isotope-complete.sql.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
@@ -158,7 +158,7 @@
 
     <div class="grid cols-4" style="margin-top:var(--s-6)">
       <div><span class="ticker" data-ticker="42">42</span><span class="ticker-label">Tables</span></div>
-      <div><span class="ticker" data-ticker="83">83</span><span class="ticker-label">Functions</span></div>
+      <div><span class="ticker" data-ticker="84">84</span><span class="ticker-label">Functions</span></div>
       <div><span class="ticker" data-ticker="184">184</span><span class="ticker-label">RLS policies</span></div>
       <div><span class="ticker" data-ticker="108">108</span><span class="ticker-label">Indexes (108 in isotope-complete.sql)</span></div>
     </div>
@@ -335,7 +335,7 @@ $$;
       <p><span class="note-title"><code>buddy_invites</code> is an orphan</span>
       It has RLS enabled with <strong>zero policies</strong>, so no anonymous or
       authenticated caller can read or write it. Nothing references it — not
-      <code>isotope-complete.sql</code>, not <code>server.mjs</code>, and none of the 83
+      <code>isotope-complete.sql</code>, not <code>server.mjs</code>, and none of the 84
       functions. Buddy functionality runs entirely through
       <code>community_friends</code>. This is leftover from an earlier design. It is not a
       security hole, because RLS with no policies fails closed, but it is dead weight and
@@ -438,7 +438,7 @@ $$;
 
     <h2 class="rise" id="functions">Functions <a class="anchor" href="#functions" aria-label="Link to this section">#</a></h2>
 
-    <p>83 <code>CREATE FUNCTION</code> statements covering 77 distinct names — six are
+    <p>84 <code>CREATE FUNCTION</code> statements covering 78 distinct names — six are
     overloads sharing a name with a different signature. 30 of them are the
     <code>community_*</code> RPC surface the frontend
     calls directly through PostgREST.</p>

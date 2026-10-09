@@ -6239,3 +6239,84 @@ CREATE POLICY "user-content owner update" ON storage."objects" FOR UPDATE TO pub
 DROP POLICY IF EXISTS "user-content owner write" ON storage."objects";
 CREATE POLICY "user-content owner write" ON storage."objects" FOR INSERT TO public WITH CHECK (((bucket_id = 'user-content'::text) AND (auth.role() = 'authenticated'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text)));
 COMMIT;
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- R7 (2026-10-09). Premium leaderboard for the rebuilt Community UI.
+-- Called by the new build as ue.rpc("community_get_premium_leaderboard",
+-- {p_period, p_after, p_snapshot}). Keyset pagination on p_after because the
+-- client pages downward and offset paging drifts between reads.
+-- SECURITY INVOKER: it reads only RLS-protected tables the caller can
+-- already see, and is REVOKEd from anon/PUBLIC so a logged-out caller
+-- gets a permission error rather than an empty board.
+-- NOTE: is_premium_user() is currently a deliberate `SELECT true`
+-- override, so this gate passes for everyone until that is reverted.
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION "public"."community_get_premium_leaderboard"("p_period" text DEFAULT 'weekly', "p_after" integer DEFAULT NULL, "p_snapshot" timestamp with time zone DEFAULT NULL)
+ RETURNS TABLE("user_id" uuid, "handle" text, "name" text, "avatar_url" text, "rank" integer, "total_hours" numeric, "period_hours" numeric, "is_viewer" boolean)
+ LANGUAGE plpgsql
+ VOLATILE
+ SECURITY INVOKER
+ SET "search_path" TO ''
+AS $p$
+DECLARE
+  v_uid    uuid := auth.uid();
+  v_since  date;
+  v_anchor timestamptz := coalesce(p_snapshot, now());
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '42501';
+  END IF;
+
+  IF NOT public.is_premium_user(v_uid) THEN
+    RAISE EXCEPTION 'An active premium membership is required'
+      USING ERRCODE = '42501';
+  END IF;
+
+  v_since := CASE p_period
+    WHEN 'daily'   THEN v_anchor::date
+    WHEN 'monthly' THEN date_trunc('month', v_anchor::date)::date
+    ELSE                 date_trunc('week',  v_anchor::date)::date
+  END;
+
+  RETURN QUERY
+  WITH totals AS (
+    SELECT s.user_id,
+           coalesce(s.total_hours, 0)                   AS total_hours,
+           coalesce(sum(d.seconds_studied), 0) / 3600.0 AS period_hours
+    FROM public.user_stats_summary s
+    LEFT JOIN public.daily_user_stats d
+           ON d.user_id = s.user_id
+          AND d.date >= v_since
+          AND d.deleted_at IS NULL
+    WHERE s.user_id IS NOT NULL
+    GROUP BY s.user_id, s.total_hours
+  ),
+  ranked AS (
+    SELECT t.user_id,
+           t.total_hours,
+           t.period_hours,
+           row_number() OVER (
+             ORDER BY t.period_hours DESC, t.total_hours DESC, t.user_id
+           )::int AS rnk
+    FROM totals t
+  )
+  SELECT r.user_id,
+         coalesce(p.handle, 'member'),
+         coalesce(p.display_name, p.handle, 'Member'),
+         null::text,
+         r.rnk,
+         round(r.total_hours, 2),
+         round(r.period_hours, 2),
+         r.user_id = v_uid
+  FROM ranked r
+  LEFT JOIN public.user_profiles p ON p.user_id = r.user_id
+  WHERE p_after IS NULL OR r.rnk > p_after
+  ORDER BY r.rnk
+  LIMIT 50;
+END;
+$p$;
+
+REVOKE ALL ON FUNCTION "public"."community_get_premium_leaderboard"(text, integer, timestamp with time zone) FROM anon;
+REVOKE ALL ON FUNCTION "public"."community_get_premium_leaderboard"(text, integer, timestamp with time zone) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "public"."community_get_premium_leaderboard"(text, integer, timestamp with time zone) TO authenticated;
+GRANT EXECUTE ON FUNCTION "public"."community_get_premium_leaderboard"(text, integer, timestamp with time zone) TO service_role;
