@@ -59,8 +59,8 @@ window.ISOTOPE_DEMO =   {
     "streak": 92,
     "totalMinutes": 25721,
     "sessionCount": 195,
-    "weekMinutes": 1938,
-    "fortnightMinutes": 3837,
+    "weekMinutes": 1940,
+    "fortnightMinutes": 1940,
     "series": [
       [
         "2026-09-25",
