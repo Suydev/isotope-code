@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 420" role="img"
+     aria-labelledby="arch-title arch-desc" font-family="IBM Plex Sans, system-ui, sans-serif">
+  <title id="arch-title">IsotopeAI request architecture</title>
+  <desc id="arch-desc">The browser requests a page from a Node server running on the same
+    device. The server injects runtime scripts into the HTML and patches JavaScript
+    bundles from disk before sending them. Data requests are proxied to the user's own
+    Supabase project. The service-role key stays on the server and never reaches the
+    browser.</desc>
+
+  <!-- Colours come from CSS custom properties so the diagram themes with the page.
+       The second value in each var() is the light-mode fallback for standalone view. -->
+  <style>
+    .box   { fill: var(--c-surface, #fff); stroke: var(--c-border, #e2e8f0); stroke-width: 1.5; }
+    .box-a { fill: var(--c-bg-subtle, #f8fafc); stroke: var(--c-border-strong, #cbd5e1); stroke-width: 1.5; }
+    .lbl   { fill: var(--c-text, #0f172a); font-size: 13px; font-weight: 600; }
+    .sub   { fill: var(--c-text-muted, #475569); font-size: 11px; }
+    .tiny  { fill: var(--c-text-faint, #64748b); font-size: 10px; }
+    .mono  { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .flow  { stroke: var(--c-border-strong, #cbd5e1); stroke-width: 1.5; fill: none; }
+    .flow-hi { stroke: var(--brand, #8df31f); stroke-width: 2; fill: none; }
+    .zone  { fill: none; stroke: var(--c-border, #e2e8f0); stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .zone-lbl { fill: var(--c-text-faint, #64748b); font-size: 10px; font-weight: 600; letter-spacing: .08em; }
+  </style>
+
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10z" fill="var(--c-border-strong, #cbd5e1)"/>
+    </marker>
+    <marker id="ah-hi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10z" fill="var(--brand, #8df31f)"/>
+    </marker>
+  </defs>
+
+  <!-- ── Zone: your device ─────────────────────────────────────────────── -->
+  <rect class="zone" x="14" y="40" width="560" height="360" rx="12"/>
+  <text class="zone-lbl" x="30" y="60">YOUR DEVICE</text>
+
+  <!-- Browser -->
+  <rect class="box" x="40" y="88" width="180" height="126" rx="10"/>
+  <text class="lbl" x="58" y="114">Browser</text>
+  <text class="sub" x="58" y="134">React SPA</text>
+  <text class="tiny mono" x="58" y="156">localStorage — auth token</text>
+  <text class="tiny mono" x="58" y="172">IndexedDB — study data</text>
+  <text class="tiny mono" x="58" y="188">Service worker cache</text>
+
+  <!-- Node server -->
+  <rect class="box-a" x="316" y="70" width="230" height="162" rx="10"/>
+  <text class="lbl" x="334" y="96">server.mjs</text>
+  <text class="sub" x="334" y="115">Node, zero dependencies</text>
+  <line class="flow" x1="334" y1="128" x2="528" y2="128"/>
+  <text class="tiny" x="334" y="147">1 · inject runtime scripts</text>
+  <text class="tiny" x="334" y="165">2 · patch bundles from disk</text>
+  <text class="tiny" x="334" y="183">3 · gzip + cache in memory</text>
+  <text class="tiny" x="334" y="201">4 · proxy data requests</text>
+  <text class="tiny mono" x="334" y="221">127.0.0.1:3000</text>
+
+  <!-- Disk -->
+  <rect class="box" x="316" y="264" width="230" height="106" rx="10"/>
+  <text class="lbl" x="334" y="290">public/assets/</text>
+  <text class="sub" x="334" y="309">Pre-built Vite bundles</text>
+  <text class="tiny" x="334" y="330">Never modified on disk —</text>
+  <text class="tiny" x="334" y="346">patched per request, in memory</text>
+
+  <!-- ── Zone: your Supabase ───────────────────────────────────────────── -->
+  <rect class="zone" x="616" y="40" width="250" height="360" rx="12"/>
+  <text class="zone-lbl" x="632" y="60">YOUR SUPABASE PROJECT</text>
+
+  <rect class="box" x="640" y="88" width="200" height="120" rx="10"/>
+  <text class="lbl" x="658" y="114">PostgreSQL</text>
+  <text class="tiny" x="658" y="136">42 tables · 72 functions</text>
+  <text class="tiny" x="658" y="153">153 row-level policies</text>
+  <text class="tiny" x="658" y="170">14 triggers</text>
+  <text class="tiny" x="658" y="192">Auth · Storage · Realtime</text>
+
+  <rect class="box" x="640" y="240" width="200" height="90" rx="10"/>
+  <text class="lbl" x="658" y="266">Storage buckets</text>
+  <text class="tiny" x="658" y="288">avatars (public)</text>
+  <text class="tiny" x="658" y="305">user-content, notes (private)</text>
+
+  <!-- ── Flows ─────────────────────────────────────────────────────────── -->
+  <!-- browser <-> server -->
+  <path class="flow-hi" d="M220 128 H310" marker-end="url(#ah-hi)"/>
+  <text class="tiny" x="232" y="120">HTTP</text>
+
+  <path class="flow" d="M310 176 H224" marker-end="url(#ah)"/>
+  <text class="tiny" x="232" y="194">patched JS</text>
+
+  <!-- server <-> disk -->
+  <path class="flow" d="M431 238 V258" marker-end="url(#ah)"/>
+  <path class="flow" d="M446 258 V238" marker-end="url(#ah)"/>
+
+  <!-- server <-> supabase -->
+  <path class="flow-hi" d="M552 140 H634" marker-end="url(#ah-hi)"/>
+  <text class="tiny" x="556" y="132">service key</text>
+  <text class="tiny" x="556" y="160">(server only)</text>
+
+  <path class="flow" d="M552 286 H634" marker-end="url(#ah)"/>
+
+  <!-- Note -->
+  <text class="tiny" x="30" y="392">The browser never receives the service-role key. Anonymous requests carry the caller's own JWT.</text>
+</svg>

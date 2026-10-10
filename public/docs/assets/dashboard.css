@@ -1,0 +1,1723 @@
+/* ============================================================================
+   IsotopeAI Documentation — Dashboard
+   ----------------------------------------------------------------------------
+   Styles for docs/dashboard.html ONLY.
+
+   Why a separate file rather than a block appended to site.css: this page ships
+   22 siblings that are hand-built and visually frozen. A new selector block in
+   the shared sheet is a shared-sheet regression surface — a mistyped `.card`
+   or a `.grid` override repaints pages nobody was testing. Everything here is
+   namespaced under `.dash-`, and the whole file loads from one <link> that only
+   dashboard.html carries. Zero blast radius by construction.
+
+   What it does NOT do, deliberately:
+
+     * It defines no new colour, spacing or radius token. Every value below
+       resolves to an existing --c-*, --s-*, --r-* or --dur-* custom property
+       from site.css, so the dashboard cannot drift out of the palette: change
+       the token and the dashboard follows, same as every other page. The four
+       raw values that appear are reuse, not invention, and each carries its
+       measurement inline: #8b929c / #6e648a (the 3:1 control-boundary values
+       site.css already measures for .sidebar-search), #4c1d95 (the light value
+       of --c-accent-hover, pinned onto the light mesh — see below), and the
+       mesh hairlines site.css already pins for .hero-mesh .stat-strip.
+     * It defines no new @keyframes. Entrance motion is the existing system —
+       pageOpen, wordRise/wordUp, swapCycle, auroraIn, rise, reveal-3d, enterUp,
+       edgeSpin — all of which already carry a prefers-reduced-motion path.
+       Adding motion here would mean adding a second set of reduced-motion
+       opt-outs, which is how a site ends up with one of them missed.
+
+   ── The hierarchy this page is built around ─────────────────────────────────
+   The previous pass put the five schema counts in a hairline strip at the
+   bottom of the hero at the same optical weight as the group notes and the
+   card tags, so the page read as four flat bands where it needed six. The
+   order below is the argument the page makes, and each level is separated from
+   the last by a real step rather than by 2px:
+
+     1  statement    .hero-title            clamp(2.75rem → 6.5rem)  700
+     2  control      .askbar                48px pill, brand CTA
+     3  evidence     .dash-stats .ticker    clamp(1.625rem → 2.25rem) 600
+     4  navigation   .dash-group-head h3    clamp(1.25rem → 1.5rem)  600
+     5  card title   .dash-card h4          1.125rem                600
+     6  card body    .card p                .875rem                 400
+
+   Level 4 was previously 1.25rem against level 5's 1.125rem — a 2px gap, which
+   is not a distinction. It is now a ~33% step.
+
+   Conventions match the rest of the docs: 4px spacing scale, semantic colour
+   tokens only, focus always visible and never removed. Interactive targets hold
+   the site's 44px floor everywhere except the area chips below 760px, which sit
+   at 40px — that one exception is argued in full at .dash-area, and it still
+   clears SC 2.5.8 (24×24) by a wide margin.
+   ========================================================================= */
+
+/* ── Accent on the mesh ─────────────────────────────────────────────────────
+   site.css pins --c-text / --c-text-muted / --c-text-faint inside .hero-mesh
+   for a good reason: the mesh is light in BOTH themes and cannot be inverted
+   without losing the effect.
+
+   --c-accent was missed. In dark mode it resolves to a LIGHT tonal variant
+   (#c4b5fd, or #a78bfa / #e879f9 / #22d3ee / #818cf8 / #fbbf24 by backdrop) —
+   and the hero search results panel is hardcoded #fff in site.css. So on a
+   dark-theme dashboard the focus ring around a search result, and the link
+   inside the empty state, rendered light-violet or light-amber on white —
+   1.6:1 and 2.5:1. The focus indicator became the least visible thing on the
+   page, in the one component that is entirely keyboard-driven.
+
+   Pinned to --c-accent-hover's light value, which measures 11.07:1 on white.
+
+   The `:root` prefix is load-bearing, not decoration. site.css assigns the
+   per-page accent as `:root[data-bg='2'] { --c-accent: … }` and friends, which
+   is a specificity of 0,2,0. A bare `.hero-mesh` is 0,1,0 and loses to all five
+   of them — so the pin below would have held on exactly one page in five (the
+   one whose hash happens to land on data-bg=1) and silently done nothing on the
+   other four. `:root .hero-mesh` is also 0,2,0, and ties are broken by source
+   order: dashboard.css is linked after site.css in the <head>, so this wins. */
+:root .hero-mesh {
+  --c-accent: #4c1d95;
+  --accent-tint: #4c1d95;
+}
+/* The dark variants in site.css are `:root[data-theme='dark'][data-bg='N']`,
+   specificity 0,3,0 — higher than the 0,2,0 above, so the light pin would not
+   hold once dark mode resolved them. This selector is 0,3,0 too, so it ties and
+   wins on source order. Inside the mesh the surface is ALWAYS the light mesh,
+   whichever theme is active, so the dark tonal variants have no business here:
+   they exist to be readable on a near-black page, and this page has none. */
+:root[data-theme='dark'] .hero-mesh {
+  --c-accent: #4c1d95;
+  --accent-tint: #4c1d95;
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+
+.dash-hero-lead { max-width: 46ch; margin-inline: auto; }
+
+/* ── The figure block ───────────────────────────────────────────────────────
+   The five counts are the reason this page is not just a link farm: they are
+   read off the schema dump, not asserted. They are therefore framed as
+   EVIDENCE — a mono kicker and its provenance caption above the row — rather
+   than as a row of numbers floating under the search field. */
+
+.dash-figures { margin-top: clamp(2.5rem, 6vh, 4rem); }
+
+.dash-fig-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-5);
+  margin-bottom: var(--s-3);
+}
+
+.dash-fig-src {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-text-muted);
+}
+/* `<code>` inside the caption is a filename, not a code sample: drop the chip
+   chrome so the caption reads as one line of text. */
+.dash-fig-src code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+}
+
+.dash-fig-note {
+  margin: var(--s-3) 0 0;
+  max-width: 58ch;
+  font-size: var(--t-xs);
+  line-height: 1.55;
+  color: var(--c-text-faint);
+}
+/* The provenance caption is the one place on this page where a 13px violet link
+   appears on the mesh. --c-accent is pinned above to 11.07:1 on white, so this
+   is comfortably over the 4.5:1 bar rather than at it. */
+.dash-fig-note a { color: var(--c-accent); text-decoration: underline; }
+.dash-fig-note code { font-family: var(--f-mono); }
+
+/* ── The mono kicker: one label idiom, used for every section and group head.
+   --t-xs is 13px, so the 4.5:1 bar applies. --c-text-faint measures 7.6:1 on
+   the mesh, 6.62:1 on the flat page and 6.22:1 in dark — all clear. */
+.dash-kicker {
+  margin: 0;
+  font: 600 var(--t-xs)/1.35 var(--f-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+
+/* Section heads on this page only. site.css's `.section-head` is fine for the
+   prose pages but wrong here: it sits at 44rem with no rule beneath it, so on a
+   grid page it reads as a paragraph that happens to be bold — the same optical
+   weight as the group notes forty pixels below it.
+
+   Three changes, and they are one idea: this is an INDEX, not an essay, so the
+   heading has to look like the top of a table of contents.
+     1. A mono kicker above it, which is the label idiom used everywhere else
+        on this page (figure provenance, group area names). One idiom, not three.
+     2. A hairline under the whole head, so the head is a caption for the grid
+        below rather than floating in the section's padding.
+     3. The heading and its note sit on one baseline row at desktop, so the
+        note reads as belonging to the heading instead of starting a new block. */
+.dash-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-5);
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+}
+.dash-section > div { flex: 1 1 22rem; }
+.dash-section h2 {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -.028em;
+  line-height: 1.1;
+}
+/* Scoped to the note, not to every <p> in the head. `.dash-kicker` is also a
+   <p>, and an unscoped descendant selector here would silently overwrite its
+   mono/uppercase treatment with sans body text — the exact drift the kicker
+   exists to prevent. */
+.dash-section > div > p:not(.dash-kicker) {
+  margin: var(--s-2) 0 0;
+  max-width: 44ch;
+  font-size: var(--t-sm);
+  line-height: 1.55;
+  color: var(--c-text-muted);
+}
+.dash-section .dash-kicker { margin-bottom: var(--s-2); }
+
+/* An optional right-hand slot — a live count or a link out of the section.
+   Pulled to the end of the row so it aligns with the section edge and the
+   head still reads as one left-aligned block. */
+.dash-section-aside {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  color: var(--c-text-faint);
+}
+.dash-section-aside a { color: var(--c-accent); text-decoration: none; }
+.dash-section-aside a:hover { text-decoration: underline; }
+
+/* ── Figure row ──────────────────────────────────────────────────────────────
+   Five columns of counts. One class rather than a modifier of .stat-strip,
+   because that one is a four-up grid and a modifier would have to fight it.
+
+   Hairline logic per breakpoint, stated once so it stays true: the rule is
+   horizontal (row separators) below 700px and vertical (column separators)
+   at or above it. A single border-bottom on every cell — what this used to
+   do — leaves a dangling rule under the last row; a single border-inline-start
+   on every non-first cell leaves a stray vertical rule down the right edge at
+   two columns. Each cell sets both edges; the leading ones are zeroed at the
+   same breakpoint that created them. */
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid rgba(17, 24, 39, .14);
+}
+@media (min-width: 700px)  { .dash-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .dash-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+/* Below 700px: rows of two, rule above each cell except the first row. */
+.dash-stats > div {
+  padding: var(--s-4) var(--s-4) var(--s-4) 0;
+  border-top: 1px solid rgba(17, 24, 39, .14);
+}
+.dash-stats > div:nth-child(-n+2) { border-top: 0; }
+
+@media (min-width: 700px) {
+  /* Rows of three, rule above each cell except the first row. */
+  .dash-stats > div {
+    padding: var(--s-4);
+    border-top: 1px solid rgba(17, 24, 39, .14);
+  }
+  .dash-stats > div:nth-child(-n+3) { border-top: 0; }
+  /* Column separators. Applied to every cell, then the leading cell of each
+     row is zeroed — after the general rule, so source order decides. */
+  .dash-stats > div:not(:first-child) { border-inline-start: 1px solid rgba(17, 24, 39, .14); }
+  .dash-stats > div:nth-child(3n+1) { border-inline-start: 0; }
+  .dash-stats > div:nth-child(3n+1):not(:first-child) { padding-inline-start: 0; }
+}
+@media (min-width: 1000px) {
+  /* One row of five: no top rule at all, the container's border is enough. */
+  .dash-stats > div { border-top: 0; }
+  .dash-stats > div:first-child { padding-inline-start: 0; border-inline-start: 0; }
+  .dash-stats > div:not(:first-child) { padding-inline-start: var(--s-4); }
+}
+
+/* One step below .stat-strip's 2.5rem ceiling. The search bar is this hero's
+   action and the counts are its supporting evidence; at the same size the two
+   compete, and the one you can act on loses. Same weight and tracking as the
+   landing page's strip so the component still reads as one component. */
+.dash-stats .ticker {
+  font-size: clamp(1.625rem, 2.6vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1;
+}
+.dash-stats .ticker-label {
+  margin-top: var(--s-2);
+  font-size: var(--t-xs);
+  letter-spacing: .01em;
+  color: var(--c-text-faint);
+}
+
+/* ── Browse: the control row ───────────────────────────────────────────────
+   One row holding the filter field and the area chips. At desktop the field
+   takes a fixed measure and the chips fill the rest, so the eye lands on the
+   field first — it is the primary control — and the chips read as a secondary
+   index. Below 760px everything stacks.
+
+   The live result count is deliberately NOT in this row. It lives in the section
+   head above, where it reads as a caption on the whole list rather than as the
+   output of whichever control you happened to touch last. */
+
+.dash-browse-head {
+  display: grid;
+  gap: var(--s-4);
+  align-items: center;
+  margin-bottom: var(--s-6);
+}
+@media (min-width: 760px) {
+  .dash-browse-head {
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    column-gap: var(--s-5);
+  }
+}
+
+/* The filter field is a model of .sidebar-search, not a copy of it: same 3:1
+   border (measured there — the --c-border tokens are divider-tuned and fail
+   1.4.11 as a control boundary), same 48px field height, same ring-on-container
+   behaviour. Only the width differs, because this one is full-bleed. */
+.dash-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding-inline: var(--s-4);
+  background: var(--c-surface);
+  border: 1px solid #8b929c;            /* 3.14:1 on white — see site.css */
+  border-radius: var(--r-md);
+  box-shadow: var(--e-1);
+  transition: border-color var(--dur-fast) var(--ease),
+              box-shadow var(--dur-fast) var(--ease);
+}
+:root[data-theme='dark'] .dash-field { border-color: #6e648a; }  /* 3.63:1 */
+
+.dash-field:focus-within {
+  border-color: var(--c-accent);
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+.dash-field .askbar-icon { color: var(--c-text-faint); }
+
+.dash-field-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  background: none;
+  /* 16px floor: below it iOS zooms the page on focus. */
+  font: 400 1rem/1.4 var(--f-sans);
+  color: var(--c-text);
+}
+.dash-field-input::placeholder { color: var(--c-text-faint); }
+.dash-field-input:focus,
+.dash-field-input:focus-visible { outline: none; }
+.dash-field-input::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+/* A clear button appears only once there is something to clear. Kept in the DOM
+   and toggled with `hidden` so it cannot shift the field's contents when it
+   appears — an input that reflows as you type is a cursor that moves under you. */
+.dash-field-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--c-text-faint);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease),
+              background-color var(--dur-fast) var(--ease);
+}
+.dash-field-clear:hover { color: var(--c-text); background: var(--c-bg-subtle); }
+.dash-field-clear svg { width: 16px; height: 16px; }
+.dash-field-clear[hidden] { display: none; }
+
+/* Area chips. Real <button>s with aria-pressed rather than a styled <div>:
+   they are in the tab order, they answer Enter and Space for free, and a screen
+   reader announces the pressed state without any ARIA being invented. */
+.dash-areas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.dash-area {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 40px;                     /* comfortable chip; see note below */
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+  color: var(--c-text-muted);
+  font: 500 var(--t-xs)/1 var(--f-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease);
+}
+.dash-area:hover { color: var(--c-text); background: var(--c-bg-subtle); }
+
+/* 40px on narrow screens, 44px from 760px up.
+
+   The 40px case is a deliberate, documented departure from the 44px floor the
+   rest of this site holds, so here is the whole argument. These chips are a
+   narrow filter over one already-visible list — never a primary navigation
+   target, and never the only route to a page. WCAG 2.2 SC 2.5.8 (Target Size,
+   Minimum, AA) sets the bar at 24×24 CSS px, which 40px clears by a wide
+   margin; the 44px figure on this site is a stronger internal convention taken
+   from the Apple HIG, not a requirement. Six 44px pills wrap to two rows and
+   push the page grid below the fold on a 360px phone, which costs more than
+   the extra 4px of chip height buys. Every other target on the page — the
+   filter field (48), the clear button, the cards, the release links — is at or
+   above 44, and from 760px the chips reach 44 too. */
+@media (min-width: 760px) { .dash-area { min-height: 44px; } }
+
+/* Pressed state inverts. --c-text on --c-bg is 18.4:1 light / 16.5:1 dark, so
+   the label stays far above the floor after inversion; the alternative — a
+   brand fill — measured 4.2:1 at the top of the gradient and would have been a
+   fail. Weight is raised as well as colour, so the state survives a greyscale
+   print and a reader who cannot separate the two. */
+.dash-area[aria-pressed='true'] {
+  background: var(--c-text);
+  border-color: var(--c-text);
+  color: var(--c-bg);
+  font-weight: 600;
+}
+
+.dash-area-count {
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  opacity: .75;
+}
+
+/* Result count. role="status" so the change is announced without stealing focus
+   from the field the reader is still typing in. Monospace, faint, and the
+   smallest type on the page — it is a confirmation, not a heading. It is styled
+   through .dash-section-aside, where it sits at the end of the heading row. */
+.dash-status { margin: 0; }
+
+/* ── Browse: groups + grid ────────────────────────────────────────────────── */
+
+.dash-group { margin-bottom: var(--s-8); }
+.dash-group[hidden] { display: none; }
+
+/* The group head is a two-column bar: the area name carries real weight and
+   the note sits to its right as supporting context. This is the clearest
+   hierarchy fix on the page — the h3 is now a step above the card titles
+   rather than 2px above them, and the note is a step below the h3. */
+.dash-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2) var(--s-4);
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--c-border);
+}
+.dash-group-head h3 {
+  font-size: clamp(1.25rem, 1.6vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  color: var(--c-text);
+  text-wrap: balance;
+}
+.dash-group-head .dash-group-note {
+  flex: 1 1 20rem;
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: 1.5;
+  color: var(--c-text-faint);
+}
+
+.dash-grid {
+  display: grid;
+  gap: var(--s-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 620px)  { .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .dash-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.dash-card[hidden] { display: none; }
+
+/* Cards are links, so their whole surface is the hit target — well above the
+   44px floor. A soft focus ring on the whole card keeps the boundary obvious. */
+.dash-card:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 3px;
+  border-radius: var(--r-lg);
+}
+
+/* site.css sizes `.card h3`, and these cards sit one heading level deeper
+   (h1 page → h2 section → h3 group → h4 card), so the shared rule does not
+   reach them. Without this the title falls back to the browser's default h4
+   size and the cards stop matching the six on the landing page. Same values,
+   restated rather than overridden, so changing --t-h3 moves both. */
+.dash-card h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -.016em;
+  line-height: 1.15;
+  color: var(--c-text);
+  text-wrap: balance;
+}
+
+/* Cards carry the search keywords as a visible tag row rather than hiding them
+   in an attribute. It means the reader can see why a filter matched, and it
+   means the terms are real text — reachable by find-in-page, not just by the
+   script that happens to be looking.
+
+   `auto` is deliberately NOT used here. .card is a flex column, and two
+   elements claiming the free space split it between them — the tags would drift
+   into the middle of the card while the arrow sat below. Only the last child
+   absorbs the slack, which is what pins the arrow to the bottom edge. */
+.dash-card .dash-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  margin-top: var(--s-2);
+  padding-top: var(--s-3);
+}
+.dash-card .dash-tags .pill { font-weight: 500; }
+
+/* A card is a link, so its accessible name is everything inside it. The tag row
+   is part of that name — good, because it is genuinely what the page is about,
+   and a reader hearing "Database, …, schema, migration, rls" is better served
+   than one hearing only the title. */
+.dash-card .dash-arrow {
+  margin-top: auto;
+  padding-top: var(--s-3);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--c-accent);
+}
+
+.dash-empty {
+  padding: var(--s-6);
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--r-lg);
+  background: var(--c-bg-subtle);
+  text-align: center;
+}
+.dash-empty[hidden] { display: none; }
+.dash-empty p { margin: 0 0 var(--s-2); color: var(--c-text-muted); }
+.dash-empty .dash-empty-q {
+  font-family: var(--f-mono);
+  color: var(--c-text);
+  font-weight: 600;
+}
+
+/* ── Recent changes ─────────────────────────────────────────────────────────
+   `data-latest` is set by dashboard.js on the first parsed release. The rest of
+   the panel is a flat grid of equal cards, which is right — a changelog is a
+   list, and inventing a hierarchy between three versions of the same thing
+   would be noise. But the LATEST one is a different kind of fact from the
+   other two: it is the only one a reader is likely to act on, so it earns a
+   raised surface and a brand hairline. The difference is a 1px edge and a
+   shadow, not a colour change — a reader who cannot separate the accent hue
+   still sees the card sitting above the others. */
+.dash-rel-list {
+  display: grid;
+  gap: var(--s-4);
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 820px)  { .dash-rel-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .dash-rel-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* The <li> is the grid item; the <a> inside it fills the cell so the whole
+   card remains one hit target. `display: block` on the li would drop it out of
+   the grid flow in some engines, so it stays a block box and the grid places
+   it; height:100% on the link lets the card stretch to the tallest in its row,
+   which keeps the three release cards the same height. */
+.dash-rel-item { display: block; margin: 0; padding: 0; }
+.dash-rel-item > .dash-rel { height: 100%; }
+
+.dash-rel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-5);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+  box-shadow: var(--e-1);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--dur) var(--ease),
+              box-shadow var(--dur) var(--ease),
+              transform var(--dur) var(--ease);
+}
+.dash-rel:hover {
+  border-color: var(--c-border-strong);
+  box-shadow: var(--e-2);
+  transform: translateY(-2px);
+  color: inherit;
+}
+/* The latest release, hover state first.
+
+   Order matters: this rule sets `box-shadow`, so it must come AFTER :hover or
+   it would clobber the hover elevation on every hover of the latest card.
+   :hover is declared above; this combined selector keeps the inset accent bar
+   AND the lifted shadow together on hover. */
+.dash-rel:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 3px;
+}
+
+/* The latest release.
+
+   The accent bar is an INSET shadow rather than a border. A `border-inline-start`
+   would widen the content box by 2px relative to the two cards beside it, and
+   because the grid stretches its columns equally, one card gaining a border
+   makes all three cards 2px narrower and the row reflows on every release.
+   An inset shadow paints inside the existing box: no layout involvement, so
+   marking the latest release cannot move anything. */
+.dash-rel[data-latest='true'] {
+  box-shadow: inset 2px 0 0 0 var(--c-accent), var(--e-2);
+  border-color: color-mix(in srgb, var(--c-accent) 34%, var(--c-border-strong));
+}
+/* On hover the latest card keeps its accent bar but should lift like any other.
+   Because the accent is the FIRST shadow in the list, it must be restated here
+   or it would be lost when the lift replaces the resting shadow. */
+.dash-rel[data-latest='true']:hover {
+  box-shadow: inset 2px 0 0 0 var(--c-accent), var(--e-3);
+}
+/* Hoisting is expressed as an ink change on the version, which is the one
+   element that is already brand-adjacent. --c-text and --c-accent both clear
+   4.5:1 on the card surface, so the emphasis survives a greyscale print and a
+   reader who cannot separate the accent hue from the body text. */
+.dash-rel[data-latest='true'] .dash-rel-version { color: var(--c-accent); }
+
+.dash-rel-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.dash-rel-version {
+  font: 700 1.125rem/1.2 var(--f-mono);
+  letter-spacing: -.02em;
+  color: var(--c-text);
+}
+
+.dash-rel-date {
+  font-size: var(--t-xs);
+  color: var(--c-text-faint);
+  font-family: var(--f-mono);
+}
+
+.dash-rel-sum {
+  margin: 0;
+  font-size: var(--t-sm);
+  color: var(--c-text-muted);
+  line-height: 1.55;
+}
+
+/* Two highlights per release. Three pushes the card past the fold on a laptop
+   and the changelog is one click away anyway — the point of this panel is what
+   changed recently, not the whole entry. */
+.dash-rel-points {
+  margin: 0;
+  padding-inline-start: var(--s-4);
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--c-text-faint);
+}
+.dash-rel-points li + li { margin-top: var(--s-1); }
+
+/* The list is populated by dashboard.js after fetching changelog.html. Until it
+   lands — and permanently if the fetch fails — this holds the way out, so the
+   section is never an empty box with a heading promising content. */
+.dash-rel-note {
+  margin: var(--s-4) 0 0;
+  font-size: var(--t-sm);
+  color: var(--c-text-muted);
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────────
+   The transitions below are the page's own hover/press states. Under
+   prefers-reduced-motion they are removed here as well as by site.css's global
+   `transition-duration: .01ms` reset, so the intent is recorded where the
+   rules are, not only in the shared sheet. */
+@media (prefers-reduced-motion: reduce) {
+  .dash-field { transition: none; }
+  .dash-area, .dash-field-clear, .dash-rel, .dash-card { transition: none; }
+  .dash-rel:hover, a.dash-card:hover { transform: none; }
+}
+
+/* ============================================================================
+   THE INTERACTIVE DEMO
+   ============================================================================
+   An app shell: workspace rail, stacked pane canvas, summary rail, a view
+   switcher and Reset / Explore. Real state behind every control.
+
+   ── The rule that shapes the module ───────────────────────────────────────
+   Two kinds of thing are on screen and they must never be confused.
+
+     The STAGE is illustrative. Session lengths, subject names, group names,
+     member counts and leaderboard rows are invented so there is something
+     to show. Every one a reader could mistake for a claim about the shipped
+     product carries a visible `sample` marker at the point it appears.
+
+     The TRACE is not illustrative. Every table, column, function, status
+     value and branch in it was read out of isotope-complete.sql. If the trace
+     and the SQL ever disagree, the SQL is right — that is the whole reason
+     the trace exists.
+
+   ── Why this fetches nothing ──────────────────────────────────────────────
+   A demo of an offline-first product that needs a network round trip to
+   demonstrate the offline-first product would be a joke, and it would fail on
+   a cold cache in exactly the case where it is most likely to be opened.
+
+   ── Scaling ───────────────────────────────────────────────────────────────
+   The shell reflows on width, not on viewport, because this is a self-contained
+   widget that has to work at whatever width its column gives it, independent
+   of the page. Container queries are the right instrument for that — with one
+   caveat, and the caveat is load-bearing here rather than theoretical: they are
+   not universally implemented. `CSS.supports('width', '1cqw')` is false in the
+   browser this was built against, and a `@container` rule never fires there at
+   all. So the collapse ships TWICE — once on container width, once on viewport
+   — and where both apply they set identical values and agree.
+
+   The viewport rule is the one doing the work in that browser; it is a fallback,
+   not a duplicate. Its known limit: it keys off the viewport while the
+   container rule keys off the column, so on a wide viewport with a narrow
+   column the container query collapses and the media query does not. Known,
+   accepted, and the failure mode is a two-column layout that fits.
+
+   ── Constraints ───────────────────────────────────────────────────────────
+   No new tokens, no new keyframes. Every colour is a --c-* token; every
+   duration is a --dur-*; every radius a --r-*; every space a --s-*. The two
+   raw hex values are the control-boundary grey this page already measures for
+   .dash-field (3.14:1 on white) and its dark-theme counterpart (3.63:1),
+   restated because the demo has controls of its own and reusing the literal
+   is cheaper than a variable nobody would read.
+
+   What it deliberately does NOT animate: nothing loops. The timer runs only
+   because a reader pressed Start; every transition is a state change the
+   reader caused.
+   ========================================================================= */
+
+.demo {
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+  box-shadow: var(--e-2);
+  overflow: hidden;
+
+  /* The shell's container lives HERE, on the frame, rather than on
+     .demo-shell itself. A @container rule only ever styles descendants of the
+     container element — never the container — so putting `container-type` on
+     .demo-shell made every `@container demoshell { .demo-shell }` rule
+     unmatchable and the narrow layout silently never applied. The frame is the
+     natural owner anyway: it is what sets the available width, and it wraps
+     both .demo-shell and .demo-trace. */
+  container-type: inline-size;
+  container-name: demoshell;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────────────
+   The label states what the section shows, so the frame can never be read as
+   a live capture of somebody's account. Reset and Explore are the two global
+   controls. */
+.demo-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-bg-subtle);
+}
+
+.demo-bar-actions { display: flex; gap: var(--s-2); }
+
+.demo-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-inline-end: auto;
+  font: 600 var(--t-xs)/1 var(--f-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+}
+/* The dot is decorative; the words beside it carry the meaning, so a reader
+   who never sees the dot still gets "Sample data". */
+.demo-tag::before {
+  content: '';
+  width: 8px; height: 8px;
+  flex: none;
+  border-radius: var(--r-full);
+  background: var(--c-warn);
+}
+
+.demo-count {
+  margin: 0;
+  font: 500 var(--t-xs)/1 var(--f-mono);
+  color: var(--c-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Shared control ───────────────────────────────────────────────────────
+   One button style for the whole demo. 44px minimum, a measured 3:1
+   boundary, and a visible ring on :focus-visible only — a mouse press should
+   not draw a ring and a keyboard one must. */
+.demo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid #8b929c;
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: 600 var(--t-sm)/1.2 var(--f-sans);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease);
+}
+:root[data-theme='dark'] .demo-btn { border-color: #6e648a; }
+.demo-btn:hover:not(:disabled) { background: var(--c-bg-subtle); }
+.demo-btn:disabled { opacity: .5; cursor: not-allowed; }
+.demo-btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.demo-btn svg { width: 15px; height: 15px; flex: none; }
+
+/* The variant that advances the story. Brand fill is avoided for
+   text-on-fill reasons documented at .dash-area: this inverts instead, which
+   is 16.5:1 in dark and 18.4:1 in light and stays legible when the accent
+   hue is not perceivable at all. */
+.demo-btn[data-variant='primary'] {
+  background: var(--c-text);
+  border-color: var(--c-text);
+  color: var(--c-bg);
+}
+.demo-btn[data-variant='primary']:hover:not(:disabled) {
+  background: var(--c-text);
+  color: var(--c-bg);
+  border-color: var(--c-text);
+}
+
+.demo-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px; height: 44px;
+  flex: none;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--c-text-muted);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease);
+}
+.demo-icon-btn:hover { background: var(--c-bg-subtle); color: var(--c-text); }
+.demo-icon-btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+.demo-icon-btn svg { width: 16px; height: 16px; }
+
+/* ── The shell ────────────────────────────────────────────────────────────
+   Grid: rail | canvas | summary, with a titlebar across the top. Container
+   queries, because this is a widget, not a page. Below 900px the three
+   columns become one and each rail labels its own section, so a phone reads
+   top-to-bottom rather than sideways. */
+.demo-shell {
+  /* No `--u` scale unit here, deliberately. An earlier revision declared
+     `--u: calc(100cqw / 1200)` on the theory that every interior dimension
+     would be a multiple of it, so the shell would scale as one object. That
+     never got wired up: the interior rules use literal 44px / 52px / rem
+     values, so the token had zero consumers and the comment described a
+     behaviour the CSS did not have. A comment that overstates its own rule is
+     worse than no comment, so the token is gone rather than the claim.
+
+     Scaling is handled instead by the two collapses below — one on container
+     width, one on viewport — which is what actually governs the layout. */
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) minmax(0, 17rem);
+  grid-template-areas:
+    'title  title  title'
+    'rail   panes  summary';
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 34rem;
+  background: var(--c-bg-subtle);
+}
+
+@container demoshell (max-width: 900px) {
+  .demo-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'title' 'rail' 'panes' 'summary';
+    grid-template-rows: auto auto auto auto;
+  }
+}
+
+/* The same collapse as a media query, and it is not redundant.
+
+   @container is the right instrument here — the widget has to reflow on the
+   width of its column, not of the viewport — but it is not universally
+   implemented, and where it is missing the three fixed-ish columns (15rem +
+   1fr + 17rem) simply do not fit a 360px screen. Verified in this repo's own
+   test browser: CSS.supports('width','1cqw') is false and a @container rule
+   never fires, so the layout below is what actually protects small screens
+   there. Where container queries DO work, both rules match and agree. */
+@media (max-width: 1000px) {
+  .demo-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'title' 'rail' 'panes' 'summary';
+    grid-template-rows: auto auto auto auto;
+  }
+  /* The rails are no longer side by side, so they stop claiming a fixed
+     column and let their content decide the width. */
+  .demo-rail   { border-right: 0; border-bottom: 1px solid var(--c-border); }
+  .demo-summary { border-left: 0;  border-top: 1px solid var(--c-border); }
+}
+
+/* ── Titlebar ───────────────────────────────────────────────────────────── */
+.demo-titlebar {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-surface);
+  min-height: 52px;
+  flex-wrap: wrap;
+}
+
+.demo-lights { display: inline-flex; gap: 5px; flex: none; }
+.demo-lights i { width: 9px; height: 9px; border-radius: var(--r-full); background: var(--c-border-strong); }
+
+.demo-brand { display: inline-flex; align-items: center; gap: var(--s-2); flex: none; }
+.demo-brand-mark { width: 17px; height: 17px; color: var(--c-accent); }
+.demo-brand-name {
+  font: 600 var(--t-sm)/1 var(--f-sans);
+  letter-spacing: -0.01em;
+  color: var(--c-text);
+}
+
+.demo-titlebar-spacer { flex: 1 1 auto; }
+
+/* ── View switcher ────────────────────────────────────────────────────────
+   A segmented track with a sliding thumb. The thumb is decorative: which
+   view is current is carried by aria-checked on the radio and by weight +
+   an inset underline on the button, so it does not depend on the accent hue
+   being perceivable or on the thumb rendering. */
+.demo-modes {
+  position: relative;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-full);
+  background: var(--c-bg-subtle);
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.demo-modes::-webkit-scrollbar { display: none; }
+
+.demo-modes-thumb {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: calc(100% - 6px);
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+  box-shadow: inset 0 0 0 1px var(--c-border-strong);
+  pointer-events: none;
+  transition: transform var(--dur) var(--ease), width var(--dur) var(--ease);
+}
+
+.demo-mode {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  min-height: 38px;
+  padding: var(--s-1) var(--s-3);
+  border: 0;
+  background: none;
+  color: var(--c-text-muted);
+  font: 600 var(--t-xs)/1.2 var(--f-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease);
+}
+.demo-mode:hover { color: var(--c-text); }
+.demo-mode:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; border-radius: var(--r-full); }
+.demo-mode[aria-checked='true'] { color: var(--c-text); }
+
+/* ── Session chip ─────────────────────────────────────────────────────────
+   Signed out vs signed in. Three cues — dot, weight and the words — so the
+   state never rests on colour. */
+.demo-session {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-muted);
+  flex: none;
+}
+.demo-session-dot {
+  width: 7px; height: 7px;
+  flex: none;
+  border-radius: var(--r-full);
+  background: var(--c-text-faint);
+}
+.demo-session[data-state='in'] .demo-session-dot { background: var(--c-ok); }
+.demo-session[data-state='in'] { color: var(--c-text); border-color: var(--c-border-strong); }
+
+/* ── Workspace rail ─────────────────────────────────────────────────────── */
+.demo-rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid var(--c-border);
+  background: var(--c-surface);
+}
+
+.demo-rail-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+}
+.demo-rail-title {
+  flex: 1 1 auto;
+  font: 600 var(--t-xs)/1 var(--f-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+
+.demo-rail-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--s-2);
+  display: grid;
+  gap: 1px;
+  align-content: start;
+}
+
+/* A study area. selected = weight + an inset accent rule + a raised surface:
+   three cues, so the current area does not depend on colour being
+   perceivable. */
+.demo-row-ws {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--c-text-muted);
+  font: 600 var(--t-sm)/1.3 var(--f-sans);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease);
+}
+.demo-row-ws:hover { background: var(--c-bg-subtle); color: var(--c-text); }
+.demo-row-ws:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+.demo-row-ws[aria-selected='true'] {
+  background: var(--c-bg-subtle);
+  border-color: var(--c-border);
+  color: var(--c-text);
+  box-shadow: inset 2px 0 0 0 var(--c-accent);
+}
+.demo-row-ws-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
+/* The open panes, indented beneath their subject so selecting an area shows
+   what is inside it rather than replacing the list with a detail view. */
+.demo-row-pane {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-1) var(--s-3) var(--s-1) var(--s-5);
+  margin-inline-start: var(--s-3);
+  border: 1px solid transparent;
+  border-inline-start: 2px solid var(--c-border);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: none;
+  color: var(--c-text-faint);
+  font: 500 var(--t-xs)/1.3 var(--f-sans);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease);
+}
+.demo-row-pane:hover { background: var(--c-bg-subtle); color: var(--c-text-muted); }
+.demo-row-pane:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+.demo-row-pane[aria-selected='true'] {
+  color: var(--c-text);
+  border-inline-start-color: var(--c-accent);
+  background: var(--c-bg-subtle);
+}
+.demo-row-pane-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
+.demo-rail-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-top: 1px solid var(--c-border);
+}
+.demo-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  flex: none;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-full);
+  background: var(--c-bg-subtle);
+  font: 700 11px/1 var(--f-mono);
+  color: var(--c-text-muted);
+}
+.demo-rail-foot-text { display: grid; min-width: 0; }
+.demo-rail-foot-name { font: 600 var(--t-xs)/1.4 var(--f-sans); color: var(--c-text); }
+.demo-rail-foot-meta {
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+
+/* ── Pane canvas ──────────────────────────────────────────────────────────
+   A stack. Behind-panes are aria-hidden and inert, so the canvas exposes
+   exactly one readable pane to assistive tech rather than three copies of
+   the same content. */
+.demo-panes {
+  grid-area: panes;
+  position: relative;
+  min-width: 0;
+  padding: var(--s-4);
+  display: grid;
+  overflow-y: auto;
+}
+.demo-panes:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+
+/* The stack. Later panes sit on top; the depth is transform + shadow only,
+   never a layout offset, so nothing reflows when the stack changes. */
+.demo-stack { position: relative; display: grid; align-content: start; gap: var(--s-3); }
+
+.demo-pane {
+  grid-area: 1 / 1;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+  box-shadow: var(--e-1);
+  min-width: 0;
+  transition: transform var(--dur) var(--ease),
+              box-shadow var(--dur) var(--ease),
+              opacity var(--dur) var(--ease);
+}
+.demo-pane[data-depth='0'] { position: relative; z-index: 3; }
+.demo-pane[data-depth='1'] {
+  transform: scale(.975) translateY(-10px);
+  z-index: 2;
+  opacity: .75;
+}
+.demo-pane[data-depth='2'] {
+  transform: scale(.95) translateY(-20px);
+  z-index: 1;
+  opacity: .5;
+}
+.demo-pane[data-depth='2'] .demo-pane-head { visibility: hidden; }
+.demo-pane[data-depth='2'] > *:not(.demo-pane-head) { display: none; }
+
+.demo-pane-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+}
+.demo-pane-title {
+  margin: 0;
+  font: 600 var(--t-sm)/1.3 var(--f-sans);
+  color: var(--c-text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.demo-pane-spacer { flex: 1 1 auto; }
+.demo-pane-body { padding: var(--s-4); display: grid; gap: var(--s-4); align-content: start; }
+
+/* ── Summary rail ───────────────────────────────────────────────────────── */
+.demo-summary {
+  grid-area: summary;
+  min-width: 0;
+  padding: var(--s-4);
+  border-left: 1px solid var(--c-border);
+  background: var(--c-surface);
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+}
+
+.demo-h {
+  margin: 0;
+  font: 600 var(--t-sm)/1.3 var(--f-sans);
+  letter-spacing: -0.14px;
+  color: var(--c-text);
+}
+.demo-note {
+  margin: 0;
+  font-size: var(--t-sm);
+  line-height: 1.6;
+  color: var(--c-text-muted);
+}
+.demo-note code, .demo-summary code, .demo-pane code {
+  font-family: var(--f-mono);
+  overflow-wrap: anywhere;
+}
+
+/* The hero figure. Line-height tightens with size — the one place the demo
+   needs the optical ladder, because 00:00 at 2rem next to a 13px label is
+   the whole point of the panel. */
+.demo-stat-hero { margin: 0; display: grid; gap: 2px; }
+.demo-stat-hero-val {
+  font: 700 clamp(1.75rem, 1.2rem + 1.6cqi, 2.25rem)/1.05 var(--f-mono);
+  letter-spacing: -0.03em;
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+.demo-stat-hero-lbl {
+  font: 500 var(--t-xs)/1.4 var(--f-sans);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+
+/* Streak ring. A conic gradient driven by a percentage set from JS — no new
+   token, no keyframe, and it degrades to a flat ring when the value is 0. */
+.demo-ring-row { display: flex; align-items: center; gap: var(--s-3); }
+.demo-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px; height: 52px;
+  flex: none;
+  border-radius: var(--r-full);
+  background: conic-gradient(var(--c-accent) calc(var(--pct, 0) * 1%),
+                             var(--c-bg-subtle) 0);
+  position: relative;
+}
+.demo-ring::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+}
+.demo-ring-num {
+  position: relative;
+  font: 700 var(--t-sm)/1 var(--f-mono);
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+.demo-ring-text { display: grid; min-width: 0; }
+.demo-ring-lbl { font: 600 var(--t-sm)/1.3 var(--f-sans); color: var(--c-text); }
+.demo-ring-sub { font: 500 var(--t-xs)/1.4 var(--f-mono); color: var(--c-text-faint); }
+
+.demo-summary-list { margin: 0; display: grid; gap: 1px; }
+.demo-summary-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--c-border);
+}
+.demo-summary-row dt {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+.demo-summary-row dd {
+  margin: 0;
+  flex: none;
+  font: 600 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Focus timer ────────────────────────────────────────────────────────── */
+.demo-clock {
+  margin: 0;
+  font: 700 clamp(2.25rem, 1.5rem + 2.4cqi, 3.25rem)/1 var(--f-mono);
+  letter-spacing: -0.035em;
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+.demo-clock[data-state='running'] { color: var(--c-accent); }
+.demo-clock[data-state='finished'] { color: var(--c-ok); }
+
+.demo-bar-track {
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--c-bg-subtle);
+  overflow: hidden;
+}
+.demo-bar-fill {
+  height: 100%;
+  border-radius: var(--r-full);
+  background: var(--c-accent);
+  transition: width var(--dur-slow) linear;
+}
+.demo-bar-fill[data-state='finished'] { background: var(--c-ok); }
+
+.demo-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.demo-actions .demo-btn { flex: 1 1 auto; }
+
+.demo-subjects { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.demo-subject-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-full);
+  background: var(--c-surface);
+  font: 500 var(--t-xs)/1.4 var(--f-sans);
+  color: var(--c-text-muted);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease),
+              background-color var(--dur-fast) var(--ease),
+              color var(--dur-fast) var(--ease);
+}
+.demo-subject-chip:hover { background: var(--c-bg-subtle); color: var(--c-text); }
+.demo-subject-chip:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.demo-subject-chip[aria-pressed='true'] {
+  background: var(--c-bg-subtle);
+  border-color: var(--c-accent);
+  color: var(--c-text);
+}
+
+/* ── Stats table ────────────────────────────────────────────────────────── */
+.demo-stats { margin: 0; display: grid; gap: 1px; }
+.demo-stat {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-2) var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+}
+.demo-stat dt {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+.demo-stat dd {
+  margin: 0;
+  flex: none;
+  font: 600 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+/* A row the demo just changed. The inset rule plus the label change in the
+   pane's own live region carry it — this is a cue, not the only cue. */
+.demo-stat[data-changed='true'] { box-shadow: inset 2px 0 0 0 var(--c-ok); }
+
+/* ── Tasks ──────────────────────────────────────────────────────────────── */
+.demo-form { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.demo-form:focus-within {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+  border-radius: var(--r-md);
+}
+.demo-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid #8b929c;
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: 400 var(--t-sm)/1.3 var(--f-sans);
+}
+:root[data-theme='dark'] .demo-input { border-color: #6e648a; }
+.demo-input::placeholder { color: var(--c-text-faint); }
+.demo-input:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 1px; }
+
+.demo-list { display: grid; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.demo-list[data-empty='true']::after {
+  content: attr(data-empty-text);
+  display: block;
+  padding: var(--s-4);
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--r-md);
+  font-size: var(--t-sm);
+  color: var(--c-text-muted);
+  text-align: center;
+}
+
+.demo-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+}
+.demo-row[data-done='true'] { background: var(--c-bg-subtle); }
+.demo-row[data-done='true'] .demo-row-title { text-decoration: line-through; color: var(--c-text-faint); }
+.demo-row-main { flex: 1 1 auto; min-width: 0; }
+.demo-row-title { margin: 0; font: 600 var(--t-sm)/1.4 var(--f-sans); color: var(--c-text); overflow-wrap: anywhere; }
+.demo-row-meta {
+  margin: 2px 0 0;
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+.demo-row-btn {
+  flex: none;
+  min-height: 44px;
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid #8b929c;
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: 600 var(--t-xs)/1.2 var(--f-sans);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+:root[data-theme='dark'] .demo-row-btn { border-color: #6e648a; }
+.demo-row-btn:hover:not(:disabled) { background: var(--c-bg-subtle); }
+.demo-row-btn:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+.demo-row-btn[aria-pressed='true'] { text-decoration: line-through; opacity: .6; cursor: default; }
+
+/* ── Syllabus ───────────────────────────────────────────────────────────── */
+.demo-subject-tree { display: grid; gap: var(--s-3); margin: 0; padding: 0; list-style: none; }
+.demo-subject-card {
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  overflow: hidden;
+}
+.demo-subject-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  border: 0;
+  background: none;
+  color: var(--c-text);
+  font: 600 var(--t-sm)/1.3 var(--f-sans);
+  text-align: start;
+  cursor: pointer;
+}
+.demo-subject-card-head:hover { background: var(--c-bg-subtle); }
+.demo-subject-card-head:focus-visible { outline: 2px solid var(--c-accent); outline-offset: -2px; }
+.demo-subject-card-head .demo-pane-spacer { flex: 1 1 auto; }
+.demo-subject-card[data-open='true'] .demo-chevron { transform: rotate(90deg); }
+.demo-chevron {
+  width: 14px; height: 14px;
+  flex: none;
+  color: var(--c-text-faint);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.demo-subject-card-body { padding: 0 var(--s-3) var(--s-3); display: grid; gap: var(--s-2); }
+.demo-subject-card[data-open='false'] .demo-subject-card-body { display: none; }
+
+.demo-chapters { display: grid; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.demo-chapter {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--c-bg-subtle);
+}
+.demo-chapter-name { flex: 1 1 auto; font: 600 var(--t-xs)/1.4 var(--f-sans); color: var(--c-text); overflow-wrap: anywhere; }
+.demo-chapter-topics {
+  margin: 2px 0 0;
+  font: 500 var(--t-xs)/1.5 var(--f-mono);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+.demo-chapter-progress { flex: none; font: 600 var(--t-xs)/1.4 var(--f-mono); color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
+
+/* ── Groups ─────────────────────────────────────────────────────────────── */
+.demo-groups { display: grid; gap: var(--s-3); margin: 0; padding: 0; list-style: none; }
+.demo-group {
+  padding: var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  display: grid;
+  gap: var(--s-3);
+}
+.demo-group-head { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+.demo-group-name { margin: 0; flex: 1 1 12rem; font: 600 var(--t-sm)/1.3 var(--f-sans); color: var(--c-text); overflow-wrap: anywhere; }
+.demo-members { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.demo-member {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-full);
+  font-size: var(--t-xs);
+  color: var(--c-text-muted);
+}
+.demo-member-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  flex: none;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-full);
+  background: var(--c-bg-subtle);
+  font: 700 11px/1 var(--f-mono);
+  color: var(--c-text-muted);
+}
+.demo-member[data-role='owner'] { border-color: var(--c-accent); color: var(--c-text); }
+
+/* ── Sync ──────────────────────────────────────────────────────────────────
+   Three lanes, and the interesting one is the third: the comparison ladder
+   evaluates richness BEFORE recency, so a fresh install's empty snapshot
+   cannot overwrite real work. */
+.demo-lanes { display: grid; gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.demo-lane {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+}
+.demo-lane-body { flex: 1 1 auto; min-width: 0; }
+.demo-lane-name { margin: 0; font: 600 var(--t-sm)/1.3 var(--f-sans); color: var(--c-text-muted); }
+.demo-lane-rows {
+  margin: var(--s-1) 0 0;
+  font: 500 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-faint);
+  overflow-wrap: anywhere;
+}
+.demo-lane[data-active='true'] {
+  border-color: var(--c-accent);
+  background: var(--c-bg-subtle);
+  box-shadow: inset 2px 0 0 0 var(--c-accent);
+}
+.demo-lane[data-active='true'] .demo-lane-name { color: var(--c-text); }
+.demo-lane[data-done='true'] .demo-lane-name { color: var(--c-text-faint); }
+
+/* ── Leaderboard ────────────────────────────────────────────────────────── */
+.demo-board { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; counter-reset: rank; }
+.demo-board-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  font-size: var(--t-sm);
+}
+.demo-board-row[data-you='true'] { background: var(--c-bg-subtle); box-shadow: inset 2px 0 0 0 var(--c-accent); }
+.demo-board-rank {
+  flex: none;
+  width: 1.75rem;
+  font: 700 var(--t-xs)/1.4 var(--f-mono);
+  color: var(--c-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.demo-board-row[data-you='true'] .demo-board-rank { color: var(--c-text); }
+.demo-board-name { flex: 1 1 auto; min-width: 0; color: var(--c-text); overflow-wrap: anywhere; }
+.demo-board-hours { flex: none; font: 600 var(--t-xs)/1.4 var(--f-mono); color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
+
+/* ── Pills ───────────────────────────────────────────────────────────────── */
+.demo-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--s-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-full);
+  background: var(--c-bg-subtle);
+  font: 600 var(--t-xs)/1.5 var(--f-mono);
+  color: var(--c-text-muted);
+  white-space: nowrap;
+}
+.demo-pill[data-tone='ok'] {
+  border-color: color-mix(in srgb, var(--c-ok) 40%, transparent);
+  color: var(--c-ok);
+  background: color-mix(in srgb, var(--c-ok) 12%, transparent);
+}
+.demo-pill[data-tone='accent'] {
+  border-color: color-mix(in srgb, var(--c-accent) 40%, transparent);
+  color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 12%, transparent);
+}
+.demo-pill[data-tone='warn'] {
+  border-color: color-mix(in srgb, var(--c-warn) 40%, transparent);
+  color: var(--c-warn);
+  background: color-mix(in srgb, var(--c-warn) 12%, transparent);
+}
+
+/* ── Captions ─────────────────────────────────────────────────────────────
+   The honesty contract. Any figure the demo invented is labelled at the point
+   it appears rather than in a footnote, so it cannot be read as a claim about
+   the shipped product while scrolling past. */
+.demo-caption {
+  margin: 0;
+  font-size: var(--t-xs);
+  line-height: 1.55;
+  color: var(--c-text-faint);
+}
+.demo-caption code { font-family: var(--f-mono); overflow-wrap: anywhere; }
+.demo-samp {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--s-2);
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--c-bg-subtle);
+  font: 600 11px/1.5 var(--f-mono);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+  vertical-align: 1px;
+}
+
+/* ── Trace ───────────────────────────────────────────────────────────────
+   One element for the whole demo, outside the panes on purpose: it describes
+   everything, so it must not disappear when the view changes. */
+.demo-trace {
+  border-top: 1px solid var(--c-border);
+  background: var(--c-bg-subtle);
+}
+.demo-trace-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--c-border);
+}
+.demo-trace-head .demo-h { margin: 0; }
+
+.demo-trace-list {
+  margin: 0;
+  padding: var(--s-2) var(--s-4) var(--s-4);
+  list-style: none;
+  max-height: 16rem;
+  overflow-y: auto;
+  display: grid;
+  gap: 0;
+}
+.demo-trace-list:empty { display: none; }
+
+.demo-trace-line {
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-xs);
+  line-height: 1.5;
+}
+.demo-trace-line + .demo-trace-line { border-top: 1px solid var(--c-border); }
+.demo-trace-k { flex: none; width: 8.5rem; color: var(--c-text-faint); }
+.demo-trace-v { flex: 1 1 auto; min-width: 0; color: var(--c-text); overflow-wrap: anywhere; }
+.demo-trace-line[data-kind='write'] .demo-trace-k { color: var(--c-accent); font-weight: 700; }
+.demo-trace-line[data-kind='policy'] .demo-trace-k { color: var(--c-warn); font-weight: 700; }
+.demo-trace-line[data-kind='info'] .demo-trace-k { color: var(--c-text-muted); }
+
+@container demoshell (max-width: 640px) {
+  .demo-trace-line { flex-direction: column; gap: 2px; }
+  .demo-trace-k { width: auto; }
+}
+
+/* ── Progressive enhancement ──────────────────────────────────────────────
+   dashboard.js removes `no-js` from <html> on its first line, so these
+   selectors only match when the script did not run: the frame is hidden and
+   the prose fallback is shown instead — one sentence pointing at the three
+   pages that cover the same ground, rather than a dead shell that reads as a
+   broken page.
+
+   Child-first (`html.no-js .demo`) so the selector carries full 0,2,0
+   specificity and cannot be beaten by a later `.demo` rule. */
+html.no-js .demo { display: none; }
+html.no-js .demo-nojs { display: block; }
+.demo-nojs {
+  display: none;
+  margin: 0;
+  padding: var(--s-4);
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--r-md);
+  background: var(--c-bg-subtle);
+  font-size: var(--t-sm);
+  color: var(--c-text-muted);
+}
+.demo-nojs a { color: var(--c-accent); }
+
+/* ── Reduced motion ───────────────────────────────────────────────────────
+   The timer is the one thing that can move on its own, and it is
+   request-driven rather than looping, so a reader who asked for reduced
+   motion still gets it — as a discrete jump to the next state instead of a
+   slide. Everything that only decorates a state change stops entirely. */
+@media (prefers-reduced-motion: reduce) {
+  .demo-btn, .demo-mode, .demo-icon-btn, .demo-row-ws, .demo-row-pane,
+  .demo-row-btn, .demo-input, .demo-subject-chip, .demo-subject-card-head,
+  .demo-chevron { transition: none; }
+  .demo-bar-fill, .demo-pane, .demo-modes-thumb { transition: none; }
+}

@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture — IsotopeAI docs</title>
+<meta name="description" content="How IsotopeAI works: a single dependency-free Node server, serve-time bundle patching, script injection, service-worker caching and the Supabase proxy.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="canonical" href="https://isotopeai.dpdns.org/docs/architecture.html">
+<link rel="icon" href="./logo.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Architecture — IsotopeAI">
+<meta property="og:description" content="How IsotopeAI works: a single dependency-free Node server, serve-time bundle patching, script injection, service-worker caching and the Supabase proxy.">
+<meta property="og:url" content="https://isotopeai.dpdns.org/docs/architecture.html">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="./assets/site.css">
+</head>
+<body class="docs-page page-open">
+<div class="liquid-bg bg-1" aria-hidden="true"></div>
+<div class="progress" data-progress aria-hidden="true"></div>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="globalbar" data-liquid-ignore>
+  <div class="globalbar-inner">
+    <a class="globalbar-mark" href="./" aria-label="IsotopeAI home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg></a>
+    <nav class="globalbar-links" aria-label="Sections">
+      <a href="./dashboard.html">Dashboard</a>
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html" aria-current="true">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./sync-and-backup.html">Sync</a>
+      <a href="./community.html">Community</a>
+      <a href="./admin.html">Admin</a>
+      <a href="./troubleshooting.html">Support</a>
+    </nav>
+    <div class="globalbar-right">
+      <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+  </div>
+</div>
+
+<header class="topbar glass">
+  <div class="topbar-inner">
+    <a class="brand" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg><span>IsotopeAI<span class="brand-sub"> / docs</span></span></a>
+    <nav class="nav" aria-label="Primary">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./architecture.html" aria-current="page">Architecture</a>
+      <a href="./api-reference.html">API</a>
+      <a href="./database.html">Database</a>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+    </nav>
+    <div class="topbar-actions">
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch to dark theme"><svg data-icon="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></svg><svg data-icon="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+      <a class="icon-btn" href="https://github.com/Suydev/isotope-code" aria-label="View source on GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7 0-.7 0-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1a2.6 2.6 0 0 1 .7-1.6c-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.2-3.1a4 4 0 0 1 .1-3s1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C16.3 3.4 17.3 3.7 17.3 3.7a4 4 0 0 1 .1 3c.8.8 1.2 1.9 1.2 3.1 0 4.7-2.8 5.7-5.5 6 .5.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg></a>
+      <button class="icon-btn nav-toggle" type="button" data-drawer-toggle aria-expanded="false" aria-controls="drawer" aria-label="Open navigation menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer glass" id="drawer" data-drawer data-open="false">
+  <p class="drawer-label">Overview</p>
+  <a href="./dashboard.html">Dashboard</a>
+  <p class="drawer-label">Guides</p>
+  <a href="./getting-started.html">Getting started</a>
+  <a href="./configuration.html">Configuration</a>
+  <a href="./supabase-setup.html">Supabase setup</a>
+  <a href="./sync-and-backup.html">Sync &amp; backup</a>
+  <a href="./backup-console.html">Backup console</a>
+  <a href="./community.html">Community</a>
+  <p class="drawer-label">Reference</p>
+  <a href="./architecture.html" aria-current="page">Architecture</a>
+  <a href="./api-reference.html">API reference</a>
+  <a href="./database.html">Database</a>
+  <a href="./cli.html">CLI</a>
+  <a href="./android-apk.html">Android APK</a>
+  <a href="./admin.html">Admin console</a>
+  <p class="drawer-label">Help</p>
+  <a href="./troubleshooting.html">Troubleshooting</a>
+  <a href="./faq.html">FAQ</a>
+  <a href="./contributing.html">Contributing</a>
+  <a href="./changelog.html">Changelog</a>
+  <p class="drawer-label">Legal</p>
+  <a href="./security.html">Security</a>
+  <a href="./privacy.html">Privacy</a>
+  <a href="./terms.html">Terms</a>
+  <a href="./license.html">License</a>
+</div>
+
+<div class="wrap docs">
+
+  <aside class="sidebar glass" aria-label="Documentation">
+    <!-- Search, not a filter. The old control only hid sidebar links, so it could
+         never find text on a page you were not already looking at. This is the
+         same full-text search as the landing hero, reachable from every page. -->
+    <form class="sidebar-search" role="search" action="./troubleshooting.html" data-docsearch>
+      <label class="sr-only" for="docsearch-side">Search the documentation</label>
+      <svg class="askbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="sidebar-search-input" id="docsearch-side" type="search" autocomplete="off"
+             placeholder="Search docs…">
+      <kbd class="askbar-slash" aria-hidden="true">/</kbd>
+    </form>
+    <ul class="askbar-results is-rail" data-docsearch-results hidden></ul>
+    <div class="sidebar-group">
+      <p>Guides</p>
+      <a href="./getting-started.html">Getting started</a>
+      <a href="./configuration.html">Configuration</a>
+      <a href="./supabase-setup.html">Supabase setup</a>
+      <a href="./sync-and-backup.html">Sync &amp; backup</a>
+      <a href="./backup-console.html">Backup console</a>
+      <a href="./community.html">Community</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Reference</p>
+      <a href="./architecture.html" aria-current="page">Architecture</a>
+      <a href="./api-reference.html">API reference</a>
+      <a href="./database.html">Database</a>
+      <a href="./cli.html">CLI</a>
+      <a href="./android-apk.html">Android APK</a>
+      <a href="./admin.html">Admin console</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Help</p>
+      <a href="./troubleshooting.html">Troubleshooting</a>
+      <a href="./faq.html">FAQ</a>
+      <a href="./contributing.html">Contributing</a>
+      <a href="./changelog.html">Changelog</a>
+    </div>
+    <div class="sidebar-group">
+      <p>Legal</p>
+      <a href="./security.html">Security</a>
+      <a href="./privacy.html">Privacy</a>
+      <a href="./terms.html">Terms</a>
+      <a href="./license.html">License</a>
+    </div>
+  </aside>
+
+  <main id="main" class="content">
+    <nav class="breadcrumb" data-enter="1" aria-label="Breadcrumb">
+      <a href="./">Docs</a> <span aria-hidden="true">/</span> <span>Architecture</span>
+    </nav>
+    <h1 data-enter="2">Architecture</h1>
+    <p class="lead" data-enter="3">IsotopeAI is one Node process with no runtime dependencies. It serves
+    a pre-built React application, rewrites those bundles on the way out, and proxies data
+    to your Supabase project.</p>
+
+    <figure class="diagram">
+      <img src="./assets/diagram-architecture.svg" alt="Request flow: the browser talks to a Node server on the same device, which patches JavaScript bundles from disk and proxies data requests to the user's own Supabase project. The service-role key stays on the server." width="880" height="420" loading="lazy">
+      <figcaption>Two trust zones. The service-role key never crosses into the browser.</figcaption>
+    </figure>
+
+    <h2 class="rise" id="single-file">One file, no dependencies <a class="anchor" href="#single-file" aria-label="Link to this section">#</a></h2>
+    <p><code>server.mjs</code> is around 10,000 lines and imports nothing outside the Node
+    standard library plus two local modules. <code>package.json</code> lists zero
+    <code>dependencies</code> and zero <code>devDependencies</code>, which is why install
+    needs no build toolchain and cannot break from a transitive update.</p>
+
+    <h2 class="rise" id="patching">Serve-time bundle patching <a class="anchor" href="#patching" aria-label="Link to this section">#</a></h2>
+    <p>The frontend in <code>public/assets/</code> is a pre-built, minified Vite output.
+    The server does not modify those files on disk. Instead, each patched bundle has a
+    function that reads the file, performs exact string replacements, memoises the result
+    and returns a <code>Buffer</code>:</p>
+
+    <div class="codeblock" data-lang="js">
+<pre>function getPatchedCommunityBundle() {
+  if (patchedCommunityBundle) return patchedCommunityBundle;   // memoised
+  let raw = fs.readFileSync(COMMUNITY_BUNDLE_ABS, 'utf8');
+  if (raw.includes(ANCHOR_FROM)) {
+    raw = raw.replace(ANCHOR_FROM, ANCHOR_TO);
+    console.log('[CommunityPatch] applied');
+  } else {
+    console.warn('[CommunityPatch] anchor not found');
+    _criticalPatchFailures.push('community-anchor');   // surfaces as a UI banner
+  }
+  patchedCommunityBundle = Buffer.from(raw, 'utf8');
+  return patchedCommunityBundle;
+}</pre>
+    </div>
+
+    <p>There are 22 patched files — 19 of them named `*Bundle` for Vite chunk outputs, plus `auth-bridge.js` and three non-bundle stores — carrying around 52 individual patches. They fix upstream
+    crashes, neutralise a demo-data gate, disable a circuit breaker that could lock all
+    Supabase calls for five minutes, and add features such as group chat and the
+    leaderboard tab.</p>
+
+    <div class="note warn glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <p><span class="note-title">Anchors are matched against minified code</span>A patch anchor is an exact
+  substring of the built bundle. Any frontend rebuild changes both the content hashes in
+  the filenames and the minified identifiers, so anchors must be re-verified. Every patch
+  logs on success and warns on failure, and failures also render a banner in the served
+  HTML — a silent mismatch is the one failure mode worth engineering against.</p>
+    </div>
+
+    <h3 id="verify-patches">Verifying patch health <a class="anchor" href="#verify-patches" aria-label="Link to this section">#</a></h3>
+    <div class="codeblock" data-lang="bash">
+<pre>bash bin/isotope restart && sleep 6
+
+# empty output means every anchor matched
+grep -iE 'anchor not found|String not found' ~/.isotope/logs/server.log
+
+# what did apply
+grep -E '^\[[A-Za-z]+(Patch|CrashFix|KeyboardFix)' ~/.isotope/logs/server.log | sort -u</pre>
+    </div>
+
+    <h2 class="rise" id="injection">HTML script injection <a class="anchor" href="#injection" aria-label="Link to this section">#</a></h2>
+    <p>Every HTML response is rewritten. Scripts that must run before the app are placed
+    before <code>&lt;/head&gt;</code>; everything else is deferred to just before
+    <code>&lt;/body&gt;</code> so first paint is not blocked.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Injected</th><th>Position</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Origin constants</td><td><code>head</code></td><td>Supabase URL and anon key for the runtime.</td></tr>
+          <tr><td>Local-data guard</td><td><code>head</code></td><td>Per-user isolation of localStorage and IndexedDB keys.</td></tr>
+          <tr><td>Auth guard</td><td><code>head</code></td><td>Synchronous redirect for unauthenticated deep links, before React mounts.</td></tr>
+          <tr><td>Error boundary</td><td><code>body</code></td><td>Catches bundle load failures and offers recovery.</td></tr>
+          <tr><td>Premium script</td><td><code>body</code></td><td>Fetch interceptor and leaderboard builder.</td></tr>
+          <tr><td>Reload guard</td><td><code>body</code></td><td>Allows one service-worker reload per session.</td></tr>
+          <tr><td>Sync engine</td><td><code>body</code></td><td>JWT refresh, auto-sync, notification polling.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="rise" id="sw">Service worker caching <a class="anchor" href="#sw" aria-label="Link to this section">#</a></h2>
+    <p><code>/assets/</code> is served <strong>cache-first</strong>, which is correct for
+    content-hashed files but created a subtle failure: because bundles are patched at
+    request time, editing a patch changed the response without changing the filename. A
+    cached copy would be served indefinitely.</p>
+
+    <p>The cache name therefore includes a build token — a digest of <code>VERSION</code>
+    plus the <code>server.mjs</code> modification time:</p>
+
+    <div class="codeblock" data-lang="js">
+<pre>const CACHE_SUFFIX = APP_VERSION + '-' + APP_SHA.slice(0, 12) + '-' + BUILD_TOKEN;
+const SHELL_CACHE   = 'isotope-local-shell-'   + CACHE_SUFFIX;
+const RUNTIME_CACHE = 'isotope-local-runtime-' + CACHE_SUFFIX;</pre>
+    </div>
+
+    <p>Any edit to a serve-time patch now rotates both caches on the next load. The live
+    value is reported by <code>/api/version</code> as <code>pwa_cache</code>.</p>
+
+    <div class="note ok glass">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+      <p><span class="note-title">Recovery when a stale bundle still slips through</span>The error boundary
+  detects a failed <code>/assets/</code> load, purges caches and reloads once — stamped
+  per build in <code>sessionStorage</code> so it can never loop. If that attempt is spent,
+  it shows a "Refresh required" prompt instead of a black screen. Auth tokens and study
+  data are untouched: <code>caches.delete()</code> only clears HTTP responses, not
+  localStorage or IndexedDB.</p>
+    </div>
+
+    <h2 class="rise" id="proxy">Supabase proxy <a class="anchor" href="#proxy" aria-label="Link to this section">#</a></h2>
+    <p><code>/__supa/*</code> forwards to your project. Escalation to the service-role key
+    happens only for an authenticated admin:</p>
+
+    <div class="codeblock" data-lang="js">
+<pre>const useServiceKey = ADMIN_MODE_READY && isAdminAuthed(req);</pre>
+    </div>
+
+    <p>Every other caller is forwarded with their own <code>Authorization</code> header
+    plus the anon key, so row-level security still applies.</p>
+
+    <h2 class="rise" id="leaderboard-cache">Leaderboard &amp; presence caching <a class="anchor" href="#leaderboard-cache" aria-label="Link to this section">#</a></h2>
+    <p>Leaderboards and presence pings are the only routes a client is expected to poll
+    while sitting idle, and Supabase bills every response served from its CDN as
+    <strong>cached egress</strong>. Re-fetching an unchanged ranking every 60 seconds was
+    enough to exhaust the 5 GB free tier in days, so <code>/__leaderboard</code> now
+    computes a ranking once and holds it until the period it describes actually changes:</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Scope</th><th>Cache lifetime</th></tr></thead>
+        <tbody>
+          <tr><td>Daily leaderboard</td><td>Until the next midnight UTC</td></tr>
+          <tr><td>Weekly leaderboard</td><td>Until the next Monday 00:00 UTC</td></tr>
+          <tr><td>Monthly leaderboard</td><td>Until the 1st of the month, 00:00 UTC</td></tr>
+          <tr><td>Group leaderboard</td><td>1 hour</td></tr>
+          <tr><td><code>community_heartbeat</code></td><td>Throttled to one ping per 25 s</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Cache keys are derived from the caller's token, so a backend move starts from a
+    cold cache rather than serving rankings from the previous project. Join, leave,
+    accept-invite and create-group events bust the relevant key immediately, so the Groups
+    tab still reflects membership changes without waiting for the boundary. Disable the
+    cache for debugging with <code>DISABLE_LEADERBOARD_CACHE=1</code>.</p>
+
+    <p>The Android APK has no Node server, so the same policy is baked into
+    <code>android-bridge.js</code>&rsquo;s <code>window.fetch</code> override, gated behind
+    <code>window.__ISO_EGRESS_GUARD</code>.</p>
+
+    <h2 class="rise" id="connection-map">Feature-to-Supabase map <a class="anchor" href="#connection-map" aria-label="Link to this section">#</a></h2>
+
+    <p>Which features actually reach Supabase, which are local-first, and which are local
+    on purpose. The distinction matters: &ldquo;local-first&rdquo; means the feature works
+    offline and syncs later; &ldquo;local only&rdquo; means it never touches the network and
+    that is intended, not a gap.</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Feature</th><th>Local store</th><th>Supabase object</th><th>Offline</th></tr></thead>
+        <tbody>
+          <tr><td>Auth</td><td>Supabase session keys, <code>isotope-auth-token</code></td><td><code>auth.users</code>, <code>public.users</code></td><td>Cached session restored</td></tr>
+          <tr><td>Session restore</td><td><code>isotope-bootstrap-cache</code></td><td><code>user_profiles</code>, <code>user_onboarding</code></td><td>Cached bootstrap fallback</td></tr>
+          <tr><td>Onboarding</td><td><code>isotope-onboarding</code></td><td><code>user_onboarding</code>, <code>user_profiles</code></td><td>Local cache</td></tr>
+          <tr><td>Profile &amp; settings</td><td><code>isotope_user_profile_v2</code></td><td><code>user_profiles.profile_data</code>, <code>user_settings</code></td><td>Local profile stands</td></tr>
+          <tr><td>Avatar</td><td><code>isotope_user_profile_v2</code></td><td><code>avatars</code> bucket</td><td>Local avatar stands</td></tr>
+          <tr><td>Focus sessions</td><td>IndexedDB <code>sessions</code>, <code>isotope_sessions_v2</code></td><td><code>finish_session_sync</code> RPC, <code>study_sessions_log</code></td><td>Pending queue</td></tr>
+          <tr><td>Daily stats</td><td><code>isotope_daily_logs_v2</code></td><td><code>daily_user_stats</code></td><td>Local analytics</td></tr>
+          <tr><td>Tasks, subjects, habits, exams, timer</td><td>IndexedDB + <code>isotope_*_v2</code></td><td>Backup JSON in <code>user-content</code></td><td>Fully local-first</td></tr>
+          <tr><td>Backup / import / smart sync</td><td><code>isotope_sync_metadata</code></td><td><code>user-content/backups/*</code></td><td>Skipped offline</td></tr>
+          <tr><td>Community &amp; notifications</td><td>Group cache</td><td><code>groups</code>, <code>group_members</code>, <code>notifications</code></td><td><strong>Online required</strong></td></tr>
+          <tr><td>Admin routes</td><td>None</td><td>Service role / Management API</td><td>Unavailable offline</td></tr>
+          <tr><td>Update check, install scripts</td><td><code>~/.isotope</code></td><td>None — GitHub API only</td><td>Skipped, by design</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The pattern worth noticing: everything a student produces while studying — tasks,
+    sessions, subjects, habits, exams, timer state — is local-first and reaches Supabase
+    only as a backup blob. Only community features genuinely require a connection, because
+    they involve other people. That is why the app is usable on a phone with no signal.</p>
+
+    <h2 class="rise" id="sql-order">SQL run order <a class="anchor" href="#sql-order" aria-label="Link to this section">#</a></h2>
+
+    <p>For a fresh project, in this order:</p>
+
+    <ol class="steps">
+      <li><p><code>isotope-complete.sql</code> — the whole schema. Idempotent, safe to re-run.</p></li>
+      <li><p>Compatibility migrations in <code>sql/</code> — <strong>only</strong> when upgrading an older install.</p></li>
+      <li><p><code>sql/verify-security.sql</code> — verification queries, not changes.</p></li>
+    </ol>
+
+    <p>Upgrade-only patches, which a fresh install should skip:</p>
+
+    <div class="table-wrap glass">
+      <table>
+        <thead><tr><th>Patch</th><th>When you need it</th></tr></thead>
+        <tbody>
+          <tr><td><code>leaderboard-rls-fix.sql</code></td><td>The leaderboard renders empty. A legacy <code>stats_own FOR ALL</code> policy blocked public <code>SELECT</code> on <code>user_stats_summary</code>; this replaces it with public read plus own-row writes. Fresh installs already get the correct policy.</td></tr>
+          <tr><td><code>community-patch-v6.sql</code></td><td>The cumulative community patch, and what <code>/__admin/patch</code> serves. Supersedes v4.</td></tr>
+          <tr><td><code>performance-patch.sql</code>, <code>performance-indexes.sql</code></td><td>Indexes for RLS membership subqueries and leaderboard date sorts.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="rise" id="startup">Startup sequence <a class="anchor" href="#startup" aria-label="Link to this section">#</a></h2>
+    <ol class="steps">
+      <li><h3>Load and validate configuration</h3><p><code>.env</code> then host environment. Exits on a malformed <code>SUPABASE_URL</code>.</p></li>
+      <li><h3>Bind the port</h3><p>Listens on <code>0.0.0.0</code> so a phone on the same network can reach it.</p></li>
+      <li><h3>Warm the patch cache</h3><p>All patchable bundles are patched and 11 are pre-gzipped, sequentially to avoid a CPU spike.</p></li>
+      <li><h3>Ensure storage buckets</h3><p>Creates or reconciles the four buckets. Requires admin mode.</p></li>
+      <li><h3>Run backfills</h3><p>Seeds satellite rows for existing users. Requires admin mode.</p></li>
+    </ol>
+
+    <div class="grid cols-2 scene">
+      <a class="card tilt glass" href="./api-reference.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">API reference</h3>
+        <p>Every route the local server exposes.</p>
+        <span class="card-more">Read →</span>
+      </a>
+      <a class="card tilt glass" href="./database.html">
+        <span class="sheen" aria-hidden="true"></span>
+        <h3 class="lift-sm">Database</h3>
+        <p>Tables, functions, policies and triggers.</p>
+        <span class="card-more">Read →</span>
+      </a>
+    </div>
+  </main>
+
+  <aside class="toc glass" data-toc aria-label="On this page">
+    <p>On this page</p>
+  </aside>
+</div>
+
+<footer class="site-footer glass">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36-.02 11.9-4.5Z"/></svg><span>IsotopeAI</span></a>
+        <p>Local-first study platform.<br>Self-hosted, MIT licensed.</p>
+      </div>
+      <div>
+        <p class="footer-col-title">Guides</p>
+        <a href="./getting-started.html">Getting started</a>
+        <a href="./configuration.html">Configuration</a>
+        <a href="./supabase-setup.html">Supabase setup</a>
+        <a href="./sync-and-backup.html">Sync &amp; backup</a>
+        <a href="./community.html">Community</a>
+      </div>
+      <div>
+        <p class="footer-col-title">Reference</p>
+        <a href="./architecture.html">Architecture</a>
+        <a href="./api-reference.html">API reference</a>
+        <a href="./database.html">Database</a>
+        <a href="./cli.html">CLI</a>
+        <a href="./admin.html">Admin console</a>
+      </div>
+      <div>
+        <p class="footer-col-title">More</p>
+        <a href="./troubleshooting.html">Troubleshooting</a>
+        <a href="./faq.html">FAQ</a>
+        <a href="./contributing.html">Contributing</a>
+        <a href="./changelog.html">Changelog</a>
+        <a href="https://github.com/Suydev/isotope-code">GitHub</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <p>© 2026 IsotopeAI · <a href="./license.html">MIT License</a> · <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="./security.html">Security</a></p>
+    </div>
+  </div>
+</footer>
+
+<script src="./assets/site.js" defer></script>
+</body>
+</html>

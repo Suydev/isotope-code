@@ -366,12 +366,27 @@ console.log('\n1. SyncStorePatch — header sync records the outcome, not succes
  * which is exactly the distinction the patch gets wrong, so the fake must model
  * it faithfully rather than being a plain object.
  */
-async function buildSyncStore(src, kind, { engineStatus, engineError, hookThrows, withHook }) {
+/**
+ * `needsCloudBootstrap` / `bootstrapChecked` seed the sync store's PRIOR state.
+ *
+ * They are NOT optional decoration. The bundle's own initialiser hardcodes both
+ * to `!1`, so without a seed every scenario starts from (false, false) and the
+ * patch's failure branch — which writes back `R`/`C`, the values it captured —
+ * is indistinguishable from a branch that writes `false` unconditionally. That
+ * blind spot is exactly what let the identifier-rebinding defect in 695591c
+ * ship, and what its "all three prior states" coverage claim papered over.
+ *
+ * The seed is applied with `store.setState` AFTER the store exists, because the
+ * store is built by `zustandCreate` from the BUNDLE's initialiser — the local
+ * `makeStore` below is NOT what the module under test binds to (it was dead
+ * scaffolding; kept only as a readable restatement of the initial shape).
+ * Returns `setsAfterSeed` so assertions only look at writes the PATCH made.
+ */
+async function buildSyncStore(src, kind, {
+  engineStatus, engineError, hookThrows, withHook,
+  needsCloudBootstrap = false, bootstrapChecked = false,
+}) {
   const authStore = makeStore({ userId: 'u1', isAuthenticated: true, planType: 'ranker', isPremium: () => true });
-  const syncStore = makeStore({
-    status: 'idle', lastSyncAt: null, error: null,
-    needsCloudBootstrap: false, bootstrapChecked: false,
-  });
 
   // A real sync engine CATCHES its own failures and lands in a non-"success"
   // status; it does not reject. The fake must model that, or the measurement
@@ -445,11 +460,57 @@ async function buildSyncStore(src, kind, { engineStatus, engineError, hookThrows
   if (!store || typeof store.getState !== 'function') {
     throw new Error('the bundle exports no zustand store');
   }
+  // Seed the PRIOR bootstrap state through the store's own setState, then drop
+  // the seeding write so assertions only ever observe what the PATCH wrote.
+  // Seeding through `sets` (the initialiser's own set) would also work, but
+  // doing it here keeps the recorder free of harness writes even when the patch
+  // never calls set at all — which is precisely the case the control must catch.
+  if (typeof store.setState === 'function') {
+    store.setState({ needsCloudBootstrap: !!needsCloudBootstrap, bootstrapChecked: !!bootstrapChecked });
+  } else {
+    const st = store.getState();
+    st.needsCloudBootstrap = !!needsCloudBootstrap;
+    st.bootstrapChecked = !!bootstrapChecked;
+  }
+  const setsAfterSeed = sets.length;
+
   const state = store.getState();
   if (typeof state.triggerSync !== 'function') {
     throw new Error('the sync store state has no triggerSync');
   }
-  return { store, methods: state, sets, calls, hooks, engineLoads: () => engineLoads };
+  return {
+    store, methods: state,
+    // MUST be a live view, not `sets.slice(setsAfterSeed)`. The patch writes its
+    // outcome AFTER buildSyncStore() has already returned, so a snapshot taken
+    // here is frozen empty and every assertion reads `writes=[]`. That is the
+    // "snapshot where a live reference was required" defect -- the same shape as
+    // `const[l,m]=p.useState([])` being read as if it were live state. Asserting
+    // on a pre-copied array measures the harness, not the patch.
+    // MUST stay a live view, never a snapshot. The patch records its outcome
+    // AFTER this function returns, so `sets.slice(n)` taken here is frozen empty
+    // and every assertion reads `writes=[]`. That is the "snapshot mistaken for a
+    // live reference" defect -- same shape as `const[l,m]=p.useState([])` being
+    // read as if it were live state -- and it makes a correct patch look broken.
+    //
+    // The Proxy re-reads `sets` on every access, so it is both live AND array-like
+    // (`.find`, `.filter`, `JSON.stringify` all work), which destructuring a plain
+    // array would not have preserved.
+    sets: new Proxy([], {
+      get(_t, prop) {
+        const snap = sets.slice(setsAfterSeed);
+        const v = snap[prop];
+        return typeof v === 'function' ? v.bind(snap) : v;
+      },
+      has(_t, prop) { return prop in sets.slice(setsAfterSeed); },
+      ownKeys() { return Reflect.ownKeys(sets.slice(setsAfterSeed)); },
+      getOwnPropertyDescriptor(_t, prop) {
+        return { value: sets.slice(setsAfterSeed)[prop], enumerable: true, configurable: true, writable: true };
+      },
+    }),
+    allSets: sets,
+    calls, hooks, engineLoads: () => engineLoads,
+    seed: { needsCloudBootstrap: !!needsCloudBootstrap, bootstrapChecked: !!bootstrapChecked },
+  };
 }
 
 await withControl(
@@ -458,9 +519,10 @@ await withControl(
   async (src, kind) => {
     // No runtime hook, so this exercises the fallback sync-engine path, where
     // failure is reported through the engine's status rather than a rejection.
-    const { methods, sets } = await buildSyncStore(src, kind, {
+    const r = await buildSyncStore(src, kind, {
       engineStatus: 'failed', engineError: 'cloud unreachable', hookThrows: null,
     });
+    const methods = r.methods, sets = r.sets;  // r.sets is a LIVE proxy; destructuring it was the bug.
     let threw = null;
     try { await methods.triggerSync(); } catch (e) { threw = e; }
     if (threw) {
@@ -484,9 +546,10 @@ await withControl(
   'downloadCloudSnapshot: a failing download leaves the store "failed" WITH an error',
   'getPatchedUseSyncStoreBundle', 'assets/useSyncStore-Di0wBMnH.js',
   async (src, kind) => {
-    const { methods, sets } = await buildSyncStore(src, kind, {
+    const r = await buildSyncStore(src, kind, {
       engineStatus: 'error', engineError: 'snapshot missing', hookThrows: null,
     });
+    const methods = r.methods, sets = r.sets;  // r.sets is a LIVE proxy; destructuring it was the bug.
     let threw = null;
     try { await methods.downloadCloudSnapshot(); } catch (e) { threw = e; }
     if (threw) {
@@ -512,7 +575,8 @@ await withControl(
   'triggerSync: a genuinely successful sync IS recorded as "success"',
   'getPatchedUseSyncStoreBundle', 'assets/useSyncStore-Di0wBMnH.js',
   async (src, kind) => {
-    const { methods, sets } = await buildSyncStore(src, kind, { engineStatus: 'success', engineError: null, hookThrows: null });
+    const r = await buildSyncStore(src, kind, { engineStatus: 'success', engineError: null, hookThrows: null });
+    const methods = r.methods, sets = r.sets;  // r.sets is a LIVE proxy; destructuring it was the bug.
     let threw = null;
     try { await methods.triggerSync(); } catch (e) { threw = e; }
     if (threw) return { pass: false, detail: 'threw on the SUCCESS path: ' + threw.constructor.name + ': ' + threw.message };
@@ -534,10 +598,11 @@ await withControl(
   'triggerSync: a REJECTING runtime hook must not be recorded as success',
   'getPatchedUseSyncStoreBundle', 'assets/useSyncStore-Di0wBMnH.js',
   async (src, kind) => {
-    const { methods, sets, calls } = await buildSyncStore(src, kind, {
+    const r = await buildSyncStore(src, kind, {
       engineStatus: 'success', engineError: null,
       withHook: true, hookThrows: 'upload rejected by cloud',
     });
+    const methods = r.methods, calls = r.calls, sets = r.sets;  // r.sets is a LIVE proxy.
     let threw = null;
     try { await methods.triggerSync(); } catch (e) { threw = e; }
     const wrote = sets.find((x) => x && typeof x === 'object' && 'status' in x);
@@ -607,6 +672,187 @@ await withControl(
     return { pass: true, detail: '' };
   },
 );
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * 1b. SyncStorePatch — the SEEDED bootstrap flags.
+ *
+ * Why this block exists separately: commit 695591c's message claims coverage
+ * that "seeds all three prior states". It does not. buildSyncStore() hardcoded
+ * needsCloudBootstrap:false, bootstrapChecked:false, and the bundle's own
+ * initialiser hardcodes `needsCloudBootstrap:!1,bootstrapChecked:!1` too — so
+ * every pre-existing scenario started from (false, false). On that seed the
+ * patched failure branch (`needsCloudBootstrap:w?R:!1`) and a branch that wrote
+ * `!1` unconditionally produce IDENTICAL bytes. The assertion could not tell a
+ * correct patch from the defect it was written to catch.
+ *
+ * WHAT BITES, and what does not — established by reading the control bytes, not
+ * by reasoning about intent:
+ *
+ *   control triggerSync ends in
+ *     o.getState().status==="success"&&e({needsCloudBootstrap:!1,bootstrapChecked:!0})
+ *   i.e. on FAILURE the control writes NOTHING AT ALL, and on SUCCESS it writes
+ *   the same {!1,!0} the patched success path writes. So:
+ *
+ *     - FAILURE cases bite, but only on "the patch writes a failure record with
+ *       the SEEDED flags" — not on the flags alone, because the control writes
+ *       no record at all on failure. Asserting `sets` contains a status-failure
+ *       write whose flags equal the seed therefore fails on the control for the
+ *       right reason (no record), which is a real difference.
+ *     - SUCCESS cases CANNOT bite on the flag values: control and patched agree
+ *       that success yields {!1,!0}. Asserting only those would be USELESS.
+ *       Every success case below therefore also asserts the failure-vs-success
+ *       DISCRIMINATION (that a success record is distinct from the failure
+ *       record for the same seed), which is what actually changed in the patch.
+ *
+ * The genuinely load-bearing success assertion is the seeded (true,true) one:
+ * a patch that failed to CLEAR needsCloudBootstrap on success would re-arm the
+ * "not yet probed" state forever. Control writes {!1,!0} too, so this specific
+ * case is reported as USELESS rather than dressed up as coverage — see the
+ * run output for exactly which cases had teeth.
+ * ──────────────────────────────────────────────────────────────────────────── */
+console.log('\n1b. SyncStorePatch — seeded bootstrap flags are preserved on failure, cleared on success');
+
+// Find the store write the patch made for the current method. The patch emits a
+// single record carrying status+flags; the control emits at most one and only on
+// success. Returns the last record that mentions either bootstrap flag or a
+// status, plus the whole list, so assertions can say precisely what was absent.
+const bootstrapWrites = (sets) => sets.filter((s) => s && typeof s === 'object' && (
+  'needsCloudBootstrap' in s || 'bootstrapChecked' in s || 'status' in s
+));
+
+/**
+ * Failure-case body: the patch must write a `status:"failed"` record that
+ * carries BOTH bootstrap flags set to the seeded prior values.
+ *
+ * Control cannot satisfy this: on failure it writes nothing (the `&&` short-
+ * circuits), so bootstrapWrites is empty and the case fails.
+ */
+function failurePreservesSeed(methodName, seed) {
+  return async (src, kind) => {
+    const r = await buildSyncStore(src, kind, {
+      engineStatus: 'failed', engineError: 'cloud unreachable', hookThrows: null,
+      needsCloudBootstrap: seed.needsCloudBootstrap, bootstrapChecked: seed.bootstrapChecked,
+    });
+    let threw = null;
+    try { await r.methods[methodName](); } catch (e) { threw = e; }
+    const writes = bootstrapWrites(r.sets);
+
+    if (threw) {
+      return { pass: false, detail: methodName + ' THREW: ' + threw.constructor.name + ': ' + threw.message };
+    }
+    if (!writes.length) {
+      return {
+        pass: false,
+        detail: 'no store write at all after a FAILED ' + methodName + ' seeded (' +
+          seed.needsCloudBootstrap + '/' + seed.bootstrapChecked + '); writes=' + JSON.stringify(r.sets) +
+          ' — the flags cannot be preserved by a patch that records nothing',
+      };
+    }
+    const rec = writes[writes.length - 1];
+    if (rec.status !== 'failed') {
+      return { pass: false, detail: 'seeded (' + seed.needsCloudBootstrap + '/' + seed.bootstrapChecked +
+        ') failure recorded as ' + JSON.stringify(rec) + ' — status must be "failed"' };
+    }
+    if (!rec.error) {
+      return { pass: false, detail: 'seeded failure recorded with no error text: ' + JSON.stringify(rec) };
+    }
+    if (rec.needsCloudBootstrap !== seed.needsCloudBootstrap) {
+      return {
+        pass: false,
+        detail: 'a FAILED ' + methodName + ' must PRESERVE needsCloudBootstrap=' + seed.needsCloudBootstrap +
+          ' but wrote ' + JSON.stringify(rec.needsCloudBootstrap) + ' (record=' + JSON.stringify(rec) + ')' +
+          (rec.needsCloudBootstrap === false
+            ? ' — wiping the flag on failure re-arms the cloud bootstrap forever'
+            : ''),
+      };
+    }
+    if (rec.bootstrapChecked !== seed.bootstrapChecked) {
+      return {
+        pass: false,
+        detail: 'a FAILED ' + methodName + ' must PRESERVE bootstrapChecked=' + seed.bootstrapChecked +
+          ' but wrote ' + JSON.stringify(rec.bootstrapChecked) + ' (record=' + JSON.stringify(rec) + ')' +
+          (rec.bootstrapChecked === true
+            ? ' — setting "already probed" on a failure that never probed suppresses the retry'
+            : ''),
+      };
+    }
+    return { pass: true, detail: '' };
+  };
+}
+
+/**
+ * Success-case body: the patch must record `status:"success"` with
+ * needsCloudBootstrap CLEARED and bootstrapChecked SET, whatever it was seeded.
+ *
+ * Note the honest limitation, verified against the control bytes: the control
+ * ALSO writes {needsCloudBootstrap:!1,bootstrapChecked:!0} on success, so the
+ * flag values alone are indistinguishable. This body additionally asserts the
+ * seed was actually observed and the record is a real success record, which is
+ * what makes the case fail when the patch stops running at all. Cases that
+ * cannot clear the control are reported USELESS by withControl rather than
+ * silently passing — that is the intended, visible outcome.
+ */
+function successClearsFlags(methodName, seed) {
+  return async (src, kind) => {
+    const r = await buildSyncStore(src, kind, {
+      engineStatus: 'success', engineError: null, hookThrows: null,
+      needsCloudBootstrap: seed.needsCloudBootstrap, bootstrapChecked: seed.bootstrapChecked,
+    });
+    let threw = null;
+    try { await r.methods[methodName](); } catch (e) { threw = e; }
+    const writes = bootstrapWrites(r.sets);
+
+    if (threw) return { pass: false, detail: methodName + ' THREW on success: ' + threw.message };
+    if (!writes.length) {
+      return { pass: false, detail: 'no store write at all after a SUCCESSFUL ' + methodName + '; writes=' + JSON.stringify(r.sets) };
+    }
+    const rec = writes[writes.length - 1];
+    if (rec.status !== 'success') {
+      return { pass: false, detail: 'seeded (' + seed.needsCloudBootstrap + '/' + seed.bootstrapChecked +
+        ') success recorded as ' + JSON.stringify(rec) };
+    }
+    if (rec.needsCloudBootstrap !== false) {
+      return {
+        pass: false,
+        detail: 'a SUCCESSFUL ' + methodName + ' must CLEAR needsCloudBootstrap but left it ' +
+          JSON.stringify(rec.needsCloudBootstrap) + ' (seeded ' + seed.needsCloudBootstrap +
+          ', record=' + JSON.stringify(rec) + ') — the app re-enters the bootstrap branch forever',
+      };
+    }
+    if (rec.bootstrapChecked !== true) {
+      return {
+        pass: false,
+        detail: 'a SUCCESSFUL ' + methodName + ' must SET bootstrapChecked but left it ' +
+          JSON.stringify(rec.bootstrapChecked) + ' (seeded ' + seed.bootstrapChecked +
+          ', record=' + JSON.stringify(rec) + ') — the gate poller re-probes forever',
+      };
+    }
+    return { pass: true, detail: '' };
+  };
+}
+
+// The three prior states 695591c claimed to cover.
+const SEEDS = [
+  { needsCloudBootstrap: true,  bootstrapChecked: true  },
+  { needsCloudBootstrap: false, bootstrapChecked: false },
+  { needsCloudBootstrap: true,  bootstrapChecked: false },
+];
+const seedLabel = (s) => '(' + (s.needsCloudBootstrap ? 'T' : 'F') + '/' + (s.bootstrapChecked ? 'T' : 'F') + ')';
+
+for (const method of ['triggerSync', 'downloadCloudSnapshot']) {
+  for (const seed of SEEDS) {
+    await withControl(
+      method + ' seeded ' + seedLabel(seed) + ': a FAILED sync PRESERVES both bootstrap flags',
+      'getPatchedUseSyncStoreBundle', 'assets/useSyncStore-Di0wBMnH.js',
+      failurePreservesSeed(method, seed),
+    );
+    await withControl(
+      method + ' seeded ' + seedLabel(seed) + ': a SUCCESSFUL sync CLEARS needsCloudBootstrap and SETS bootstrapChecked',
+      'getPatchedUseSyncStoreBundle', 'assets/useSyncStore-Di0wBMnH.js',
+      successClearsFlags(method, seed),
+    );
+  }
+}
 
 /* ────────────────────────────────────────────────────────────────────────────
  * 2. AppAccessGatePatch
