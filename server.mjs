@@ -586,7 +586,15 @@ function verifySupabaseAccessToken(token) {
       });
     });
     rq.on('error', reject);
-    rq.setTimeout(10000, () => { rq.destroy(); reject(new Error('Supabase auth timeout')); });
+    rq.setTimeout(10000, () => {
+      rq.destroy();
+      // Tag the rejection with ETIMEDOUT so callers can tell "Supabase did not
+      // answer" from "Supabase answered, and the token is bad". Untagged, this
+      // would be classified as an auth failure and reported as a 401.
+      const err = new Error('Supabase auth timeout');
+      err.code = 'ETIMEDOUT';
+      reject(err);
+    });
     rq.end();
   });
 }
@@ -3802,7 +3810,8 @@ function buildAuthGuardScript() {
   var SUPA_REF = '${supaRef}';
   // Paths that do NOT require authentication
   var PUBLIC_PATHS = ['/', '/onboarding', '/auth', '/login', '/signup',
-                      '/terms', '/privacy', '/about', '/demo', '/reset-password'];
+                      '/terms', '/privacy', '/about', '/demo', '/reset-password',
+                      '/docs', '/docs/'];
   var currentPath = window.location.pathname.replace(/\\/+$/, '') || '/';
   var isPublic = PUBLIC_PATHS.some(function(p) {
     return currentPath === p || currentPath.startsWith(p + '/');
@@ -7547,23 +7556,40 @@ async function requireUserAuth(req, res, options = {}) {
   }
   try {
     const user = await verifySupabaseAccessToken(token);
-    const userId = user?.id || getUserIdFromJwt(token);
+    // Identity comes ONLY from Supabase. It must never be recovered from the
+    // token we are being asked to trust: getUserIdFromJwt is an UNVERIFIED
+    // base64 decode, so `user?.id || getUserIdFromJwt(token)` would let a
+    // caller choose its own `sub` the moment Supabase returned a user object
+    // without an id. Fail closed instead.
+    const userId = user && typeof user.id === 'string' ? user.id : null;
     if (!userId) throw new Error('Missing user id');
     return { userJwt: token, userId, user };
   } catch (e) {
-    // Offline fallback: if Supabase is unreachable, decode JWT locally
-    const msg = (e?.message || '').toLowerCase();
-    const isNetworkError = msg.includes('internetworkdisconnected') ||
-                           msg.includes('failed to fetch') ||
-                           msg.includes('econnrefused') ||
-                           msg.includes('enotfound') ||
-                           msg.includes('timeout');
-    if (isNetworkError) {
-      const userId = getUserIdFromJwt(token);
-      if (userId) {
-        console.log('[Auth] Offline fallback: allowing access with local JWT decode for', userId);
-        return { userJwt: token, userId, user: { id: userId }, offlineFallback: true };
-      }
+    // REMOVED (AUTH-FIX): the offline fallback that admitted the request on an
+    // unverified local JWT decode. decodeJwtPayload/getUserIdFromJwt perform no
+    // signature, `alg`, `exp` or `iss` verification, so a token minted by anyone
+    // (alg "none" with an empty signature segment is the cheapest) authenticated
+    // as an arbitrary `sub` whenever Supabase was unreachable. A DNS blip was
+    // sufficient to open it.
+    //
+    // Failing closed is correct here. The app already has a genuine offline
+    // path — it suppresses Supabase calls and serves from local data — so an
+    // unverifiable cloud identity is worth nothing to it, while an accepted
+    // forgery is worth everything to an attacker (every route below treats
+    // userId as authority, including the `${userId}/...` storage paths).
+    //
+    // Offline-ness is now reported honestly instead of silently granting access:
+    // a transport failure is a 503 (retry later), a real auth failure a 401.
+    if (isUpstreamUnreachable(e)) {
+      console.warn('[Auth] Supabase unreachable during token verification; refusing request (fail closed).');
+      sendJson(res, 503, {
+        ok: false, success: false,
+        error: 'Supabase is unreachable from this device. Local data is unaffected.',
+        code: 'UPSTREAM_UNREACHABLE',
+        offline: true,
+        retryable: true,
+      }, { 'Retry-After': '15' });
+      return null;
     }
     sendJson(res, 401, authRequiredPayload(options.payload || {}));
     return null;
@@ -9434,7 +9460,12 @@ const server = http.createServer((req, res) => {
           return;
         }
         const session = signin.body;
-        const userId = session.user?.id || getUserIdFromJwt(session.access_token);
+        // Identity comes from Supabase's own user object only. The previous
+        // `|| getUserIdFromJwt(session.access_token)` fallback decoded the token
+        // WITHOUT verifying its signature; here that userId seeds bootstrapUserRows
+        // and every subsequent read/write, so an unverified decode must not be
+        // able to choose it. Fail closed if Supabase omitted the id.
+        const userId = session.user && typeof session.user.id === 'string' ? session.user.id : null;
         if (!userId) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Account created but Supabase session did not include a user id.' }));
@@ -10784,7 +10815,9 @@ ${nFail === 0 && manualPending > 0 ? `<div class="fix-bar"><div style="flex:1"><
           return;
         }
         const session = signin.body;
-        const userId = session.user?.id || getUserIdFromJwt(session.access_token);
+        // Same rule as /__auth/signup: never fall back to an unverified token
+        // decode for identity. AUTH-FIX.
+        const userId = session.user && typeof session.user.id === 'string' ? session.user.id : null;
         if (!userId) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Supabase session did not include a user id.' }));
