@@ -4239,7 +4239,21 @@ function renderSitemap(req) {
   // Only genuinely indexable surfaces. The app is an authenticated SPA: every
   // in-app route redirects to the auth wall, so listing them would advertise URLs
   // that resolve to a sign-in form. /auth is omitted for the same reason.
-  const urls = ['/'];
+  // Public documentation is server-rendered from public/docs/ and IS indexable —
+  // it is the only surface on this host that a crawler can read without hitting
+  // the auth wall. docs/404.html is excluded: it ships <meta name="robots"
+  // content="noindex"> and listing it would advertise a soft-404.
+  const DOCS_PAGES = [
+    '/docs/', '/docs/getting-started.html', '/docs/architecture.html',
+    '/docs/api-reference.html', '/docs/database.html', '/docs/cli.html',
+    '/docs/sync-and-backup.html', '/docs/backup-console.html',
+    '/docs/community.html', '/docs/admin.html', '/docs/configuration.html',
+    '/docs/android-apk.html', '/docs/dashboard.html', '/docs/faq.html',
+    '/docs/security.html', '/docs/privacy.html', '/docs/terms.html',
+    '/docs/license.html', '/docs/contributing.html', '/docs/changelog.html',
+    '/docs/supabase-setup.html', '/docs/troubleshooting.html',
+  ];
+  const urls = ['/'].concat(DOCS_PAGES);
   const body = urls.map((u) =>
     '  <url>\n    <loc>' + origin + u + '</loc>\n    <changefreq>weekly</changefreq>\n    <priority>' + (u === '/' ? '1.0' : '0.8') + '</priority>\n  </url>'
   ).join('\n');
@@ -7384,12 +7398,27 @@ async function bootstrapUserRows({ userId, email = '', displayName = '', userJwt
 // recovery and storage fetches are left exactly as they are.
 const AUTH_REQUEST_TIMEOUT_MS = Number(process.env.AUTH_REQUEST_TIMEOUT_MS || 60000);
 
+// 41ab3b9 raised this ceiling to 60s, but `req.setTimeout()` only arms an
+// inactivity timer on the SOCKET, and the socket belongs to the https Agent.
+// Node's built-in default agent hard-codes a 5000ms socket timeout which fires
+// first, destroys the socket, and emits `timeout` — running our own callback
+// anyway. Measured: with a 60s ceiling the abort still landed at 5.46s.
+// A dedicated agent whose socket timeout matches AUTH_REQUEST_TIMEOUT_MS makes
+// the ceiling real (verified: agent{timeout:12000} aborts at 12.18s).
+// keepAlive is off so each sign-in gets its own socket and cannot inherit a
+// stale idle timer from a pooled connection.
+const AUTH_REQUEST_AGENT = new https.Agent({
+  keepAlive: false,
+  timeout: AUTH_REQUEST_TIMEOUT_MS,
+});
+
 function supaPasswordSignIn(email, password) {
   return new Promise((resolve, reject) => {
     const supaHost = new URL(SUPA_URL).hostname;
     const bodyBuf  = Buffer.from(JSON.stringify({ email, password }));
     const opts = {
       hostname: supaHost,
+      agent: AUTH_REQUEST_AGENT,
       path: '/auth/v1/token?grant_type=password',
       method: 'POST',
       headers: {
@@ -7419,6 +7448,7 @@ function supaPasswordSignUp(email, password, metadata = {}) {
     const bodyBuf  = Buffer.from(JSON.stringify({ email, password, data: metadata }));
     const opts = {
       hostname: supaHost,
+      agent: AUTH_REQUEST_AGENT,
       path: '/auth/v1/signup',
       method: 'POST',
       headers: {
