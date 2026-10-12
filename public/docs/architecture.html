@@ -18,6 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="./assets/site.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Architecture — IsotopeAI docs", "description": "How IsotopeAI works: a single dependency-free Node server, serve-time bundle patching, script injection, service-worker caching and the Supabase proxy.", "url": "https://isotopeai.dpdns.org/docs/architecture.html", "inLanguage": "en", "isPartOf": {"@type": "WebSite", "name": "IsotopeAI Documentation", "url": "https://isotopeai.dpdns.org/docs/"}, "publisher": {"@type": "Organization", "name": "IsotopeAI", "url": "https://isotopeai.dpdns.org/"}}</script>
 </head>
 <body class="docs-page page-open">
 <div class="liquid-bg bg-1" aria-hidden="true"></div>
@@ -183,7 +184,7 @@
 }</pre>
     </div>
 
-    <p>There are 22 patched files — 19 of them named `*Bundle` for Vite chunk outputs, plus `auth-bridge.js` and three non-bundle stores — carrying around 52 individual patches. They fix upstream
+    <p>The server defines 22 <code>getPatched*</code> functions mapped to 22 output targets: 19 <code>*Bundle</code> functions for built chunks, plus <code>auth-bridge.js</code> and two non-bundle stores (notifications and AI). The AI-store patch is enabled only when an AI provider key is configured. These patches fix upstream
     crashes, neutralise a demo-data gate, disable a circuit breaker that could lock all
     Supabase calls for five minutes, and add features such as group chat and the
     leaderboard tab.</p>
