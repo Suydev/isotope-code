@@ -181,7 +181,11 @@ async function main() {
   // otherwise-good transfer. carbon-copy verification below is the real gate.
   let baselineFailed = 0;
   try {
-    await run('supabase-setup.mjs', ['--ref', DST_REF, '--pat', DST_PAT, '--no-env', '--force'], {
+    // PAT travels ONLY in the environment. `--pat` here would put it in argv,
+    // which is world-readable in /proc/<pid>/cmdline and lands in shell history.
+    // supabase-setup.mjs resolves `args.pat || process.env.SUPABASE_ACCESS_TOKEN`,
+    // so dropping the flag is behaviour-preserving.
+    await run('supabase-setup.mjs', ['--ref', DST_REF, '--no-env', '--force'], {
       SUPABASE_URL: `https://${DST_REF}.supabase.co`,
       SUPABASE_ACCESS_TOKEN: DST_PAT,
     }, 'schema baseline', 1);
@@ -190,47 +194,45 @@ async function main() {
     say(`[transfer] schema baseline reported failures (${e.message}); continuing — the restore is additive and carbon-copy verification is the gate`);
   }
 
-  // Migrations are a SUPPLEMENT here, not the source of truth: the schema dump
-  // above applied 1773 statements with zero failures. On a freshly provisioned
-  // target the numbered migrations that fail are ones that cannot succeed there:
+  // A migration that does not run is a migration that did not happen. The
+  // previous shape of this block swallowed the failure, set
+  // migrationFailures = 1, and carried on to print "transfer complete" — a
+  // transfer that reported success while applying zero migrations. It read as
+  // benign because two numbered migrations are known to fail on a fresh
+  // target (012 seeds rows with hardcoded author ids, 013b is a CREATE OR
+  // REPLACE that changes a return type, 42P13). That reasoning does not
+  // survive contact with the fact that the worker did not exist at all: the
+  // exit code carries no information about which statement failed, so it
+  // cannot be used to tell "these two expected failures" from "none of it
+  // ran". Silence is not evidence of safety.
   //
-  //   012_seed_community_data.sql — inserts demo rows with hardcoded author ids,
-  //     so it hits a foreign-key violation on an empty project. Those rows are
-  //     the very data the restore is about to bring from the source, so seeding
-  //     them first is not merely pointless, it is overwritten anyway.
-  //   013b_harden_rls_security.sql — a CREATE OR REPLACE that changes a return
-  //     type, which Postgres refuses (42P13). The dump already created the
-  //     function with its current signature, so there is nothing to change.
-  //
-  // Neither is a reason to abandon the transfer, and neither is a reason to
-  // report success as if nothing happened — so log the failure, count it, and
-  // carry on to the restore, which is what actually populates the project.
-  // Apply only migrations ABOVE the dump's watermark.
-  //
-  // Replaying the whole numbered history is not merely redundant — it is unsafe.
-  // The dump already contains the end state of 22 of the 24 numbered files, and
-  // filename order cannot reproduce live: accept_invite / get_invite_details have
-  // four conflicting definitions and live matches 009, while 013b changes the return
-  // type (the 42P13 that appeared in every run). 012 seeds rows with hardcoded UUIDs
-  // that violate FKs on a fresh project, and the six _rollback_*.sql files exist
-  // specifically to re-break working code.
-  //
-  // So the dump is the baseline, and anything newer than its watermark is real new
-  // work. Drop `029_whatever.sql` into supabase/, apply it to the live project, bump
-  // supabase/.applied to 029, regenerate the dump — and every future backup and
-  // transfer carries it with nothing else to remember.
+  // So: the pending set is now explicit. backend-switch.mjs `migrate` applies
+  // every numbered file strictly above the dump's watermark — the only files
+  // the dump does not already carry — and exits non-zero if any statement
+  // fails. That makes the exit code meaningful, and it makes a failure
+  // BLOCKING: a transfer that cannot bring the target schema up to the source
+  // must not finish, and must not print "transfer complete".
   let migrationFailures = 0;
   const watermark = schemaWatermark();
   if (watermark) {
     const next = String(Number(watermark) + 1).padStart(3, '0');
     say(`[transfer] schema watermark ${watermark} — applying migrations from ${next} only`);
     try {
-      await run('backend-switch.mjs', ['migrate', '--ref', DST_REF, '--from', next, '--pat', DST_PAT], {
+      // PAT via env only — same reason as the baseline above.
+      await run('backend-switch.mjs', ['migrate', '--ref', DST_REF, '--from', next], {
         SUPABASE_ACCESS_TOKEN: DST_PAT,
       }, 'migrations', 2);
     } catch (e) {
+      // Loud and blocking. Recorded in the summary for the console's benefit,
+      // then stopped: the target's schema is below the source's and the data
+      // restore would land in the wrong shape.
       migrationFailures = 1;
-      say(`[transfer] migrations above the watermark failed (${e.message}); continuing — the dump baseline applied cleanly and the restore supplies the data`);
+      say('');
+      say('[transfer] MIGRATIONS FAILED — the target schema was NOT brought up to the source.');
+      say(`[transfer]   ${e.message}`);
+      say('[transfer]   The restore below is skipped. A partial transfer that reports');
+      say('[transfer]   success is worse than one that stops, so this run ends here.');
+      die('migrations above the dump watermark failed; refusing to report a transfer that did not migrate', e.message);
     }
   } else {
     say('[transfer] no schema watermark in the dump — skipping migrations rather than replaying history');
@@ -333,6 +335,12 @@ async function main() {
     target: DST_REF,
     migrationFailures,
     baselineFailed,
+    // Explicit rather than inferred from migrationFailures: a reader of this
+    // JSON must not have to know the current watermark to learn whether any
+    // migration was pending at all.
+    migrations: watermark
+      ? { watermark, from: String(Number(watermark) + 1).padStart(3, '0'), ran: true, failed: migrationFailures }
+      : { watermark: null, ran: false, failed: 0, reason: 'no watermark in the dump' },
     dir: outDir,
     tables: tableCount,
     rows: rowTotal,

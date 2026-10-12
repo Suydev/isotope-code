@@ -1687,7 +1687,7 @@ CREATE OR REPLACE FUNCTION "public"."_guard_group_member_escalation"()
  RETURNS trigger
  LANGUAGE plpgsql
  VOLATILE
- SECURITY DEFINER
+ SECURITY INVOKER
  SET "search_path" TO ''
  AS $iso_fn$
 
@@ -1714,27 +1714,55 @@ CREATE OR REPLACE FUNCTION "public"."_guard_group_member_escalation"()
   -- authenticated + a column-scoped UPDATE grant remove is_super_admin from the
   -- client entirely, and this trigger enforces the value rule.
   --
-  -- HOW TRUSTED WRITES ARE DETECTED, and why `current_user` is the right signal:
-  --   PostgREST connects as `authenticator` and then does SET LOCAL ROLE
-  --   authenticated|anon, so a direct client statement has
-  --   current_user = 'authenticated'|'anon'. Inside a SECURITY DEFINER function
-  --   current_user becomes the function OWNER (postgres), so every sanctioned path
-  --   -- community_set_group_role, community_transfer_group,
-  --   update_group_member_role, and the _auto_add_* triggers -- skips the checks
-  --   below. Those functions each authorize the caller before writing, so this is
-  --   the correct division of labour.
-  --   `session_user` would be WRONG here: SECURITY DEFINER does not change it, so
-  --   it still reads 'authenticator' for both a direct client write and a
-  --   SECURITY DEFINER function, and the guard could not tell them apart.
-  --   `auth.uid()` still works inside SECURITY DEFINER because it reads the JWT
-  --   from session GUCs rather than from the current role, which is why the
-  --   ownership test below is valid for the trusted paths too.
+  -- R5 (2026-10-12). THIS FUNCTION IS SECURITY INVOKER ON PURPOSE -- DO NOT
+  -- "fix" IT BACK TO SECURITY DEFINER. It was SECURITY DEFINER, and that made it
+  -- COMPLETELY INERT: SECURITY DEFINER rebinds current_user to the function owner
+  -- (postgres) for the whole body, so the very first line
+  --     IF current_user IN ('anon','authenticated') THEN
+  -- was ALWAYS false for a real client write and the entire body was dead code.
+  -- The escalation was reproduced offline: a plain member ran
+  --     UPDATE group_members SET role='owner' WHERE user_id=auth.uid()
+  -- and the row took the value owner. Nothing complained.
+  --
+  -- HOW TRUSTED WRITES ARE DETECTED. Measured on PostgreSQL 18.6, same table,
+  -- with an identity probe placed in a plain (invoker) trigger frame:
+  --
+  --   path                                    current_user  session_user  role
+  --   --------------------------------------  -----------  ------------  --------
+  --   direct client write                     authenticated  authenticator authenticated
+  --   trusted SECURITY DEFINER admin RPC      postgres        authenticator authenticated
+  --
+  -- Only current_user discriminates. session_user is NOT changed by SECURITY
+  -- DEFINER and current_setting('role') is the SET-LOCAL-ROLE name, so BOTH are
+  -- byte-identical across the two paths. An earlier revision of this comment
+  -- proposed using them as the deny predicate; doing so would have blocked every
+  -- legitimate admin RPC (community_set_group_role, community_transfer_group,
+  -- update_group_member_role). That fix would have been a functional regression
+  -- dressed up as a security fix. Do not reintroduce it.
+  --
+  -- Because this frame is INVOKER, current_user here is the REAL caller:
+  -- 'anon'/'authenticated' for a direct client statement, and the owner
+  -- ('postgres') when a SECURITY DEFINER admin RPC wrote the row -- which is
+  -- precisely the set of sanctioned paths that must skip the checks below. Each
+  -- of those RPCs authorizes the caller before writing, so the division of
+  -- labour still holds. This is why the correct shape is an INVOKER *frame*
+  -- reading current_user, rather than a DEFINER function trying to guess.
+  --
+  -- INVOKER does not weaken the check: the roles this trigger serves
+  -- (anon, authenticated) already hold SELECT on public.groups, and a group
+  -- that is public and active is visible to them under RLS, so the ownership
+  -- test below reads a real owner_id for a legitimate owner. Where RLS cannot
+  -- see the group the test fails CLOSED (denies), which is the safe direction.
+  --
+  -- `auth.uid()` keeps working under either mode because it reads the JWT from
+  -- session GUCs rather than from the current role.
   --
   -- OLD is not just "different" on INSERT -- the entire OLD record is NULL, and
   -- is_super_admin is NOT NULL DEFAULT false, so an unqualified
   -- `NEW.is_super_admin IS DISTINCT FROM OLD.is_super_admin` would compare
   -- false IS DISTINCT FROM NULL, i.e. true, and abort every ordinary join. Every
   -- comparison below is therefore scoped to its TG_OP.
+BEGIN
   IF current_user IN ('anon', 'authenticated') THEN
 
     IF TG_OP = 'INSERT' THEN
@@ -3009,7 +3037,7 @@ BEGIN
   -- this guard was silently skipped and the body below ran with the definer's
   -- rights -- any signed-in user could call this RPC and rewrite any group row by
   -- id. IS DISTINCT FROM keeps NULL on the deny path.
-  IF v_role IS DISTINCT FROM ALL (ARRAY['owner'::text, 'admin'::text]) THEN
+  IF (v_role IS DISTINCT FROM 'owner') AND (v_role IS DISTINCT FROM 'admin') THEN
     RETURN jsonb_build_object('success', false, 'error', 'Insufficient permissions');
   END IF;
   DELETE FROM public.group_members WHERE group_id = p_group_id AND user_id = p_user_id;
@@ -3373,7 +3401,7 @@ BEGIN
   -- this guard was silently skipped and the body below ran with the definer's
   -- rights -- any signed-in user could call this RPC and rewrite any group row by
   -- id. IS DISTINCT FROM keeps NULL on the deny path.
-  IF v_role IS DISTINCT FROM ALL (ARRAY['owner'::text, 'admin'::text]) THEN
+  IF (v_role IS DISTINCT FROM 'owner') AND (v_role IS DISTINCT FROM 'admin') THEN
     RETURN jsonb_build_object('success', false, 'error', 'Insufficient permissions');
   END IF;
   UPDATE public.groups
@@ -3382,7 +3410,15 @@ BEGIN
     description = COALESCE(p_changes->>'description', description),
     exam = COALESCE(p_changes->>'exam', exam),
     target_year = COALESCE((p_changes->>'targetYear')::int, target_year),
-    subjects = COALESCE((p_changes->'subjects')::text[], subjects),
+    subjects = COALESCE(
+                 -- jsonb has no direct ->text[] cast. jsonb_array_elements_text is
+                 -- the only safe expansion; the jsonb_typeof guard keeps a non-array
+                 -- value (incl. JSON null) on the COALESCE fallback instead of
+                 -- erroring out or silently blanking the column.
+                 (CASE WHEN jsonb_typeof(p_changes->'subjects') = 'array'
+                       THEN ARRAY(SELECT jsonb_array_elements_text(p_changes->'subjects'))
+                 END),
+                 subjects),
     visibility = COALESCE(p_changes->>'visibility', visibility),
     join_policy = COALESCE(p_changes->>'joinPolicy', join_policy),
     updated_at = now()
@@ -3770,6 +3806,20 @@ BEGIN
   RETURN NEW;
 END
 $iso_fn$;
+-- ─────────────────────────────────────────────────────────────────────────
+-- DELIBERATE DESIGN STATE (2026-10-12) — `SELECT true` here is INTENTIONAL.
+-- DO NOT "fix" this as a security hole. Ruled by owner after review.
+-- Why: this is a self-hosted deployment with no billing. The data layer already
+-- grants everything: handle_new_user provisions every user with
+-- plan_type='ranker', billing_status='active', and plan/access expiry 2099-12-31.
+-- So a real gate reading users.plan_type would still return true for every
+-- existing user — changing it would alter almost nothing while risking the one
+-- premium surface that exists.
+-- is_premium_user has exactly ONE consumer: the community_get_premium_leaderboard
+-- gate. No RLS policy references it (verified across every CREATE POLICY).
+-- A real premium path (plan tiers, expiry semantics, behaviour when a plan
+-- lapses) is a PRODUCT decision for the owner, not a bug-fix.
+-- ─────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION "public"."is_premium_user"(uid uuid)
  RETURNS boolean
  LANGUAGE sql
@@ -3780,6 +3830,8 @@ CREATE OR REPLACE FUNCTION "public"."is_premium_user"(uid uuid)
 
  SELECT true;
 $iso_fn$;
+-- No-arg overload: same deliberate `SELECT true` as is_premium_user(uuid) above.
+-- See the note on the uuid overload for the full rationale. DO NOT "fix".
 CREATE OR REPLACE FUNCTION "public"."is_premium_user"()
  RETURNS boolean
  LANGUAGE sql
@@ -6248,8 +6300,10 @@ COMMIT;
 -- SECURITY INVOKER: it reads only RLS-protected tables the caller can
 -- already see, and is REVOKEd from anon/PUBLIC so a logged-out caller
 -- gets a permission error rather than an empty board.
--- NOTE: is_premium_user() is currently a deliberate `SELECT true`
--- override, so this gate passes for everyone until that is reverted.
+-- NOTE: is_premium_user() is a deliberate `SELECT true` by design (self-hosted,
+-- no billing, every user provisioned 'ranker' until 2099). This gate therefore
+-- passes for everyone BY DESIGN — that is intended, not a bug. See the long note
+-- on is_premium_user(uuid). Do not treat this as a security defect.
 -- ─────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION "public"."community_get_premium_leaderboard"("p_period" text DEFAULT 'weekly', "p_after" integer DEFAULT NULL, "p_snapshot" timestamp with time zone DEFAULT NULL)
  RETURNS TABLE("user_id" uuid, "handle" text, "name" text, "avatar_url" text, "rank" integer, "total_hours" numeric, "period_hours" numeric, "is_viewer" boolean)
