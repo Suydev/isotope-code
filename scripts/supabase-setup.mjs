@@ -14,10 +14,18 @@
  *
  * What it provisions, in dependency order:
  *   1. schema   — 42 tables, 75 public functions, 15 triggers, 184 policies
- *   2. storage  — 4 buckets + owner-scoped policies
- *   3. auth     — the signup trigger, without which every new account is broken
- *   4. verify   — asserts all of the above actually landed
- *   5. .env     — written last, and only if verify passed
+ *   2. postsql  — the hardening SQL in sql/ that the generated dump cannot carry
+ *   3. storage  — 4 buckets + owner-scoped policies
+ *   4. auth     — the signup trigger, without which every new account is broken
+ *   5. verify   — asserts all of the above actually landed
+ *   6. .env     — written last, and only if verify passed
+ *
+ * Step 2 exists because the schema file is a GENERATED dump: it carries the
+ * policy text that was true when it was generated, so any hardening applied to
+ * a live project afterwards has to be re-applied on top or a first-run setup
+ * provisions the old, broken policies. It runs before verify so a PASS means
+ * the fixes are in place, and it fails the run rather than skipping a file that
+ * has gone missing.
  *
  * It writes NO DATABASE ROWS. No users, no seed data, no files. A project set up
  * by this script is empty and ready for its owner's first signup.
@@ -64,6 +72,35 @@ const REQUIRED_BUCKETS = [
     allowed_mime_types: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] },
   { id: 'study-material', public: false, file_size_limit: 104857600 },
 ];
+
+// Functions the app calls by name. NOT derived from a count.
+//
+// `verifySetup` asserted `functions >= 70`. A count is satisfied by ANY 70 functions,
+// including 70 that are missing the ones the app invokes — so a project provisioned
+// without `community_get_premium_leaderboard` or `_guard_group_member_escalation`
+// reported verification 8/8 PASS. That is a silent pass over a broken backend, and it
+// is exactly the failure the owner's standing rule ("a readiness test should be added
+// for all of them") exists to prevent: both dumps carry these functions, the app calls
+// them, and nothing asserted they arrived.
+//
+// These are named rather than derived from the dump on purpose. Deriving the list from
+// the schema file would make the test tautological — it would only ever confirm that
+// the file contains what the file contains, and would still pass on a target the
+// function never reached. The list has to be the app's list, maintained alongside the
+// app's calls.
+const REQUIRED_FUNCTIONS = [
+  // RPC the Community UI calls for the premium leaderboard. Added with the leaderboard
+  // feature; calling it before it exists is a 404 from PostgREST.
+  'community_get_premium_leaderboard',
+  // Trigger function on group_members that stops a member escalating their own role.
+  // Without it a member can self-promote to owner/ admin, so its absence is a SECURITY
+  // regression, not a missing feature.
+  '_guard_group_member_escalation',
+];
+
+// Number of check() calls in verifySetup. Kept as a named constant so the progress
+// total is not a hand-typed literal that silently disagrees with the real count.
+const VERIFY_CHECK_COUNT = 10;
 
 function parseArgs(argv = process.argv.slice(2)) {
   const a = {};
@@ -268,6 +305,128 @@ async function applySchema(client, ref, schemaFile) {
   if (failed) throw new Error(`${failed} schema statement(s) failed — the project is incomplete`);
 }
 
+/* ── post-schema SQL ──────────────────────────────────────────────────────────
+ *
+ * The schema file is a GENERATED dump, so it carries the policy text that was
+ * true when it was generated. Any hardening that landed afterwards has to be
+ * re-applied on top, or a first-run setup silently provisions a project with
+ * the old, broken policies.
+ *
+ * This is not hypothetical. The dump shipped a group_members policy set that
+ * made client INSERTs raise `42P17 infinite recursion detected`, so joining a
+ * community group was impossible, and a users/user_points policy set that let a
+ * client set coins, gems and plan_type on its own row. Both are fixed by files
+ * in sql/ rather than by editing the generated dump, because the dump is
+ * overwritten on every regeneration.
+ *
+ * Discovery is by NAMED LIST, not a directory glob. A glob would apply every
+ * *.sql in sql/ on every setup — including the numbered one-shot migrations
+ * (006, 009, 010 …) that predate the dump and would double-apply their work,
+ * and verify-security.sql, which is a read-only report. Only the files listed
+ * below run, and a listed file that is missing is a HARD ERROR: silently
+ * skipping a security fix because a file moved is the failure mode this whole
+ * step exists to prevent.
+ *
+ * Every file here must be idempotent, because setup re-applies them to a
+ * project that may already have some of it (setup is also the repair path).
+ *
+ * This step is SHARED with supabase-backup.mjs's restore, which applies the same
+ * generated schema and therefore has the same gap. It lives here and is exported
+ * rather than duplicated, so the two paths cannot drift — a fix applied by one
+ * and forgotten by the other is exactly how a security fix ends up half-deployed.
+ */
+export const POST_SCHEMA_SQL = [
+  { file: 'sql/027_group_members_rls_recursion.sql', label: 'RLS recursion (cycle A)' },
+  // 028 is a SUPERSET of 027 — it closes both recursion cycles, and 027 alone
+  // leaves cycle B live. Both are listed so the pair runs in order and the
+  // result is correct regardless of which one a given checkout has.
+  { file: 'sql/028_group_members_recursion_full.sql', label: 'RLS recursion (cycles A+B)' },
+  { file: 'sql/029_column_scope_hardening.sql', label: 'users/user_points column scope' },
+  // 030 is the complement to 028/029 and is NOT optional. 028 removes the
+  // 42P17 recursion; this one makes the existing escalation guard actually
+  // enforce anything. A trigger runs with no arguments, so unlike 028's
+  // _is_group_admin(gid, uid) helpers it cannot carry the caller's identity
+  // and MUST be SECURITY INVOKER. Left as DEFINER it fires and does nothing:
+  // current_user is the owner (postgres), so `IF current_user IN
+  // ('anon','authenticated')` is never true and a plain member can
+  // self-promote to owner. Verified live on iso-clean: DEFINER -> escalation
+  // succeeds, INVOKER -> 42501.
+  { file: 'sql/030_guard_triggers_need_invoker.sql', label: 'escalation guard runs as caller (INVOKER)' },
+];
+
+/**
+ * Apply the post-schema SQL through a `query(sql)` function.
+ *
+ * `query` is injected rather than a `client` object because the two callers
+ * reach the database differently: setup goes through the management API's
+ * SQL-over-HTTP endpoint keyed by project ref, while restore uses its own
+ * connection helper. Injecting one function keeps a single implementation of
+ * the ORDER and the failure policy, which is the part that has to agree.
+ *
+ * `label` is used only in messages.
+ */
+export async function applyPostSchemaSql(query, label = '[setup]') {
+  const files = POST_SCHEMA_SQL.map((e) => ({ ...e, path: join(ROOT, e.file) }));
+  const missing = files.filter((f) => !existsSync(f.path));
+  if (missing.length) {
+    throw new Error(
+      'required SQL file(s) missing, refusing to finish because a security fix ' +
+      'would be silently skipped: ' + missing.map((m) => m.file).join(', ')
+    );
+  }
+
+  const statements = [];
+  for (const f of files) {
+    const stmts = splitStatements(readFileSync(f.path, 'utf8')).filter((s) => {
+      const b = bare(s);
+      return b && !/^(BEGIN|COMMIT|ROLLBACK|START\s+TRANSACTION|END)\s*;?$/i.test(b);
+    });
+    if (!stmts.length) { console.warn(`${label} ${f.file} produced no statements — skipping`); continue; }
+    console.log(`${label} post-schema: ${f.file} (${stmts.length} statements) — ${f.label}`);
+    statements.push(...stmts);
+  }
+  if (!statements.length) return { ok: 0, skipped: 0, failed: 0, total: 0 };
+
+  emit({ phase: 'postsql', state: 'running', done: 0, total: statements.length, ok: 0, failed: 0, skipped: 0 });
+
+  // Same narrow classifier as applySchema, and for the same reason: a statement
+  // failing because its dependency is absent is NOT "already there", and
+  // swallowing it is how a half-applied fix reports success.
+  const IDEMPOTENT = /already exists|duplicate key|duplicate object|multiple primary keys/i;
+  const UNPRIVILEGED = /permission denied for language|must be superuser/i;
+
+  let ok = 0, skipped = 0, failed = 0;
+  const failures = [];
+  for (const s of statements) {
+    const body = s.replace(/;+$/, '');
+    try {
+      await query(body);
+      ok++;
+    } catch (e) {
+      const msg = e.message || '';
+      if (IDEMPOTENT.test(msg) || UNPRIVILEGED.test(msg)) { skipped++; continue; }
+      failed++;
+      if (failures.length < 20) failures.push({ stmt: body.slice(0, 160), msg: msg.slice(0, 220) });
+      emit({ phase: 'postsql', level: 'error', msg: msg.slice(0, 220), stmt: body.slice(0, 160) });
+    }
+    emit({ phase: 'postsql', done: ok + skipped + failed, total: statements.length, ok, skipped, failed });
+  }
+
+  console.log(`${label} post-schema: ${ok} applied, ${skipped} skipped, ${failed} failed`);
+  emit({ phase: 'postsql', state: 'done', done: statements.length, total: statements.length, ok, failed, skipped });
+  for (const f of failures) {
+    console.log(`  FAILED: ${f.msg}`);
+    console.log(`      at: ${f.stmt.replace(/\s+/g, ' ')}`);
+  }
+  if (failed) {
+    throw new Error(
+      `${failed} post-schema statement(s) failed — SECURITY FIXES MAY NOT BE APPLIED. ` +
+      'Do not use this project until this is resolved.'
+    );
+  }
+  return { ok, skipped, failed, total: statements.length };
+}
+
 /** Buckets via the storage REST API, which needs the service-role key. The
  *  schema file also inserts them into storage.buckets, so this is belt and
  *  braces — but the two disagree on nothing, and a bucket created here works even
@@ -354,8 +513,111 @@ async function applyAuthTrigger(client, ref) {
   emit({ phase: 'auth', state: 'done', done: 1, total: 1, failed: 0 });
 }
 
+/* ── Google OAuth (OPTIONAL) ──────────────────────────────────────────────────
+ *
+ * Email/password works without this. It is opt-in because a Google OAuth client
+ * cannot be created without a human: the client ID and secret are minted in the
+ * Google Cloud console, which has no API this script (or Supabase) can create one
+ * through. So the script is handed the values and wires the half that IS
+ * scriptable — the Supabase side.
+ *
+ * What this sets, via PATCH /v1/projects/<ref>/config/auth:
+ *   - providers.google.enabled = true, with client_id / client_secret / nonce
+ *   - the two redirect URIs the flow needs
+ *   - site_url and additional_redirect_urls, so the redirect allow-list matches
+ *     the app instead of the default
+ *
+ * The nonce is not sent from the command line and is never echoed. Google signs
+ * the id_token; without nonce verification Supabase would accept a token minted
+ * for a different application. It must be the SAME value configured on the Google
+ * console side, and Supabase generates one for you — so this reads the existing
+ * project's nonce and preserves it rather than inventing one that will not match.
+ *
+ * Idempotent: a re-run rewrites the same fields and leaves everything else in
+ * the auth config alone, because the PATCH is a shallow merge on the keys given.
+ */
+async function applyGoogleAuth(client, ref, opts) {
+  // Credentials come from the environment first, then argv. The environment is
+  // the safer channel: argv is visible to any process of the same uid through
+  // /proc/<pid>/cmdline and is captured by `ps`, so the console and any
+  // wrapper pass the secret this way. The CLI passes --google-client-secret
+  // directly, which the operator chooses knowingly.
+  const clientId = process.env.GOOGLE_CLIENT_ID || opts['google-client-id'] || null;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || opts['google-client-secret'] || null;
+  if (!clientId && !clientSecret) {
+    console.log('[setup] google auth: skipped (no --google-client-id/--google-client-secret)');
+    return { applied: false };
+  }
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      'google auth needs BOTH --google-client-id and --google-client-secret — one alone ' +
+      'would enable the provider with a half-configured credential and fail every sign-in'
+    );
+  }
+
+  const redirectUri = `https://${ref}.supabase.co/auth/v1/callback`;
+  emit({ phase: 'googleauth', state: 'running' });
+
+  let existing = {};
+  try {
+    existing = (await client.api(`/v1/projects/${ref}/config/auth`)) || {};
+  } catch (e) {
+    // Not fatal on its own: a project that has never had auth configured may 404
+    // on this read while the PATCH below still succeeds. Reported, not swallowed.
+    console.warn(`[setup] google auth: could not read current auth config (${e.message}); preserving nothing`);
+  }
+
+  // Preserve the existing nonce so Google and Supabase agree. If there is none,
+  // Supabase generates one on PATCH; do not invent one here.
+  const nonce = existing?.external?.google?.nonce;
+  const siteUrl = opts['site-url'] || (existing?.site_url ?? null);
+
+  const redirectUrls = [
+    redirectUri,
+    ...(opts['app-url'] ? [String(opts['app-url'])] : []),
+    ...(opts['extra-redirect-urls'] ? String(opts['extra-redirect-urls']).split(',') : []),
+  ].map((s) => s.trim()).filter(Boolean);
+
+  const patch = {
+    external: {
+      google: {
+        enabled: true,
+        client_id: clientId,
+        client_secret: clientSecret,
+        ...(nonce ? { nonce } : {}),
+      },
+    },
+    redirect_urls: redirectUrls,
+    ...(siteUrl ? { site_url: siteUrl } : {}),
+  };
+
+  await client.api(`/v1/projects/${ref}/config/auth`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+
+  console.log(`[setup] google auth enabled`);
+  console.log(`         redirect URI : ${redirectUri}`);
+  if (nonce) console.log('         nonce         : preserved from the existing project config');
+  console.log('         Still yours to do in the Google Cloud console:');
+  console.log('           1. OAuth consent screen + the Web application type');
+  console.log(`           2. Authorised redirect URI: ${redirectUri}`);
+  if (opts['app-url']) console.log(`           3. Authorised JS origin: ${opts['app-url']}`);
+  console.log('         Save the client secret in .env as GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET');
+  emit({ phase: 'googleauth', state: 'done' });
+  return { applied: true, redirectUri, siteUrl, redirectUrls };
+}
+
 /** Assert the project can actually run the app. Every check here corresponds to
  *  something that has silently failed in the past. */
+// True when a missing function is a SECURITY regression rather than a missing
+// feature. `_guard_group_member_escalation` is a trigger function on group_members;
+// without it a member can raise their own role, so its absence must not be reported
+// as merely "an RPC will 404".
+function _guardAbsent(names) {
+  return names.includes('_guard_group_member_escalation');
+}
+
 async function verifySetup(client, ref, url, serviceKey) {
   const checks = [];
   const check = (ok, label, detail = '') => {
@@ -363,7 +625,7 @@ async function verifySetup(client, ref, url, serviceKey) {
     emit({ phase: 'verify', done: checks.length, failed: checks.filter((c) => !c.ok).length, label, ok });
     console.log(`  ${ok ? 'PASS' : 'FAIL'} ${label}${detail ? ` — ${detail}` : ''}`);
   };
-  emit({ phase: 'verify', state: 'running', done: 0, total: 8, failed: 0 });
+  emit({ phase: 'verify', state: 'running', done: 0, total: VERIFY_CHECK_COUNT, failed: 0 });
 
   const [counts] = await client.query(ref, `
     select
@@ -377,6 +639,59 @@ async function verifySetup(client, ref, url, serviceKey) {
   check(Number(counts.functions) >= 70, `functions ${counts.functions}`, Number(counts.functions) >= 70 ? '' : 'expected at least 70');
   check(Number(counts.policies) >= 150, `RLS policies ${counts.policies}`, Number(counts.policies) >= 150 ? '' : 'expected at least 150');
   check(Number(counts.indexes) >= 60, `indexes ${counts.indexes}`, '');
+
+  // Named functions the app calls, checked by name. The count above cannot do this:
+  // 70 functions that omit these two still satisfy `>= 70` and the run reports PASS.
+  // Matched on `pg_proc.proname`, so an overload satisfies the name (which is what the
+  // app's call resolves to) without needing to restate an argument list that would
+  // itself rot the next time a parameter is added.
+  // NOTE the destructuring: `client.query` returns the raw row array, so `[x]`
+  // yields the FIRST ROW. The counts/trigger/seed queries above are single-row
+  // and destructure for that reason. This one is GROUPED BY proname and can
+  // return several rows, so it must NOT be destructured — `const [fnRows]` would
+  // bind a single row object and `.map` would throw. Every multi-row consumer in
+  // this codebase (supabase-backup.mjs:372 `tableList`, :380 `foreignKeys`) uses
+  // the whole array for the same reason.
+  const fnRows = await client.query(ref, `
+    select p.proname as name, count(*)::int as overloads
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and p.proname = any (array[${REQUIRED_FUNCTIONS.map((f) => `'${f.replace(/'/g, "''")}'`).join(', ')}])
+     group by p.proname`);
+  const foundFns = new Map((fnRows || []).map((r) => [r.name, Number(r.overloads)]));
+  const absentFns = REQUIRED_FUNCTIONS.filter((f) => !foundFns.has(f));
+  check(absentFns.length === 0,
+    `required functions ${REQUIRED_FUNCTIONS.length - absentFns.length}/${REQUIRED_FUNCTIONS.length}`,
+    absentFns.length
+      ? `MISSING: ${absentFns.join(', ')} — the app calls these; RPCs will 404` +
+        (_guardAbsent(absentFns) ? ' and group-member role escalation is unguarded' : '')
+      : '');
+
+  // Read-only contract check: do not exercise client writes against a live project.
+  // Presence is not behavior: the historical SECURITY DEFINER guard tested
+  // current_user, which is the definer inside the trigger, so it never guarded
+  // client writes. Flag that known inert implementation and missing attachment.
+  // This does not certify arbitrary PL/pgSQL; isolated behavioral tests remain
+  // required before any replacement guard/policy is applied.
+  const guardRows = await client.query(ref, `
+    select p.prosecdef, p.prosrc,
+           exists (select 1 from pg_trigger t
+                    where t.tgfoid = p.oid
+                      and t.tgrelid = 'public.group_members'::regclass
+                      and not t.tgisinternal and t.tgenabled in ('O','A')
+                      and (t.tgtype & 1) = 1 and (t.tgtype & 2) = 2
+                      and (t.tgtype & 4) = 4 and (t.tgtype & 16) = 16) as attached
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.proname = '_guard_group_member_escalation'
+       and p.pronargs = 0 and p.prorettype = 'trigger'::regtype`);
+  const guard = guardRows?.[0];
+  const inertGuard = guard?.prosecdef && /\bcurrent_user\s+IN\s*\(\s*'anon'\s*,\s*'authenticated'\s*\)/i.test(guard.prosrc || '');
+  check(Boolean(guard?.attached) && !inertGuard,
+    'group-member guard contract',
+    !guard?.attached ? 'MISSING enabled BEFORE INSERT/UPDATE row trigger' :
+      inertGuard ? 'known inert SECURITY DEFINER/current_user guard — requires isolated behavioral review; no live writes attempted' :
+        'attachment and known-defect check only; not a live behavioral certification');
 
   const [trg] = await client.query(ref, `
     select count(*)::int as n from pg_trigger
@@ -628,8 +943,15 @@ async function main() {
   const url = `https://${ref}.supabase.co`;
 
   await applySchema(client, ref, schemaFile);
+  // Must come before storage/auth/verify. The fixes are policy work on public
+  // tables, and verifySetup asserts policy counts and behaviour, so running it
+  // first means a project that reports PASS actually has the fixes.
+  await applyPostSchemaSql((sql) => client.query(ref, sql), "[setup]");
   await applyBuckets(client, ref, url, service);
   await applyAuthTrigger(client, ref);
+  // Opt-in: only runs when Google credentials were supplied. Never blocks a
+  // setup that did not ask for it — email/password is unaffected either way.
+  const google = await applyGoogleAuth(client, ref, args);
   const ok = await verifySetup(client, ref, url, service);
 
   emit({ phase: 'setup', state: 'done', ref, ok });
@@ -657,10 +979,25 @@ async function main() {
     console.log('  SUPABASE_SERVICE_ROLE_KEY=<copy from the dashboard — not printed here>');
   }
   console.log('');
-  console.log('Two things this script cannot do for you, because they are not in the database:');
-  console.log('  1. Google sign-in — add a Web-type OAuth client in Authentication > Providers,');
-  console.log(`     with redirect URI https://${ref}.supabase.co/auth/v1/callback`);
-  console.log('  2. Redirect allow-list — add your app URLs under Authentication > URL Configuration');
+  if (google && google.applied) {
+    console.log('Google sign-in: ENABLED on this project (the Supabase side is configured).');
+    console.log(`  Redirect URI : ${google.redirectUri}`);
+    if (google.siteUrl) console.log(`  Site URL     : ${google.siteUrl}`);
+    console.log('  Google sign-in only completes once the same client ID/secret pair is set on the');
+    console.log('  Google Cloud side AND that client lists the redirect URI above. If you have not');
+    console.log('  done that, sign-in will fail at Google — the Supabase config alone is not enough.');
+    console.log('  Configured app URLs:');
+    for (const u of google.redirectUrls) console.log(`    ${u}`);
+  } else {
+    console.log('Google sign-in: not configured (email/password works regardless).');
+    console.log('  To add it later, re-run setup with:');
+    console.log('    --google-client-id <id> --google-client-secret <secret>');
+    console.log(`    --app-url <your app url>   (redirect URI is always https://${ref}.supabase.co/auth/v1/callback)`);
+  }
+  console.log('');
+  console.log('Still yours to do, because neither is in the database:');
+  console.log('  1. Google Cloud console — create a Web-type OAuth client for the redirect URI above');
+  console.log('  2. Authentication > URL Configuration — confirm your app URLs are in the allow-list');
   if (!ok) process.exit(1);
 }
 
@@ -669,4 +1006,4 @@ if (isMain) {
   main().catch((e) => { console.error(`ERROR: ${e.message}`); emit({ phase: 'setup', level: 'error', msg: e.message }); process.exit(1); });
 }
 
-export { splitStatements, REQUIRED_BUCKETS, applySchema, applyBuckets, applyAuthTrigger, verifySetup, writeEnvFile };
+export { splitStatements, REQUIRED_BUCKETS, REQUIRED_FUNCTIONS, VERIFY_CHECK_COUNT, applySchema, applyBuckets, applyAuthTrigger, verifySetup, writeEnvFile };
