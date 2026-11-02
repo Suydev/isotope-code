@@ -370,6 +370,26 @@ const server = http.createServer(async (req, res) => {
         // repointing a machine's .env from a browser tab is the kind of side
         // effect nobody expects from a button labelled "Set up this project".
         if (body.writeEnv === false) args.push('--no-env');
+
+        // Google sign-in, optional. Credentials go through the ENVIRONMENT here
+        // too, for the same reason as the PAT above: argv is world-readable via
+        // /proc/<pid>/cmdline to any process of the same uid, and it is captured
+        // by `ps`. The worker reads these from process.env; the non-secret
+        // app URL is safe in argv, so it rides as a flag.
+        if (body.googleClientId || body.googleClientSecret) {
+          if (!body.googleClientId || !body.googleClientSecret) {
+            return json(res, 400, {
+              error: 'Google sign-in needs both a client ID and a client secret — one alone '
+                + 'would enable the provider with a half-configured credential',
+            });
+          }
+          env.GOOGLE_CLIENT_ID = body.googleClientId;
+          env.GOOGLE_CLIENT_SECRET = body.googleClientSecret;
+          if (body.appUrl) args.push('--app-url', String(body.appUrl));
+          if (body.extraRedirectUrls) {
+            args.push('--extra-redirect-urls', String(body.extraRedirectUrls));
+          }
+        }
       } else if (kind === 'transfer') {
         // Both PATs together, one job. transfer.mjs creates the tarball and consumes
         // it, so there is no window where the operator can point step 2 at a stale

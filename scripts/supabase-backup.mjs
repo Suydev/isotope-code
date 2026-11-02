@@ -16,6 +16,12 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+// The post-schema hardening SQL is shared with the first-run setup path rather
+// than duplicated. Restore applies the SAME generated schema file, so it has the
+// SAME gap: the dump carries whatever policy text was current when it was
+// generated. A fix applied by setup and forgotten by restore is exactly how a
+// security fix ends up half-deployed.
+import { applyPostSchemaSql } from './supabase-setup.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url)) === process.cwd()
   ? process.cwd()
@@ -672,24 +678,43 @@ async function backup(args, env) {
   // function by default, so a target that was never explicitly revoked still
   // holds it. Recording it makes the permissive default VISIBLE to verify
   // instead of invisible because the dump cannot express it.
+  //
+  // FUNCTIONS carry their identity arguments in the key as well. `proname` alone
+  // collapses every overload of a name into one entry: measured on iso-clean,
+  // `aclexplode` returns 10 rows for `is_premium_user` (2 overloads x 5 grantees)
+  // but only 5 distinct keys WITHOUT the signature. Half the grant rows vanished.
+  // That is not merely lossy — backup and verify share this key, so a grant held
+  // by overload A but missing on overload B produces the SAME string as the
+  // correct one and verify reports PASS over a target that is missing a grant.
+  // A collapsed key is an undetectable false pass, which is the worst outcome a
+  // check in this file can have. `schema-dump.mjs` already keys on
+  // `pg_get_function_identity_arguments`, so this also aligns the manifest with
+  // the dump instead of being coarser than it.
   const grantRows = await sql.query(`
-    select n.nspname as schema, c.relname as obj, 'table' as kind,
-           coalesce(r.role, 'PUBLIC') as grantee, a.privilege_type as priv
+    select n.nspname as schema, c.relname as obj, 'table' as kind, '' as sig,
+           coalesce(r.rolname, 'PUBLIC') as grantee, a.privilege_type as priv
     from pg_class c
     join pg_namespace n on n.oid = c.relnamespace
-    cross join lateral aclexplode(c.relacl) a
+    cross join lateral aclexplode(coalesce(c.relacl, acldefault(case when c.relkind = 'S' then 's'::"char" else 'r'::"char" end, c.relowner))) a
     left join pg_roles r on r.oid = a.grantee
     where n.nspname in (${schemaList}) and c.relkind in ('r','p','S')
     union all
     select n.nspname as schema, p.proname as obj, 'function' as kind,
-           coalesce(r.role, 'PUBLIC') as grantee, a.privilege_type as priv
+           pg_get_function_identity_arguments(p.oid) as sig,
+           coalesce(r.rolname, 'PUBLIC') as grantee, a.privilege_type as priv
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
-    cross join lateral aclexplode(p.proacl) a
+    cross join lateral aclexplode(coalesce(p.proacl, acldefault('f'::"char", p.proowner))) a
     left join pg_roles r on r.oid = a.grantee
     where n.nspname in (${schemaList})
-    order by 1, 2, 3, 4, 5`);
-  manifest.grants = grantRows.map((r) => `${r.schema}.${r.kind}:${r.obj}:${r.grantee}:${r.priv}`);
+    order by 1, 2, 3, 4, 5, 6`);
+  manifest.grants = grantRows.map((r) => `${r.schema}.${r.kind}:${r.obj}:${r.kind === 'function' ? r.sig : ''}:${r.grantee}:${r.priv}`);
+  // Old manifests keyed grants WITHOUT a signature field. A manifest written
+  // before this change cannot be compared against a signature-keyed target: the
+  // strings differ in shape, so every grant would read as MISSING. Rather than
+  // report a fabricated shortfall, mark the manifest so verify says it cannot
+  // compare and tells the operator to re-run the backup.
+  manifest.grants_key = 'effective-sig-v3';
   // Old manifests have no `grants` key. Absent is NOT the same as empty, so the
   // verify side must distinguish "cannot check" from "checked, found none".
   manifest.grants_inventory = true;
@@ -1006,6 +1031,18 @@ async function restore(args, env) {
   } else {
     console.log('[restore] no schema.sql — assuming target already has schema');
   }
+
+  // 1b. post-schema hardening SQL.
+  //
+  // Runs AFTER the schema and BEFORE data/auth/users, and it runs even on a
+  // restore that found no schema.sql: in that case the target is presumed to
+  // already have a schema, and "presumed" is exactly when the fixes are most
+  // likely to be missing. Skipping here would leave a restored project with
+  // whatever policy text it happened to have.
+  //
+  // Before data is loaded, so the column grants are in force while rows go in
+  // and a restore cannot half-populate through a policy that is about to close.
+  await applyPostSchemaSql((s) => sql.query(s), '[restore]');
 
   // --schema-only: structure without people or their data. This is the "fresh
   // project" case — a new project should not receive 43 real emails and bcrypt
@@ -1701,38 +1738,49 @@ async function verify(args, env) {
   // target holding extra privileges fails too: a restore that silently widens
   // access is as wrong as one that narrows it.
   if (manifest.grants_inventory && Array.isArray(manifest.grants)) {
+    // Key shape must match the manifest's. A pre-sig-v2 manifest has no signature
+    // in its strings, so comparing it against a sig-keyed target would report
+    // EVERY grant as MISSING — a fabricated shortfall — or, worse, if compared
+    // against an equally old target it would silently pass while collapsing
+    // overloads. Refuse to compare across key versions and say so loudly.
+    if (manifest.grants_key !== 'effective-sig-v3') {
+      console.log(`  WARN grants — this backup used the OLD collapsed grant key ` +
+        `(${manifest.grants_key || 'unsigned'}), which merges every overload of a function name. ` +
+        'It cannot be compared against a signature-keyed target. Re-run backup to refresh it.');
+      check(false, 'grant inventory version', 'cannot certify privileges from a legacy inventory; re-run backup');
+    } else {
     const liveGrants = (await sql.query(`
-      select n.nspname as schema, c.relname as obj, 'table' as kind,
-             coalesce(r.role, 'PUBLIC') as grantee, a.privilege_type as priv
+      select n.nspname as schema, c.relname as obj, 'table' as kind, '' as sig,
+             coalesce(r.rolname, 'PUBLIC') as grantee, a.privilege_type as priv
       from pg_class c
       join pg_namespace n on n.oid = c.relnamespace
-      cross join lateral aclexplode(c.relacl) a
+      cross join lateral aclexplode(coalesce(c.relacl, acldefault(case when c.relkind = 'S' then 's'::"char" else 'r'::"char" end, c.relowner))) a
       left join pg_roles r on r.oid = a.grantee
       where n.nspname in (${codeSchemas}) and c.relkind in ('r','p','S')
       union all
       select n.nspname as schema, p.proname as obj, 'function' as kind,
-             coalesce(r.role, 'PUBLIC') as grantee, a.privilege_type as priv
+             pg_get_function_identity_arguments(p.oid) as sig,
+             coalesce(r.rolname, 'PUBLIC') as grantee, a.privilege_type as priv
       from pg_proc p
       join pg_namespace n on n.oid = p.pronamespace
-      cross join lateral aclexplode(p.proacl) a
+      cross join lateral aclexplode(coalesce(p.proacl, acldefault('f'::"char", p.proowner))) a
       left join pg_roles r on r.oid = a.grantee
       where n.nspname in (${codeSchemas})`))
-      .map((r) => `${r.schema}.${r.kind}:${r.obj}:${r.grantee}:${r.priv}`);
+      .map((r) => `${r.schema}.${r.kind}:${r.obj}:${r.kind === 'function' ? r.sig : ''}:${r.grantee}:${r.priv}`);
     const liveSet = new Set(liveGrants);
     const wantSet = new Set(manifest.grants);
     const missing = [...wantSet].filter((k) => !liveSet.has(k));
-    // Extra privileges are reported, not failed: Supabase grants broad defaults
-    // on object creation, so a fresh target legitimately holds more than a
-    // long-lived source until the dump's REVOKEs are applied. Failing here
-    // would make every restore-to-new-project un-passable.
+    // Verification is an equivalence gate, not a repair operation. Extra grants
+    // fail certification too; never silently revoke them from a live target.
     const extra = [...liveSet].filter((k) => !wantSet.has(k));
-    check(missing.length === 0,
+    check(missing.length === 0 && extra.length === 0,
       `grants ${liveSet.size}/${wantSet.size}`,
       missing.length
         ? `MISSING ${missing.length}: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? ' …' : ''}`
         : (extra.length ? `all present (target holds ${extra.length} extra privilege(s) — wider than source)` : 'all present'));
+    }
   } else {
-    console.log('  WARN grants — backup predates the grant inventory, cannot verify privileges');
+    check(false, 'grant inventory', 'backup predates grant inventory; cannot verify privileges, re-run backup');
   }
 
   // Signup is the one path where a missing object is silent AND fatal: without

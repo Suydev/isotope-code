@@ -26,10 +26,14 @@
 #   ./backup.sh restore <backup.tar.gz> \
 #       [--supabase-url URL] [--anon-key K] [--service-key K] [--pat TOKEN]
 #       [--schema-only]
-#     Apply schema + data + auth users + storage to the target project,
-#     verify the restore against the target (aborts BEFORE scaffolding .env
-#     if any count mismatches), then scaffold .env with the new keys and
-#     (re)start the server.
+#     Apply schema + the post-schema security SQL in sql/ (shared with
+#     supabase.sh setup — the generated dump cannot carry it) + data + auth
+#     users + storage to the target project, verify the restore against the
+#     target (aborts BEFORE scaffolding .env if any count mismatches), then
+#     scaffold .env with the new keys and (re)start the server.
+#     The security SQL runs even when the tarball has no schema.sql, since
+#     that path assumes the target already has a schema — which is exactly
+#     when the fixes are most likely to be missing.
 #     --schema-only installs structure WITHOUT people: no auth users, no table
 #     rows, no storage files. Use it to stand up a fresh project; omit it for
 #     disaster recovery. Note that Google OAuth keys live in Supabase auth
@@ -291,11 +295,17 @@ cmd_backup() {
   if [[ -z "$no_verify" ]]; then
     say "step 4/4: verifying tarball against source project…"
     local rc
+    # Credentials go through the ENVIRONMENT, never argv. These are already
+    # exported (see cmd_backup / cmd_restore / cmd_verify), and
+    # supabase-backup.mjs reads `args.pat || env.SUPABASE_ACCESS_TOKEN` and
+    # `args['service-key'] || env.SUPABASE_SERVICE_ROLE_KEY`, so the flags were
+    # always redundant — and as argv they sat in /proc/<pid>/cmdline for the
+    # life of the job, readable by any process of the same uid, and landed in
+    # shell history. Same fix as scripts/backup-ui.mjs and scripts/transfer.mjs.
     rc=0
     node "$ROOT/scripts/supabase-backup.mjs" verify --src "$work" \
       --supabase-url "$SUPABASE_URL" \
-      --service-key "${SUPABASE_SERVICE_ROLE_KEY:-}" \
-      --pat "$SUPABASE_ACCESS_TOKEN" $no_storage || rc=$?
+      $no_storage || rc=$?
     if [[ "$rc" -eq 0 ]]; then
       say "backup verified: all checks passed"
     else
@@ -344,6 +354,10 @@ cmd_restore() {
   SUPABASE_URL="$target_url"
   [[ -n "${SUPABASE_ACCESS_TOKEN:-}" ]] || die "missing --pat=<management api token>"
   resolve_service_key
+  # The restore workers read credentials from the environment only (no --pat /
+  # --service-key in argv). cmd_backup has always exported these; restore has to
+  # as well or the workers see no credentials at all.
+  export SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY SUPABASE_ACCESS_TOKEN
 
   # Loud confirmation of where the data is about to land, and a warning if the
   # target happens to be the project this checkout normally talks to.
@@ -384,11 +398,10 @@ cmd_restore() {
     warn "no schema.sql in backup — target project must already have the schema"
   fi
 
+  # PAT and keys via env only — see the note in cmd_backup. The child inherits
+  # SUPABASE_ACCESS_TOKEN / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY.
   node "$ROOT/scripts/supabase-backup.mjs" restore --src "$work" \
     --supabase-url "$SUPABASE_URL" \
-    --anon-key "${SUPABASE_ANON_KEY:-}" \
-    --service-key "${SUPABASE_SERVICE_ROLE_KEY:-}" \
-    --pat "$SUPABASE_ACCESS_TOKEN" \
     ${NO_STORAGE:+--no-storage} \
     ${SCHEMA_ONLY:+--schema-only} || die "restore failed"
 
@@ -398,8 +411,7 @@ cmd_restore() {
   local rc=0 out
   out="$(node "$ROOT/scripts/supabase-backup.mjs" verify --src "$work" \
     --supabase-url "$SUPABASE_URL" \
-    --service-key "${SUPABASE_SERVICE_ROLE_KEY:-}" \
-    --pat "$SUPABASE_ACCESS_TOKEN" ${NO_STORAGE:+--no-storage} 2>&1)" || rc=$?
+    ${NO_STORAGE:+--no-storage} 2>&1)" || rc=$?
   printf '%s\n' "$out" | grep -E '^\s*(PASS|FAIL|WARN|--no-storage)' | sed 's/^/  /' || true
   if [[ "$rc" -ne 0 ]]; then
     KEEP_DIRS+=( "$work" )
@@ -475,6 +487,8 @@ cmd_verify() {
   [[ -n "${SUPABASE_URL:-}" ]] || die "missing --supabase-url=<target project url>"
   [[ -n "${SUPABASE_ACCESS_TOKEN:-}" ]] || die "missing --pat=<management api token>"
   resolve_service_key
+  # Environment-only credentials — see cmd_restore.
+  export SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY SUPABASE_ACCESS_TOKEN
 
   local work
   work="$(mktemp -d "$(mktmpdir)/isotope-verify.XXXXXX")"
@@ -485,8 +499,7 @@ cmd_verify() {
   local rc=0
   node "$ROOT/scripts/supabase-backup.mjs" verify --src "$work" \
     --supabase-url "$SUPABASE_URL" \
-    --service-key "${SUPABASE_SERVICE_ROLE_KEY:-}" \
-    --pat "$SUPABASE_ACCESS_TOKEN" ${NO_STORAGE:+--no-storage} || rc=$?
+    ${NO_STORAGE:+--no-storage} || rc=$?
   rm -rf "$work"
   return "$rc"
 }

@@ -7,7 +7,9 @@
 # the committed schema to an empty project instead.
 #
 #   ./supabase.sh setup --pat TOKEN --ref abc123
-#       Provision an existing empty project.
+#       Provision an existing empty project. Add
+#       --google-client-id ID --google-client-secret SECRET to also configure
+#       Google sign-in (optional; the Supabase half of it — see below).
 #
 #   ./supabase.sh setup --pat TOKEN --create "my-isotope"
 #       Create a free project, wait for it, then provision it.
@@ -29,10 +31,14 @@
 #       Progress/ETA of the detached job, or kill it.
 #
 # What setup provisions, in dependency order:
-#   1. schema   42 tables, 80 functions, 15 triggers, 153 policies, 66 indexes
-#   2. storage  5 buckets + owner-scoped policies
+#   1. schema   consumes the complete committed SQL dump (counts evolve)
+#   2. storage  required buckets + owner-scoped policies
 #   3. auth     the signup trigger — without it every new account is broken
 #   4. verify   asserts all of the above actually landed
+#
+# It also applies the hardening SQL in sql/ after the schema, because the schema
+# file is a generated dump and carries only the policy text current when it was
+# generated.
 #
 # It writes NO rows: no users, no seed data, no files. The project is empty and
 # ready for its owner's first signup.
@@ -141,7 +147,17 @@ case "${1:-}" in
 usage: ./supabase.sh {setup|check|ui|status|stop} [args…]
 
   ./supabase.sh setup --pat TOKEN --ref <project-ref>
-        Provision an existing EMPTY project: schema, storage, auth, verify.
+        Provision an existing EMPTY project: schema, security SQL, storage, auth,
+        verify.
+
+  ./supabase.sh setup --pat TOKEN --ref <project-ref> \
+        [--google-client-id ID --google-client-secret SECRET] [--app-url URL] \
+        [--extra-redirect-urls "u1,u2"]
+        Also turns on Google sign-in. OPTIONAL and off by default: the client ID
+        and secret must be created by hand in the Google Cloud console, so this
+        only wires the Supabase half. Both Google flags are required together —
+        one alone is rejected rather than leaving the provider half-configured.
+        Email/password works with none of these.
 
   ./supabase.sh setup --pat TOKEN --create "my-isotope" [--org ID] [--region R]
         Create a free project, wait for the database, then provision it.

@@ -685,7 +685,12 @@ if (SCHEMA) {
     return {
       bytes,
       kb: Math.round(bytes / 1024),
-      lines: t.split('\n').length,
+      // Count a trailing newline as a TERMINATOR, not as the start of an extra empty
+      // line. `t.split('\n').length` counts the empty segment after the final "\n",
+      // which is one too many for any POSIX text file — it made the validator warn
+      // that the docs' "6,323 lines" was stale when the docs were exactly right.
+      // This is the same rule `wc -l` applies, and the same one git applies.
+      lines: (t.match(/\n/g) || []).length + (t.endsWith('\n') ? 0 : 1),
       statements: splitStatements(t).filter((s) => { const b = bareStmt(s); return b && !WRAPPER.test(b); }).length,
     };
   };
@@ -791,15 +796,22 @@ if (existsSync(DOCS_DIR)) {
   if (deadAnchors === 0) ok('Every internal anchor in docs resolves to a real section');
 }
 
-// 2d. Canonical host. Every page shipped a <link rel="canonical"> pointing at a
-//     GitHub Pages URL that has never resolved, because Pages was never enabled on
-//     the repository. That is the worst kind of SEO bug: it does not look broken,
-//     it works exactly as specified, and it tells every crawler the authoritative
-//     URL is a host that does not exist. The live host comes from server.mjs's
-//     siteOrigin() default — not package.json's homepage, which is itself stale
-//     (isotopeai.in, while the running site and all 23 README links use
-//     isotopeai.dpdns.org). Trusting homepage here would have turned this check
-//     into 22 false errors against a correct deployment.
+// 2d. Canonical host. Every page once shipped a <link rel="canonical"> pointing at a
+//     GitHub Pages URL, because Pages was never enabled on the repository. That is the
+//     worst kind of SEO bug: it does not look broken, it works exactly as specified, and
+//     it tells every crawler the authoritative URL is a host that does not exist.
+//
+//     The live host is isotopeai.dpdns.org, and it is NOT a placeholder. Verified against
+//     the Vercel API on 2026-10-09: it is an assigned domain on project
+//     prj_rV3qMKTZN3qwZYe1cLe75CDuyKan with verified=true, serving live traffic. An earlier
+//     version of this comment claimed the host "has never resolved" — that was wrong. What
+//     never resolved was the GitHub Pages host, which was a different host from the start.
+//     Docs at /docs/ are in fact the canonical site for this project.
+//
+//     The host comes from server.mjs's siteOrigin() default — NOT package.json's homepage,
+//     which is itself stale (isotopeai.in, while the running site and all 23 README links use
+//     isotopeai.dpdns.org). Trusting homepage here would have turned this check into 22 false
+//     errors against a correct deployment.
 info('Checking canonical URLs...');
 const serverTxtAll = readText('server.mjs') || '';
 let canonHost = null;
@@ -829,7 +841,12 @@ if (canonHost) {
   if (badCanon.length) {
     for (const b of badCanon) error(`canonical URL points at the wrong host: ${b} (expected ${canonHost})`);
   } else {
-    ok(`All canonical URLs use the package.json homepage host (${canonHost})`);
+    // Name the source the check actually used. It used to say "package.json homepage"
+    // while reading server.mjs's siteOrigin() — package.json's homepage is isotopeai.in,
+    // a different host, so the label asserted a source that had nothing to do with the
+    // check. A check whose label lies about its own evidence is the same failure mode as
+    // a doc that lies about the code.
+    ok(`All canonical URLs use the live site host from server.mjs siteOrigin() (${canonHost})`);
   }
 
   // The same string is injected into every served page as a docs badge.
@@ -877,6 +894,202 @@ if (CLMD && pkgVersion !== 'unknown') {
   if (!m) warn('CHANGELOG.md has no versioned entry');
   else if (m[1] !== pkgVersion) warn(`CHANGELOG.md latest entry is ${m[1]}, package.json is ${pkgVersion}`);
   else ok('CHANGELOG.md latest entry matches package.json');
+}
+
+// 5. Counts that describe the CODE, not the schema. Everything above reads the SQL
+//    dumps; these read server.mjs and the built search index, so a drift in the
+//    bundle layer cannot pass unnoticed.
+//
+//    Three separate claims shipped wrong before this check existed:
+//      - "23 patched bundles" in architecture.html, after commit d3768c6 removed five
+//        patchers that could never fire. The count was frozen at the pre-removal
+//        total and nothing compared it to the source.
+//      - "245 sections indexed" in dashboard.html, against a search index that says
+//        n=253. The index is REBUILT by CI, so the doc drifts the moment it runs.
+//      - "22 pages" / "22 documentation pages" in dashboard.html, which counted
+//        404.html. The drawer — the thing the search actually reads — has 21 entries.
+//
+//    Every number below is derived from the file it describes. Nothing is hardcoded.
+info('Checking docs against the bundle layer...');
+if (serverTxtAll) {
+  // 5a. Bundle patchers.
+  const patchers = [...new Set([...serverTxtAll.matchAll(/^function\s+(getPatched[A-Za-z0-9_]*)/gm)].map((m) => m[1]))];
+  const bundlePatchers = patchers.filter((p) => p.endsWith('Bundle'));
+  if (bundlePatchers.length === 0) {
+    warn('no getPatched*Bundle functions found in server.mjs — cannot check patcher claims');
+  } else {
+    let badPatchers = 0;
+    const PATCHER_RE = /(\d+)\s*patched\s+bundles?/gi;
+    for (const [file, html] of Object.entries(DOCS_ALL)) {
+      if (file === 'changelog.html') continue;          // a record of a past release
+      const text = plain(html);
+      for (const m of text.matchAll(PATCHER_RE)) {
+        const v = +m[1];
+        // Accept either the bundle-only count or the wider getPatched* surface, because
+        // both are true statements about the code and only one is being claimed.
+        if (v !== bundlePatchers.length && v !== patchers.length) {
+          const where = text.slice(Math.max(0, m.index - 60), m.index + 60).trim();
+          error(`docs/${file} says ${v} patched bundles but server.mjs defines ${bundlePatchers.length} getPatched*Bundle (${patchers.length} getPatched* total) — near: …${where}…`);
+          badPatchers++;
+        }
+      }
+    }
+    if (badPatchers === 0) {
+      ok(`Bundle-patcher counts in docs match server.mjs (${bundlePatchers.length} getPatched*Bundle, ${patchers.length} getPatched* total)`);
+    }
+  }
+
+  // 5b. Indexed-section count. docs/assets/search-index.json is the artefact the
+  //     dashboard's search box actually runs against, so its `n` is the truth.
+  const SIDX = readText('docs/assets/search-index.json');
+  if (SIDX) {
+    try {
+      const idx = JSON.parse(SIDX);
+      const n = Number(idx.n);
+      if (Number.isFinite(n) && n > 0) {
+        let badIdx = 0;
+        const IDX_RE = /(\d[\d,]*)\s*(?:indexed\s+)?sections?\s+indexed/gi;
+        for (const [file, html] of Object.entries(DOCS_ALL)) {
+          if (file === 'changelog.html') continue;
+          const text = plain(html);
+          for (const m of text.matchAll(IDX_RE)) {
+            const v = +m[1].replace(/,/g, '');
+            if (v !== n) {
+              const where = text.slice(Math.max(0, m.index - 60), m.index + 60).trim();
+              error(`docs/${file} says ${v} sections indexed but docs/assets/search-index.json says n=${n} — near: …${where}…`);
+              badIdx++;
+            }
+          }
+        }
+        if (badIdx === 0) ok(`Indexed-section counts in docs match search-index.json (n=${n})`);
+      } else {
+        warn('search-index.json has no usable `n` — cannot check section-count claims');
+      }
+    } catch {
+      warn('docs/assets/search-index.json is not valid JSON — cannot check section-count claims');
+    }
+  } else {
+    warn('docs/assets/search-index.json not found — cannot check section-count claims');
+  }
+
+  // 5c. Documentation page count. The oracle is the SET OF CONTENT PAGES, which is the
+  //     html files minus the error page. An earlier version of this check derived the
+  //     number from the drawer and flagged the docs as stale for saying 22. That was the
+  //     CHECK being wrong, not the doc: 404.html is a deliberate error page and appears in
+  //     no drawer, so drawer-count (21) and content-page-count (22) are both correct and
+  //     mean different things. An error page is not a documentation page.
+  //     Derived from the files themselves so it cannot drift from what ships.
+  if (existsSync(DOCS_DIR)) {
+    const allHtml = readdirSync(DOCS_DIR).filter(f => f.endsWith('.html'));
+    const ERROR_PAGES = new Set(['404.html']);
+    const contentPages = allHtml.filter(f => !ERROR_PAGES.has(f)).length;
+    if (allHtml.length === 0) {
+      warn('docs/ has no html files — cannot check page-count claims');
+    } else {
+      let badPages = 0;
+      const PAGE_RE = /(\d+)\s*(?:documentation\s+)?pages\b/gi;
+      for (const [file, html] of Object.entries(DOCS_ALL)) {
+        if (file === 'changelog.html') continue;
+        const text = plain(html);
+        for (const m of text.matchAll(PAGE_RE)) {
+          const v = +m[1];
+          if (v !== contentPages) {
+            const where = text.slice(Math.max(0, m.index - 60), m.index + 60).trim();
+            error(`docs/${file} says ${v} pages but docs/ holds ${contentPages} content pages (${allHtml.length} html minus ${[...ERROR_PAGES].join(', ')}) — near: …${where}…`);
+            badPages++;
+          }
+        }
+      }
+      if (badPages === 0) {
+        ok(`Documentation page counts match the content-page set (${contentPages} pages, ${allHtml.length} html files minus ${[...ERROR_PAGES].join(', ')})`);
+      }
+    }
+  }
+}
+
+// 6. Source wiring and served-copy parity are separate from live HTTP proof.
+// A badge href alone proves neither a static mount nor exemption from the delayed
+// client auth guard. Check the actual mount, directory-index branch and allowlist.
+if (serverTxtAll) {
+  const allowlist = serverTxtAll.match(/var PUBLIC_PATHS\s*=\s*\[([\s\S]*?)\];/)?.[1] || '';
+  const wiring = /const filePath\s*=\s*path\.join\(PUBLIC_DIR,\s*safePath\)/.test(serverTxtAll)
+    && /const idxInDir\s*=\s*path\.join\(filePath,\s*['"]index\.html['"]\)/.test(serverTxtAll)
+    && /serveFile\(idxInDir\)/.test(serverTxtAll)
+    && /['"]\/docs['"]/.test(allowlist) && /['"]\/docs\/['"]/.test(allowlist)
+    && /"includeFiles"\s*:\s*"public\/\*\*"/.test(readText('vercel.json') || '');
+  if (wiring) ok('Source wiring: public static mount, docs auth allowlist and deployment inclusion present');
+  else error('Source wiring: docs static mount, directory index, auth allowlist or deployment inclusion missing');
+}
+
+// Only intended web content ships here, not preview/ or scratch Markdown.
+// Traverse assets as well as HTML; stale JS/CSS can resurrect removed UI.
+if (existsSync(DOCS_DIR)) {
+  const shipped = /\.(?:html|css|js|mjs|json|svg|png|jpe?g|webp|gif|ico|woff2?|ttf|otf)$/i;
+  const mismatches = [];
+  let compared = 0;
+  function compareServed(dir, rel = '') {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const next = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        if (next === 'assets' || next.startsWith('assets/')) compareServed(join(dir, entry.name), next);
+      } else if (shipped.test(entry.name)) {
+        const source = join(dir, entry.name), served = join(ROOT, 'public/docs', next);
+        compared++;
+        if (!existsSync(served) || !readFileSync(source).equals(readFileSync(served))) mismatches.push(next);
+      }
+    }
+  }
+  compareServed(DOCS_DIR);
+  if (mismatches.length) error(`Served-copy parity: ${mismatches.length}/${compared} docs files missing or stale`, mismatches.join(', '));
+  else ok(`Served-copy parity: ${compared} intended docs content/assets match public/docs byte-for-byte`);
+}
+
+// 7. Structured data. A docs site with no JSON-LD forfeits rich results, and no
+//    check had ever looked. Derived: report the real number per page rather than
+//    asserting one.
+if (existsSync(DOCS_DIR)) {
+  let withLd = 0;
+  const noLd = [];
+  for (const [file, html] of Object.entries(DOCS_ALL)) {
+    if (file === '404.html') continue;                 // an error page should not be marked up
+    if (/application\/ld\+json/i.test(html)) withLd++;
+    else noLd.push(file);
+  }
+  if (withLd === 0) {
+    warn(`No docs page carries JSON-LD structured data (0/${Object.keys(DOCS_ALL).length - 1})`);
+  } else {
+    ok(`${withLd} docs page(s) carry JSON-LD structured data`);
+  }
+
+  // Structured data that does not parse is worse than none: a crawler silently drops
+  // the block, so a page can look "marked up" while earning nothing. Parse every block
+  // and require its `url` to agree with that page's own canonical. A mismatch means the
+  // two disagree about where the page lives — the exact class of bug that let 22
+  // canonicals point at the auth wall while this check reported a pass.
+  if (withLd > 0) {
+    let ldBad = 0;
+    for (const [file, html] of Object.entries(DOCS_ALL)) {
+      if (file === '404.html') continue;
+      const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+      const canon = (html.match(/<link rel="canonical" href="([^"]*)"/) || [])[1];
+      if (!blocks.length) continue;
+      for (const b of blocks) {
+        let obj;
+        try {
+          obj = JSON.parse(b[1]);
+        } catch (e) {
+          error(`docs/${file} has a JSON-LD block that is not valid JSON — crawlers will drop it silently`);
+          ldBad++;
+          continue;
+        }
+        if (canon && obj.url && obj.url !== canon) {
+          error(`docs/${file} JSON-LD url ${obj.url} disagrees with its canonical ${canon}`);
+          ldBad++;
+        }
+      }
+    }
+    if (ldBad === 0) ok('Every JSON-LD block parses and agrees with its page canonical');
+  }
 }
 
 // ── Summary ───────────────────────────────────────────────────────────────────
