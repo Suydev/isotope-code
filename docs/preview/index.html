@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" data-density="comfortable" data-dyslexia-font="disabled"
+      data-performance="standard" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IsotopeAI — live preview</title>
+<meta name="description" content="A self-contained, interactive replica of the IsotopeAI study app, rebuilt from the running app's own measurements. Sample data only.">
+<meta name="color-scheme" content="light dark">
+
+<!--
+  WHY THIS PAGE EXISTS, and how it was built.
+
+  The previous preview was rejected: "totally fake… doesn't match my UI, match
+  the alignment, match anything. It's just a dummy." It was built from a written
+  specification without ever opening the running application, and it carried a
+  dark Bridgemind palette while the real app renders LIGHT.
+
+  This one is built from OBSERVED measurements taken by driving the running app
+  at http://127.0.0.1:3000 while signed in: real routes, real copy, real box
+  geometry, real colours read out of getComputedStyle, and real control labels.
+  Every one of those facts is written down in
+  ~/iso-sync/preview/OBSERVED.md with the numbers attached.
+
+  DATA IS FULLY SYNTHETIC.
+    Nothing here comes from the owner's backup export, the live account, or any
+    real credential. Every figure is invented, and every invented figure carries
+    a visible "sample" marker where it appears. The demo user's name is invented
+    too. Do not present any number on this page as the owner's real data.
+
+  WHY PLAIN <script>, NOT A BUNDLE
+    It must work from file://, offline, and from a stale cache. That rules out
+    fetch() of a sibling JSON and rules out <script type="module"> (unreliable on
+    the Termux/obscura build used to verify it). So the corpus and the code are
+    both scripts, in dependency order.
+-->
+
+<link rel="stylesheet" href="./styles/tokens.css">
+<link rel="stylesheet" href="./styles/components.css">
+
+<!-- data.js → store.js → dom.js → views-* → app.js. Order is the dependency order. -->
+<script src="./data.js"></script>
+<script src="./store.js"></script>
+<script src="./dom.js"></script>
+<script src="./views-a.js"></script>
+<script src="./views-b.js"></script>
+<script src="./views-c.js"></script>
+<script src="./app.js"></script>
+
+<style>
+  /* Only what must exist before the first script runs. */
+  html, body { margin: 0; background: #ffffff; color: #18181b; }
+  .boot-splash {
+    display: grid; place-content: center; gap: 8px; min-height: 100vh;
+    text-align: center; font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  .boot-splash__mark { font-weight: 700; letter-spacing: .22em; font-size: 14px; }
+  .boot-splash__sub { color: #a1a1aa; font-size: 12px; letter-spacing: .16em; }
+  .boot-splash__cap { color: #a1a1aa; font-size: 13px; margin-top: 8px; }
+  .noscript { padding: 24px; font-family: ui-sans-serif, system-ui, sans-serif; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="boot-splash">
+    <div class="boot-splash__mark">ISOTOPE</div>
+    <div class="boot-splash__sub">STUDY SYSTEM</div>
+    <div class="boot-splash__cap">Tasks · Focus · Syllabus</div>
+  </div>
+</div>
+
+<noscript>
+  <div class="noscript">
+    <strong>IsotopeAI live preview</strong>
+    <p>This page is an interactive replica and needs JavaScript. Every figure it
+       shows is synthetic sample data, not anyone’s real study records.</p>
+  </div>
+</noscript>
+
+</body>
+</html>

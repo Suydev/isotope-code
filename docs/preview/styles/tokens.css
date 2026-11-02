@@ -1,0 +1,104 @@
+/* ============================================================================
+   tokens.css — design tokens MEASURED from the running app.
+
+   Every value here was read out of the live DOM / computed styles of
+   http://127.0.0.1:3000 while signed in. Provenance for each is in
+   ~/iso-sync/preview/OBSERVED.md. Nothing is inherited from Bridgemind or from
+   the previous (rejected) preview: that one was built from a spec without ever
+   opening the app, and its palette is visibly wrong against the real thing
+   (it was dark #0d0e11; the real app renders LIGHT).
+
+   The single most important fact: THE APP IS LIGHT. body = #ffffff, main = #f4f4f5.
+   ========================================================================= */
+
+:root {
+  /* ── Surfaces, exactly as getComputedStyle reported them ──────────────── */
+  --bg:            #ffffff;   /* document.body.backgroundColor rgb(255,255,255) */
+  --surface:       #f4f4f5;   /* <main>.backgroundColor       rgb(244,244,245)     */
+  --rail:          rgba(255, 255, 255, 0.82);  /* aside background, measured    */
+  --card:          #ffffff;
+  --card-alt:      #fafafa;
+  --overlay:       rgba(0, 0, 0, 0.4);
+
+  /* ── Ink ──────────────────────────────────────────────────────────────── */
+  --ink:           rgb(24, 24, 27);    /* body color   → #18181b              */
+  --ink-strong:    rgb(9, 9, 11);     /* headings     → #09090b              */
+  --ink-muted:     rgb(113, 113, 122); /* h3 eyebrows  → #71717a              */
+  --ink-faint:     rgb(161, 161, 170); /* settings nav group labels → #a1a1aa  */
+  --ink-line:      rgb(228, 228, 231); /* borders      → #e4e4e7              */
+
+  /* ── Accent: the app writes a --brand-* HSL scale onto <html>. Measured  ──
+     --brand-50: 255 249 245 is an ORANGE ramp (warm). Keep that. */
+  --brand-50:  255 249 245;
+  --brand-100: 254 226 205;
+  --brand-200: 254 202 166;
+  --brand-300: 253 174 118;
+  --brand-400: 251 146  60;
+  --brand-500: 249 115  22;   /* f97316 — the app's default accentColor */
+  --brand-600: 234  88  12;
+  --brand-700: 194  65  12;
+  --brand-ink: #c2410c;
+
+  /* ── Type. Measured font stack, verbatim from the computed style. ──────── */
+  --font: ui-sans-serif, system-ui, -apple-system, blinkmacsystemfont,
+          "Segoe UI", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Heading sizes are per-surface in the real app and are NOT normalised:
+     dashboard h1 32/600, onboarding h1 36/600, focus header h1 20/700,
+     community h1 37.6/720, settings nav group 12/700. The sizes below are the
+     ones each surface actually uses; views pick them explicitly. */
+  --fs-h1-dash:    32px;  --fw-h1-dash:    600;
+  --fs-h1-onboard: 36px;  --fw-h1-onboard: 600;
+  --fs-h1-focus:   20px;  --fw-h1-focus:   700;
+  --fs-h1-comm:    37.6px; --fw-h1-comm:   720;  /* fractional, as measured */
+  --fs-h2:         20px;  --fw-h2:         600;
+  --fs-h2-lg:      30px;  --fw-h2-lg:      700;  /* syllabus empty state */
+  --fs-h3:         18px;  --fw-h3:         600;
+  --fs-h3-sm:      16px;  --fw-h3-sm:      600;
+  --fs-eyebrow:    12px;  --fw-eyebrow:    700;  /* uppercase trackers     */
+  --fs-body:       16px;
+  --fs-sm:         14px;
+  --fs-xs:         12px;
+
+  /* ── Geometry, measured ───────────────────────────────────────────────── */
+  --rail-w:      88px;   /* aside measured 88×720                            */
+  --rail-tile-w: 63px;   /* nav tiles 63×44                                  */
+  --rail-tile-h: 44px;
+  --rail-pad:    12px;   /* tiles sit at x=12                                */
+  --rail-step:   48px;   /* and step 48px down the rail                      */
+  --rail-top:   116px;   /* first tile y                                      */
+
+  /* Dashboard grid, measured: left column 592 wide, right 400–437. */
+  --dash-left:  592px;
+  --dash-right: 437px;
+  --gap:        16px;
+  --pad-card:   20px;
+
+  --radius-sm:  8px;
+  --radius:    12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow:    0 1px 3px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --focus-ring: 0 0 0 2px #fff, 0 0 0 4px var(--brand-500);
+}
+
+/* The app toggles dark mode via a sidebar control labelled
+   "Switch to dark mode". This preview implements that toggle, so the dark
+   values exist — but they are NOT observed measurements, they are a plain
+   inversion of the measured light ramp. Flagged as such in OBSERVED.md §5. */
+[data-theme='dark'] {
+  --bg:          #0d0e11;
+  --surface:     #16171a;
+  --rail:        rgba(13, 14, 17, 0.86);
+  --card:        #16171a;
+  --card-alt:    #1c1d21;
+  --ink:         #d4d4d8;
+  --ink-strong:  #fafafa;
+  --ink-muted:   #a1a1aa;
+  --ink-faint:   #71717a;
+  --ink-line:    #2a2b30;
+}
