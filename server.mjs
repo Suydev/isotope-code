@@ -4650,49 +4650,37 @@ function getPatchedCommunityBundle() {
     // Store/Events page-level render paths were REMOVED in the current build
     // (Community-CEnEgsrd.js contains no "store"/"events" feature switch).
     // The hub-cards patch above already strips the hub nav entries.
-    const CRASH_FROM = 'j.handle.startsWith("student_")';
-    const CRASH_TO   = 'j.handle?.startsWith("student_")';
-    if (raw.includes(CRASH_FROM)) {
-      raw = raw.replace(CRASH_FROM, CRASH_TO);
-      console.log('[CommunityCrashFix] null-safe startsWith guard added');
-    }
-    // Fix: h.group.subjects is not iterable (subjects can be null from RPC)
-    const SUBJ_FROM = '...h.group.subjects]';
-    const SUBJ_TO   = '...(h.group.subjects||[])]';
-    if (raw.includes(SUBJ_FROM)) {
-      raw = raw.replace(SUBJ_FROM, SUBJ_TO);
-      console.log('[CommunityCrashFix] null-safe subjects spread');
-    }
-    // Fix: b.data?.buddies.filter(...) — buddies can be undefined when the
-    // overview RPC fails or returns a payload without the key; the first ?.
-    // stops at b.data and the bare .filter still throws.
-    const BUDDIES_FROM = 'b.data?.buddies.filter(';
-    const BUDDIES_TO   = '(b.data?.buddies||[]).filter(';
-    if (raw.includes(BUDDIES_FROM)) {
-      raw = raw.split(BUDDIES_FROM).join(BUDDIES_TO);
-      console.log('[CommunityCrashFix] null-safe buddies filter guard added');
-    }
-    // Fix: tab call sites pass raw b.data.buddies/groups/groupRequests into
-    // Xe (buddies tab), es (groups tab) without normalization — crash if the
-    // overview RPC omits those keys. Guard at each JSX prop site.
-    const TAB_BUDDIES_FROM = 'buddies:b.data.buddies,';
-    const TAB_BUDDIES_TO   = 'buddies:b.data.buddies||[],';
-    if (raw.includes(TAB_BUDDIES_FROM)) {
-      raw = raw.split(TAB_BUDDIES_FROM).join(TAB_BUDDIES_TO);
-      console.log('[CommunityCrashFix] buddies tab prop guarded');
-    }
-    const TAB_GROUPS_FROM = 'groups:b.data.groups,';
-    const TAB_GROUPS_TO   = 'groups:b.data.groups||[],';
-    if (raw.includes(TAB_GROUPS_FROM)) {
-      raw = raw.split(TAB_GROUPS_FROM).join(TAB_GROUPS_TO);
-      console.log('[CommunityCrashFix] groups tab prop guarded');
-    }
-    const TAB_REQ_FROM = 'requests:b.data.groupRequests,';
-    const TAB_REQ_TO   = 'requests:b.data.groupRequests||[],';
-    if (raw.includes(TAB_REQ_FROM)) {
-      raw = raw.split(TAB_REQ_FROM).join(TAB_REQ_TO);
-      console.log('[CommunityCrashFix] groupRequests tab prop guarded');
-    }
+    // Dual-build guard table. The served bundle (old build) and the
+    // upstream bundle (new build) minify to different variable names, so
+    // each fix carries both anchor forms, tried in order. This keeps the
+    // currently-served assets patched AND makes an upstream migration safe:
+    // the same patcher fires on either bundle.
+    const isoGuard = (label, pairs) => {
+      for (const [from, to] of pairs) {
+        if (raw.includes(from)) {
+          raw = raw.split(from).join(to);
+          console.log('[CommunityCrashFix] ' + label + ' (anchor ' + from.length + ' chars)');
+          return true;
+        }
+      }
+      return false;
+    };
+    for (const [label, pairs] of [
+      ["null-safe startsWith guard", [["P=!y||y.handle.startsWith(\"student_\")||y.display", "P=!y||y.handle?.startsWith(\"student_\")||y.display"], ["j.handle.startsWith(\"student_\")", "j.handle?.startsWith(\"student_\")"]]],
+      ["null-safe subjects spread", [["...j.group.subjects].filter(Boolean).join(\", ", "...(j.group.subjects||[]).filter(Boolean).join(\", "], ["...h.group.subjects]", "...(h.group.subjects||[])]"]]],
+      ["null-safe buddies filter", [["g.data?.buddies.filter(", "(g.data?.buddies||[]).filter("], ["b.data?.buddies.filter(", "(b.data?.buddies||[]).filter("]]],
+      ["buddies tab prop", [["buddies:g.data.buddies,", "buddies:g.data.buddies||[],"], ["buddies:b.data.buddies,", "buddies:b.data.buddies||[],"]]],
+      ["groups tab prop", [["groups:g.data.groups,", "groups:g.data.groups||[],"], ["groups:b.data.groups,", "groups:b.data.groups||[],"]]],
+      ["groupRequests tab prop", [["requests:g.data.groupRequests,", "requests:g.data.groupRequests||[],"], ["requests:b.data.groupRequests,", "requests:b.data.groupRequests||[],"]]],
+      ["null-safe members filter", [["const P=j.members.filter(i=>i.status===\"studying\")", "const P=(j.members||[]).filter(i=>i.status===\"studying\")"], ["h.members.filter(n=>n.status===\"studying\")", "(h.members||[]).filter(n=>n.status===\"studying\")"]]],
+      ["null-safe subjects.slice (discovery card)", [["children:s.subjects.slice(0,3).map(r=>e.jsx(\"span\"", "children:(s.subjects||[]).slice(0,3).map(r=>e.jsx(\"span\""], ["t.subjects.slice(0,3)", "(t.subjects||[]).slice(0,3)"]]],
+      ["null-safe groups.slice", [["children:s.groups.slice(0,2).map(p=>e.jsx(me,{group", "children:(s.groups||[]).slice(0,2).map(p=>e.jsx(me,{group"], ["s.groups.slice(0,3)", "(s.groups||[]).slice(0,3)"]]],
+      ["null-safe subjects.join (group page)", [["z(j.group.subjects.join(\", \")),S(j.group.visibilit", "z((j.group.subjects||[]).join(\", \")),S(j.group.visibilit"], ["P(h.group.subjects.join(\", \"))", "P((h.group.subjects||[]).join(\", \"))"]]],
+      ["null-safe subjects.length (discovery card)", [["l.subjects.length>0&&e.jsxs(\"p\",{className", "(l.subjects||[]).length>0&&e.jsxs(\"p\",{className"], ["d.subjects.length>0", "(d.subjects||[]).length>0"]]],
+      ["null-safe subjects.join (discovery card)", [["children:\"Subjects:\"}),\" \",l.subjects.join(\", \")]})", "children:\"Subjects:\"}),\" \",(l.subjects||[]).join(\", \")]})"], ["d.subjects.join(\", \")", "(d.subjects||[]).join(\", \")"]]],
+      ["null-safe subjects.slice (group card)", [["children:s.subjects.slice(0,3).map(", "children:(s.subjects||[]).slice(0,3).map("], ["s.subjects.slice(0,3)", "(s.subjects||[]).slice(0,3)"]]],
+      ["null-safe members minutes filter", [["j.members.filter(i=>(i.minutes??0)>0).length", "(j.members||[]).filter(i=>(i.minutes??0)>0).length"], ["h.members.filter(n=>(n.minutes??0)>0).length", "(h.members||[]).filter(n=>(n.minutes??0)>0).length"]]]
+    ]) isoGuard(label, pairs);
     // Fix: mobile keyboard closed after every keystroke in community modals
     // (Create a group, Join with code, Privacy). The shared modal component runs
     // its focus-trap effect with a [onClose] dep array, and every call site
@@ -4957,15 +4945,15 @@ function getPatchedCommunityBundle() {
       console.log('[InviteCode] ownUserId selector (session fallback) added');
     } else { console.warn('[InviteCode] ownUserId selector anchor not found'); _criticalPatchFailures.push('invite-own-uid-def'); }
 
-    const OWN_UID_BUDDY_FROM = 'C&&e.jsx(as,{onClose:()=>S(!1),onNotice:f,ownUserId:b.data?.profile?.user_id})';
-    const OWN_UID_BUDDY_TO   = 'C&&e.jsx(as,{onClose:()=>S(!1),onNotice:f,ownUserId:b.data?.profile?.user_id??__uid})';
+    const OWN_UID_BUDDY_FROM = raw.includes('ownUserId:g.data?.profile?.user_id}),b&&e.jsx(ws,{onClose:') ? 'ownUserId:g.data?.profile?.user_id}),b&&e.jsx(ws,{onClose:' : 'C&&e.jsx(as,{onClose:()=>S(!1),onNotice:f,ownUserId:b.data?.profile?.user_id})';
+    const OWN_UID_BUDDY_TO   = raw.includes('ownUserId:g.data?.profile?.user_id}),b&&e.jsx(ws,{onClose:') ? 'ownUserId:g.data?.profile?.user_id??__uid}),b&&e.jsx(ws,{onClose:' : 'C&&e.jsx(as,{onClose:()=>S(!1),onNotice:f,ownUserId:b.data?.profile?.user_id??__uid})';
     if (raw.includes(OWN_UID_BUDDY_FROM)) {
       raw = raw.replace(OWN_UID_BUDDY_FROM, OWN_UID_BUDDY_TO);
       console.log('[InviteCode] buddy popup ownUserId fallback added');
     } else { console.warn('[InviteCode] buddy ownUserId anchor not found'); _criticalPatchFailures.push('invite-own-uid-buddy'); }
 
-    const OWN_UID_GROUP_FROM = 'l?e.jsx(ts,{groupId:l,viewerId:b.data.profile?.user_id';
-    const OWN_UID_GROUP_TO   = 'l?e.jsx(ts,{groupId:l,viewerId:b.data?.profile?.user_id??__uid';
+    const OWN_UID_GROUP_FROM = raw.includes('viewerId:g.data.profile?.user_id,onBack:()=>{o("groups")') ? 'viewerId:g.data.profile?.user_id,onBack:()=>{o("groups")' : 'l?e.jsx(ts,{groupId:l,viewerId:b.data.profile?.user_id';
+    const OWN_UID_GROUP_TO   = raw.includes('viewerId:g.data.profile?.user_id,onBack:()=>{o("groups")') ? 'viewerId:g.data?.profile?.user_id??__uid,onBack:()=>{o("groups")' : 'l?e.jsx(ts,{groupId:l,viewerId:b.data?.profile?.user_id??__uid';
     if (raw.includes(OWN_UID_GROUP_FROM)) {
       raw = raw.replace(OWN_UID_GROUP_FROM, OWN_UID_GROUP_TO);
       console.log('[InviteCode] group view viewerId fallback added');
