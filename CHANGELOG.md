@@ -7,6 +7,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Community crash-guard patchers now fire on both the served bundle and the upstream isotopeai.in build.** The 16 null-safety guards in `getPatchedCommunityBundle` were anchored to the old build's minified names only; after an upstream asset swap they would have silently no-opped. Each guard now carries both anchor forms (new upstream first, old served second) and the patcher tries them in order. Verified by execution against both real bundles: 16/16 fire on the served bundle and all targeted sites are guarded on the upstream bundle. The `OWN_UID_*` blocks keep their `_criticalPatchFailures` escalation labels and gained the upstream anchor as a fallback. `test-bundle-patch-escalation` still passes (mutates the shipped bundle, asserts every surviving patcher escalates).
+
 ### Backend
 
 - **Quota: continuous leaderboard/heartbeat polling replaced with period-boundary caching.** Polling `community_heartbeat` every 10-30s and `get_leaderboard` every 60s re-fetched the same ranking JSON each time, which Supabase's CDN bills as Cached Egress — enough to exhaust the 5 GB free tier in days. `/__leaderboard` now caches each ranking until its real recalculation boundary (daily to next midnight UTC, weekly → Monday UTC, monthly → the 1st), with a 25s throttle on presence pings and a 1h TTL on group leaderboards; join/leave/accept events bust the cache so the Groups tab still refreshes immediately. Disable with `DISABLE_LEADERBOARD_CACHE=1`. The Android APK mirrors this in its `window.fetch` override (`android-bridge.js`).

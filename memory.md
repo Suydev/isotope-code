@@ -5,6 +5,13 @@
 
 ---
 
+## 0b. PATCHER DUAL-BUILD ANCHORS (2026-11-04)
+
+- `getPatchedCommunityBundle` in `server.mjs` now carries BOTH anchor forms for each of its 16 null-safety guards: the upstream isotopeai.in form first, the served-build form second. Verified by execution: 16/16 fire on the served bundle, all sites guarded on the upstream bundle. This makes an upstream asset swap safe — the same patcher fires on either bundle.
+- The `OWN_UID_BUDDY`/`OWN_UID_GROUP` blocks stayed standalone (they push `invite-own-uid-*` into `_criticalPatchFailures`) and gained the upstream anchor as a fallback candidate. Do NOT merge them into the isoGuard table — that double-patches and breaks `test-bundle-patch-escalation`.
+- UPSTREAM DIVERGENCE (verified 2026-11-02, isotopeai.in): the new build REMOVED group chat (zero "chat"/"messages"/"getGroupMessages" in Community-C50D_1u4.js), the leaderboard tab (21→1), create-group button, and invite-code dialogs. The 7,940-char chat component lives ONLY in server.mjs (COMMUNITY_CHAT_COMPONENT_TO) — migrating bundles without re-authoring those anchors ships a Community page with no chat. Decision recorded in `docs/preview/UPSTREAM-SYNC-DECISION.md`.
+- Simple Mode chunks (SimpleFocus/SimpleTasks/SimpleToday/SimpleProgress/SimpleSettings/SimpleSyllabus/SimpleTaskRow/SimplePrimitives) exist in `public/assets/` byte-identical to upstream but are ORPHANS: the served App-CQ9mV4wu.js (22 KB) has zero refs to them; upstream App-Bl00Vir8.js (172 KB) dynamically imports all 8. Wiring them in requires replacing the App bundle and its 6 missing deps — part of the blocked migration.
+
 ## 0. LATEST STATE (2026-08-10 18:45 — pipapk Option A rebuild; CI pending)
 
 - **User directive (late night):** "see planning file of apk — you have overdone" → the plan is `pipapk.md` in the repo root (Option A RECOMMENDED): native PiP companion, NO WebView; 750ms poll of `GET /api/pip/state`; native card render; POST actions to `/api/pip/action`; auto system PiP 340:390; offline badge.
