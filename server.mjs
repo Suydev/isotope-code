@@ -4459,8 +4459,12 @@ function getPatchedNotifStore() {
     return null;
   }
 }
-const AI_PATCH_FROM = 'async getApiKey(n){const e=`ai_api_key_${n}`,t=await';
-const AI_PATCH_TO   = 'async getApiKey(n){if(typeof window!=="undefined"&&window.__IK__&&window.__IK__[n])return window.__IK__[n];const e=`ai_api_key_${n}`,t=await';
+// Dual-build anchors: upstream minifies the param to `i`; served build uses `n`.
+// Resolved inside getPatchedAiStore (raw is in scope there), not at module scope.
+const AI_PATCH_FROM_NEW = 'async getApiKey(i){const e=`ai_api_key_${i}`';
+const AI_PATCH_FROM_OLD = 'async getApiKey(n){const e=`ai_api_key_${n}`';
+const AI_PATCH_TO_NEW   = 'async getApiKey(i){if(typeof window!=="undefined"&&window.__IK__&&window.__IK__[i])return window.__IK__[i];const e=`ai_api_key_${i}`';
+const AI_PATCH_TO_OLD   = 'async getApiKey(n){if(typeof window!=="undefined"&&window.__IK__&&window.__IK__[n])return window.__IK__[n];const e=`ai_api_key_${n}`';
 let patchedAiStore = null;
 function getPatchedAiStore() {
   if (patchedAiStore) return patchedAiStore;
@@ -4470,13 +4474,16 @@ function getPatchedAiStore() {
     // not even a console.warn. The patch is what lets the app read a Gemini /
     // Groq key injected at runtime; without it every AI feature falls back to
     // asking the user for their own key, which looks like intended behaviour.
-    if (!raw.includes(AI_PATCH_FROM)) {
+    // Dual-build: upstream minifies the param to `i`; served build uses `n`.
+    const from = raw.includes(AI_PATCH_FROM_NEW) ? AI_PATCH_FROM_NEW : AI_PATCH_FROM_OLD;
+    const to   = raw.includes(AI_PATCH_FROM_NEW) ? AI_PATCH_TO_NEW   : AI_PATCH_TO_OLD;
+    if (!raw.includes(from)) {
       console.warn('[AiStorePatch] getApiKey anchor not found — runtime key injection disabled');
       noteAnchorMiss('aistore-runtime-key');
       patchedAiStore = Buffer.from(raw, 'utf8');
       return patchedAiStore;
     }
-    patchedAiStore = Buffer.from(raw.replace(AI_PATCH_FROM, AI_PATCH_TO), 'utf8');
+    patchedAiStore = Buffer.from(raw.replace(from, to), 'utf8');
   } catch (e) {
     console.warn('[AiStorePatch] read failed:', e && e.message);
     noteAnchorMiss('aistore-read-failed');
@@ -5324,8 +5331,11 @@ function getPatchedUseCommunityBundle() {
 // ── PWA manager patch: guard SW-triggered reloads ─────────────────────────────
 // The SW-update reload hook moved from PWAManager-* into usePWA-* in the
 // current build: `controlling` listener reloads when u.isUpdate is true.
-const PWA_RELOAD_FROM = 'u.isUpdate&&window.location.reload()';
-const PWA_RELOAD_TO   = 'u.isUpdate&&(typeof window.__isoReloadGuard===\'function\' ? window.__isoReloadGuard() : window.location.reload())';
+// Dual-build: upstream minifies the event var to `d`; served build uses `u`.
+const PWA_RELOAD_FROM = 'd.isUpdate&&window.location.reload()';
+const PWA_RELOAD_TO   = 'd.isUpdate&&(typeof window.__isoReloadGuard===\'function\' ? window.__isoReloadGuard() : window.location.reload())';
+const PWA_RELOAD_FROM_OLD = 'u.isUpdate&&window.location.reload()';
+const PWA_RELOAD_TO_OLD   = 'u.isUpdate&&(typeof window.__isoReloadGuard===\'function\' ? window.__isoReloadGuard() : window.location.reload())';
 let patchedPWAManagerBundle = null;
 function getPatchedPWAManagerBundle() {
   if (patchedPWAManagerBundle) return patchedPWAManagerBundle;
@@ -5333,7 +5343,10 @@ function getPatchedPWAManagerBundle() {
     let raw = fs.readFileSync(PWA_MANAGER_BUNDLE_ABS, 'utf8');
     if (raw.includes(PWA_RELOAD_FROM)) {
       raw = raw.replace(PWA_RELOAD_FROM, PWA_RELOAD_TO);
-      console.log('[PWAPatch] SW reload guard applied');
+      console.log('[PWAPatch] SW reload guard applied (upstream form)');
+    } else if (raw.includes(PWA_RELOAD_FROM_OLD)) {
+      raw = raw.replace(PWA_RELOAD_FROM_OLD, PWA_RELOAD_TO_OLD);
+      console.log('[PWAPatch] SW reload guard applied (served form)');
     } else {
       console.warn('[PWAPatch] Reload patch string not found in PWAManager bundle');
     }
